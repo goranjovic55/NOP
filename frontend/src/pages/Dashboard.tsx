@@ -21,10 +21,10 @@ const Dashboard: React.FC = () => {
   ]);
 
   const [assetTypes] = useState([
-    { name: 'Servers', value: 35, color: '#3b82f6' },
-    { name: 'Workstations', value: 45, color: '#10b981' },
-    { name: 'Network Devices', value: 15, color: '#f59e0b' },
-    { name: 'IoT Devices', value: 5, color: '#ef4444' },
+    { name: 'Servers', value: 35, color: '#ff0040' },
+    { name: 'Workstations', value: 45, color: '#8b5cf6' },
+    { name: 'Network Devices', value: 15, color: '#00ff88' },
+    { name: 'IoT Devices', value: 5, color: '#00d4ff' },
   ]);
 
   useEffect(() => {
@@ -40,15 +40,15 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: string }> = 
-    ({ title, value, icon, color }) => (
-    <div className="dashboard-card p-6">
+  const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: string; glowColor: string }> = 
+    ({ title, value, icon, color, glowColor }) => (
+    <div className="dashboard-card p-6 hover:shadow-cyber">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-slate-400 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-white mt-1">{value}</p>
+          <p className="text-cyber-gray-light text-sm font-medium uppercase tracking-wider">{title}</p>
+          <p className={`text-2xl font-bold mt-1 font-terminal ${color}`}>{value}</p>
         </div>
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color}`}>
+        <div className={`w-12 h-12 border flex items-center justify-center ${glowColor}`}>
           <span className="text-2xl">{icon}</span>
         </div>
       </div>
@@ -62,26 +62,30 @@ const Dashboard: React.FC = () => {
         <StatCard
           title="Total Assets"
           value={stats.totalAssets || 127}
-          icon="🖥️"
-          color="bg-blue-600"
+          icon="⬢"
+          color="text-cyber-blue cyber-glow"
+          glowColor="border-cyber-blue"
         />
         <StatCard
           title="Online Assets"
           value={stats.onlineAssets || 89}
-          icon="✅"
-          color="bg-green-600"
+          icon="◉"
+          color="text-cyber-green cyber-glow"
+          glowColor="border-cyber-green"
         />
         <StatCard
           title="Active Scans"
           value={stats.activeScans || 3}
-          icon="🔍"
-          color="bg-yellow-600"
+          icon="◈"
+          color="text-cyber-purple cyber-glow"
+          glowColor="border-cyber-purple"
         />
         <StatCard
           title="Vulnerabilities"
           value={stats.vulnerabilities || 12}
-          icon="⚠️"
-          color="bg-red-600"
+          icon="⚠"
+          color="text-cyber-red cyber-glow"
+          glowColor="border-cyber-red"
         />
       </div>
 
@@ -89,39 +93,59 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Traffic Chart */}
         <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Network Traffic</h3>
+          <h3 className="text-lg font-semibold text-cyber-red mb-4 uppercase tracking-wider cyber-glow-red">
+            &gt; Network Traffic Analysis
+          </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trafficData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
+                <CartesianGrid strokeDasharray="1 1" stroke="#2a2a2a" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#666666" 
+                  fontSize={12}
+                  fontFamily="JetBrains Mono"
+                />
+                <YAxis 
+                  stroke="#666666" 
+                  fontSize={12}
+                  fontFamily="JetBrains Mono"
+                />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#1f2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '8px'
+                    backgroundColor: '#111111', 
+                    border: '1px solid #ff0040',
+                    borderRadius: '2px',
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: '12px'
                   }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="value" 
-                  stroke="#3b82f6" 
+                  stroke="#ff0040" 
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  dot={{ fill: '#ff0040', strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 5, stroke: '#ff0040', strokeWidth: 2, fill: '#ff0040' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-slate-400">Current: {stats.trafficVolume}</span>
-            <span className="text-green-400">↗ +12% from yesterday</span>
+          <div className="mt-4 flex items-center justify-between text-sm font-terminal">
+            <span className="text-cyber-gray-light">
+              &gt; Current: <span className="text-cyber-green">{stats.trafficVolume}</span>
+            </span>
+            <span className="text-cyber-green">
+              ↗ +12% from yesterday
+            </span>
           </div>
         </div>
 
         {/* Asset Types Chart */}
         <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Asset Distribution</h3>
+          <h3 className="text-lg font-semibold text-cyber-purple mb-4 uppercase tracking-wider cyber-glow-purple">
+            &gt; Asset Distribution
+          </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -131,8 +155,10 @@ const Dashboard: React.FC = () => {
                   cy="50%"
                   innerRadius={60}
                   outerRadius={100}
-                  paddingAngle={5}
+                  paddingAngle={2}
                   dataKey="value"
+                  stroke="#2a2a2a"
+                  strokeWidth={1}
                 >
                   {assetTypes.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -140,9 +166,11 @@ const Dashboard: React.FC = () => {
                 </Pie>
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#1f2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '8px'
+                    backgroundColor: '#111111', 
+                    border: '1px solid #8b5cf6',
+                    borderRadius: '2px',
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: '12px'
                   }}
                 />
               </PieChart>
@@ -152,10 +180,12 @@ const Dashboard: React.FC = () => {
             {assetTypes.map((type, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <div 
-                  className="w-3 h-3 rounded-full" 
+                  className="w-3 h-3" 
                   style={{ backgroundColor: type.color }}
                 ></div>
-                <span className="text-slate-300 text-sm">{type.name}</span>
+                <span className="text-cyber-gray-light text-sm font-terminal uppercase tracking-wide">
+                  {type.name}
+                </span>
               </div>
             ))}
           </div>
@@ -164,24 +194,27 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Activity */}
       <div className="dashboard-card p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-        <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-cyber-green mb-4 uppercase tracking-wider cyber-glow">
+          &gt; System Activity Log
+        </h3>
+        <div className="space-y-2">
           {[
-            { time: '2 minutes ago', event: 'New asset discovered: 192.168.1.45', type: 'info' },
-            { time: '5 minutes ago', event: 'Scan completed on subnet 192.168.1.0/24', type: 'success' },
-            { time: '12 minutes ago', event: 'High vulnerability detected on server-01', type: 'warning' },
-            { time: '18 minutes ago', event: 'User admin logged in', type: 'info' },
-            { time: '25 minutes ago', event: 'Backup completed successfully', type: 'success' },
+            { time: '02:34:12', event: 'New asset discovered: 192.168.1.45', type: 'info' },
+            { time: '02:29:08', event: 'Scan completed on subnet 192.168.1.0/24', type: 'success' },
+            { time: '02:22:45', event: 'High vulnerability detected on server-01', type: 'warning' },
+            { time: '02:16:33', event: 'User admin logged in', type: 'info' },
+            { time: '02:09:17', event: 'Backup completed successfully', type: 'success' },
           ].map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-slate-800 rounded-lg">
-              <div className={`w-2 h-2 rounded-full ${
-                activity.type === 'success' ? 'bg-green-500' :
-                activity.type === 'warning' ? 'bg-yellow-500' :
-                'bg-blue-500'
-              }`}></div>
-              <div className="flex-1">
-                <p className="text-white text-sm">{activity.event}</p>
-                <p className="text-slate-400 text-xs">{activity.time}</p>
+            <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors duration-300">
+              <div className={`w-2 h-2 ${
+                activity.type === 'success' ? 'bg-cyber-green' :
+                activity.type === 'warning' ? 'bg-cyber-red' :
+                'bg-cyber-blue'
+              } cyber-pulse`}></div>
+              <div className="flex-1 font-terminal">
+                <p className="text-cyber-gray-light text-sm">
+                  <span className="text-cyber-purple">[{activity.time}]</span> {activity.event}
+                </p>
               </div>
             </div>
           ))}
