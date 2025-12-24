@@ -1,0 +1,303 @@
+version: '3.8'
+
+services:
+  # Core Services (Always On)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "12000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8000
+      - REACT_APP_WS_URL=ws://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - nop-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-change-this
+      - ADMIN_PASSWORD=changeme
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./volumes/evidence:/app/evidence
+      - ./volumes/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nop-network
+    restart: unless-stopped
+    privileged: true
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=nop
+      - POSTGRES_USER=nop
+      - POSTGRES_PASSWORD=nop_password
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+    networks:
+      - nop-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - ./volumes/redis:/data
+    networks:
+      - nop-network
+    restart: unless-stopped
+
+  # Discovery Service
+  discovery-worker:
+    build:
+      context: ./services/discovery
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+
+  # Traffic Analysis
+  ntopng:
+    image: ntop/ntopng:stable
+    container_name: nop-ntopng
+    command: >
+      --interface any
+      --http-port 3001
+      --data-dir /var/lib/ntopng
+      --pid /var/lib/ntopng/ntopng.pid
+      --local-networks "172.18.0.0/16,172.19.0.0/16"
+      --httpdocs-dir /usr/share/ntopng/httpdocs
+      --scripts-dir /usr/share/ntopng/scripts
+      --redis nop-redis:6379
+      --disable-login
+    ports:
+      - "3001:3001"
+    volumes:
+      - ntopng_data:/var/lib/ntopng
+    networks:
+      - nop-network
+      - test-network
+    depends_on:
+      - redis
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  # On-Demand Services (Profiles)
+  scanner:
+    build:
+      context: ./services/scanner
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./volumes/evidence:/app/evidence
+    network_mode: host
+    privileged: true
+    restart: "no"
+    profiles:
+      - scanning
+
+  ssh-proxy:
+    build:
+      context: ./services/proxy
+      dockerfile: Dockerfile.ssh
+    environment:
+      - DATABASE_URL=postgresql://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - nop-network
+    restart: "no"
+    profiles:
+      - access
+
+  # Test Environment Services
+  test-ubuntu:
+    image: ubuntu:22.04
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y openssh-server nginx curl wget net-tools iputils-ping &&
+      mkdir -p /var/run/sshd &&
+      echo 'root:testpass' | chpasswd &&
+      sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+      service ssh start &&
+      service nginx start &&
+      tail -f /dev/null
+      "
+    ports:
+      - "2222:22"
+      - "8080:80"
+    networks:
+      - test-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  test-centos:
+    image: centos:7
+    command: >
+      bash -c "
+      yum update -y &&
+      yum install -y openssh-server httpd curl wget net-tools iputils &&
+      ssh-keygen -A &&
+      echo 'root:testpass' | chpasswd &&
+      sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+      /usr/sbin/sshd -D &
+      httpd -D FOREGROUND &
+      tail -f /dev/null
+      "
+    ports:
+      - "2223:22"
+      - "8081:80"
+    networks:
+      - test-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  test-windows:
+    image: mcr.microsoft.com/windows/servercore:ltsc2019
+    command: >
+      powershell -Command "
+      Add-WindowsFeature -Name Web-Server;
+      New-NetFirewallRule -DisplayName 'Allow HTTP' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow;
+      while ($true) { Start-Sleep 30 }
+      "
+    ports:
+      - "8082:80"
+    networks:
+      - test-network
+    restart: unless-stopped
+    profiles:
+      - testing
+    platform: windows/amd64
+
+  test-ftp:
+    image: stilliard/pure-ftpd
+    environment:
+      - PUBLICHOST=localhost
+      - FTP_USER_NAME=testuser
+      - FTP_USER_PASS=testpass
+      - FTP_USER_HOME=/home/testuser
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    volumes:
+      - ./volumes/ftp:/home/testuser
+    networks:
+      - test-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  test-database:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testpass
+    ports:
+      - "3306:3306"
+    networks:
+      - test-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  # Custom Test Environment Services
+  custom-web-server:
+    build: ./test-environment/web-server
+    container_name: nop-custom-web
+    ports:
+      - "8090:80"
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.10
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  custom-ssh-server:
+    build: ./test-environment/ssh-server
+    container_name: nop-custom-ssh
+    ports:
+      - "2224:22"
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.11
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  custom-db-server:
+    build: ./test-environment/database-server
+    container_name: nop-custom-db
+    ports:
+      - "3307:3306"
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.12
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  custom-file-server:
+    build: ./test-environment/file-server
+    container_name: nop-custom-file
+    ports:
+      - "445:445"
+      - "139:139"
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.13
+    restart: unless-stopped
+    profiles:
+      - testing
+
+networks:
+  nop-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  postgres_data:
+  redis_data:
+  ntopng_data:
+  evidence_data:

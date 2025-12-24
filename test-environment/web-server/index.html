@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Web Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f4f4; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .status { color: #28a745; font-weight: bold; }
+        .info { background: #e9ecef; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Web Server</h1>
+        <p class="status">✅ Server is running</p>
+        
+        <div class="info">
+            <h3>Server Information</h3>
+            <ul>
+                <li><strong>Server:</strong> Nginx</li>
+                <li><strong>Purpose:</strong> Test target for NOP scanning</li>
+                <li><strong>Services:</strong> HTTP (80)</li>
+                <li><strong>API Endpoint:</strong> <a href="/api/">/api/</a></li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <h3>Available Endpoints</h3>
+            <ul>
+                <li><a href="/">/ - This page</a></li>
+                <li><a href="/api/">/api/ - Test API endpoint</a></li>
+            </ul>
+        </div>
+        
+        <p><em>This server is part of the NOP test environment for demonstrating network discovery and scanning capabilities.</em></p>
+    </div>
+</body>
+</html>
