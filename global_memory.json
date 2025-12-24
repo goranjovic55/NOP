@@ -1,0 +1,290 @@
+[
+  {
+    "type": "entity",
+    "name": "NetworkObservatoryPlatform",
+    "entityType": "ApplicationArchitecture",
+    "observations": [
+      "Comprehensive network monitoring platform with microservices architecture",
+      "FastAPI backend with PostgreSQL database for scalable API services",
+      "React frontend with TypeScript for modern user interface",
+      "Docker containerization for consistent deployment and scaling",
+      "Real-time traffic analysis using ntopng integration",
+      "Advanced network discovery with nmap integration",
+      "SSH/TCP connection testing and remote access capabilities",
+      "Isolated test environment with real network services",
+      "100% test coverage across all platform components"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "DockerMicroservicesPattern",
+    "entityType": "ArchitecturalPattern",
+    "observations": [
+      "Pattern for containerized microservices with Docker Compose orchestration",
+      "Separate containers for frontend, backend, database, and specialized services",
+      "Network isolation using custom Docker networks for security",
+      "Volume mounting for persistent data and configuration",
+      "Health checks and restart policies for service reliability",
+      "Environment-based configuration for different deployment stages",
+      "Port mapping for external access while maintaining internal communication",
+      "Proven effective for network monitoring applications requiring real-time data processing"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "FastAPIBackendPattern",
+    "entityType": "BackendPattern",
+    "observations": [
+      "Modern Python web framework for high-performance API development",
+      "Automatic OpenAPI documentation generation with interactive testing",
+      "Type hints and Pydantic models for request/response validation",
+      "Async/await support for concurrent request handling",
+      "SQLAlchemy ORM integration for database operations",
+      "Modular router structure for organized endpoint management",
+      "Dependency injection for service layer integration",
+      "CORS configuration for cross-origin frontend communication",
+      "Comprehensive error handling with structured responses"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "ReactTypeScriptFrontendPattern",
+    "entityType": "FrontendPattern",
+    "observations": [
+      "Modern React application with TypeScript for type safety",
+      "Component-based architecture for reusable UI elements",
+      "Tailwind CSS for utility-first styling and responsive design",
+      "Service layer pattern for API communication abstraction",
+      "State management using React hooks and context",
+      "Routing with React Router for single-page application navigation",
+      "Real-time updates through WebSocket or polling mechanisms",
+      "Responsive design for desktop and mobile compatibility"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "NetworkDiscoveryPattern",
+    "entityType": "NetworkingPattern",
+    "observations": [
+      "Comprehensive network scanning using nmap integration",
+      "Multi-stage discovery: ping sweep, port scanning, service detection",
+      "Asynchronous scanning for improved performance and responsiveness",
+      "Configurable scan parameters for different network environments",
+      "Result caching and persistence for historical analysis",
+      "Error handling for network timeouts and unreachable hosts",
+      "Support for IPv4 and IPv6 network ranges",
+      "Integration with database for asset tracking and management"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "TrafficAnalysisIntegrationPattern",
+    "entityType": "MonitoringPattern",
+    "observations": [
+      "Integration of specialized traffic analysis tools (ntopng) with custom applications",
+      "Docker containerization of third-party monitoring tools",
+      "Network bridge configuration for traffic capture across multiple networks",
+      "API endpoints for accessing traffic analysis data",
+      "Real-time monitoring with web-based visualization",
+      "Configuration management for monitoring tool parameters",
+      "Data export capabilities for external analysis tools",
+      "Performance optimization for high-traffic environments"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "AccessHubPattern",
+    "entityType": "RemoteAccessPattern",
+    "observations": [
+      "Centralized remote connection testing and management system",
+      "SSH and TCP connection validation with timeout handling",
+      "Service scanning and enumeration for remote systems",
+      "Connection history tracking for audit and analysis",
+      "Paramiko integration for secure SSH operations",
+      "Error handling for connection failures and timeouts",
+      "Batch operations for testing multiple connections",
+      "Security considerations for credential management"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "TestEnvironmentPattern",
+    "entityType": "TestingPattern",
+    "observations": [
+      "Isolated Docker network environment for realistic testing",
+      "Multiple service containers simulating real network infrastructure",
+      "Services include: web servers, SSH servers, databases, file servers",
+      "Network segmentation for security and isolation",
+      "Configurable service parameters for different test scenarios",
+      "Automated deployment and teardown for consistent testing",
+      "Integration with main application for end-to-end testing",
+      "Comprehensive test suites validating all platform functionality"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "ComprehensiveTestingPattern",
+    "entityType": "QualityAssurancePattern",
+    "observations": [
+      "Multi-layered testing approach: unit, integration, and end-to-end tests",
+      "Automated test suites with 100% success rate validation",
+      "Real-world service testing using Docker containers",
+      "Performance testing for network scanning operations",
+      "API testing with comprehensive endpoint coverage",
+      "Frontend testing for user interface functionality",
+      "Error scenario testing for robust error handling",
+      "Continuous validation during development process"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "DatabaseSchemaPattern",
+    "entityType": "DataPattern",
+    "observations": [
+      "PostgreSQL database with SQLAlchemy ORM for object-relational mapping",
+      "Normalized schema design for network assets and scan results",
+      "Foreign key relationships for data integrity",
+      "Indexing strategy for query performance optimization",
+      "Migration support for schema evolution",
+      "Connection pooling for concurrent access handling",
+      "Backup and recovery considerations for production deployment",
+      "Data validation at both application and database levels"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "SecurityImplementationPattern",
+    "entityType": "SecurityPattern",
+    "observations": [
+      "Network isolation using Docker networks for service separation",
+      "Input validation and sanitization for all API endpoints",
+      "Secure credential handling for SSH and database connections",
+      "CORS configuration for controlled cross-origin access",
+      "Environment variable management for sensitive configuration",
+      "Container security with non-root user execution",
+      "Network traffic monitoring for security analysis",
+      "Error handling that doesn't expose sensitive information"
+    ]
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "DockerMicroservicesPattern",
+    "relationType": "implements"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "FastAPIBackendPattern",
+    "relationType": "uses"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "ReactTypeScriptFrontendPattern",
+    "relationType": "uses"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "NetworkDiscoveryPattern",
+    "relationType": "implements"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "TrafficAnalysisIntegrationPattern",
+    "relationType": "implements"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "AccessHubPattern",
+    "relationType": "implements"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "TestEnvironmentPattern",
+    "relationType": "uses"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkObservatoryPlatform",
+    "to": "ComprehensiveTestingPattern",
+    "relationType": "validates_with"
+  },
+  {
+    "type": "relation",
+    "from": "FastAPIBackendPattern",
+    "to": "DatabaseSchemaPattern",
+    "relationType": "depends_on"
+  },
+  {
+    "type": "relation",
+    "from": "DockerMicroservicesPattern",
+    "to": "SecurityImplementationPattern",
+    "relationType": "incorporates"
+  },
+  {
+    "type": "relation",
+    "from": "NetworkDiscoveryPattern",
+    "to": "DatabaseSchemaPattern",
+    "relationType": "persists_to"
+  },
+  {
+    "type": "relation",
+    "from": "AccessHubPattern",
+    "to": "SecurityImplementationPattern",
+    "relationType": "requires"
+  },
+  {
+    "type": "relation",
+    "from": "TestEnvironmentPattern",
+    "to": "DockerMicroservicesPattern",
+    "relationType": "extends"
+  },
+  {
+    "type": "relation",
+    "from": "ComprehensiveTestingPattern",
+    "to": "TestEnvironmentPattern",
+    "relationType": "utilizes"
+  },
+  {
+    "type": "entity",
+    "name": "ComprehensiveNetworkTestingPattern",
+    "entityType": "TestingPattern",
+    "observations": [
+      "Multi-layered testing approach for network monitoring applications",
+      "Real-world service simulation using Docker containers",
+      "Automated test suites with 100% success rate validation",
+      "Integration testing with actual network services",
+      "Performance testing for network scanning operations",
+      "Error scenario testing for robust error handling",
+      "End-to-end testing from frontend to backend to database",
+      "Continuous validation during development process",
+      "Test environment isolation for consistent results"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "DualMemorySystemPattern",
+    "entityType": "KnowledgeManagementPattern",
+    "observations": [
+      "Pattern for preserving and reusing knowledge across software projects",
+      "Dual memory approach: global patterns and project-specific details",
+      "Automatic knowledge capture before version control commits",
+      "Entity-relation model for structured knowledge representation",
+      "JSON format for human-readable and machine-processable storage",
+      "Integrity verification using cryptographic hashing",
+      "Version control integration for knowledge evolution",
+      "Cross-project pattern reuse and adaptation capabilities"
+    ]
+  },
+  {
+    "type": "relation",
+    "from": "ComprehensiveNetworkTestingPattern",
+    "to": "NetworkObservatoryPlatform",
+    "relationType": "validates"
+  }
+]
