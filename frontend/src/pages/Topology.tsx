@@ -34,11 +34,18 @@ const Topology: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
+  const [filterMode, setFilterMode] = useState<'subnet' | 'all'>('subnet');
   const [isPlaying, setIsPlaying] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  // Get scan settings for subnet filtering
+  const [scanSettings] = useState(() => {
+    const saved = localStorage.getItem('nop_scan_settings');
+    return saved ? JSON.parse(saved) : { networkRange: '172.21.0.0/24' };
+  });
 
   // Resize observer
   useEffect(() => {
@@ -67,14 +74,22 @@ const Topology: React.FC = () => {
       // Process Nodes
       const nodesMap = new Map<string, GraphNode>();
       
+      // Determine subnet prefix from settings (assuming /24 for now)
+      const subnetPrefix = scanSettings.networkRange.split('/')[0].split('.').slice(0, 3).join('.') + '.';
+
       // Add assets as nodes
       assets.forEach(asset => {
-        if (asset.status !== 'online') return; // Only show online hosts
+        if (filterMode === 'subnet') {
+          // Strict filtering: Online AND in subnet
+          if (asset.status !== 'online') return;
+          if (!asset.ip_address.startsWith(subnetPrefix)) return;
+        }
+        
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
           name: asset.hostname || asset.ip_address,
           val: 1,
-          group: 'online',
+          group: asset.status === 'online' ? 'online' : 'offline',
           ip: asset.ip_address,
           status: asset.status,
           details: asset
@@ -86,8 +101,37 @@ const Topology: React.FC = () => {
       const connections = trafficStats.connections || [];
       
       connections.forEach(conn => {
-        // Only add links if both source and target are known online nodes
-        if (nodesMap.has(conn.source) && nodesMap.has(conn.target)) {
+        if (filterMode === 'subnet') {
+          // Only add links if both source and target are known nodes (which are already filtered)
+          if (nodesMap.has(conn.source) && nodesMap.has(conn.target)) {
+            links.push({
+              source: conn.source,
+              target: conn.target,
+              value: conn.value
+            });
+          }
+        } else {
+          // 'all' mode: Add external nodes if missing
+          if (!nodesMap.has(conn.source)) {
+            nodesMap.set(conn.source, {
+              id: conn.source,
+              name: conn.source,
+              val: 1,
+              group: 'external',
+              ip: conn.source,
+              status: 'unknown'
+            });
+          }
+          if (!nodesMap.has(conn.target)) {
+            nodesMap.set(conn.target, {
+              id: conn.target,
+              name: conn.target,
+              val: 1,
+              group: 'external',
+              ip: conn.target,
+              status: 'unknown'
+            });
+          }
           links.push({
             source: conn.source,
             target: conn.target,
@@ -118,7 +162,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, filterMode, scanSettings]);
 
   useEffect(() => {
     fetchData();
@@ -198,6 +242,23 @@ const Topology: React.FC = () => {
               Hierarchical
             </button>
           </div>
+          <div className="flex space-x-2 bg-cyber-dark p-1 rounded border border-cyber-gray">
+            <button
+              onClick={() => setFilterMode('subnet')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'subnet' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
+              title={`Show only online hosts in ${scanSettings.networkRange}`}
+            >
+              Subnet
+            </button>
+            <button
+              onClick={() => setFilterMode('all')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'all' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
+              title="Show all traffic including external nodes"
+            >
+              All Traffic
+            </button>
+          </div>
+
 
           <button 
             onClick={() => setIsPlaying(!isPlaying)}
