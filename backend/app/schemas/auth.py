@@ -2,9 +2,10 @@
 Authentication schemas
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from app.models.user import UserRole
 
 
@@ -25,18 +26,17 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     """User response model"""
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     username: str
     email: str
-    full_name: Optional[str]
+    full_name: Optional[str] = None
     role: UserRole
     is_active: bool
     is_verified: bool
     created_at: datetime
-    last_login: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
+    last_login: Optional[datetime] = None
 
 
 class Token(BaseModel):

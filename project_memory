@@ -1,0 +1,18 @@
+# Project Memory - Current State
+
+## Recent Changes
+- **Backend Fixes**: Resolved Pydantic v2 `ValidationError` in `UserResponse` and updated `auth.py` to use `model_validate`.
+- **Frontend Fixes**: Switched `assetService.ts` to use relative paths, fixing "Network Error" in containerized environments.
+- **Scan Integration**: Fixed the Scan button by pointing it to the correct `/api/v1/discovery/scan` endpoint and providing the test network range.
+- **Offline Detection**: Enhanced `DiscoveryService.py` to mark assets as OFFLINE when they are missing from scan results.
+- **UI Enhancement**: Added a user-defined auto-refresh dropdown (OFF to 5m) and status filters (Online/Offline) to the Assets page.
+
+## Current Status
+- All core services (Backend, Frontend, DB, Redis) are running and integrated.
+- Asset management and discovery cycle (Online -> Scan -> Offline -> Scan -> Online) is fully verified.
+- Test environment with 4 custom containers is operational.
+
+## Next Steps
+- Implement detailed asset views (showing open ports and services).
+- Add more comprehensive scanning options (OS detection, service versioning).
+- Implement user management and role-based access control (RBAC) UI.

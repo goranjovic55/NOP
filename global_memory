@@ -1,0 +1,17 @@
+# Global Memory - Network Observatory Platform (NOP)
+
+## Project Objectives
+- Build a comprehensive network monitoring and assessment platform.
+- Focus on asset management, network discovery, and security assessment.
+- Provide a modern, "cyberpunk" themed UI for network visibility.
+
+## High-Level Architecture
+- **Backend**: FastAPI (Python) with SQLAlchemy (PostgreSQL) and Redis for task queuing.
+- **Frontend**: React (TypeScript) with Tailwind CSS.
+- **Discovery**: Nmap-based network scanning integrated into the backend.
+- **Deployment**: Docker Compose for multi-container orchestration.
+
+## Key Decisions
+- Use relative API paths (`/api/v1`) in the frontend to allow Nginx to proxy requests to the backend, avoiding CORS and environment-specific host issues.
+- Implement active discovery logic that marks assets as OFFLINE if they are not found during a network scan.
+- Provide user-configurable auto-refresh on the Assets page to maintain real-time visibility of host states.

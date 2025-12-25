@@ -49,7 +49,7 @@ async def register_user(
     
     # Create new user
     user = await user_service.create_user(user_data)
-    return UserResponse.from_orm(user)
+    return UserResponse.model_validate(user)
 
 
 @router.post("/login", response_model=Token)
@@ -156,7 +156,7 @@ async def get_current_user(
             detail="User not found"
         )
     
-    return UserResponse.from_orm(user)
+    return UserResponse.model_validate(user)
 
 
 @router.post("/logout")

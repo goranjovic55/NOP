@@ -2,15 +2,16 @@
 Asset schemas
 """
 
-from pydantic import BaseModel, Field, IPvAnyAddress
+from pydantic import BaseModel, Field, IPvAnyAddress, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from uuid import UUID
 from app.models.asset import AssetType, AssetStatus
 
 
 class AssetCreate(BaseModel):
     """Asset creation request"""
-    ip_address: IPvAnyAddress
+    ip_address: str
     mac_address: Optional[str] = Field(None, pattern=r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
     hostname: Optional[str] = Field(None, max_length=255)
     asset_type: AssetType = AssetType.UNKNOWN
@@ -38,30 +39,29 @@ class AssetUpdate(BaseModel):
 
 class AssetResponse(BaseModel):
     """Asset response model"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     ip_address: str
-    mac_address: Optional[str]
-    hostname: Optional[str]
+    mac_address: Optional[str] = None
+    hostname: Optional[str] = None
     asset_type: AssetType
     status: AssetStatus
     confidence_score: float
-    vendor: Optional[str]
-    model: Optional[str]
-    os_name: Optional[str]
-    os_version: Optional[str]
-    open_ports: Optional[List[int]]
-    services: Optional[Dict[str, Any]]
+    vendor: Optional[str] = None
+    model: Optional[str] = None
+    os_name: Optional[str] = None
+    os_version: Optional[str] = None
+    open_ports: Optional[List[int]] = None
+    services: Optional[Dict[str, Any]] = None
     first_seen: datetime
     last_seen: datetime
-    discovery_method: Optional[str]
-    notes: Optional[str]
-    tags: Optional[List[str]]
-    custom_fields: Optional[Dict[str, Any]]
+    discovery_method: Optional[str] = None
+    notes: Optional[str] = None
+    tags: Optional[List[str]] = None
+    custom_fields: Optional[Dict[str, Any]] = None
     created_at: datetime
-    updated_at: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
+    updated_at: Optional[datetime] = None
 
 
 class AssetList(BaseModel):

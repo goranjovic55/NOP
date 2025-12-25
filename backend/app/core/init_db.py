@@ -29,7 +29,7 @@ async def init_database():
             print("Creating default admin user...")
             admin_user = await user_service.create_admin_user(
                 username="admin",
-                email="admin@nop.local",
+                email="admin@example.com",
                 password="admin123"
             )
             print(f"Admin user created: {admin_user.username}")

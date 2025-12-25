@@ -161,6 +161,9 @@ async def discover_test_environment():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+from app.services.discovery_service import DiscoveryService
+from app.core.database import AsyncSessionLocal
+
 async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
     """Run network discovery scan in background"""
     try:
@@ -178,6 +181,11 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         
         active_scans[scan_id]["results"] = results
         active_scans[scan_id]["status"] = "completed"
+
+        # Process results and update assets
+        async with AsyncSessionLocal() as db:
+            discovery_service = DiscoveryService(db)
+            await discovery_service.process_scan_results(results)
         
     except Exception as e:
         active_scans[scan_id]["status"] = "failed"
@@ -211,6 +219,11 @@ async def run_host_scan(scan_id: str, request: HostScanRequest):
         
         active_scans[scan_id]["results"] = results
         active_scans[scan_id]["status"] = "completed"
+
+        # Process results and update assets
+        async with AsyncSessionLocal() as db:
+            discovery_service = DiscoveryService(db)
+            await discovery_service.process_scan_results(results)
         
     except Exception as e:
         active_scans[scan_id]["status"] = "failed"
