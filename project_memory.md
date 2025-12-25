@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Status
-Active development on Dashboard features, specifically Asset management and auto-discovery.
+Active development on Dashboard features, specifically Asset management, auto-discovery, and Network Topology.
 
 ## Recent Work
 - **Infrastructure**:
@@ -16,10 +16,17 @@ Active development on Dashboard features, specifically Asset management and auto
     - Confirmed auto-discovery is working.
     - Updated `assetService.ts` to support scan status polling.
     - Enhanced `ScanSettingsModal` for better configuration.
+- **Topology Page**:
+    - Implemented interactive network topology visualization using `react-force-graph-2d`.
+    - Added Force, Circular, and Hierarchical layouts.
+    - Implemented traffic flow animation.
+    - Integrated real-time asset and connection data.
 - **Access Hub**:
     - Implemented embedded FTP client.
     - Fixed UI input locking issues.
     - Resolved VNC and RDP connection stability.
+- **Backend**:
+    - Updated `SnifferService` to track connection pairs for topology generation.
 
 ## Active Issues
 - None currently reported.
