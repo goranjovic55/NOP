@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     iputils-ping \
     curl \
+    libpcap-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Core Services (Always On)
   frontend:
     build:
       context: ./frontend
@@ -9,8 +8,8 @@ services:
     ports:
       - "12000:3000"
     environment:
-      - REACT_APP_API_URL=http://backend:8000
-      - REACT_APP_WS_URL=ws://backend:8000
+      - REACT_APP_API_URL=
+      - REACT_APP_WS_URL=
     depends_on:
       - backend
     networks:
@@ -21,8 +20,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    # No ports exposed to host to avoid conflicts and for security
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
       - REDIS_URL=redis://redis:6379/0
@@ -43,6 +41,7 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    # No ports exposed to host
     environment:
       - POSTGRES_DB=nop
       - POSTGRES_USER=nop
@@ -55,52 +54,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    # No ports exposed to host
     volumes:
       - redis_data:/data
     networks:
       - nop-network
-    restart: unless-stopped
-
-  # Test Environment Services
-  custom-web-server:
-    build: ./test-environment/web-server
-    container_name: nop-custom-web
-    ports:
-      - "8090:80"
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.42
-    restart: unless-stopped
-
-  custom-ssh-server:
-    build: ./test-environment/ssh-server
-    container_name: nop-custom-ssh
-    ports:
-      - "2224:22"
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.69
-    restart: unless-stopped
-
-  custom-db-server:
-    build: ./test-environment/database-server
-    container_name: nop-custom-db
-    ports:
-      - "3307:3306"
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.123
-    restart: unless-stopped
-
-  custom-file-server:
-    build: ./test-environment/file-server
-    container_name: nop-custom-file
-    ports:
-      - "445:445"
-      - "139:139"
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.200
     restart: unless-stopped
 
 networks:

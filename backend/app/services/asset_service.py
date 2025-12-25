@@ -66,14 +66,92 @@ class AssetService:
             pages=math.ceil(total / size) if total > 0 else 0
         )
 
-    async def get_asset_by_id(self, asset_id: str):
-        # Simplified for now
-        pass
-    async def create_asset(self, asset_data: AssetCreate):
-        pass
-    async def update_asset(self, asset_id: str, asset_data: AssetUpdate):
-        pass
-    async def delete_asset(self, asset_id: str):
-        pass
-    async def get_asset_stats(self):
-        pass
+    async def get_asset_by_id(self, asset_id: str) -> Optional[AssetResponse]:
+        query = select(Asset).where(Asset.id == uuid.UUID(asset_id))
+        result = await self.db.execute(query)
+        a = result.scalar_one_or_none()
+        if not a:
+            return None
+        return AssetResponse.model_validate(a)
+
+    async def create_asset(self, asset_data: AssetCreate) -> AssetResponse:
+        asset = Asset(
+            ip_address=asset_data.ip_address,
+            mac_address=asset_data.mac_address,
+            hostname=asset_data.hostname,
+            asset_type=asset_data.asset_type,
+            vendor=asset_data.vendor,
+            model=asset_data.model,
+            os_name=asset_data.os_name,
+            os_version=asset_data.os_version,
+            notes=asset_data.notes,
+            tags=asset_data.tags,
+            custom_fields=asset_data.custom_fields,
+            status=AssetStatus.UNKNOWN,
+            confidence_score=0.5
+        )
+        self.db.add(asset)
+        await self.db.commit()
+        await self.db.refresh(asset)
+        return AssetResponse.model_validate(asset)
+
+    async def update_asset(self, asset_id: str, asset_data: AssetUpdate) -> Optional[AssetResponse]:
+        query = select(Asset).where(Asset.id == uuid.UUID(asset_id))
+        result = await self.db.execute(query)
+        asset = result.scalar_one_or_none()
+        if not asset:
+            return None
+
+        for field, value in asset_data.model_dump(exclude_unset=True).items():
+            setattr(asset, field, value)
+
+        await self.db.commit()
+        await self.db.refresh(asset)
+        return AssetResponse.model_validate(asset)
+
+    async def delete_asset(self, asset_id: str) -> bool:
+        query = delete(Asset).where(Asset.id == uuid.UUID(asset_id))
+        result = await self.db.execute(query)
+        await self.db.commit()
+        return result.rowcount > 0
+
+    async def get_asset_stats(self) -> AssetStats:
+        # Total assets
+        total_query = select(func.count(Asset.id))
+        total_result = await self.db.execute(total_query)
+        total_assets = total_result.scalar() or 0
+
+        # Online assets
+        online_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.ONLINE)
+        online_result = await self.db.execute(online_query)
+        online_assets = online_result.scalar() or 0
+
+        # Offline assets
+        offline_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.OFFLINE)
+        offline_result = await self.db.execute(offline_query)
+        offline_assets = offline_result.scalar() or 0
+
+        # By type
+        type_query = select(Asset.asset_type, func.count(Asset.id)).group_by(Asset.asset_type)
+        type_result = await self.db.execute(type_query)
+        by_type = {str(row[0]): row[1] for row in type_result.all()}
+
+        # By vendor
+        vendor_query = select(Asset.vendor, func.count(Asset.id)).where(Asset.vendor != None).group_by(Asset.vendor)
+        vendor_result = await self.db.execute(vendor_query)
+        by_vendor = {str(row[0]): row[1] for row in vendor_result.all()}
+
+        # Recently discovered (last 24h)
+        from datetime import datetime, timedelta
+        recent_query = select(func.count(Asset.id)).where(Asset.first_seen >= datetime.now() - timedelta(days=1))
+        recent_result = await self.db.execute(recent_query)
+        recently_discovered = recent_result.scalar() or 0
+
+        return AssetStats(
+            total_assets=total_assets,
+            online_assets=online_assets,
+            offline_assets=offline_assets,
+            by_type=by_type,
+            by_vendor=by_vendor,
+            recently_discovered=recently_discovered
+        )
