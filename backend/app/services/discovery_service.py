@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 import logging
 import uuid
 from datetime import datetime
+import ipaddress
 
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.services.scanner import scanner
@@ -22,13 +23,13 @@ class DiscoveryService:
     async def process_scan_results(self, results: Dict[str, Any]):
         """Process nmap scan results and update assets in database"""
         if "hosts" not in results:
+            logger.warning("No hosts found in scan results")
             return
 
         # Get all assets in the scanned network to identify which ones are now offline
-        # For simplicity in this test environment, we'll check all assets
         result = await self.db.execute(select(Asset))
         all_assets = result.scalars().all()
-        
+
         found_ips = set()
         for host_data in results["hosts"]:
             ip_address = None
@@ -39,16 +40,15 @@ class DiscoveryService:
 
             if not ip_address:
                 continue
-            
+
             found_ips.add(ip_address)
 
             # Check if asset exists
-            from sqlalchemy.dialects.postgresql import INET
-            from sqlalchemy import cast
-            result = await self.db.execute(
-                select(Asset).where(Asset.ip_address == cast(ip_address, INET))
-            )
-            asset = result.scalar_one_or_none()
+            asset = None
+            for a in all_assets:
+                if str(a.ip_address) == ip_address:
+                    asset = a
+                    break
 
             hostname = None
             if host_data.get("hostnames"):
@@ -72,6 +72,17 @@ class DiscoveryService:
                     open_ports.append(port_id)
                     services[str(port_id)] = port.get("service", {})
 
+            # Determine asset type based on open ports
+            asset_type = AssetType.HOST
+            if 80 in open_ports or 443 in open_ports:
+                asset_type = AssetType.SERVER
+            if 22 in open_ports:
+                asset_type = AssetType.SERVER
+            if 445 in open_ports:
+                asset_type = AssetType.SERVER
+            if 3306 in open_ports or 5432 in open_ports:
+                asset_type = AssetType.SERVER
+
             if asset:
                 # Update existing asset
                 asset.last_seen = datetime.now()
@@ -86,6 +97,8 @@ class DiscoveryService:
                     asset.os_name = os_name
                 asset.open_ports = open_ports
                 asset.services = services
+                asset.asset_type = asset_type
+                logger.info(f"Updated asset: {ip_address}")
             else:
                 # Create new asset
                 asset = Asset(
@@ -98,14 +111,15 @@ class DiscoveryService:
                     open_ports=open_ports,
                     services=services,
                     discovery_method="nmap",
-                    asset_type=AssetType.HOST,
+                    asset_type=asset_type,
                     confidence_score=0.8
                 )
                 self.db.add(asset)
+                logger.info(f"Created new asset: {ip_address}")
 
         # Mark assets that were NOT found in this scan as OFFLINE
-        # Only if they were previously online and are in the same network range
-        # For this test, we'll mark any asset not found as offline
+        # Only if they were previously online and belong to the scanned network
+        # For simplicity, we mark all not found as offline for now
         for asset in all_assets:
             if str(asset.ip_address) not in found_ips:
                 asset.status = AssetStatus.OFFLINE

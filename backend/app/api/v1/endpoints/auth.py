@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from typing import Any
+import logging
 
 from app.core.database import get_db
 from app.core.security import (
@@ -20,6 +21,7 @@ from app.models.user import User, UserRole
 from app.schemas.auth import Token, UserCreate, UserResponse, UserLogin
 from app.services.user_service import UserService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -31,7 +33,7 @@ async def register_user(
 ):
     """Register a new user"""
     user_service = UserService(db)
-    
+
     # Check if user already exists
     existing_user = await user_service.get_user_by_username(user_data.username)
     if existing_user:
@@ -39,14 +41,14 @@ async def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
-    
+
     existing_email = await user_service.get_user_by_email(user_data.email)
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     # Create new user
     user = await user_service.create_user(user_data)
     return UserResponse.model_validate(user)
@@ -59,29 +61,34 @@ async def login(
 ):
     """Login and get access token"""
     user_service = UserService(db)
+
+    logger.info(f"Login attempt for user: {form_data.username}")
     
     # Authenticate user
     user = await user_service.authenticate_user(form_data.username, form_data.password)
     if not user:
+        logger.warning(f"Failed login attempt for user: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
+        logger.warning(f"Login attempt for inactive user: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
         )
-    
+
     # Update last login
     await user_service.update_last_login(user.id)
-    
+
     # Create tokens
     access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+
+    logger.info(f"Successful login for user: {form_data.username}")
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -109,7 +116,7 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
-    
+
     user_service = UserService(db)
     user = await user_service.get_user_by_id(user_id)
     if not user or not user.is_active:
@@ -117,10 +124,10 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive"
         )
-    
+
     # Create new access token
     access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -147,7 +154,7 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    
+
     user_service = UserService(db)
     user = await user_service.get_user_by_id(user_id)
     if not user:
@@ -155,7 +162,7 @@ async def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     return UserResponse.model_validate(user)
 
 

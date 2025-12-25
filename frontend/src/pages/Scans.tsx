@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useScanStore } from '../store/scanStore';
+import { useAuthStore } from '../store/authStore';
+import axios from 'axios';
 
 const Scans: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete } = useScanStore();
+  const { token } = useAuthStore();
   const activeTab = tabs.find(t => t.id === activeTabId);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [manualIp, setManualIp] = useState('');
@@ -13,68 +16,79 @@ const Scans: React.FC = () => {
     }
   }, [activeTab?.logs]);
 
-  const handleStartScan = (id: string) => {
+  const handleStartScan = async (id: string) => {
     const tab = tabs.find(t => t.id === id);
-    if (!tab || tab.status === 'running') return;
+    if (!tab || tab.status === 'running' || !token) return;
 
     startScan(id);
 
     const { ip, options } = tab;
-    const timestamp = () => new Date().toLocaleTimeString();
 
-    // Dynamic simulation logic based on the new randomized IPs
-    let detectedPorts = [22, 80];
-    let osName = 'Linux 5.4 - 5.11';
+    addLog(id, `[SCAN] Initializing real-time scan for ${ip}...`);
+    addLog(id, `[SCAN] Requesting backend to perform ${options.scanType} scan...`);
 
-    if (ip === '172.21.0.42') {
-      detectedPorts = [22, 80, 8888, 9999];
-      osName = 'Ubuntu 22.04 LTS (Jammy Jellyfish)';
-    } else if (ip === '172.21.0.69') {
-      detectedPorts = [22, 7777];
-      osName = 'Debian 11 (Bullseye)';
-    } else if (ip === '172.21.0.123') {
-      detectedPorts = [3306];
-      osName = 'Alpine Linux 3.16';
-    } else if (ip === '172.21.0.200') {
-      detectedPorts = [139, 445];
-      osName = 'Windows Server 2019 (Simulated)';
+    try {
+      const response = await axios.post('/api/v1/discovery/scan/host', {
+        host: ip,
+        scan_type: options.scanType === 'basic' ? 'ports' : options.scanType,
+        ports: options.ports
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const scanId = response.data.scan_id;
+      addLog(id, `[SCAN] Backend scan started. ID: ${scanId}`);
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await axios.get(`/api/v1/discovery/scans/${scanId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          const data = statusRes.data;
+          if (data.status === 'completed') {
+            clearInterval(pollInterval);
+            addLog(id, `[SUCCESS] Backend scan completed.`);
+
+            const hostResults = data.results?.hosts?.[0];
+            if (hostResults) {
+              const osName = hostResults.os?.name || 'Unknown';
+              const openPorts = hostResults.ports?.filter((p: any) => p.state === 'open').map((p: any) => parseInt(p.portid)) || [];
+
+              addLog(id, `[INFO] OS details: ${osName}`);
+              openPorts.forEach((port: number) => {
+                addLog(id, `[INFO] Discovered open port ${port}/tcp`);
+              });
+
+              if (onScanComplete) {
+                onScanComplete(ip, {
+                  os_name: osName,
+                  open_ports: openPorts,
+                  hostname: hostResults.hostnames?.[0]?.name,
+                  vendor: hostResults.addresses?.find((a: any) => a.addrtype === 'mac')?.vendor
+                });
+              }
+            }
+            setScanStatus(id, 'completed');
+            addLog(id, `[SUCCESS] Nmap done: 1 IP address (1 host up) scanned.`);
+          } else if (data.status === 'failed') {
+            clearInterval(pollInterval);
+            addLog(id, `[ERROR] Backend scan failed: ${data.error}`);
+            setScanStatus(id, 'failed');
+          } else {
+            addLog(id, `[SCAN] Still running...`);
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          addLog(id, `[ERROR] Failed to poll scan status.`);
+          setScanStatus(id, 'failed');
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      addLog(id, `[ERROR] Failed to start backend scan: ${err.message}`);
+      setScanStatus(id, 'failed');
     }
-
-    const sequence: { delay: number; log: string; data?: any }[] = [
-      { delay: 500, log: `[SCAN] Initializing Nmap 7.92 engine...` },
-      { delay: 1200, log: `[SCAN] Target: ${ip} (${tab.hostname || 'unknown'})` },
-      { delay: 2000, log: `[SCAN] Command: nmap -T${options.timing} ${options.aggressive ? '-A ' : ''}${options.serviceDetection ? '-sV ' : ''}${options.osDetection ? '-O ' : ''}-p ${options.ports} ${ip}` },
-      { delay: 3500, log: `[SCAN] ARP Stealth Discovery: Host is up (0.00042s latency).` },
-      { delay: 5000, log: `[SCAN] Parallel DNS resolution of 1 host. Completed.` },
-      { delay: 7000, log: `[SCAN] Initiating SYN Stealth Scan at ${timestamp()}` },
-      { delay: 9000, log: `[SCAN] Scanning ${options.ports.split(',').length > 1 ? 'multiple ports' : options.ports} ports...` },
-      ...detectedPorts.map((port, i) => ({
-        delay: 11000 + (i * 1000),
-        log: `[INFO] Discovered open port ${port}/tcp on ${ip}`
-      })),
-      { delay: 15000, log: `[SCAN] Completed SYN Stealth Scan at ${timestamp()} (15s elapsed)` },
-      { delay: 17000, log: `[SCAN] Initiating Service scan (sV) on ${detectedPorts.length} ports...` },
-      ...detectedPorts.map((port, i) => ({
-        delay: 19000 + (i * 1500),
-        log: `[INFO] Port ${port}/tcp: ${[8888, 9999, 7777].includes(port) ? 'unknown service (nc listener)' : 'standard service'}`
-      })),
-      { delay: 25000, log: `[SCAN] Initiating OS detection (O)...` },
-      { delay: 28000, log: `[INFO] OS details: ${osName} (96% accuracy)`, data: { os_name: osName, open_ports: detectedPorts } },
-      { delay: 30000, log: `[SCAN] Post-processor: Script scanning (NSE) started...` },
-      { delay: 33000, log: `[SUCCESS] Nmap done: 1 IP address (1 host up) scanned in 32.15 seconds` },
-    ];
-
-    sequence.forEach((step, index) => {
-      setTimeout(() => {
-        addLog(id, step.log);
-        if (step.data && onScanComplete) {
-          onScanComplete(ip, step.data);
-        }
-        if (index === sequence.length - 1) {
-          setScanStatus(id, 'completed');
-        }
-      }, step.delay);
-    });
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -114,7 +128,6 @@ const Scans: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-      {/* Tabs Header */}
       <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar">
         {tabs.map((tab) => (
           <div
@@ -144,7 +157,7 @@ const Scans: React.FC = () => {
             </button>
           </div>
         ))}
-        <button 
+        <button
           onClick={() => {
             const ip = prompt('Enter IP Address:');
             if (ip) addTab(ip);
@@ -158,11 +171,9 @@ const Scans: React.FC = () => {
 
       {activeTab && (
         <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
-          {/* Top Part: Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-cyber-darker p-6 border border-cyber-gray">
             <div className="space-y-4">
               <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Scan Configuration</h3>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] text-cyber-purple uppercase font-bold">Scan Type</label>
@@ -194,7 +205,6 @@ const Scans: React.FC = () => {
                   </select>
                 </div>
               </div>
-
               <div className="space-y-1">
                 <label className="text-[10px] text-cyber-purple uppercase font-bold">Port Range</label>
                 <input
@@ -207,7 +217,6 @@ const Scans: React.FC = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-4">
               <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Advanced Flags</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -242,7 +251,6 @@ const Scans: React.FC = () => {
                   <span className="text-xs text-cyber-gray-light group-hover:text-cyber-red transition-colors uppercase">OS Detection (-O)</span>
                 </label>
               </div>
-
               <div className="pt-4">
                 <button
                   onClick={() => handleStartScan(activeTab.id)}
@@ -262,8 +270,6 @@ const Scans: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Bottom Part: Logs */}
           <div className="flex-1 flex flex-col bg-black border border-cyber-gray overflow-hidden">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
               <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest">Real-time Scan Output</span>

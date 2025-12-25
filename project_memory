@@ -1,24 +1,28 @@
-# Project Memory - Current State
+# Project Memory - Network Observatory Platform (NOP)
 
-## Recent Changes
-- **Multi-Tab Scan Interface**: Rebuilt `Scans.tsx` with a tabbed UI, manual IP entry, and detailed Nmap-style log simulation.
-- **Global Scan Indicators**: Added pulsing red indicators to the sidebar and logo to show active background operations.
-- **Advanced Asset Management**:
-    - Implemented subnet filtering and numerical IP sorting.
-    - Added "Intel" column showing "Scanned" status and last scan timestamp.
-    - Integrated real-time updates between Scans and Assets pages.
-- **Discovery Optimization**:
-    - Restricted Assets page scans to ARP/Ping only.
-    - Added PPS (Packets Per Second) timing control to discovery settings.
-- **Test Environment**: Randomized test host IPs and updated simulation logic to match.
-- **UI Cleanup**: Removed "Exploit" button from asset details; focused on "Connect" and "Scan" workflows.
+## Current Project State
+The project is now in a functional state with core authentication and discovery features working end-to-end. Docker containers are configured to provide a realistic testing environment with multiple target hosts.
 
-## Current Status
-- Core discovery and detailed scanning workflows are fully implemented and integrated in the UI.
-- Real-time feedback and cross-page state synchronization are operational.
-- Test environment is randomized and verified for multi-host discovery.
+## Recent Work Completed
+- **Authentication Fixes**: 
+    - Resolved backend crashes by allowing extra environment variables in Pydantic settings.
+    - Implemented automatic admin password synchronization on startup.
+    - Added a utility script for manual admin password resets.
+- **Discovery & Asset Management**:
+    - Refined `DiscoveryService` to correctly process Nmap results and populate the Assets database.
+    - Implemented automatic asset type classification based on open ports.
+- **Frontend Enhancements**:
+    - Updated the **Scans** page to trigger real backend scans instead of simulations.
+    - Implemented real-time polling for scan results.
+    - Verified the **Assets** page correctly displays discovered hosts from the Docker network.
+- **Infrastructure**:
+    - Configured `docker-compose.yml` with a dedicated `test-network` and multiple target containers (Web, SSH, DB, File servers).
+
+## Key Decisions
+- **Security**: Core services are isolated on `nop-internal` network; only the Frontend is exposed.
+- **Portability**: Used `extra = "ignore"` in Pydantic to ensure the backend doesn't crash in different Docker environments.
 
 ## Next Steps
-- Implement SSH/VNC/RDP routing for the "Connect" button.
-- Connect the frontend scan configuration to the actual backend Nmap/ZMap service.
-- Implement the "Access Hub" for managing active connections.
+- Implement real-time traffic sniffing with WebSocket streaming.
+- Add PCAP export functionality.
+- Enhance the dashboard with analytics from discovered assets.
