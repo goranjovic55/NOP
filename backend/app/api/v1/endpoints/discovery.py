@@ -223,7 +223,7 @@ async def run_host_scan(scan_id: str, request: HostScanRequest):
         # Process results and update assets
         async with AsyncSessionLocal() as db:
             discovery_service = DiscoveryService(db)
-            await discovery_service.process_scan_results(results)
+            await discovery_service.process_scan_results(results, is_full_network_scan=False)
         
     except Exception as e:
         active_scans[scan_id]["status"] = "failed"

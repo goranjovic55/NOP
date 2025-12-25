@@ -115,6 +115,12 @@ class AssetService:
         await self.db.commit()
         return result.rowcount > 0
 
+    async def delete_all_assets(self) -> int:
+        query = delete(Asset)
+        result = await self.db.execute(query)
+        await self.db.commit()
+        return result.rowcount
+
     async def get_asset_stats(self) -> AssetStats:
         # Total assets
         total_query = select(func.count(Asset.id))

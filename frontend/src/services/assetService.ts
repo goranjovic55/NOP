@@ -43,5 +43,11 @@ export const assetService = {
     }, {
       headers: { Authorization: `Bearer ${token}` }
     });
+  },
+
+  deleteAllAssets: async (token: string): Promise<void> => {
+    await axios.delete(`${API_URL}/assets/clear-all`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 };

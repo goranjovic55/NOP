@@ -20,13 +20,13 @@ class DiscoveryService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def process_scan_results(self, results: Dict[str, Any]):
+    async def process_scan_results(self, results: Dict[str, Any], is_full_network_scan: bool = True):
         """Process nmap scan results and update assets in database"""
         if "hosts" not in results:
             logger.warning("No hosts found in scan results")
             return
 
-        # Get all assets in the scanned network to identify which ones are now offline
+        # Get all assets to check for existence
         result = await self.db.execute(select(Asset))
         all_assets = result.scalars().all()
 
@@ -118,11 +118,12 @@ class DiscoveryService:
                 logger.info(f"Created new asset: {ip_address}")
 
         # Mark assets that were NOT found in this scan as OFFLINE
-        # Only if they were previously online and belong to the scanned network
-        # For simplicity, we mark all not found as offline for now
-        for asset in all_assets:
-            if str(asset.ip_address) not in found_ips:
-                asset.status = AssetStatus.OFFLINE
-                logger.info(f"Asset {asset.ip_address} marked as OFFLINE")
+        # ONLY if this was a full network scan.
+        # If it was a manual single-host scan, we don't want to mark other assets as offline.
+        if is_full_network_scan:
+            for asset in all_assets:
+                if str(asset.ip_address) not in found_ips:
+                    asset.status = AssetStatus.OFFLINE
+                    logger.info(f"Asset {asset.ip_address} marked as OFFLINE")
 
         await self.db.commit()

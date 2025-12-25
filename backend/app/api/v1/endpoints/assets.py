@@ -84,6 +84,16 @@ async def update_asset(
     return asset
 
 
+@router.delete("/clear-all")
+async def delete_all_assets(
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete all assets"""
+    asset_service = AssetService(db)
+    count = await asset_service.delete_all_assets()
+    return {"message": f"Deleted {count} assets successfully"}
+
+
 @router.delete("/{asset_id}")
 async def delete_asset(
     asset_id: str,
@@ -91,7 +101,13 @@ async def delete_asset(
 ):
     """Delete an asset"""
     asset_service = AssetService(db)
-    success = await asset_service.delete_asset(asset_id)
+    try:
+        success = await asset_service.delete_asset(asset_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid asset ID format"
+        )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

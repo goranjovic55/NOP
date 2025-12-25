@@ -4,15 +4,9 @@
 echo "Waiting for database..."
 # Simple wait loop
 for i in {1..30}; do
-    if curl -s http://postgres:5432 > /dev/null; then
-        # This is a bit hacky since postgres isn't http, but it checks if port is open
+    # Use python to check if postgres is ready
+    if python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(('postgres', 5432))" 2>/dev/null; then
         break
-    fi
-    # Better way: use pg_isready if available
-    if command -v pg_isready > /dev/null; then
-        if pg_isready -h postgres -p 5432; then
-            break
-        fi
     fi
     echo "Database not ready yet, waiting..."
     sleep 1

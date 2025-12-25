@@ -235,6 +235,21 @@ const Assets: React.FC = () => {
             <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-cyber-darker border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue transition-colors text-sm font-bold">
               CONFIG
             </button>
+            <button 
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to clear all assets? This cannot be undone.')) {
+                  try {
+                    await assetService.deleteAllAssets(token || '');
+                    fetchAssets(true);
+                  } catch (err) {
+                    console.error('Failed to clear assets:', err);
+                  }
+                }
+              }} 
+              className="p-2 bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-colors text-sm font-bold"
+            >
+              CLEAR ALL
+            </button>
             <button onClick={() => fetchAssets(true)} className="btn-cyber px-4 py-2">Refresh</button>
             <button onClick={() => triggerScan('manual')} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Discover</button>
           </div>
