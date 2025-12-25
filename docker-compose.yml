@@ -6,7 +6,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "12000:80"
+      - "12000:3000"
     environment:
       - REACT_APP_API_URL=
       - REACT_APP_WS_URL=
