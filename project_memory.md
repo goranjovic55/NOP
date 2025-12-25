@@ -27,6 +27,7 @@ Active development on Dashboard features, specifically Asset management, auto-di
 - **Traffic Page**:
     - Added interface selection with real-time traffic sparklines (Wireshark-style).
     - Implemented per-interface traffic history tracking in backend.
+    - Fixed interface selection resetting issue during polling.
 - **Access Hub**:
     - Implemented embedded FTP client.
     - Fixed UI input locking issues.
