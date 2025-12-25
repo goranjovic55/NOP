@@ -1,0 +1,103 @@
+INFO:     Started server process [65458]
+INFO:     Waiting for application startup.
+2025-12-25 19:44:34,301 - app.main - INFO - Starting Network Observatory Platform...
+ERROR:    Traceback (most recent call last):
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/starlette/routing.py", line 677, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/project/NOP/backend/app/main.py", line 33, in lifespan
+    async with engine.begin() as conn:
+               ^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py", line 1061, in begin
+    async with conn:
+               ^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/base.py", line 125, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py", line 270, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 190, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 3268, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 3292, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/impl.py", line 169, in _do_get
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/impl.py", line 167, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 678, in __init__
+    self.__connect()
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 902, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/engine/create.py", line 637, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 936, in connect
+    await_only(creator_fn(*arg, **kw)),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 125, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 185, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connection.py", line 2329, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connect_utils.py", line 1017, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connect_utils.py", line 991, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connect_utils.py", line 828, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connect_utils.py", line 873, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "/openhands/micromamba/envs/openhands/lib/python3.12/site-packages/asyncpg/connect_utils.py", line 744, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 2043, in create_connection
+  File "uvloop/loop.pyx", line 2020, in uvloop.loop.Loop.create_connection
+ConnectionRefusedError: [Errno 111] Connection refused
+
+ERROR:    Application startup failed. Exiting.

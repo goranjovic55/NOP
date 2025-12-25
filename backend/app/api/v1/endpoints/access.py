@@ -46,6 +46,31 @@ class RDPConnectionRequest(BaseModel):
     password: Optional[str] = Field(default=None, description="RDP password")
     domain: Optional[str] = Field(default=None, description="RDP domain")
 
+class FTPListRequest(BaseModel):
+    """FTP list files request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=21, description="FTP port")
+    username: str = Field(..., description="FTP username")
+    password: Optional[str] = Field(default=None, description="FTP password")
+    path: str = Field(default="/", description="Directory path")
+
+class FTPDownloadRequest(BaseModel):
+    """FTP download file request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=21, description="FTP port")
+    username: str = Field(..., description="FTP username")
+    password: Optional[str] = Field(default=None, description="FTP password")
+    path: str = Field(..., description="File path")
+
+class FTPUploadRequest(BaseModel):
+    """FTP upload file request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=21, description="FTP port")
+    username: str = Field(..., description="FTP username")
+    password: Optional[str] = Field(default=None, description="FTP password")
+    path: str = Field(..., description="File path")
+    content: str = Field(..., description="File content (base64 encoded if binary)")
+    is_binary: bool = Field(default=False, description="Is binary content")
 @router.get("/status")
 async def get_access_hub_status():
     """Get access hub status"""
@@ -162,6 +187,53 @@ async def get_system_info(request: SSHConnectionTest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/ftp/list")
+async def list_ftp_files(request: FTPListRequest):
+    """List files on FTP server"""
+    try:
+        result = await access_hub.list_ftp_files(
+            host=request.host,
+            port=request.port,
+            username=request.username,
+            password=request.password,
+            path=request.path
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ftp/download")
+async def download_ftp_file(request: FTPDownloadRequest):
+    """Download file from FTP server"""
+    try:
+        result = await access_hub.download_ftp_file(
+            host=request.host,
+            port=request.port,
+            username=request.username,
+            password=request.password,
+            path=request.path
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ftp/upload")
+async def upload_ftp_file(request: FTPUploadRequest):
+    """Upload file to FTP server"""
+    try:
+        result = await access_hub.upload_ftp_file(
+            host=request.host,
+            port=request.port,
+            username=request.username,
+            password=request.password,
+            path=request.path,
+            content=request.content,
+            is_binary=request.is_binary
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/history")
 async def get_connection_history(limit: int = 50):
     """Get connection history"""
@@ -272,7 +344,19 @@ async def guacamole_tunnel(
         "security": "any"
     }
     
-    if await tunnel.connect(websocket, protocol, connection_args):
-        await tunnel.run()
-    else:
-        await websocket.close(code=1011, reason="Failed to connect to guacd")
+    import uuid
+    conn_id = str(uuid.uuid4())
+    access_hub.add_connection(conn_id, {
+        "host": host,
+        "port": port,
+        "protocol": protocol,
+        "username": username
+    })
+
+    try:
+        if await tunnel.connect(websocket, protocol, connection_args):
+            await tunnel.run()
+        else:
+            await websocket.close(code=1011, reason="Failed to connect to guacd")
+    finally:
+        access_hub.remove_connection(conn_id)

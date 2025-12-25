@@ -31,6 +31,7 @@ const Assets: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('ip');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [activeScanId, setActiveScanId] = useState<string | null>(null);
 
   const [scanSettings, setScanSettings] = useState<ScanSettings>(() => {
     const saved = localStorage.getItem('nop_scan_settings');
@@ -108,14 +109,61 @@ const Assets: React.FC = () => {
     const scanType = type === 'manual' ? scanSettings.manualScanType : scanSettings.autoScanType;
     try {
       setIsScanning(true);
-      await assetService.startScan(token, scanSettings.networkRange, scanType);
-      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
-      statusTimeoutRef.current = setTimeout(() => setIsScanning(false), 5000);
+      const result = await assetService.startScan(token, scanSettings.networkRange, scanType);
+      if (result && result.scan_id) {
+        setActiveScanId(result.scan_id);
+      } else {
+        // Fallback if no scan_id returned
+        if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+        statusTimeoutRef.current = setTimeout(() => setIsScanning(false), 5000);
+      }
     } catch (err) {
       console.error('Discovery failed:', err);
       setIsScanning(false);
     }
   }, [token, scanSettings]);
+
+  // Poll for scan status
+  useEffect(() => {
+    let pollTimer: NodeJS.Timeout;
+    if (activeScanId && token) {
+      pollTimer = setInterval(async () => {
+        try {
+          const status = await assetService.getScanStatus(token, activeScanId);
+          if (status.status === 'completed' || status.status === 'failed') {
+            setIsScanning(false);
+            setActiveScanId(null);
+            if (status.status === 'completed') {
+              fetchAssets(false);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to poll scan status", err);
+          setIsScanning(false);
+          setActiveScanId(null);
+        }
+      }, 2000);
+    }
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [activeScanId, token, fetchAssets]);
+
+  // Auto-scan trigger
+  useEffect(() => {
+    if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
+    if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
+      // Initial check or setup interval
+      autoScanTimerRef.current = setInterval(() => {
+        if (!isScanning && !activeScanId) {
+          triggerScan('auto');
+        }
+      }, scanSettings.autoScanInterval * 60 * 1000);
+    }
+    return () => {
+      if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
+    };
+  }, [scanSettings.autoScanEnabled, scanSettings.autoScanInterval, triggerScan, isScanning, activeScanId]);
 
   useEffect(() => {
     fetchAssets(true);

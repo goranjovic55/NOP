@@ -36,18 +36,26 @@ export const assetService = {
     }
   },
 
-  startScan: async (token: string, network: string = '172.21.0.0/24', scanType: string = 'basic'): Promise<void> => {
-    await axios.post(`${API_URL}/discovery/scan`, {
+  startScan: async (token: string, network: string = '172.21.0.0/24', scanType: string = 'basic'): Promise<any> => {
+    const response = await axios.post(`${API_URL}/discovery/scan`, {
       network: network,
       scan_type: scanType
     }, {
       headers: { Authorization: `Bearer ${token}` }
     });
+    return response.data;
   },
 
   deleteAllAssets: async (token: string): Promise<void> => {
     await axios.delete(`${API_URL}/assets/clear-all`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+  },
+
+  getScanStatus: async (token: string, scanId: string): Promise<any> => {
+    const response = await axios.get(`${API_URL}/discovery/scans/${scanId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };

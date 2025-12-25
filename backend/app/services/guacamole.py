@@ -110,7 +110,7 @@ class GuacamoleTunnel:
                             data = task.result()
                             # The client sends full instructions, just forward them
                             # But we need to ensure they are encoded as bytes for socket
-                            self.socket.sendall(data.encode('utf-8'))
+                            await loop.sock_sendall(self.socket, data.encode('utf-8'))
                         except WebSocketDisconnect:
                             self.connected = False
                             break

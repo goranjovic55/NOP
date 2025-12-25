@@ -31,4 +31,4 @@ RUN mkdir -p /home/testuser/documents && \
 EXPOSE 22
 
 # Start SSH daemon
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["/usr/sbin/sshd", "-D", "-e"]

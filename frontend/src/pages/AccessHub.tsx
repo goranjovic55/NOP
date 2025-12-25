@@ -71,7 +71,7 @@ const AccessHub: React.FC = () => {
               </div>
             </div>
             <div className="flex-1 p-6 overflow-auto">
-              <ProtocolConnection tab={activeTab} />
+              <ProtocolConnection key={activeTab.id} tab={activeTab} />
             </div>
           </div>
         ) : (

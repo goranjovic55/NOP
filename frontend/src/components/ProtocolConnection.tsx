@@ -25,6 +25,13 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   const displayRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<Guacamole.Client | null>(null);
 
+
+    // FTP state
+    const [ftpPath, setFtpPath] = useState('/');
+    const [ftpFiles, setFtpFiles] = useState<any[]>([]);
+    const [ftpLoading, setFtpLoading] = useState(false);
+    const [ftpError, setFtpError] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const fetchCreds = async () => {
       if (token && tab.ip) {
@@ -46,6 +53,140 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     }
   }, [output]);
 
+
+    const fetchFtpFiles = async (path: string) => {
+      if (!token) return;
+      setFtpLoading(true);
+      setFtpError('');
+      try {
+        const result = await accessService.listFTP(token, {
+          host: tab.ip,
+          port: 21,
+          username,
+          password,
+          path
+        });
+        if (result.success) {
+          setFtpFiles(result.files);
+          setFtpPath(result.path);
+        } else {
+          setFtpError(result.error || 'Failed to list files');
+        }
+      } catch (err: any) {
+        setFtpError(err.message || 'Error listing files');
+      } finally {
+        setFtpLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      if (tab.status === 'connected' && tab.protocol === 'ftp') {
+        fetchFtpFiles(ftpPath);
+      }
+    }, [tab.status, tab.protocol]);
+
+    const handleFtpDownload = async (filename: string) => {
+      if (!token) return;
+      try {
+        const filePath = ftpPath === '/' ? filename : `${ftpPath}/${filename}`;
+        const result = await accessService.downloadFTP(token, {
+          host: tab.ip,
+          port: 21,
+          username,
+          password,
+          path: filePath
+        });
+        
+        if (result.success) {
+          // Create blob and download
+          let content = result.content;
+          if (result.is_binary) {
+            // Convert base64 to blob
+            const byteCharacters = atob(content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray]);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          } else {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          }
+        } else {
+          alert(`Download failed: ${result.error}`);
+        }
+      } catch (err: any) {
+        alert(`Error downloading file: ${err.message}`);
+      }
+    };
+
+    const handleFtpUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!token || !e.target.files || e.target.files.length === 0) return;
+      
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        if (event.target?.result) {
+          const content = event.target.result as string;
+          // Check if binary (simple check)
+          const isBinary = content.startsWith('data:');
+          let fileContent = content;
+          
+          if (isBinary) {
+            fileContent = content.split(',')[1];
+          }
+          
+          try {
+            const filePath = ftpPath === '/' ? file.name : `${ftpPath}/${file.name}`;
+            const result = await accessService.uploadFTP(token, {
+              host: tab.ip,
+              port: 21,
+              username,
+              password,
+              path: filePath,
+              content: fileContent,
+              is_binary: isBinary
+            });
+            
+            if (result.success) {
+              fetchFtpFiles(ftpPath);
+              alert('File uploaded successfully');
+            } else {
+              alert(`Upload failed: ${result.error}`);
+            }
+          } catch (err: any) {
+            alert(`Error uploading file: ${err.message}`);
+          }
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    };
+
+    const handleFtpNavigate = (dirname: string) => {
+      if (dirname === '..') {
+        const parts = ftpPath.split('/').filter(p => p);
+        parts.pop();
+        const newPath = parts.length === 0 ? '/' : `/${parts.join('/')}`;
+        fetchFtpFiles(newPath);
+      } else {
+        const newPath = ftpPath === '/' ? `/${dirname}` : `${ftpPath}/${dirname}`;
+        fetchFtpFiles(newPath);
+      }
+    };
   const setupGuacamole = () => {
     const params = new URLSearchParams({
       host: tab.ip,
@@ -95,7 +236,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       client.sendKeyEvent(0, keysym);
     };
 
-    client.connect();
+    client.connect('');
   };
 
 
@@ -278,17 +419,86 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     if (tab.protocol === 'ftp') {
       return (
-        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl p-6 items-center justify-center">
-          <h3 className="text-xl font-bold text-cyber-blue mb-4">FTP Connection Established</h3>
-          <p className="text-cyber-gray-light mb-6">FTP server at {tab.ip} is available.</p>
-          <a 
-            href={`ftp://${tab.ip}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn-cyber px-6 py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest"
-          >
-            Open FTP Client
-          </a>
+        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl overflow-hidden">
+          <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between items-center border-b border-cyber-gray">
+            <div className="flex items-center space-x-2">
+              <span className="text-cyber-blue font-bold">FTP:</span>
+              <span className="text-cyber-green font-mono">{ftpPath}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => fetchFtpFiles(ftpPath)}
+                className="text-cyber-blue hover:text-white mr-2"
+                title="Refresh"
+              >
+                ↻
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-cyber-blue hover:text-white font-bold"
+                title="Upload File"
+              >
+                ↑ Upload
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={handleFtpUpload}
+              />
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4">
+            {ftpLoading ? (
+              <div className="text-cyber-blue animate-pulse">Loading files...</div>
+            ) : ftpError ? (
+              <div className="text-red-500">Error: {ftpError}</div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-cyber-gray-light border-b border-cyber-gray">
+                    <th className="pb-2">Name</th>
+                    <th className="pb-2">Size</th>
+                    <th className="pb-2">Date</th>
+                    <th className="pb-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono text-cyber-green">
+                  {ftpPath !== '/' && (
+                    <tr className="hover:bg-cyber-darker cursor-pointer" onClick={() => handleFtpNavigate('..')}>
+                      <td className="py-2" colSpan={4}>..</td>
+                    </tr>
+                  )}
+                  {ftpFiles.map((file, i) => (
+                    <tr key={i} className="hover:bg-cyber-darker border-b border-cyber-gray border-opacity-20">
+                      <td className="py-2 cursor-pointer" onClick={() => file.type === 'directory' ? handleFtpNavigate(file.name) : null}>
+                        <span className="mr-2">{file.type === 'directory' ? '📁' : '📄'}</span>
+                        {file.name}
+                      </td>
+                      <td className="py-2">{file.size}</td>
+                      <td className="py-2">{file.date}</td>
+                      <td className="py-2">
+                        {file.type === 'file' && (
+                          <button 
+                            onClick={() => handleFtpDownload(file.name)}
+                            className="text-cyber-blue hover:underline text-xs"
+                          >
+                            Download
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {ftpFiles.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-4 text-center text-cyber-gray-light">No files found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       );
     }
@@ -385,15 +595,26 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           <label htmlFor="remember" className="text-xs text-cyber-gray-light uppercase cursor-pointer">Remember Credentials</label>
         </div>
 
-        <button
-          type="submit"
-          disabled={tab.status === 'connecting'}
-          className={`w-full btn-cyber py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest transition-all ${
-            tab.status === 'connecting' ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {tab.status === 'connecting' ? 'Establishing Connection...' : 'Connect'}
-        </button>
+          <div className="flex space-x-2">
+            <button
+              type="submit"
+              disabled={tab.status === 'connecting'}
+              className={`flex-1 btn-cyber py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest transition-all ${
+                tab.status === 'connecting' ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {tab.status === 'connecting' ? 'Establishing Connection...' : 'Connect'}
+            </button>
+            {tab.status === 'connecting' && (
+              <button
+                type="button"
+                onClick={() => updateTabStatus(tab.id, 'disconnected')}
+                className="btn-cyber px-4 py-3 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white font-bold uppercase tracking-widest transition-all"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
       </form>
     </div>
   );

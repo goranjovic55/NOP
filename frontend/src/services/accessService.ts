@@ -55,5 +55,26 @@ export const accessService = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  listFTP: async (token: string, data: any) => {
+    const response = await axios.post(`${API_URL}/ftp/list`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  downloadFTP: async (token: string, data: any) => {
+    const response = await axios.post(`${API_URL}/ftp/download`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  uploadFTP: async (token: string, data: any) => {
+    const response = await axios.post(`${API_URL}/ftp/upload`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };

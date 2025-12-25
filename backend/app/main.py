@@ -30,8 +30,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Network Observatory Platform...")
     
     # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.error(f"Failed to create database tables: {e}")
     
     logger.info("Database tables created")
 

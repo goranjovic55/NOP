@@ -7,6 +7,8 @@ import asyncio
 import paramiko
 import socket
 import logging
+import ftplib
+from io import BytesIO
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import json
@@ -223,6 +225,19 @@ class AccessHub:
             "connections": list(self.active_connections.values())
         }
 
+    def add_connection(self, connection_id: str, info: Dict[str, Any]):
+        """Register a new active connection"""
+        self.active_connections[connection_id] = {
+            "id": connection_id,
+            "start_time": datetime.now().isoformat(),
+            **info
+        }
+
+    def remove_connection(self, connection_id: str):
+        """Remove an active connection"""
+        if connection_id in self.active_connections:
+            del self.active_connections[connection_id]
+
     async def get_credentials_for_asset(self, db: AsyncSession, asset_id: str, protocol: str) -> List[Dict[str, Any]]:
         """Retrieve credentials for a specific asset and protocol"""
         from app.models.credential import Credential
@@ -337,6 +352,128 @@ class AccessHub:
 
         await db.commit()
         return {"success": True, "message": "Credential saved successfully"}
+
+    async def list_ftp_files(self, host: str, port: int, username: str, password: str = None, path: str = "/") -> Dict[str, Any]:
+        """List files on an FTP server"""
+        try:
+            # Run blocking FTP operations in a thread
+            def _list():
+                ftp = ftplib.FTP()
+                ftp.connect(host, port, timeout=10)
+                ftp.login(username, password)
+                
+                files = []
+                try:
+                    ftp.cwd(path)
+                except Exception:
+                    # If cwd fails, maybe it's a file or permission issue, but we'll try to list anyway or return error
+                    pass
+                
+                items = []
+                ftp.dir(items.append)
+                
+                parsed_items = []
+                for item in items:
+                    # Simple parsing
+                    parts = item.split()
+                    if len(parts) >= 9:
+                        is_dir = item.startswith('d')
+                        name = " ".join(parts[8:])
+                        size = parts[4]
+                        date = " ".join(parts[5:8])
+                        parsed_items.append({
+                            "name": name,
+                            "type": "directory" if is_dir else "file",
+                            "size": size,
+                            "date": date,
+                            "raw": item
+                        })
+                
+                ftp.quit()
+                return parsed_items
+
+            loop = asyncio.get_event_loop()
+            files = await loop.run_in_executor(None, _list)
+            
+            return {
+                "success": True,
+                "files": files,
+                "path": path
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def download_ftp_file(self, host: str, port: int, username: str, password: str, path: str) -> Dict[str, Any]:
+        """Download a file from FTP server"""
+        try:
+            def _download():
+                ftp = ftplib.FTP()
+                ftp.connect(host, port, timeout=10)
+                ftp.login(username, password)
+                
+                bio = BytesIO()
+                ftp.retrbinary(f"RETR {path}", bio.write)
+                
+                ftp.quit()
+                bio.seek(0)
+                return bio.read()
+
+            loop = asyncio.get_event_loop()
+            content = await loop.run_in_executor(None, _download)
+            
+            try:
+                return {
+                    "success": True,
+                    "content": content.decode('utf-8'),
+                    "is_binary": False
+                }
+            except UnicodeDecodeError:
+                import base64
+                return {
+                    "success": True,
+                    "content": base64.b64encode(content).decode('utf-8'),
+                    "is_binary": True
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def upload_ftp_file(self, host: str, port: int, username: str, password: str, path: str, content: str, is_binary: bool = False) -> Dict[str, Any]:
+        """Upload a file to FTP server"""
+        try:
+            def _upload():
+                ftp = ftplib.FTP()
+                ftp.connect(host, port, timeout=10)
+                ftp.login(username, password)
+                
+                if is_binary:
+                    import base64
+                    data = base64.b64decode(content)
+                    bio = BytesIO(data)
+                    ftp.storbinary(f"STOR {path}", bio)
+                else:
+                    bio = BytesIO(content.encode('utf-8'))
+                    ftp.storbinary(f"STOR {path}", bio)
+                    
+                ftp.quit()
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, _upload)
+            
+            return {
+                "success": True,
+                "message": "File uploaded successfully"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 # Global access hub instance
 access_hub = AccessHub()
