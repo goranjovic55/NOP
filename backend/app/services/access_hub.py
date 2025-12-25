@@ -23,6 +23,10 @@ class AccessHub:
     async def test_ssh_connection(self, host: str, port: int, username: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Test SSH connection to a remote host"""
         try:
+            # Trim whitespace from credentials to prevent common copy-paste errors
+            username = username.strip() if username else username
+            password = password.strip() if password else password
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -64,6 +68,10 @@ class AccessHub:
     async def execute_ssh_command(self, host: str, port: int, username: str, command: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Execute a command on a remote host via SSH"""
         try:
+            # Trim whitespace from credentials to prevent common copy-paste errors
+            username = username.strip() if username else username
+            password = password.strip() if password else password
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -169,6 +177,10 @@ class AccessHub:
 
     async def get_system_info_ssh(self, host: str, port: int, username: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Get system information via SSH"""
+        # Trim whitespace from credentials to prevent common copy-paste errors
+        username = username.strip() if username else username
+        password = password.strip() if password else password
+
         commands = {
             "hostname": "hostname",
             "os_info": "uname -a",
