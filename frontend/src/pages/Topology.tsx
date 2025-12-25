@@ -35,6 +35,7 @@ const Topology: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -122,8 +123,8 @@ const Topology: React.FC = () => {
 
       // Update node sizes based on centrality
       nodesMap.forEach(node => {
-        const degree = degreeMap.get(node.id) || 0;
-        node.val = Math.max(1, Math.log2(degree + 1) * 3); // Logarithmic scaling
+        // Constant size for all nodes as requested
+        node.val = 1; 
       });
 
       setGraphData({
@@ -139,9 +140,14 @@ const Topology: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Refresh every 10s
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    let interval: NodeJS.Timeout;
+    if (isPlaying) {
+      interval = setInterval(fetchData, 5000); // Refresh every 5s only when playing
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [fetchData, isPlaying]);
 
   // Handle Layout Changes
   useEffect(() => {
@@ -178,8 +184,8 @@ const Topology: React.FC = () => {
     } else {
       // Force Directed (Default)
       // Center hubs (handled by d3 forces naturally, but we can add custom forces)
-      fgRef.current.d3Force('charge').strength(-200);
-      fgRef.current.d3Force('link').distance(50);
+      fgRef.current.d3Force('charge').strength(-400); // Stronger repulsion
+      fgRef.current.d3Force('link').distance(100); // Longer links
       fgRef.current.d3ReheatSimulation();
     }
   }, [layoutMode, graphData, dimensions]);
@@ -253,17 +259,16 @@ const Topology: React.FC = () => {
           d3VelocityDecay={0.3}
           onNodeHover={(node: any) => {
             document.body.style.cursor = node ? 'pointer' : 'null';
+            setHoveredNode(node || null);
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;
             const fontSize = 12/globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
-            const textWidth = ctx.measureText(label).width;
-            const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
-
+            
             // Draw Node Circle
             ctx.beginPath();
-            ctx.arc(node.x, node.y, node.val * 4, 0, 2 * Math.PI, false);
+            ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); // Fixed radius 6
             ctx.fillStyle = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
             ctx.fill();
             
@@ -273,27 +278,63 @@ const Topology: React.FC = () => {
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // Draw Label
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2 - (node.val * 4) - 4, bckgDimensions[0], bckgDimensions[1]);
-            
+            // Draw Label only if hovered or always? 
+            // Let's draw label always but small
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#00f0ff';
-            ctx.fillText(label, node.x, node.y - (node.val * 4) - 4);
-
-            node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+            ctx.fillText(label, node.x, node.y + 10);
           }}
           nodePointerAreaPaint={(node: any, color, ctx) => {
             ctx.fillStyle = color;
-            const bckgDimensions = node.__bckgDimensions;
-            bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2 - (node.val * 4) - 4, bckgDimensions[0], bckgDimensions[1]);
             ctx.beginPath();
-            ctx.arc(node.x, node.y, node.val * 4, 0, 2 * Math.PI, false);
+            ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI, false); // Slightly larger hit area
             ctx.fill();
           }}
         />
         
+        {/* Hover Tooltip */}
+        {hoveredNode && (
+          <div 
+            className="absolute z-20 bg-cyber-darker border border-cyber-blue p-3 rounded shadow-lg pointer-events-none"
+            style={{ 
+              top: 20, 
+              right: 20,
+              minWidth: '200px'
+            }}
+          >
+            <h3 className="text-cyber-blue font-bold text-lg mb-2">{hoveredNode.name}</h3>
+            <div className="space-y-1 text-sm text-cyber-gray-light">
+              <div className="flex justify-between">
+                <span className="font-semibold">IP:</span>
+                <span>{hoveredNode.ip}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Status:</span>
+                <span className={hoveredNode.status === 'online' ? 'text-cyber-green' : 'text-cyber-red'}>
+                  {hoveredNode.status.toUpperCase()}
+                </span>
+              </div>
+              {hoveredNode.details && (
+                <>
+                  {hoveredNode.details.mac_address && (
+                    <div className="flex justify-between">
+                      <span className="font-semibold">MAC:</span>
+                      <span>{hoveredNode.details.mac_address}</span>
+                    </div>
+                  )}
+                  {hoveredNode.details.os_info && (
+                    <div className="flex justify-between">
+                      <span className="font-semibold">OS:</span>
+                      <span>{hoveredNode.details.os_info}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Legend */}
         <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-2 text-xs text-cyber-gray-light opacity-80">
           <div className="flex items-center space-x-2 mb-1">
