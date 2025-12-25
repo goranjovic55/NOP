@@ -1,27 +1,313 @@
-import React from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import ForceGraph2D from 'react-force-graph-2d';
+import { assetService } from '../services/assetService';
+import { dashboardService } from '../services/dashboardService';
+import { useAuthStore } from '../store/authStore';
+
+interface GraphNode {
+  id: string;
+  name: string;
+  val: number; // size based on connections
+  group: string; // for coloring
+  ip: string;
+  status: string;
+  details?: any;
+  x?: number;
+  y?: number;
+  fx?: number;
+  fy?: number;
+}
+
+interface GraphLink {
+  source: string;
+  target: string;
+  value: number; // traffic volume
+}
+
+interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
 
 const Topology: React.FC = () => {
+  const { token } = useAuthStore();
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
+  const [loading, setLoading] = useState(true);
+  const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const fgRef = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  // Resize observer
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
+        });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const [assets, trafficStats] = await Promise.all([
+        assetService.getAssets(token),
+        dashboardService.getTrafficStats(token)
+      ]);
+
+      // Process Nodes
+      const nodesMap = new Map<string, GraphNode>();
+      
+      // Add assets as nodes
+      assets.forEach(asset => {
+        nodesMap.set(asset.ip_address, {
+          id: asset.ip_address,
+          name: asset.hostname || asset.ip_address,
+          val: 1,
+          group: asset.status === 'online' ? 'online' : 'offline',
+          ip: asset.ip_address,
+          status: asset.status,
+          details: asset
+        });
+      });
+
+      // Process Links
+      const links: GraphLink[] = [];
+      const connections = trafficStats.connections || [];
+      
+      connections.forEach(conn => {
+        // Ensure source and target nodes exist (add if discovered via traffic but not in assets)
+        if (!nodesMap.has(conn.source)) {
+          nodesMap.set(conn.source, {
+            id: conn.source,
+            name: conn.source,
+            val: 1,
+            group: 'external',
+            ip: conn.source,
+            status: 'unknown'
+          });
+        }
+        if (!nodesMap.has(conn.target)) {
+          nodesMap.set(conn.target, {
+            id: conn.target,
+            name: conn.target,
+            val: 1,
+            group: 'external',
+            ip: conn.target,
+            status: 'unknown'
+          });
+        }
+
+        links.push({
+          source: conn.source,
+          target: conn.target,
+          value: conn.value
+        });
+      });
+
+      // Calculate Centrality (Degree)
+      const degreeMap = new Map<string, number>();
+      links.forEach(link => {
+        degreeMap.set(link.source, (degreeMap.get(link.source) || 0) + 1);
+        degreeMap.set(link.target, (degreeMap.get(link.target) || 0) + 1);
+      });
+
+      // Update node sizes based on centrality
+      nodesMap.forEach(node => {
+        const degree = degreeMap.get(node.id) || 0;
+        node.val = Math.max(1, Math.log2(degree + 1) * 3); // Logarithmic scaling
+      });
+
+      setGraphData({
+        nodes: Array.from(nodesMap.values()),
+        links: links
+      });
+    } catch (err) {
+      console.error("Failed to fetch topology data", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // Handle Layout Changes
+  useEffect(() => {
+    if (!fgRef.current) return;
+
+    // Reset fixed positions
+    const nodes = graphData.nodes;
+    nodes.forEach(node => {
+      node.fx = undefined;
+      node.fy = undefined;
+    });
+
+    if (layoutMode === 'circular') {
+      // Arrange in a circle
+      const radius = Math.min(dimensions.width, dimensions.height) / 3;
+      const angleStep = (2 * Math.PI) / nodes.length;
+      
+      // Sort nodes by degree for better circular layout (hubs together or spread)
+      // Let's just sort by IP for stability
+      const sortedNodes = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
+
+      sortedNodes.forEach((node, i) => {
+        node.fx = Math.cos(i * angleStep) * radius;
+        node.fy = Math.sin(i * angleStep) * radius;
+      });
+      
+      // Re-heat simulation to move to new positions
+      fgRef.current.d3Force('charge').strength(-100);
+      fgRef.current.d3ReheatSimulation();
+    } else if (layoutMode === 'hierarchical') {
+      // Use dagMode
+      fgRef.current.d3Force('charge').strength(-300);
+      // dagMode is handled via prop
+    } else {
+      // Force Directed (Default)
+      // Center hubs (handled by d3 forces naturally, but we can add custom forces)
+      fgRef.current.d3Force('charge').strength(-200);
+      fgRef.current.d3Force('link').distance(50);
+      fgRef.current.d3ReheatSimulation();
+    }
+  }, [layoutMode, graphData, dimensions]);
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Network Topology</h2>
-        <div className="flex space-x-2">
-          <button className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg">
-            Auto Layout
+    <div className="h-full flex flex-col space-y-4">
+      <div className="flex justify-between items-center bg-cyber-darker p-4 border border-cyber-gray">
+        <h2 className="text-2xl font-bold text-cyber-blue uppercase tracking-wider cyber-glow">Network Topology</h2>
+        
+        <div className="flex items-center space-x-4">
+          <div className="flex space-x-2 bg-cyber-dark p-1 rounded border border-cyber-gray">
+            <button 
+              onClick={() => setLayoutMode('force')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${layoutMode === 'force' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
+            >
+              Force
+            </button>
+            <button 
+              onClick={() => setLayoutMode('circular')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${layoutMode === 'circular' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
+            >
+              Circular
+            </button>
+            <button 
+              onClick={() => setLayoutMode('hierarchical')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${layoutMode === 'hierarchical' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
+            >
+              Hierarchical
+            </button>
+          </div>
+
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)}
+            className={`flex items-center space-x-2 px-4 py-2 border ${isPlaying ? 'border-cyber-green text-cyber-green' : 'border-cyber-gray text-cyber-gray-light'} hover:bg-cyber-darker transition-colors`}
+          >
+            <span>{isPlaying ? '⏸ PAUSE FLOW' : '▶ PLAY FLOW'}</span>
           </button>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-            Refresh
-          </button>
+
+          <button onClick={fetchData} className="btn-cyber px-4 py-2">Refresh</button>
         </div>
       </div>
-      
-      <div className="topology-container h-96 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🌐</div>
-          <p className="text-slate-400">Interactive network topology visualization will be displayed here.</p>
-          <p className="text-slate-500 text-sm mt-2">
-            Features: Real-time topology mapping, device relationships, and network paths.
-          </p>
+
+      <div ref={containerRef} className="flex-1 bg-cyber-darker border border-cyber-gray relative overflow-hidden min-h-[600px]">
+        {loading && graphData.nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
+            <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
+          </div>
+        )}
+        
+        <ForceGraph2D
+          ref={fgRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          graphData={graphData}
+          nodeLabel="name"
+          nodeColor={node => {
+            if (node.group === 'online') return '#00ff41'; // Cyber Green
+            if (node.group === 'offline') return '#ff0040'; // Cyber Red
+            return '#8b5cf6'; // Cyber Purple (External/Unknown)
+          }}
+          nodeRelSize={6}
+          linkColor={() => '#00f0ff'} // Cyber Blue
+          linkWidth={1}
+          linkDirectionalParticles={isPlaying ? 4 : 0}
+          linkDirectionalParticleSpeed={d => d.value * 0.001 + 0.001}
+          linkDirectionalParticleWidth={2}
+          linkDirectionalParticleColor={() => '#ffffff'}
+          backgroundColor="#050505"
+          dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
+          dagLevelDistance={100}
+          d3VelocityDecay={0.3}
+          onNodeHover={(node: any) => {
+            document.body.style.cursor = node ? 'pointer' : 'null';
+          }}
+          nodeCanvasObject={(node: any, ctx, globalScale) => {
+            const label = node.name;
+            const fontSize = 12/globalScale;
+            ctx.font = `${fontSize}px Sans-Serif`;
+            const textWidth = ctx.measureText(label).width;
+            const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+
+            // Draw Node Circle
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.val * 4, 0, 2 * Math.PI, false);
+            ctx.fillStyle = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+            ctx.fill();
+            
+            // Glow effect
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw Label
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2 - (node.val * 4) - 4, bckgDimensions[0], bckgDimensions[1]);
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillText(label, node.x, node.y - (node.val * 4) - 4);
+
+            node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+          }}
+          nodePointerAreaPaint={(node: any, color, ctx) => {
+            ctx.fillStyle = color;
+            const bckgDimensions = node.__bckgDimensions;
+            bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2 - (node.val * 4) - 4, bckgDimensions[0], bckgDimensions[1]);
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.val * 4, 0, 2 * Math.PI, false);
+            ctx.fill();
+          }}
+        />
+        
+        {/* Legend */}
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-2 text-xs text-cyber-gray-light opacity-80">
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full bg-cyber-green"></span>
+            <span>Online Asset</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full bg-cyber-red"></span>
+            <span>Offline Asset</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-3 h-3 rounded-full bg-cyber-purple"></span>
+            <span>External/Unknown</span>
+          </div>
         </div>
       </div>
     </div>

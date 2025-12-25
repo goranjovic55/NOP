@@ -21,7 +21,8 @@ class SnifferService:
             "total_flows": 0,
             "total_bytes": 0,
             "top_talkers": {},
-            "protocols": {}
+            "protocols": {},
+            "connections": {}
         }
         self.traffic_history = []
         self.last_bytes_check = 0
@@ -93,7 +94,12 @@ class SnifferService:
             self.stats["total_flows"] += 1
 
             src = packet[IP].src
+            dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
+            
+            # Track connections (src -> dst)
+            conn_key = f"{src}-{dst}"
+            self.stats["connections"][conn_key] = self.stats["connections"].get(conn_key, 0) + len(packet)
 
             if TCP in packet:
                 packet_data["protocol"] = "TCP"
@@ -155,12 +161,20 @@ class SnifferService:
     def get_stats(self) -> Dict[str, Any]:
         # Sort top talkers and return top 5
         sorted_talkers = sorted(self.stats["top_talkers"].items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Format connections
+        connections = []
+        for key, bytes_count in self.stats["connections"].items():
+            src, dst = key.split('-')
+            connections.append({"source": src, "target": dst, "value": bytes_count})
+
         return {
             "total_flows": self.stats["total_flows"],
             "total_bytes": self.stats["total_bytes"],
             "top_talkers": [{"ip": ip, "bytes": b} for ip, b in sorted_talkers],
             "protocols": self.stats["protocols"],
-            "traffic_history": self.traffic_history
+            "traffic_history": self.traffic_history,
+            "connections": connections
         }
 
     def export_pcap(self, filename: str = "capture.pcap") -> str:
