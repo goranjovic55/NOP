@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Protocol = 'ssh' | 'rdp' | 'vnc' | 'telnet' | 'exploit';
+export type Protocol = 'ssh' | 'rdp' | 'vnc' | 'telnet' | 'exploit' | 'web' | 'ftp';
 
 export interface ConnectionTab {
   id: string;

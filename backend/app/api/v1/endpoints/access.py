@@ -11,6 +11,7 @@ import asyncio
 from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
 from app.services.access_hub import access_hub
+from app.services.guacamole import GuacamoleTunnel
 
 router = APIRouter()
 
@@ -235,8 +236,35 @@ async def test_environment_services():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.websocket("/tunnel")
-async def guacamole_tunnel(websocket: WebSocket):
+async def guacamole_tunnel(
+    websocket: WebSocket,
+    host: str,
+    port: int,
+    protocol: str,
+    username: str,
+    password: str = None,
+    width: int = 1024,
+    height: int = 768,
+    dpi: int = 96
+):
     await websocket.accept()
-    # GuacamoleClient is missing, so we'll just close the connection for now
-    # client = GuacamoleClient("nop-guacd", 4822)
-    await websocket.close(code=1011, reason="Guacamole client not available")
+    
+    # guacd hostname is the service name in docker-compose
+    tunnel = GuacamoleTunnel("guacd", 4822)
+    
+    connection_args = {
+        "hostname": host,
+        "port": str(port),
+        "username": username,
+        "password": password if password else "",
+        "width": str(width),
+        "height": str(height),
+        "dpi": str(dpi),
+        "ignore-cert": "true",
+        "security": "any"
+    }
+    
+    if await tunnel.connect(websocket, protocol, connection_args):
+        await tunnel.run()
+    else:
+        await websocket.close(code=1011, reason="Failed to connect to guacd")

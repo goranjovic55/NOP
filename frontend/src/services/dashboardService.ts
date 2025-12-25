@@ -9,6 +9,8 @@ export interface DashboardStats {
   by_type: Record<string, number>;
   by_vendor: Record<string, number>;
   recently_discovered: number;
+  active_scans: number;
+  active_connections: number;
 }
 
 export interface TrafficStats {

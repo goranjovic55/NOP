@@ -20,6 +20,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    ports:
+      - "12001:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
       - REDIS_URL=redis://redis:6379/0
@@ -48,6 +50,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - nop-internal
+    restart: unless-stopped
+
+  guacd:
+    image: guacamole/guacd
+    networks:
+      - nop-internal
+      - test-network
     restart: unless-stopped
 
   redis:

@@ -47,7 +47,21 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   }, [output]);
 
   const setupGuacamole = () => {
-    const tunnel = new Guacamole.WebSocketTunnel(`ws://${window.location.hostname}:8000/api/v1/access/tunnel`);
+    const params = new URLSearchParams({
+      host: tab.ip,
+      port: (tab.protocol === 'rdp' ? 3389 : 5900).toString(),
+      protocol: tab.protocol,
+      username: username,
+      password: password,
+      width: (displayRef.current?.clientWidth || 1024).toString(),
+      height: (displayRef.current?.clientHeight || 768).toString(),
+      dpi: '96'
+    });
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
+
+    const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
     const client = new Guacamole.Client(tunnel);
     clientRef.current = client;
 
@@ -81,22 +95,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       client.sendKeyEvent(0, keysym);
     };
 
-    tunnel.onstatechange = (state) => {
-      if (state === 1) { // OPEN
-        const params = {
-          protocol: tab.protocol,
-          hostname: tab.ip,
-          port: tab.protocol === 'rdp' ? 3389 : 5900,
-          username,
-          password,
-          width: displayRef.current?.clientWidth || 1024,
-          height: displayRef.current?.clientHeight || 768,
-          dpi: 96
-        };
-        tunnel.sendMessage(JSON.stringify(params));
-      }
-    };
-
     client.connect();
   };
 
@@ -123,6 +121,16 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
       setupGuacamole();
+      return;
+    }
+
+    if (tab.protocol === 'web') {
+      updateTabStatus(tab.id, 'connected');
+      return;
+    }
+
+    if (tab.protocol === 'ftp') {
+      updateTabStatus(tab.id, 'connected');
       return;
     }
 
@@ -233,6 +241,40 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             <span>{username}</span>
           </div>
           <div ref={displayRef} className="flex-1 flex items-center justify-center overflow-auto bg-black" />
+        </div>
+      );
+    }
+
+    if (tab.protocol === 'web') {
+      return (
+        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl p-6 items-center justify-center">
+          <h3 className="text-xl font-bold text-cyber-blue mb-4">Web Connection Established</h3>
+          <p className="text-cyber-gray-light mb-6">Web interface for {tab.ip} is available.</p>
+          <a 
+            href={`http://${tab.ip}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn-cyber px-6 py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest"
+          >
+            Open Web Interface
+          </a>
+        </div>
+      );
+    }
+
+    if (tab.protocol === 'ftp') {
+      return (
+        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl p-6 items-center justify-center">
+          <h3 className="text-xl font-bold text-cyber-blue mb-4">FTP Connection Established</h3>
+          <p className="text-cyber-gray-light mb-6">FTP server at {tab.ip} is available.</p>
+          <a 
+            href={`ftp://${tab.ip}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn-cyber px-6 py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest"
+          >
+            Open FTP Client
+          </a>
         </div>
       );
     }
