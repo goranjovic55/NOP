@@ -8,10 +8,13 @@
 ## High-Level Architecture
 - **Backend**: FastAPI (Python) with SQLAlchemy (PostgreSQL) and Redis for task queuing.
 - **Frontend**: React (TypeScript) with Tailwind CSS.
+- **State Management**: Zustand for global scan and auth state.
 - **Discovery**: Nmap-based network scanning integrated into the backend.
 - **Deployment**: Docker Compose for multi-container orchestration.
 
 ## Key Decisions
-- Use relative API paths (`/api/v1`) in the frontend to allow Nginx to proxy requests to the backend, avoiding CORS and environment-specific host issues.
-- Implement active discovery logic that marks assets as OFFLINE if they are not found during a network scan.
-- Provide user-configurable auto-refresh on the Assets page to maintain real-time visibility of host states.
+- Use relative API paths (`/api/v1`) in the frontend to allow Nginx to proxy requests to the backend.
+- Implement a multi-tab scan interface to allow concurrent detailed assessments of multiple hosts.
+- Separate "Discovery" (ARP/Ping) from "Detailed Scanning" (Nmap) to optimize network performance and safety.
+- Use local storage to persist detailed scan results (OS, ports) and merge them with backend discovery data.
+- Implement PPS (Packets Per Second) control for discovery to prevent network storming.

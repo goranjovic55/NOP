@@ -1,5 +1,7 @@
 import React from 'react';
 import { Asset } from '../services/assetService';
+import { useNavigate } from 'react-router-dom';
+import { useScanStore } from '../store/scanStore';
 
 interface AssetDetailsSidebarProps {
   asset: Asset | null;
@@ -7,6 +9,19 @@ interface AssetDetailsSidebarProps {
 }
 
 const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClose }) => {
+  const navigate = useNavigate();
+  const { addTab, tabs } = useScanStore();
+
+  const activeScan = tabs.find(t => t.ip === asset?.ip_address && t.status === 'running');
+
+  const handleScanClick = () => {
+    if (asset) {
+      addTab(asset.ip_address, asset.hostname);
+      navigate('/scans');
+      onClose();
+    }
+  };
+
   return (
     <div className={`fixed inset-y-0 right-0 w-96 bg-cyber-dark border-l border-cyber-gray shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${asset ? 'translate-x-0' : 'translate-x-full'}`}>
       {asset && (
@@ -28,9 +43,14 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-cyber-purple uppercase font-bold">Status</span>
-                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${asset.status === 'online' ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.5)]' : 'text-cyber-red border border-cyber-red opacity-60'}`}>
-                  {asset.status}
-                </span>
+                <div className="flex items-center space-x-2">
+                  {activeScan && (
+                    <span className="text-[10px] text-cyber-red animate-pulse font-bold uppercase border border-cyber-red px-1">Scanning</span>
+                  )}
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${asset.status === 'online' ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.5)]' : 'text-cyber-red border border-cyber-red opacity-60'}`}>
+                    {asset.status}
+                  </span>
+                </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-cyber-purple uppercase font-bold">Last Seen</span>
@@ -82,11 +102,14 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
               <button className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all group">
                 <span className="font-bold uppercase tracking-widest">Connect</span>
               </button>
-              <button className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white transition-all group">
-                <span className="font-bold uppercase tracking-widest">Scan</span>
-              </button>
-              <button className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all group">
-                <span className="font-bold uppercase tracking-widest">Exploit</span>
+              <button 
+                onClick={handleScanClick}
+                disabled={!!activeScan}
+                className={`w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white transition-all group ${activeScan ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className="font-bold uppercase tracking-widest">
+                  {activeScan ? 'Scan in Progress' : 'Detailed Scan'}
+                </span>
               </button>
             </div>
           </div>

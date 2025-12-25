@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useScanStore } from '../store/scanStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { tabs } = useScanStore();
+
+  const isAnyScanRunning = tabs.some(tab => tab.status === 'running');
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -30,8 +34,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Logo */}
         <div className="flex items-center justify-between p-4 border-b border-cyber-gray">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-cyber-red border border-cyber-red-dark flex items-center justify-center cyber-glow-red">
+            <div className="w-8 h-8 bg-cyber-red border border-cyber-red-dark flex items-center justify-center cyber-glow-red relative">
               <span className="text-cyber-red font-bold text-lg">◉</span>
+              {isAnyScanRunning && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyber-red rounded-full animate-ping"></div>
+              )}
             </div>
             {sidebarOpen && (
               <span className="text-cyber-red font-bold text-lg tracking-wider cyber-glow-red">NOP</span>
@@ -53,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <li key={item.name}>
                 <Link
                   to={item.href}
-                  className={`flex items-center px-3 py-3 transition-all duration-300 border border-transparent ${
+                  className={`flex items-center px-3 py-3 transition-all duration-300 border border-transparent relative ${
                     isActive(item.href)
                       ? 'bg-cyber-darker border-cyber-red text-cyber-red cyber-glow-red'
                       : 'text-cyber-gray-light hover:bg-cyber-darker hover:border-cyber-purple hover:text-cyber-purple'
@@ -67,6 +74,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <span className="font-medium tracking-wide uppercase text-sm">
                       {item.name}
                     </span>
+                  )}
+                  {item.name === 'Scans' && isAnyScanRunning && (
+                    <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
                 </Link>
               </li>
@@ -120,7 +130,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </span>
               </div>
               <div className="text-cyber-gray-light text-sm font-mono">
-                {new Date().toLocaleTimeString('en-US', { 
+                {new Date().toLocaleTimeString('en-US', {
                   hour12: false,
                   hour: '2-digit',
                   minute: '2-digit',

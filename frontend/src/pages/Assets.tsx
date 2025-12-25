@@ -1,16 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
+import { useScanStore } from '../store/scanStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
 import ScanSettingsModal from '../components/ScanSettingsModal';
 
 interface ScanSettings {
   autoScanEnabled: boolean;
   autoScanInterval: number;
-  autoScanType: string;
-  manualScanType: string;
+  autoScanType: 'arp' | 'ping';
+  manualScanType: 'arp' | 'ping';
   networkRange: string;
+  pps: number;
 }
+
+type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time';
+type SortOrder = 'asc' | 'desc';
 
 const Assets: React.FC = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -19,22 +24,27 @@ const Assets: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [subnetFilter, setSubnetFilter] = useState<string>('');
   const [refreshInterval, setRefreshInterval] = useState<number>(30);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('ip');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const [scanSettings, setScanSettings] = useState<ScanSettings>(() => {
     const saved = localStorage.getItem('nop_scan_settings');
     return saved ? JSON.parse(saved) : {
       autoScanEnabled: false,
       autoScanInterval: 15,
-      autoScanType: 'basic',
-      manualScanType: 'basic',
-      networkRange: '172.21.0.0/24'
+      autoScanType: 'arp',
+      manualScanType: 'arp',
+      networkRange: '172.21.0.0/24',
+      pps: 100
     };
   });
 
   const { token } = useAuthStore();
+  const { setOnScanComplete, tabs } = useScanStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,13 +54,28 @@ const Assets: React.FC = () => {
     try {
       if (showLoading) setLoading(true);
       setIsRefreshing(true);
-      
+
       const data = await assetService.getAssets(token, statusFilter === 'all' ? undefined : statusFilter);
-      setAssets(data);
+      
+      const localResults = JSON.parse(localStorage.getItem('nop_local_scan_results') || '{}');
+      const mergedData = data.map(asset => {
+        const localData = localResults[asset.ip_address];
+        if (localData) {
+          return { 
+            ...asset, 
+            ...localData,
+            has_been_scanned: true,
+            last_detailed_scan: localData.last_detailed_scan
+          };
+        }
+        return { ...asset, has_been_scanned: false, last_detailed_scan: null };
+      });
+
+      setAssets(mergedData);
 
       setSelectedAsset(prev => {
         if (!prev) return null;
-        const updated = data.find(a => a.id === prev.id);
+        const updated = mergedData.find(a => a.id === prev.id || a.ip_address === prev.ip_address);
         return updated || prev;
       });
 
@@ -59,10 +84,22 @@ const Assets: React.FC = () => {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch assets');
     } finally {
       if (showLoading) setLoading(false);
-      // Keep the refresh indicator for at least 1 second so it's visible
       setTimeout(() => setIsRefreshing(false), 1000);
     }
   }, [token, statusFilter]);
+
+  useEffect(() => {
+    setOnScanComplete((ip, data) => {
+      const localResults = JSON.parse(localStorage.getItem('nop_local_scan_results') || '{}');
+      localResults[ip] = {
+        ...localResults[ip],
+        ...data,
+        last_detailed_scan: new Date().toISOString()
+      };
+      localStorage.setItem('nop_local_scan_results', JSON.stringify(localResults));
+      fetchAssets(false);
+    });
+  }, [setOnScanComplete, fetchAssets]);
 
   const triggerScan = useCallback(async (type: 'manual' | 'auto') => {
     if (!token) return;
@@ -70,13 +107,10 @@ const Assets: React.FC = () => {
     try {
       setIsScanning(true);
       await assetService.startScan(token, scanSettings.networkRange, scanType);
-      console.log(`${type} scan started: ${scanType} on ${scanSettings.networkRange}`);
-      
-      // Scans take time, we'll keep the indicator for 5 seconds or until next refresh
       if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
       statusTimeoutRef.current = setTimeout(() => setIsScanning(false), 5000);
     } catch (err) {
-      console.error('Scan trigger failed:', err);
+      console.error('Discovery failed:', err);
       setIsScanning(false);
     }
   }, [token, scanSettings]);
@@ -95,19 +129,46 @@ const Assets: React.FC = () => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [fetchAssets, refreshInterval]);
 
-  useEffect(() => {
-    if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
-    if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
-      autoScanTimerRef.current = setInterval(() => {
-        triggerScan('auto');
-      }, scanSettings.autoScanInterval * 60 * 1000);
-    }
-    return () => { if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current); };
-  }, [triggerScan, scanSettings.autoScanEnabled, scanSettings.autoScanInterval]);
-
   const handleSaveSettings = (newSettings: ScanSettings) => {
     setScanSettings(newSettings);
     localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
+  };
+
+  const ipToNumber = (ip: string) => {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+  };
+
+  const filteredAndSortedAssets = useMemo(() => {
+    let result = assets;
+
+    // Subnet Filter
+    if (subnetFilter) {
+      result = result.filter(a => a.ip_address.startsWith(subnetFilter));
+    }
+
+    // Sorting
+    return [...result].sort((a: any, b: any) => {
+      let comparison = 0;
+      if (sortField === 'ip') {
+        comparison = ipToNumber(a.ip_address) - ipToNumber(b.ip_address);
+      } else if (sortField === 'last_seen') {
+        comparison = new Date(a.last_seen || 0).getTime() - new Date(b.last_seen || 0).getTime();
+      } else if (sortField === 'scanned_time') {
+        comparison = new Date(a.last_detailed_scan || 0).getTime() - new Date(b.last_detailed_scan || 0).getTime();
+      } else if (sortField === 'first_seen') {
+        comparison = a.id.localeCompare(b.id);
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [assets, subnetFilter, sortField, sortOrder]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
   };
 
   return (
@@ -119,11 +180,11 @@ const Assets: React.FC = () => {
             <div className="w-2 h-2 bg-cyber-green rounded-full animate-pulse shadow-[0_0_5px_#00ff41]"></div>
             <span className="text-[10px] text-cyber-green uppercase font-bold tracking-widest">System Online</span>
           </div>
-          
+
           {isScanning && (
             <div className="flex items-center space-x-2 animate-fadeIn">
               <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping shadow-[0_0_5px_#ff0040]"></div>
-              <span className="text-[10px] text-cyber-red uppercase font-bold tracking-widest">Scan Underway</span>
+              <span className="text-[10px] text-cyber-red uppercase font-bold tracking-widest">Discovery Underway</span>
             </div>
           )}
 
@@ -134,10 +195,10 @@ const Assets: React.FC = () => {
             </div>
           )}
         </div>
-        
+
         <div className="hidden md:block">
           <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest opacity-50">
-            Network: {scanSettings.networkRange}
+            Network: {scanSettings.networkRange} | Timing: {scanSettings.pps} PPS
           </span>
         </div>
       </div>
@@ -148,18 +209,14 @@ const Assets: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
-              <span className="text-xs text-cyber-purple uppercase font-bold">Auto-Refresh:</span>
-              <select
-                value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                className="bg-transparent text-cyber-blue text-sm focus:outline-none border-none cursor-pointer"
-              >
-                <option value={0} className="bg-cyber-darker">OFF</option>
-                <option value={5} className="bg-cyber-darker">5s</option>
-                <option value={10} className="bg-cyber-darker">10s</option>
-                <option value={30} className="bg-cyber-darker">30s</option>
-                <option value={60} className="bg-cyber-darker">1m</option>
-              </select>
+              <span className="text-xs text-cyber-purple uppercase font-bold">Subnet:</span>
+              <input
+                type="text"
+                value={subnetFilter}
+                onChange={(e) => setSubnetFilter(e.target.value)}
+                placeholder="172.21."
+                className="bg-transparent text-cyber-blue text-sm focus:outline-none border-none w-24 font-mono"
+              />
             </div>
 
             <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
@@ -179,7 +236,7 @@ const Assets: React.FC = () => {
               CONFIG
             </button>
             <button onClick={() => fetchAssets(true)} className="btn-cyber px-4 py-2">Refresh</button>
-            <button onClick={() => triggerScan('manual')} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Scan</button>
+            <button onClick={() => triggerScan('manual')} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Discover</button>
           </div>
         </div>
 
@@ -189,36 +246,74 @@ const Assets: React.FC = () => {
           <table className="min-w-full divide-y divide-cyber-gray">
             <thead className="bg-cyber-darker">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">IP Address</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
+                  onClick={() => toggleSort('ip')}
+                >
+                  IP Address {sortField === 'ip' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Hostname</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Last Seen</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
+                  onClick={() => toggleSort('last_seen')}
+                >
+                  Last Seen {sortField === 'last_seen' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
+                  onClick={() => toggleSort('scanned_time')}
+                >
+                  Intel {sortField === 'scanned_time' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
-              ) : assets.length === 0 && !error ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+              ) : filteredAndSortedAssets.length === 0 && !error ? (
+                <tr><td colSpan={5} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
-                assets.map((asset) => (
-                  <tr
-                    key={asset.id}
-                    className={`hover:bg-cyber-darker cursor-pointer transition-colors ${selectedAsset?.id === asset.id ? 'bg-cyber-darker border-l-2 border-cyber-red' : ''}`}
-                    onClick={() => setSelectedAsset(asset)}
-                  >
-                    <td className="px-6 py-4 text-sm text-cyber-blue font-mono">{asset.ip_address}</td>
-                    <td className="px-6 py-4 text-sm text-cyber-gray-light">{asset.hostname || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${asset.status === 'online' ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.5)]' : 'text-cyber-red border border-cyber-red opacity-60'}`}>
-                        {asset.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-cyber-gray-light">
-                      {asset.last_seen ? new Date(asset.last_seen).toLocaleString() : 'Never'}
-                    </td>
-                  </tr>
-                ))
+                filteredAndSortedAssets.map((asset: any) => {
+                  const isScanningThis = tabs.some(t => t.ip === asset.ip_address && t.status === 'running');
+                  return (
+                    <tr
+                      key={asset.id}
+                      className={`hover:bg-cyber-darker cursor-pointer transition-colors ${selectedAsset?.id === asset.id || selectedAsset?.ip_address === asset.ip_address ? 'bg-cyber-darker border-l-2 border-cyber-red' : ''}`}
+                      onClick={() => setSelectedAsset(asset)}
+                    >
+                      <td className="px-6 py-4 text-sm text-cyber-blue font-mono flex items-center space-x-2">
+                        <span>{asset.ip_address}</span>
+                        {isScanningThis && (
+                          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Detailed Scan Underway"></span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-cyber-gray-light">{asset.hostname || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${asset.status === 'online' ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.5)]' : 'text-cyber-red border border-cyber-red opacity-60'}`}>
+                          {asset.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-cyber-gray-light">
+                        {asset.last_seen ? new Date(asset.last_seen).toLocaleString() : 'Never'}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex flex-col space-y-1">
+                          {asset.has_been_scanned ? (
+                            <>
+                              <span className="text-cyber-green text-[10px] font-bold uppercase border border-cyber-green px-1 shadow-[0_0_3px_#00ff41] w-fit">Scanned</span>
+                              <span className="text-[9px] text-cyber-gray-light opacity-50 font-mono">
+                                {new Date(asset.last_detailed_scan).toLocaleTimeString()}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-cyber-gray-light text-[10px] font-bold uppercase border border-cyber-gray px-1 opacity-40 w-fit">Unscanned</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

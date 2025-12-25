@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 interface ScanSettings {
   autoScanEnabled: boolean;
   autoScanInterval: number; // in minutes
-  autoScanType: string;
-  manualScanType: string;
+  autoScanType: 'arp' | 'ping';
+  manualScanType: 'arp' | 'ping';
   networkRange: string;
+  pps: number; // Packets Per Second
 }
 
 interface ScanSettingsModalProps {
@@ -30,7 +31,7 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
       <div className="bg-cyber-dark border-2 border-cyber-red w-full max-w-md shadow-[0_0_30px_rgba(255,0,64,0.3)]">
         {/* Header */}
         <div className="p-4 border-b border-cyber-gray bg-cyber-darker flex justify-between items-center">
-          <h3 className="text-lg font-bold text-cyber-red uppercase tracking-widest cyber-glow-red">Scan Configuration</h3>
+          <h3 className="text-lg font-bold text-cyber-red uppercase tracking-widest cyber-glow-red">Discovery Config</h3>
           <button onClick={onClose} className="text-cyber-gray-light hover:text-cyber-red text-2xl">&times;</button>
         </div>
 
@@ -48,23 +49,40 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
             />
           </div>
 
+          {/* PPS Setting */}
+          <div className="space-y-2">
+            <label className="text-xs text-cyber-purple uppercase font-bold">Timing (Packets Per Second)</label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="range"
+                min="10"
+                max="1000"
+                step="10"
+                value={localSettings.pps}
+                onChange={(e) => setLocalSettings({ ...localSettings, pps: parseInt(e.target.value) })}
+                className="flex-1 accent-cyber-red"
+              />
+              <span className="text-cyber-blue font-mono w-16 text-right">{localSettings.pps}</span>
+            </div>
+            <p className="text-[10px] text-cyber-gray-light italic">Adjust to avoid network storming protection.</p>
+          </div>
+
           {/* Manual Scan Type */}
           <div className="space-y-2">
-            <label className="text-xs text-cyber-purple uppercase font-bold">Default Scan Button Type</label>
+            <label className="text-xs text-cyber-purple uppercase font-bold">Discovery Method</label>
             <select
               value={localSettings.manualScanType}
-              onChange={(e) => setLocalSettings({ ...localSettings, manualScanType: e.target.value })}
+              onChange={(e) => setLocalSettings({ ...localSettings, manualScanType: e.target.value as 'arp' | 'ping' })}
               className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
             >
-              <option value="basic">Basic (Fast)</option>
-              <option value="comprehensive">Comprehensive (Deep)</option>
-              <option value="ping_only">Ping Sweep Only</option>
+              <option value="arp">ARP Scan (Local Network)</option>
+              <option value="ping">ICMP Ping Sweep</option>
             </select>
           </div>
 
           <div className="border-t border-cyber-gray pt-4">
             <div className="flex items-center justify-between mb-4">
-              <label className="text-xs text-cyber-purple uppercase font-bold">Enable Auto-Scan</label>
+              <label className="text-xs text-cyber-purple uppercase font-bold">Enable Auto-Discovery</label>
               <input
                 type="checkbox"
                 checked={localSettings.autoScanEnabled}
@@ -76,7 +94,7 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
             {localSettings.autoScanEnabled && (
               <div className="space-y-4 animate-fadeIn">
                 <div className="space-y-2">
-                  <label className="text-xs text-cyber-purple uppercase font-bold">Auto-Scan Interval (Minutes)</label>
+                  <label className="text-xs text-cyber-purple uppercase font-bold">Interval (Minutes)</label>
                   <input
                     type="number"
                     min="1"
@@ -86,15 +104,14 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-cyber-purple uppercase font-bold">Auto-Scan Type</label>
+                  <label className="text-xs text-cyber-purple uppercase font-bold">Auto-Discovery Method</label>
                   <select
                     value={localSettings.autoScanType}
-                    onChange={(e) => setLocalSettings({ ...localSettings, autoScanType: e.target.value })}
+                    onChange={(e) => setLocalSettings({ ...localSettings, autoScanType: e.target.value as 'arp' | 'ping' })}
                     className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
                   >
-                    <option value="basic">Basic (Fast)</option>
-                    <option value="comprehensive">Comprehensive (Deep)</option>
-                    <option value="ping_only">Ping Sweep Only</option>
+                    <option value="arp">ARP Scan</option>
+                    <option value="ping">Ping Sweep</option>
                   </select>
                 </div>
               </div>
