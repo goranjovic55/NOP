@@ -23,6 +23,9 @@ Active development on Dashboard features, specifically Asset management, auto-di
     - Integrated real-time asset and connection data.
     - Refined visualization with constant node sizes, better separation, and hover details.
     - Implemented dynamic link thickness based on traffic volume (logarithmic scale).
+- **Traffic Page**:
+    - Added interface selection with real-time traffic sparklines (Wireshark-style).
+    - Implemented per-interface traffic history tracking in backend.
 - **Access Hub**:
     - Implemented embedded FTP client.
     - Fixed UI input locking issues.
