@@ -69,6 +69,12 @@ const Traffic: React.FC = () => {
     }
   }, [packets, selectedPacket]);
 
+  useEffect(() => {
+    if (interfaces.length > 0 && !selectedIface) {
+      setSelectedIface(interfaces[0].name);
+    }
+  }, [interfaces, selectedIface]);
+
   const fetchInterfaces = async () => {
     try {
       const response = await fetch(`/api/v1/traffic/interfaces`, {
@@ -76,10 +82,6 @@ const Traffic: React.FC = () => {
       });
       const data = await response.json();
       setInterfaces(data);
-      // Only set default if nothing selected and we have data
-      if (data.length > 0 && !selectedIface) {
-        setSelectedIface(data[0].name);
-      }
     } catch (err) {
       console.error('Failed to fetch interfaces:', err);
     }
