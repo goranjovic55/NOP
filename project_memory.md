@@ -21,6 +21,8 @@ Active development on Dashboard features, specifically Asset management, auto-di
     - Added Force, Circular, and Hierarchical layouts.
     - Implemented traffic flow animation.
     - Integrated real-time asset and connection data.
+    - Refined visualization with constant node sizes, better separation, and hover details.
+    - Implemented dynamic link thickness based on traffic volume (logarithmic scale).
 - **Access Hub**:
     - Implemented embedded FTP client.
     - Fixed UI input locking issues.
