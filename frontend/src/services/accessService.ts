@@ -41,5 +41,12 @@ export const accessService = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  testRDP: async (token: string, data: any) => {
+    const response = await axios.post(`${API_URL}/test/rdp`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };

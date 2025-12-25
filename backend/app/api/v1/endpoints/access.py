@@ -34,6 +34,14 @@ class TCPConnectionTest(BaseModel):
     port: int = Field(..., description="Target port")
     timeout: int = Field(default=5, description="Connection timeout in seconds")
 
+class RDPConnectionRequest(BaseModel):
+    """RDP connection request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=3389, description="RDP port")
+    username: str = Field(..., description="RDP username")
+    password: Optional[str] = Field(default=None, description="RDP password")
+    domain: Optional[str] = Field(default=None, description="RDP domain")
+
 @router.get("/status")
 async def get_access_hub_status():
     """Get access hub status"""
@@ -71,6 +79,28 @@ async def test_tcp_connection(request: TCPConnectionTest):
             port=request.port,
             timeout=request.timeout
         )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test/rdp")
+async def test_rdp_connection(request: RDPConnectionRequest):
+    """Test RDP connection to a remote host"""
+    try:
+        # For now, we'll use TCP check as a proxy for RDP test
+        result = await access_hub.test_tcp_connection(
+            host=request.host,
+            port=request.port,
+            timeout=5
+        )
+        if result["success"]:
+            return {
+                "success": True,
+                "host": request.host,
+                "port": request.port,
+                "username": request.username,
+                "message": "RDP port is open and reachable"
+            }
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

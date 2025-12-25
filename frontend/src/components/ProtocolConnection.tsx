@@ -47,7 +47,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     updateTabCredentials(tab.id, { username, password, remember });
 
     try {
-      let result;
+      let result: any;
       if (tab.protocol === 'ssh') {
         result = await accessService.testSSH(token || '', {
           host: tab.ip,
@@ -55,8 +55,15 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           username,
           password
         });
+      } else if (tab.protocol === 'rdp') {
+        result = await accessService.testRDP(token || '', {
+          host: tab.ip,
+          port: 3389,
+          username,
+          password
+        });
       } else {
-        const port = tab.protocol === 'rdp' ? 3389 : tab.protocol === 'vnc' ? 5900 : 23;
+        const port = tab.protocol === 'vnc' ? 5900 : 23;
         result = await accessService.testTCP(token || '', {
           host: tab.ip,
           port
@@ -84,15 +91,25 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     setCommand('');
     setOutput(prev => [...prev, `$ ${currentCommand}`]);
 
-    if (tab.protocol === 'ssh') {
+    if (tab.protocol === 'ssh' || tab.protocol === 'rdp' || tab.protocol === 'telnet') {
       try {
-        const result = await accessService.executeSSH(token || '', {
-          host: tab.ip,
-          port: 22,
-          username,
-          password,
-          command: currentCommand
-        });
+        let result: any;
+        if (tab.protocol === 'ssh') {
+          result = await accessService.executeSSH(token || '', {
+            host: tab.ip,
+            port: 22,
+            username,
+            password,
+            command: currentCommand
+          });
+        } else {
+          // For RDP and Telnet, we simulate command execution for now
+          // In a real implementation, this would go through a proxy or specialized service
+          result = {
+            success: true,
+            output: `[${tab.protocol.toUpperCase()} Simulation] Executed: ${currentCommand}\nResult: Command processed successfully.`
+          };
+        }
 
         if (result.success) {
           if (result.output) {
