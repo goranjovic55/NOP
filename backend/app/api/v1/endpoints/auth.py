@@ -63,11 +63,19 @@ async def login(
     user_service = UserService(db)
 
     logger.info(f"Login attempt for user: {form_data.username}")
-    
+
     # Authenticate user
-    user = await user_service.authenticate_user(form_data.username, form_data.password)
+    user = await user_service.get_user_by_username(form_data.username)
     if not user:
-        logger.warning(f"Failed login attempt for user: {form_data.username}")
+        logger.warning(f"Login failed: User '{form_data.username}' not found in database.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(form_data.password, user.hashed_password):
+        logger.warning(f"Login failed: Incorrect password for user '{form_data.username}'.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -75,7 +83,7 @@ async def login(
         )
 
     if not user.is_active:
-        logger.warning(f"Login attempt for inactive user: {form_data.username}")
+        logger.warning(f"Login failed: User '{form_data.username}' is inactive.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
