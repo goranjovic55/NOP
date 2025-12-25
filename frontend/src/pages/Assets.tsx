@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
+import { useAccessStore } from '../store/accessStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
 import ScanSettingsModal from '../components/ScanSettingsModal';
 
@@ -44,7 +45,8 @@ const Assets: React.FC = () => {
   });
 
   const { token } = useAuthStore();
-  const { setOnScanComplete, tabs } = useScanStore();
+  const { setOnScanComplete, tabs: scanTabs } = useScanStore();
+  const { tabs: accessTabs } = useAccessStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -290,7 +292,8 @@ const Assets: React.FC = () => {
                 <tr><td colSpan={5} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 filteredAndSortedAssets.map((asset: any) => {
-                  const isScanningThis = tabs.some(t => t.ip === asset.ip_address && t.status === 'running');
+                  const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
+                  const isConnectedThis = accessTabs.some(t => t.ip === asset.ip_address && t.status === 'connected');
                   return (
                     <tr
                       key={asset.id}
@@ -301,6 +304,9 @@ const Assets: React.FC = () => {
                         <span>{asset.ip_address}</span>
                         {isScanningThis && (
                           <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Detailed Scan Underway"></span>
+                        )}
+                        {isConnectedThis && (
+                          <span className="w-2 h-2 bg-cyber-green rounded-full animate-pulse shadow-[0_0_5px_#00ff41]" title="Active Connection"></span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-cyber-gray-light">{asset.hostname || 'N/A'}</td>

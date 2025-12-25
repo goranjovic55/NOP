@@ -23,9 +23,11 @@ interface AccessState {
   setActiveTab: (id: string) => void;
   updateTabStatus: (id: string, status: ConnectionTab['status']) => void;
   updateTabCredentials: (id: string, credentials: ConnectionTab['credentials']) => void;
+  isAssetConnected: (ip: string) => boolean;
+  getConnectedCount: () => number;
 }
 
-export const useAccessStore = create<AccessState>((set) => ({
+export const useAccessStore = create<AccessState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   addTab: (ip, protocol, hostname) => set((state) => {
@@ -61,4 +63,10 @@ export const useAccessStore = create<AccessState>((set) => ({
   updateTabCredentials: (id, credentials) => set((state) => ({
     tabs: state.tabs.map(t => t.id === id ? { ...t, credentials: { ...t.credentials, ...credentials } } : t)
   })),
+  isAssetConnected: (ip) => {
+    return get().tabs.some(t => t.ip === ip && t.status === 'connected');
+  },
+  getConnectedCount: () => {
+    return get().tabs.filter(t => t.status === 'connected').length;
+  },
 }));

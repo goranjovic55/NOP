@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
+import { useAccessStore } from '../store/accessStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,9 +12,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { tabs } = useScanStore();
+  const { tabs: scanTabs } = useScanStore();
+  const { tabs: accessTabs } = useAccessStore();
 
-  const isAnyScanRunning = tabs.some(tab => tab.status === 'running');
+  const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
+  const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -77,6 +80,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   )}
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
+                  )}
+                  {item.name === 'Access Hub' && connectedCount > 0 && (
+                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {connectedCount}
+                    </div>
                   )}
                 </Link>
               </li>
