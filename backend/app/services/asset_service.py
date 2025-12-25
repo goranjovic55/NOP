@@ -67,7 +67,13 @@ class AssetService:
         )
 
     async def get_asset_by_id(self, asset_id: str) -> Optional[AssetResponse]:
-        query = select(Asset).where(Asset.id == uuid.UUID(asset_id))
+        try:
+            asset_uuid = uuid.UUID(asset_id)
+            query = select(Asset).where(Asset.id == asset_uuid)
+        except ValueError:
+            # If not a UUID, try to find by IP
+            query = select(Asset).where(Asset.ip_address == asset_id)
+
         result = await self.db.execute(query)
         a = result.scalar_one_or_none()
         if not a:

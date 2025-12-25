@@ -120,7 +120,7 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
                 
                 {showConnectOptions && (
                   <div className="absolute bottom-full left-0 w-full bg-cyber-dark border border-cyber-blue mb-2 shadow-2xl z-10">
-                    {(['ssh', 'rdp', 'vnc', 'telnet'] as Protocol[]).map((proto) => (
+                    {(['ssh', 'rdp', 'vnc', 'telnet', 'exploit'] as Protocol[]).map((proto) => (
                       <button
                         key={proto}
                         onClick={() => handleConnectClick(proto)}

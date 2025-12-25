@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ConnectionTab, useAccessStore } from '../store/accessStore';
 import { accessService, Credential } from '../services/accessService';
 import { useAuthStore } from '../store/authStore';
+import Guacamole from 'guacamole-common-js';
 
 interface ProtocolConnectionProps {
   tab: ConnectionTab;
@@ -14,11 +15,15 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   const [password, setPassword] = useState(tab.credentials?.password || '');
   const [remember, setRemember] = useState(tab.credentials?.remember || false);
   const [savedCredentials, setSavedCredentials] = useState<Credential[]>([]);
-  
+
   // Terminal state
   const [command, setCommand] = useState('');
   const [output, setOutput] = useState<string[]>([]);
   const outputEndRef = useRef<HTMLDivElement>(null);
+
+  // Guacamole state
+  const displayRef = useRef<HTMLDivElement>(null);
+  const clientRef = useRef<Guacamole.Client | null>(null);
 
   useEffect(() => {
     const fetchCreds = async () => {
@@ -41,21 +46,97 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     }
   }, [output]);
 
+  const setupGuacamole = () => {
+    const tunnel = new Guacamole.WebSocketTunnel(`ws://${window.location.hostname}:8000/api/v1/access/tunnel`);
+    const client = new Guacamole.Client(tunnel);
+    clientRef.current = client;
+
+    if (displayRef.current) {
+      displayRef.current.innerHTML = '';
+      displayRef.current.appendChild(client.getDisplay().getElement());
+    }
+
+    client.onerror = (error) => {
+      console.error('Guacamole error:', error);
+      updateTabStatus(tab.id, 'failed');
+    };
+
+    client.onstatechange = (state) => {
+      if (state === 3) { // CONNECTED
+        updateTabStatus(tab.id, 'connected');
+      }
+    };
+
+    // Handle mouse and keyboard
+    const mouse = new Guacamole.Mouse(client.getDisplay().getElement());
+    (mouse as any).onmousedown = (mouse as any).onmouseup = (mouse as any).onmousemove = (mouseState: any) => {
+      client.sendMouseState(mouseState);
+    };
+
+    const keyboard = new Guacamole.Keyboard(document);
+    (keyboard as any).onkeydown = (keysym: number) => {
+      client.sendKeyEvent(1, keysym);
+    };
+    (keyboard as any).onkeyup = (keysym: number) => {
+      client.sendKeyEvent(0, keysym);
+    };
+
+    tunnel.onstatechange = (state) => {
+      if (state === 1) { // OPEN
+        const params = {
+          protocol: tab.protocol,
+          hostname: tab.ip,
+          port: tab.protocol === 'rdp' ? 3389 : 5900,
+          username,
+          password,
+          width: displayRef.current?.clientWidth || 1024,
+          height: displayRef.current?.clientHeight || 768,
+          dpi: 96
+        };
+        tunnel.sendMessage(JSON.stringify(params));
+      }
+    };
+
+    client.connect();
+  };
+
+
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     updateTabStatus(tab.id, 'connecting');
     updateTabCredentials(tab.id, { username, password, remember });
 
+    if (remember && token) {
+      accessService.saveCredential(token, {
+        asset_id: tab.ip,
+        protocol: tab.protocol,
+        username,
+        password
+      }).catch(err => console.error('Failed to save credential:', err));
+    }
+
+    if (tab.protocol === 'exploit') {
+      updateTabStatus(tab.id, 'connected');
+      setOutput(['[!] EXPLOIT MODULE LOADED', '[*] Target: ' + tab.ip, '[*] Status: Ready for deployment', '[!] WARNING: This module is for educational purposes only.']);
+      return;
+    }
+
+    if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
+      setupGuacamole();
+      return;
+    }
+
     try {
       let result: any;
-      if (tab.protocol === 'ssh') {
+      const protocol = tab.protocol as string;
+      if (protocol === 'ssh') {
         result = await accessService.testSSH(token || '', {
           host: tab.ip,
           port: 22,
           username,
           password
         });
-      } else if (tab.protocol === 'rdp') {
+      } else if (protocol === 'rdp') {
         result = await accessService.testRDP(token || '', {
           host: tab.ip,
           port: 3389,
@@ -63,7 +144,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           password
         });
       } else {
-        const port = tab.protocol === 'vnc' ? 5900 : 23;
+        const port = protocol === 'vnc' ? 5900 : 23;
         result = await accessService.testTCP(token || '', {
           host: tab.ip,
           port
@@ -90,6 +171,11 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     const currentCommand = command;
     setCommand('');
     setOutput(prev => [...prev, `$ ${currentCommand}`]);
+
+    if (tab.protocol === 'exploit') {
+      setOutput(prev => [...prev, `[!] EXPLOIT ERROR: Module '${currentCommand}' not found or not yet implemented.`]);
+      return;
+    }
 
     if (tab.protocol === 'ssh' || tab.protocol === 'rdp' || tab.protocol === 'telnet') {
       try {
@@ -139,6 +225,18 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   };
 
   if (tab.status === 'connected') {
+    if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
+      return (
+        <div className="h-full flex flex-col bg-black rounded border border-cyber-gray shadow-2xl overflow-hidden">
+          <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between border-b border-cyber-gray">
+            <span>Connected to {tab.ip} ({tab.protocol.toUpperCase()})</span>
+            <span>{username}</span>
+          </div>
+          <div ref={displayRef} className="flex-1 flex items-center justify-center overflow-auto bg-black" />
+        </div>
+      );
+    }
+
     return (
       <div className="h-full flex flex-col bg-black text-green-500 font-mono p-4 text-[13px] rounded border border-cyber-gray shadow-2xl">
         <div className="mb-2 text-xs opacity-50 flex justify-between">
@@ -174,6 +272,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           {tab.protocol === 'rdp' && '🖥️'}
           {tab.protocol === 'vnc' && '👁️'}
           {tab.protocol === 'telnet' && '📟'}
+          {tab.protocol === 'exploit' && '💀'}
         </span>
         {tab.protocol.toUpperCase()} Connection
       </h3>

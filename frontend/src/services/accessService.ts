@@ -22,6 +22,13 @@ export const accessService = {
     }
   },
 
+  saveCredential: async (token: string, data: any) => {
+    const response = await axios.post(`${API_URL}/credentials`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
   testSSH: async (token: string, data: any) => {
     const response = await axios.post(`${API_URL}/test/ssh`, data, {
       headers: { Authorization: `Bearer ${token}` }

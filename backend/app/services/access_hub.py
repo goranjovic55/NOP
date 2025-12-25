@@ -15,17 +15,17 @@ logger = logging.getLogger(__name__)
 
 class AccessHub:
     """Access hub for managing remote connections"""
-    
+
     def __init__(self):
         self.active_connections = {}
         self.connection_history = []
-        
+
     async def test_ssh_connection(self, host: str, port: int, username: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Test SSH connection to a remote host"""
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
+
             # Connect with password or key
             if password:
                 client.connect(host, port=port, username=username, password=password, timeout=10)
@@ -33,14 +33,14 @@ class AccessHub:
                 client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
             else:
                 return {"success": False, "error": "No authentication method provided"}
-            
+
             # Test connection by running a simple command
             stdin, stdout, stderr = client.exec_command('echo "Connection test successful"')
             output = stdout.read().decode().strip()
             error = stderr.read().decode().strip()
-            
+
             client.close()
-            
+
             if output == "Connection test successful":
                 return {
                     "success": True,
@@ -54,19 +54,19 @@ class AccessHub:
                     "success": False,
                     "error": f"Command execution failed: {error}"
                 }
-                
+
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def execute_ssh_command(self, host: str, port: int, username: str, command: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Execute a command on a remote host via SSH"""
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
+
             # Connect
             if password:
                 client.connect(host, port=port, username=username, password=password, timeout=10)
@@ -74,15 +74,15 @@ class AccessHub:
                 client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
             else:
                 return {"success": False, "error": "No authentication method provided"}
-            
+
             # Execute command
             stdin, stdout, stderr = client.exec_command(command, timeout=30)
             output = stdout.read().decode()
             error = stderr.read().decode()
             exit_code = stdout.channel.recv_exit_status()
-            
+
             client.close()
-            
+
             # Log the connection
             self.connection_history.append({
                 "timestamp": datetime.now().isoformat(),
@@ -92,7 +92,7 @@ class AccessHub:
                 "command": command,
                 "success": exit_code == 0
             })
-            
+
             return {
                 "success": True,
                 "host": host,
@@ -101,13 +101,13 @@ class AccessHub:
                 "error": error,
                 "exit_code": exit_code
             }
-            
+
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     async def test_tcp_connection(self, host: str, port: int, timeout: int = 5) -> Dict[str, Any]:
         """Test TCP connection to a host and port"""
         try:
@@ -115,7 +115,7 @@ class AccessHub:
             reader, writer = await asyncio.wait_for(future, timeout=timeout)
             writer.close()
             await writer.wait_closed()
-            
+
             return {
                 "success": True,
                 "host": host,
@@ -129,12 +129,12 @@ class AccessHub:
                 "port": port,
                 "error": str(e)
             }
-    
+
     async def scan_common_services(self, host: str) -> Dict[str, Any]:
         """Scan for common services on a host"""
         common_ports = {
             22: "SSH",
-            23: "Telnet", 
+            23: "Telnet",
             25: "SMTP",
             53: "DNS",
             80: "HTTP",
@@ -149,13 +149,13 @@ class AccessHub:
             5900: "VNC",
             6379: "Redis"
         }
-        
+
         results = {
             "host": host,
             "scan_time": datetime.now().isoformat(),
             "services": []
         }
-        
+
         for port, service in common_ports.items():
             conn_result = await self.test_tcp_connection(host, port, timeout=2)
             if conn_result["success"]:
@@ -164,9 +164,9 @@ class AccessHub:
                     "service": service,
                     "status": "open"
                 })
-        
+
         return results
-    
+
     async def get_system_info_ssh(self, host: str, port: int, username: str, password: str = None, key_file: str = None) -> Dict[str, Any]:
         """Get system information via SSH"""
         commands = {
@@ -178,13 +178,13 @@ class AccessHub:
             "network": "ip addr show",
             "processes": "ps aux | head -10"
         }
-        
+
         results = {
             "host": host,
             "scan_time": datetime.now().isoformat(),
             "system_info": {}
         }
-        
+
         for info_type, command in commands.items():
             cmd_result = await self.execute_ssh_command(host, port, username, command, password, key_file)
             if cmd_result["success"]:
@@ -197,13 +197,13 @@ class AccessHub:
                     "error": cmd_result["error"],
                     "success": False
                 }
-        
+
         return results
-    
+
     def get_connection_history(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get connection history"""
         return self.connection_history[-limit:]
-    
+
     def get_active_connections(self) -> Dict[str, Any]:
         """Get active connections"""
         return {
@@ -214,25 +214,117 @@ class AccessHub:
     async def get_credentials_for_asset(self, db: AsyncSession, asset_id: str, protocol: str) -> List[Dict[str, Any]]:
         """Retrieve credentials for a specific asset and protocol"""
         from app.models.credential import Credential
-        from sqlalchemy import select
+        from app.models.asset import Asset
+        from sqlalchemy import select, cast, text
+        from sqlalchemy.dialects.postgresql import INET
         from app.core.security import decrypt_data
+        import uuid
+
+        # Try to find asset by ID or IP address
+        asset_uuid = None
+        try:
+            asset_uuid = uuid.UUID(asset_id)
+        except ValueError:
+            # If not a UUID, try to find asset by IP
+            query = select(Asset).where(Asset.ip_address == cast(text(f"'{asset_id}'"), INET))
+            result = await db.execute(query)
+            asset = result.scalars().first()
+            if asset:
+                asset_uuid = asset.id
+            else:
+                logger.error(f"Asset not found by ID or IP: {asset_id}")
+                return []
 
         query = select(Credential).where(
-            Credential.asset_id == asset_id,
-            Credential.protocol == protocol
+            Credential.asset_id == asset_uuid,
+            Credential.protocol == protocol.lower()
         )
         result = await db.execute(query)
         credentials = result.scalars().all()
 
         decrypted_creds = []
         for cred in credentials:
-            decrypted_creds.append({
-                "id": str(cred.id),
-                "username": cred.username,
-                "password": decrypt_data(cred.encrypted_password) if cred.encrypted_password else None,
-                "private_key": decrypt_data(cred.encrypted_private_key) if cred.encrypted_private_key else None,
-            })
+            try:
+                decrypted_creds.append({
+                    "id": str(cred.id),
+                    "username": cred.username,
+                    "password": decrypt_data(cred.encrypted_password) if cred.encrypted_password else None,
+                    "private_key": decrypt_data(cred.encrypted_private_key) if cred.encrypted_private_key else None,
+                })
+            except Exception as e:
+                logger.error(f"Failed to decrypt credential {cred.id}: {e}")
+                decrypted_creds.append({
+                    "id": str(cred.id),
+                    "username": cred.username,
+                    "password": None,
+                    "private_key": None,
+                    "error": "Decryption failed"
+                })
         return decrypted_creds
+
+    async def save_credential(self, db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Save credentials for an asset"""
+        from app.models.credential import Credential
+        from app.models.asset import Asset
+        from app.core.security import encrypt_data
+        from sqlalchemy import select, cast, text
+        from sqlalchemy.dialects.postgresql import INET
+        import uuid
+
+        asset_id = data.get("asset_id")
+        protocol = data.get("protocol")
+        username = data.get("username")
+        password = data.get("password")
+        private_key = data.get("private_key")
+
+        # Try to find asset by ID or IP address
+        asset_uuid = None
+        try:
+            asset_uuid = uuid.UUID(asset_id)
+        except ValueError:
+            # If not a UUID, try to find asset by IP
+            query = select(Asset).where(Asset.ip_address == cast(text(f"'{asset_id}'"), INET))
+            result = await db.execute(query)
+            asset = result.scalars().first()
+            if asset:
+                asset_uuid = asset.id
+            else:
+                # If asset doesn't exist, we might want to create it or just fail
+                # For now, let's fail if asset is not found
+                return {"success": False, "error": f"Asset not found: {asset_id}"}
+
+        # Check if credential already exists
+        query = select(Credential).where(
+            Credential.asset_id == asset_uuid,
+            Credential.protocol == protocol.lower(),
+            Credential.username == username
+        )
+        result = await db.execute(query)
+        existing_cred = result.scalars().first()
+
+        if existing_cred:
+            # Update existing credential
+            if password:
+                existing_cred.encrypted_password = encrypt_data(password)
+            if private_key:
+                existing_cred.encrypted_private_key = encrypt_data(private_key)
+            existing_cred.updated_at = datetime.utcnow()
+        else:
+            # Create new credential
+            new_cred = Credential(
+                asset_id=asset_uuid,
+                name=f"{protocol.upper()} - {username}",
+                credential_type="custom",
+                protocol=protocol.lower(),
+                username=username,
+                encrypted_password=encrypt_data(password) if password else None,
+                encrypted_private_key=encrypt_data(private_key) if private_key else None,
+                encryption_key_id="default"
+            )
+            db.add(new_cred)
+
+        await db.commit()
+        return {"success": True, "message": "Credential saved successfully"}
 
 # Global access hub instance
 access_hub = AccessHub()

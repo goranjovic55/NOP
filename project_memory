@@ -1,28 +1,33 @@
 # Project Memory - Network Observatory Platform (NOP)
 
 ## Current Project State
-The project is now in a functional state with core authentication and discovery features working end-to-end. Docker containers are configured to provide a realistic testing environment with multiple target hosts.
+The project is now in a functional state with core authentication, discovery, and remote access features working end-to-end. The Access Hub is implemented with support for multiple protocols and graphical sessions.
 
 ## Recent Work Completed
-- **Authentication Fixes**: 
-    - Resolved backend crashes by allowing extra environment variables in Pydantic settings.
-    - Implemented automatic admin password synchronization on startup.
-    - Added a utility script for manual admin password resets.
-- **Discovery & Asset Management**:
-    - Refined `DiscoveryService` to correctly process Nmap results and populate the Assets database.
-    - Implemented automatic asset type classification based on open ports.
+- **Access Hub Implementation**:
+    - Created a tabbed interface for managing multiple remote connections (SSH, RDP, VNC, Telnet, Exploit).
+    - Implemented redirection from the Assets page to the Access Hub.
+    - Added credential persistence (saving and retrieving encrypted credentials from the database).
+    - Integrated Guacamole for graphical RDP and VNC sessions.
+    - Added an "Exploit" method placeholder with simulated terminal output.
+- **Backend Enhancements**:
+    - Added API endpoints for credential management (`POST /credentials`, `GET /credentials/{asset_id}/{protocol}`).
+    - Implemented a Guacamole tunnel via WebSocket for graphical sessions.
+    - Fixed a PostgreSQL type mismatch error (`inet = character varying`) by using explicit type casting in `access_hub.py`.
+    - Updated `access_hub.py` to support asset lookup by IP address.
 - **Frontend Enhancements**:
-    - Updated the **Scans** page to trigger real backend scans instead of simulations.
-    - Implemented real-time polling for scan results.
-    - Verified the **Assets** page correctly displays discovered hosts from the Docker network.
-- **Infrastructure**:
-    - Configured `docker-compose.yml` with a dedicated `test-network` and multiple target containers (Web, SSH, DB, File servers).
+    - Updated `ProtocolConnection.tsx` to handle different protocols and integrate the Guacamole client.
+    - Updated `accessService.ts` with new API calls.
+    - Updated `accessStore.ts` to manage connection tabs and status.
+    - Updated `AssetDetailsSidebar.tsx` to include connection options.
 
 ## Key Decisions
-- **Security**: Core services are isolated on `nop-internal` network; only the Frontend is exposed.
-- **Portability**: Used `extra = "ignore"` in Pydantic to ensure the backend doesn't crash in different Docker environments.
+- **Security**: Credentials are encrypted before being saved to the database.
+- **User Experience**: Tabbed interface allows users to stay connected to multiple hosts simultaneously.
+- **Interoperability**: Guacamole integration provides a unified way to access graphical sessions (RDP/VNC) through the browser.
 
 ## Next Steps
 - Implement real-time traffic sniffing with WebSocket streaming.
 - Add PCAP export functionality.
 - Enhance the dashboard with analytics from discovered assets.
+- Implement the "Exploit" method functionality.
