@@ -59,9 +59,11 @@ const Dashboard: React.FC = () => {
 
       setEvents(recentEvents);
 
-      // Update traffic data if protocols are available
-      if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
-        // This is a simplification, normally we'd want time-series data
+      // Update traffic data if history is available
+      if (trafficStats.traffic_history && trafficStats.traffic_history.length > 0) {
+        setTrafficData(trafficStats.traffic_history);
+      } else if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
+        // Fallback to protocols if no history (should not happen with new backend)
         const mockTraffic = Object.entries(trafficStats.protocols).map(([name, value], index) => ({
           time: name,
           value: value as number

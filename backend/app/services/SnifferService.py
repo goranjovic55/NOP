@@ -11,6 +11,7 @@ class SnifferService:
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
+        self.stats_thread: Optional[threading.Thread] = None
         self.callback: Optional[Callable] = None
         self.interface: Optional[str] = None
         self.filter: Optional[str] = None
@@ -22,6 +23,34 @@ class SnifferService:
             "top_talkers": {},
             "protocols": {}
         }
+        self.traffic_history = []
+        self.last_bytes_check = 0
+        self.start_background_sniffing()
+
+    def start_background_sniffing(self):
+        # Start stats collector
+        self.stats_thread = threading.Thread(target=self._run_stats_collector, daemon=True)
+        self.stats_thread.start()
+
+        # Start sniffing on default interface (usually eth0 in container)
+        self.start_sniffing("eth0", None)
+
+    def _run_stats_collector(self):
+        while True:
+            time.sleep(5)
+            current_bytes = self.stats["total_bytes"]
+            delta = current_bytes - self.last_bytes_check
+            self.last_bytes_check = current_bytes
+
+            timestamp = time.strftime("%H:%M:%S")
+            self.traffic_history.append({
+                "time": timestamp,
+                "value": delta
+            })
+
+            # Keep last 20 points (approx 100 seconds)
+            if len(self.traffic_history) > 20:
+                self.traffic_history.pop(0)
 
     def get_interfaces(self) -> List[Dict[str, str]]:
         interfaces = []
@@ -34,9 +63,6 @@ class SnifferService:
         return interfaces
 
     def _packet_callback(self, packet):
-        if not self.callback:
-            return
-
         # Store for PCAP export
         self.captured_packets.append(packet)
         if len(self.captured_packets) > self.max_stored_packets:
@@ -61,14 +87,14 @@ class SnifferService:
         if IP in packet:
             packet_data["source"] = packet[IP].src
             packet_data["destination"] = packet[IP].dst
-            
+
             # Update stats
             self.stats["total_bytes"] += len(packet)
             self.stats["total_flows"] += 1
-            
+
             src = packet[IP].src
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
-            
+
             if TCP in packet:
                 packet_data["protocol"] = "TCP"
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
@@ -86,7 +112,8 @@ class SnifferService:
                 proto = packet[IP].proto
                 self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
 
-        self.callback(packet_data)
+        if self.callback:
+            self.callback(packet_data)
 
     def _run_sniff(self):
         try:
@@ -101,7 +128,12 @@ class SnifferService:
             print(f"Sniffing error: {e}")
             self.is_sniffing = False
 
-    def start_sniffing(self, interface: str, callback: Callable, filter_str: Optional[str] = None):
+    def start_sniffing(self, interface: str, callback: Optional[Callable], filter_str: Optional[str] = None):
+        if self.is_sniffing and self.interface == interface and self.filter == filter_str:
+            # Just update callback if already sniffing on same interface/filter
+            self.callback = callback
+            return
+
         if self.is_sniffing:
             self.stop_sniffing()
 
@@ -127,7 +159,8 @@ class SnifferService:
             "total_flows": self.stats["total_flows"],
             "total_bytes": self.stats["total_bytes"],
             "top_talkers": [{"ip": ip, "bytes": b} for ip, b in sorted_talkers],
-            "protocols": self.stats["protocols"]
+            "protocols": self.stats["protocols"],
+            "traffic_history": self.traffic_history
         }
 
     def export_pcap(self, filename: str = "capture.pcap") -> str:

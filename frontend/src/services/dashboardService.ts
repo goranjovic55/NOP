@@ -18,6 +18,7 @@ export interface TrafficStats {
   total_bytes: number;
   top_talkers: any[];
   protocols: Record<string, number>;
+  traffic_history: { time: string; value: number }[];
 }
 
 export interface SystemEvent {
