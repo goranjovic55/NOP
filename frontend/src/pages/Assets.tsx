@@ -15,6 +15,8 @@ interface ScanSettings {
 const Assets: React.FC = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refreshInterval, setRefreshInterval] = useState<number>(30);
@@ -35,26 +37,30 @@ const Assets: React.FC = () => {
   const { token } = useAuthStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchAssets = useCallback(async (showLoading = true) => {
     if (!token) return;
     try {
       if (showLoading) setLoading(true);
+      setIsRefreshing(true);
+      
       const data = await assetService.getAssets(token, statusFilter === 'all' ? undefined : statusFilter);
       setAssets(data);
-      
-      // Update selected asset if it exists in the new data
+
       setSelectedAsset(prev => {
         if (!prev) return null;
         const updated = data.find(a => a.id === prev.id);
         return updated || prev;
       });
-      
+
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch assets');
     } finally {
       if (showLoading) setLoading(false);
+      // Keep the refresh indicator for at least 1 second so it's visible
+      setTimeout(() => setIsRefreshing(false), 1000);
     }
   }, [token, statusFilter]);
 
@@ -62,19 +68,23 @@ const Assets: React.FC = () => {
     if (!token) return;
     const scanType = type === 'manual' ? scanSettings.manualScanType : scanSettings.autoScanType;
     try {
+      setIsScanning(true);
       await assetService.startScan(token, scanSettings.networkRange, scanType);
       console.log(`${type} scan started: ${scanType} on ${scanSettings.networkRange}`);
+      
+      // Scans take time, we'll keep the indicator for 5 seconds or until next refresh
+      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = setTimeout(() => setIsScanning(false), 5000);
     } catch (err) {
       console.error('Scan trigger failed:', err);
+      setIsScanning(false);
     }
   }, [token, scanSettings]);
 
-  // Initial fetch
   useEffect(() => {
     fetchAssets(true);
   }, [fetchAssets]);
 
-  // UI Refresh Timer
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (refreshInterval > 0) {
@@ -85,7 +95,6 @@ const Assets: React.FC = () => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [fetchAssets, refreshInterval]);
 
-  // Auto-Scan Timer
   useEffect(() => {
     if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
     if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
@@ -103,6 +112,36 @@ const Assets: React.FC = () => {
 
   return (
     <div className="relative min-h-full">
+      {/* Status Notification Bar */}
+      <div className="mb-4 flex items-center justify-between bg-cyber-darker border border-cyber-gray px-4 py-2 overflow-hidden">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-cyber-green rounded-full animate-pulse shadow-[0_0_5px_#00ff41]"></div>
+            <span className="text-[10px] text-cyber-green uppercase font-bold tracking-widest">System Online</span>
+          </div>
+          
+          {isScanning && (
+            <div className="flex items-center space-x-2 animate-fadeIn">
+              <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping shadow-[0_0_5px_#ff0040]"></div>
+              <span className="text-[10px] text-cyber-red uppercase font-bold tracking-widest">Scan Underway</span>
+            </div>
+          )}
+
+          {isRefreshing && (
+            <div className="flex items-center space-x-2 animate-fadeIn">
+              <div className="w-2 h-2 bg-cyber-blue rounded-full animate-spin shadow-[0_0_5px_#00f0ff]"></div>
+              <span className="text-[10px] text-cyber-blue uppercase font-bold tracking-widest">Refreshing Data</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="hidden md:block">
+          <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest opacity-50">
+            Network: {scanSettings.networkRange}
+          </span>
+        </div>
+      </div>
+
       <div className={`space-y-6 transition-all duration-300 ${selectedAsset ? 'mr-96' : ''}`}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Assets</h2>
