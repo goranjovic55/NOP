@@ -247,17 +247,31 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     if (tab.protocol === 'web') {
       return (
-        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl p-6 items-center justify-center">
-          <h3 className="text-xl font-bold text-cyber-blue mb-4">Web Connection Established</h3>
-          <p className="text-cyber-gray-light mb-6">Web interface for {tab.ip} is available.</p>
-          <a 
-            href={`http://${tab.ip}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn-cyber px-6 py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest"
-          >
-            Open Web Interface
-          </a>
+        <div className="h-full flex flex-col bg-cyber-dark rounded border border-cyber-gray shadow-2xl overflow-hidden">
+          <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between items-center border-b border-cyber-gray">
+             <div className="flex items-center space-x-2 flex-1 mr-4">
+               <span className="text-cyber-blue font-bold">URL:</span>
+               <input 
+                 type="text" 
+                 defaultValue={`http://${tab.ip}`}
+                 className="bg-black border border-cyber-gray text-cyber-green px-2 py-1 w-full text-xs font-mono focus:border-cyber-blue outline-none"
+                 onKeyDown={(e) => {
+                   if (e.key === 'Enter') {
+                     const iframe = document.getElementById(`iframe-${tab.id}`) as HTMLIFrameElement;
+                     if (iframe) iframe.src = e.currentTarget.value;
+                   }
+                 }}
+               />
+             </div>
+             <a href={`http://${tab.ip}`} target="_blank" rel="noopener noreferrer" className="text-cyber-blue hover:underline whitespace-nowrap font-bold">Open in new tab</a>
+          </div>
+          <iframe 
+            id={`iframe-${tab.id}`}
+            src={`http://${tab.ip}`} 
+            className="flex-1 w-full h-full border-none bg-white"
+            title={`Web interface for ${tab.ip}`}
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+          />
         </div>
       );
     }
