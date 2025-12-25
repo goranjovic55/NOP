@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 """
 Access Hub service for remote system connections
 """
@@ -209,6 +210,29 @@ class AccessHub:
             "active_count": len(self.active_connections),
             "connections": list(self.active_connections.values())
         }
+
+    async def get_credentials_for_asset(self, db: AsyncSession, asset_id: str, protocol: str) -> List[Dict[str, Any]]:
+        """Retrieve credentials for a specific asset and protocol"""
+        from app.models.credential import Credential
+        from sqlalchemy import select
+        from app.core.security import decrypt_data
+
+        query = select(Credential).where(
+            Credential.asset_id == asset_id,
+            Credential.protocol == protocol
+        )
+        result = await db.execute(query)
+        credentials = result.scalars().all()
+
+        decrypted_creds = []
+        for cred in credentials:
+            decrypted_creds.append({
+                "id": str(cred.id),
+                "username": cred.username,
+                "password": decrypt_data(cred.encrypted_password) if cred.encrypted_password else None,
+                "private_key": decrypt_data(cred.encrypted_private_key) if cred.encrypted_private_key else None,
+            })
+        return decrypted_creds
 
 # Global access hub instance
 access_hub = AccessHub()

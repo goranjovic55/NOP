@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Asset } from '../services/assetService';
 import { useNavigate } from 'react-router-dom';
 import { useScanStore } from '../store/scanStore';
+import { useAccessStore, Protocol } from '../store/accessStore';
 
 interface AssetDetailsSidebarProps {
   asset: Asset | null;
@@ -10,14 +11,24 @@ interface AssetDetailsSidebarProps {
 
 const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClose }) => {
   const navigate = useNavigate();
-  const { addTab, tabs } = useScanStore();
+  const { addTab: addScanTab, tabs: scanTabs } = useScanStore();
+  const { addTab: addAccessTab } = useAccessStore();
+  const [showConnectOptions, setShowConnectOptions] = useState(false);
 
-  const activeScan = tabs.find(t => t.ip === asset?.ip_address && t.status === 'running');
+  const activeScan = scanTabs.find(t => t.ip === asset?.ip_address && t.status === 'running');
 
   const handleScanClick = () => {
     if (asset) {
-      addTab(asset.ip_address, asset.hostname);
+      addScanTab(asset.ip_address, asset.hostname);
       navigate('/scans');
+      onClose();
+    }
+  };
+
+  const handleConnectClick = (protocol: Protocol) => {
+    if (asset) {
+      addAccessTab(asset.ip_address, protocol, asset.hostname);
+      navigate('/access');
       onClose();
     }
   };
@@ -99,10 +110,30 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
 
             {/* Action Buttons */}
             <div className="pt-6 space-y-3">
-              <button className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all group">
-                <span className="font-bold uppercase tracking-widest">Connect</span>
-              </button>
-              <button 
+              <div className="relative">
+                <button 
+                  onClick={() => setShowConnectOptions(!showConnectOptions)}
+                  className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all group"
+                >
+                  <span className="font-bold uppercase tracking-widest">Connect</span>
+                </button>
+                
+                {showConnectOptions && (
+                  <div className="absolute bottom-full left-0 w-full bg-cyber-dark border border-cyber-blue mb-2 shadow-2xl z-10">
+                    {(['ssh', 'rdp', 'vnc', 'telnet'] as Protocol[]).map((proto) => (
+                      <button
+                        key={proto}
+                        onClick={() => handleConnectClick(proto)}
+                        className="w-full text-left px-4 py-2 text-xs font-bold uppercase text-cyber-blue hover:bg-cyber-blue hover:text-white transition-colors border-b border-cyber-gray last:border-0"
+                      >
+                        {proto}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <button
                 onClick={handleScanClick}
                 disabled={!!activeScan}
                 className={`w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white transition-all group ${activeScan ? 'opacity-50 cursor-not-allowed' : ''}`}

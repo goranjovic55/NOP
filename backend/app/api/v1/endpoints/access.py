@@ -136,6 +136,15 @@ async def get_active_connections():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/credentials/{asset_id}/{protocol}")
+async def get_asset_credentials(asset_id: str, protocol: str, db: AsyncSession = Depends(get_db)):
+    """Get credentials for a specific asset and protocol"""
+    try:
+        credentials = await access_hub.get_credentials_for_asset(db, asset_id, protocol)
+        return {"credentials": credentials}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Test endpoints for the test environment
 @router.get("/test-environment/ssh")
 async def test_environment_ssh():
