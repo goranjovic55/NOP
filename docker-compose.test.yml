@@ -45,4 +45,5 @@ services:
 
 networks:
   test-network:
+    name: nop_test-network
     external: true

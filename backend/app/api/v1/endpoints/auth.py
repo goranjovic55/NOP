@@ -10,6 +10,7 @@ from typing import Any
 import logging
 
 from app.core.database import get_db
+from app.models.event import Event, EventType, EventSeverity
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -95,6 +96,18 @@ async def login(
     # Create tokens
     access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # Log event for successful login
+    event = Event(
+        event_type=EventType.USER_LOGIN,
+        severity=EventSeverity.INFO,
+        title="User Login",
+        description=f"User {user.username} logged in successfully",
+        user_id=str(user.id),
+        username=user.username
+    )
+    db.add(event)
+    await db.commit()
 
     logger.info(f"Successful login for user: {form_data.username}")
     return {

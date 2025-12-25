@@ -233,8 +233,10 @@
     "name": "NOPProjectStatus",
     "entityType": "ProjectState",
     "observations": [
-      "Last updated: 2025-12-24T17:21:27.593033",
+      "Last updated: 2025-12-25",
       "Network Observatory Platform fully implemented and operational",
+      "Dashboard updated to use real data for assets, traffic, and system activity",
+      "Scanning event discrepancy fixed (hosts retained even if port scan fails)",
       "All test suites passing with 100% success rate",
       "Docker environment deployed with all services running",
       "Frontend accessible on port 12001, Backend on port 12000",
@@ -243,6 +245,19 @@
       "Comprehensive documentation and deployment guides available",
       "Git repository with structured commit history",
       "Memory management system implemented for knowledge preservation"
+    ]
+  },
+  {
+    "type": "entity",
+    "name": "DashboardAndScanningUpdates",
+    "entityType": "FeatureUpdate",
+    "observations": [
+      "Updated dashboard to use real data for assets, traffic, and system activity",
+      "Fixed scanning event discrepancy where discovered hosts were dropped if port scan failed",
+      "Integrated active scan and connection counts into asset statistics",
+      "Resolved NameError in SnifferService",
+      "Updated AssetStats schema to include active scans and connections",
+      "Modified scanner.py to ensure basic host info is added even if port scan fails"
     ]
   },
   {

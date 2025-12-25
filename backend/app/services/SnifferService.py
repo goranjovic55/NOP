@@ -1,7 +1,7 @@
 import asyncio
 import json
 import threading
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any
 from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap
 import psutil
 import time
@@ -16,6 +16,12 @@ class SnifferService:
         self.filter: Optional[str] = None
         self.captured_packets = []
         self.max_stored_packets = 1000
+        self.stats = {
+            "total_flows": 0,
+            "total_bytes": 0,
+            "top_talkers": {},
+            "protocols": {}
+        }
 
     def get_interfaces(self) -> List[Dict[str, str]]:
         interfaces = []
@@ -55,16 +61,30 @@ class SnifferService:
         if IP in packet:
             packet_data["source"] = packet[IP].src
             packet_data["destination"] = packet[IP].dst
+            
+            # Update stats
+            self.stats["total_bytes"] += len(packet)
+            self.stats["total_flows"] += 1
+            
+            src = packet[IP].src
+            self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
+            
             if TCP in packet:
                 packet_data["protocol"] = "TCP"
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
+                self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
             elif UDP in packet:
                 packet_data["protocol"] = "UDP"
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
+                self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
             elif ARP in packet:
                 packet_data["protocol"] = "ARP"
                 packet_data["source"] = packet[ARP].psrc
                 packet_data["destination"] = packet[ARP].pdst
+                self.stats["protocols"]["ARP"] = self.stats["protocols"].get("ARP", 0) + 1
+            else:
+                proto = packet[IP].proto
+                self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
 
         self.callback(packet_data)
 
@@ -99,6 +119,16 @@ class SnifferService:
         if self.capture_thread:
             self.capture_thread.join(timeout=1.0)
         self.callback = None
+
+    def get_stats(self) -> Dict[str, Any]:
+        # Sort top talkers and return top 5
+        sorted_talkers = sorted(self.stats["top_talkers"].items(), key=lambda x: x[1], reverse=True)[:5]
+        return {
+            "total_flows": self.stats["total_flows"],
+            "total_bytes": self.stats["total_bytes"],
+            "top_talkers": [{"ip": ip, "bytes": b} for ip, b in sorted_talkers],
+            "protocols": self.stats["protocols"]
+        }
 
     def export_pcap(self, filename: str = "capture.pcap") -> str:
         filepath = os.path.join("/app/evidence", filename)

@@ -167,6 +167,17 @@
     ]
   },
   {
+    "type": "entity",
+    "name": "RobustScanningPattern",
+    "entityType": "ReliabilityPattern",
+    "observations": [
+      "Importance of partial result retention in network scanning",
+      "Fallback mechanisms when detailed scanning (e.g., port scan) fails",
+      "Ensuring basic host discovery is preserved even if deeper analysis errors out",
+      "Logging of partial failures for debugging without data loss"
+    ]
+  },
+  {
     "type": "relation",
     "from": "NetworkObservatoryPlatform",
     "to": "DockerMicroservicesPattern",

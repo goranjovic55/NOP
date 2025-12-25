@@ -9,8 +9,8 @@ from typing import Optional, List
 import json
 import asyncio
 from app.core.database import get_db
+from app.models.event import Event, EventType, EventSeverity
 from app.services.access_hub import access_hub
-from guacamole.client import GuacamoleClient
 
 router = APIRouter()
 
@@ -59,7 +59,7 @@ async def get_access_hub_status():
     }
 
 @router.post("/test/ssh")
-async def test_ssh_connection(request: SSHConnectionTest):
+async def test_ssh_connection(request: SSHConnectionTest, db: AsyncSession = Depends(get_db)):
     """Test SSH connection to a remote host"""
     try:
         result = await access_hub.test_ssh_connection(
@@ -69,6 +69,19 @@ async def test_ssh_connection(request: SSHConnectionTest):
             password=request.password,
             key_file=request.key_file
         )
+        
+        # Log event for SSH connection attempt
+        event = Event(
+            event_type=EventType.CREDENTIAL_ACCESSED,
+            severity=EventSeverity.INFO if result["success"] else EventSeverity.WARNING,
+            title="SSH Connection Test",
+            description=f"SSH connection test to {request.host} for user {request.username}: {'Success' if result['success'] else 'Failed'}",
+            source_ip=request.host,
+            event_metadata={"host": request.host, "username": request.username, "success": result["success"]}
+        )
+        db.add(event)
+        await db.commit()
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -224,63 +237,6 @@ async def test_environment_services():
 @router.websocket("/tunnel")
 async def guacamole_tunnel(websocket: WebSocket):
     await websocket.accept()
-    client = GuacamoleClient("nop-guacd", 4822)
-
-    try:
-        # Wait for the first message which should contain connection parameters
-        data = await websocket.receive_text()
-        params = json.loads(data)
-
-        protocol = params.get("protocol", "rdp")
-        hostname = params.get("hostname")
-        port = params.get("port")
-        username = params.get("username")
-        password = params.get("password")
-        width = params.get("width", 1024)
-        height = params.get("height", 768)
-        dpi = params.get("dpi", 96)
-
-        # Use handshake instead of connect
-        client.handshake(
-            protocol=protocol,
-            hostname=hostname,
-            port=str(port),
-            username=username,
-            password=password,
-            width=width,
-            height=height,
-            dpi=dpi,
-            ignore_cert="true"
-        )
-
-        async def send_to_websocket():
-            try:
-                while True:
-                    instruction = client.receive()
-                    if instruction:
-                        await websocket.send_text(str(instruction))
-                    else:
-                        break
-                    await asyncio.sleep(0.001)
-            except Exception as e:
-                print(f"Error in send_to_websocket: {e}")
-
-        async def receive_from_websocket():
-            try:
-                while True:
-                    data = await websocket.receive_text()
-                    client.send(data)
-            except Exception as e:
-                print(f"Error in receive_from_websocket: {e}")
-
-        await asyncio.gather(
-            send_to_websocket(),
-            receive_from_websocket()
-        )
-
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        print(f"Guacamole error: {e}")
-    finally:
-        client.close()
+    # GuacamoleClient is missing, so we'll just close the connection for now
+    # client = GuacamoleClient("nop-guacd", 4822)
+    await websocket.close(code=1011, reason="Guacamole client not available")

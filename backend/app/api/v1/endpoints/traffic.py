@@ -72,10 +72,5 @@ async def get_traffic_flows():
 
 @router.get("/stats")
 async def get_traffic_stats():
-    """Get traffic statistics (Placeholder for ntopng integration)"""
-    return {
-        "total_flows": 0,
-        "total_bytes": 0,
-        "top_talkers": [],
-        "protocols": {}
-    }
+    """Get traffic statistics"""
+    return sniffer_service.get_stats()

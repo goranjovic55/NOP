@@ -7,9 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from app.core.database import get_db
+from app.models.event import Event, EventType, EventSeverity
 from app.services.scanner import scanner
 import uuid
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -59,6 +63,21 @@ async def start_discovery_scan(
     
     # Start scan in background
     background_tasks.add_task(run_network_discovery, scan_id, request)
+    
+    # Log event for scan started
+    async def log_scan_started():
+        async with AsyncSessionLocal() as db:
+            event = Event(
+                event_type=EventType.SCAN_STARTED,
+                severity=EventSeverity.INFO,
+                title="Network Scan Started",
+                description=f"Network discovery scan started for {request.network}",
+                event_metadata={"scan_id": scan_id, "network": request.network, "scan_type": request.scan_type}
+            )
+            db.add(event)
+            await db.commit()
+    
+    background_tasks.add_task(log_scan_started)
     
     return {
         "message": "Discovery scan started",
@@ -186,6 +205,18 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         async with AsyncSessionLocal() as db:
             discovery_service = DiscoveryService(db)
             await discovery_service.process_scan_results(results)
+            
+            # Log event for scan completed
+            event = Event(
+                event_type=EventType.SCAN_COMPLETED,
+                severity=EventSeverity.INFO,
+                title="Network Scan Completed",
+                description=f"Network discovery scan completed for {request.network}. Found {len(results.get('hosts', []))} hosts.",
+                event_metadata={"scan_id": scan_id, "network": request.network, "hosts_found": len(results.get("hosts", []))}
+            )
+            db.add(event)
+            await db.commit()
+            logger.info(f"Scan completed event logged for {scan_id}")
         
     except Exception as e:
         active_scans[scan_id]["status"] = "failed"

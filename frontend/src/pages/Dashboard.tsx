@@ -1,44 +1,84 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { dashboardService, SystemEvent } from '../services/dashboardService';
+import { useAuthStore } from '../store/authStore';
 
 const Dashboard: React.FC = () => {
+  const { token } = useAuthStore();
   const [stats, setStats] = useState({
     totalAssets: 0,
     onlineAssets: 0,
-    offlineAssets: 0,
     activeScans: 0,
-    vulnerabilities: 0,
+    activeConnections: 0,
     trafficVolume: '0 MB/s',
   });
 
-  const [trafficData] = useState([
-    { time: '00:00', value: 45 },
-    { time: '04:00', value: 32 },
-    { time: '08:00', value: 78 },
-    { time: '12:00', value: 95 },
-    { time: '16:00', value: 123 },
-    { time: '20:00', value: 87 },
+  const [trafficData, setTrafficData] = useState([
+    { time: '00:00', value: 0 },
+    { time: '04:00', value: 0 },
+    { time: '08:00', value: 0 },
+    { time: '12:00', value: 0 },
+    { time: '16:00', value: 0 },
+    { time: '20:00', value: 0 },
   ]);
 
-  const [assetTypes] = useState([
-    { name: 'Servers', value: 35, color: '#ff0040' },
-    { name: 'Workstations', value: 45, color: '#8b5cf6' },
-    { name: 'Network Devices', value: 15, color: '#00ff88' },
-    { name: 'IoT Devices', value: 5, color: '#00d4ff' },
+  const [assetTypes, setAssetTypes] = useState([
+    { name: 'Unknown', value: 1, color: '#8b5cf6' },
   ]);
+
+  const [events, setEvents] = useState<SystemEvent[]>([]);
+
+  const fetchData = async () => {
+    if (!token) return;
+
+    try {
+      const [assetStats, trafficStats, accessStatus, recentEvents] = await Promise.all([
+        dashboardService.getAssetStats(token),
+        dashboardService.getTrafficStats(token),
+        dashboardService.getAccessStatus(token),
+        dashboardService.getEvents(token, 5)
+      ]);
+
+      setStats({
+        totalAssets: assetStats.total_assets,
+        onlineAssets: assetStats.online_assets,
+        activeScans: 0, // Placeholder until scans API is ready
+        activeConnections: accessStatus.active_connections,
+        trafficVolume: `${(trafficStats.total_bytes / 1024 / 1024).toFixed(2)} MB`,
+      });
+
+      if (assetStats.by_type && Object.keys(assetStats.by_type).length > 0) {
+        const colors = ['#ff0040', '#8b5cf6', '#00ff88', '#00d4ff', '#facc15'];
+        const types = Object.entries(assetStats.by_type).map(([name, value], index) => ({
+          name,
+          value,
+          color: colors[index % colors.length]
+        }));
+        setAssetTypes(types);
+      }
+
+      setEvents(recentEvents);
+
+      // Update traffic data if protocols are available
+      if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
+        // This is a simplification, normally we'd want time-series data
+        const mockTraffic = Object.entries(trafficStats.protocols).map(([name, value], index) => ({
+          time: name,
+          value: value as number
+        }));
+        if (mockTraffic.length > 0) setTrafficData(mockTraffic);
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
   useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        trafficVolume: `${(Math.random() * 100).toFixed(1)} MB/s`,
-        onlineAssets: 85 + Math.floor(Math.random() * 10),
-      }));
-    }, 3000);
-
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: string; glowColor: string }> = 
     ({ title, value, icon, color, glowColor }) => (
@@ -61,29 +101,29 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Assets"
-          value={stats.totalAssets || 127}
+          value={stats.totalAssets}
           icon="⬢"
           color="text-cyber-blue cyber-glow"
           glowColor="border-cyber-blue"
         />
         <StatCard
           title="Online Assets"
-          value={stats.onlineAssets || 89}
+          value={stats.onlineAssets}
           icon="◉"
           color="text-cyber-green cyber-glow"
           glowColor="border-cyber-green"
         />
         <StatCard
           title="Active Scans"
-          value={stats.activeScans || 3}
+          value={stats.activeScans}
           icon="◈"
           color="text-cyber-purple cyber-glow"
           glowColor="border-cyber-purple"
         />
         <StatCard
-          title="Vulnerabilities"
-          value={stats.vulnerabilities || 12}
-          icon="⚠"
+          title="Active Connections"
+          value={stats.activeConnections}
+          icon="⇄"
           color="text-cyber-red cyber-glow"
           glowColor="border-cyber-red"
         />
@@ -133,10 +173,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm font-terminal">
             <span className="text-cyber-gray-light">
-              &gt; Current: <span className="text-cyber-green">{stats.trafficVolume}</span>
-            </span>
-            <span className="text-cyber-green">
-              ↗ +12% from yesterday
+              &gt; Total Volume: <span className="text-cyber-green">{stats.trafficVolume}</span>
             </span>
           </div>
         </div>
@@ -198,26 +235,22 @@ const Dashboard: React.FC = () => {
           &gt; System Activity Log
         </h3>
         <div className="space-y-2">
-          {[
-            { time: '02:34:12', event: 'New asset discovered: 192.168.1.45', type: 'info' },
-            { time: '02:29:08', event: 'Scan completed on subnet 192.168.1.0/24', type: 'success' },
-            { time: '02:22:45', event: 'High vulnerability detected on server-01', type: 'warning' },
-            { time: '02:16:33', event: 'User admin logged in', type: 'info' },
-            { time: '02:09:17', event: 'Backup completed successfully', type: 'success' },
-          ].map((activity, index) => (
+          {events.length > 0 ? events.map((activity, index) => (
             <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors duration-300">
               <div className={`w-2 h-2 ${
-                activity.type === 'success' ? 'bg-cyber-green' :
-                activity.type === 'warning' ? 'bg-cyber-red' :
+                activity.severity === 'critical' || activity.severity === 'error' ? 'bg-cyber-red' :
+                activity.severity === 'warning' ? 'bg-facc15' :
                 'bg-cyber-blue'
               } cyber-pulse`}></div>
               <div className="flex-1 font-terminal">
                 <p className="text-cyber-gray-light text-sm">
-                  <span className="text-cyber-purple">[{activity.time}]</span> {activity.event}
+                  <span className="text-cyber-purple">[{new Date(activity.timestamp).toLocaleTimeString()}]</span> {activity.title}: {activity.description}
                 </p>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-cyber-gray-light font-terminal text-sm p-3">No recent activity</p>
+          )}
         </div>
       </div>
     </div>

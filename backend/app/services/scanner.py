@@ -42,6 +42,7 @@ class NetworkScanner:
                         if len(parts) >= 5:
                             ip = parts[-1].strip('()')
                             hosts.append(ip)
+                logger.info(f"Ping sweep found {len(hosts)} hosts: {hosts}")
                 return hosts
             else:
                 logger.error(f"Ping sweep failed: {stderr.decode()}")
@@ -54,7 +55,9 @@ class NetworkScanner:
     async def port_scan(self, host: str, ports: str = "1-1000") -> Dict[str, Any]:
         """Perform port scan on a host"""
         try:
-            cmd = ["nmap", "-sS", "-p", ports, "-oX", "-", host]
+            # Add -Pn to skip ping probe as we might have already established it's up
+            # or we want to scan it regardless
+            cmd = ["nmap", "-sS", "-Pn", "-p", ports, "-oX", "-", host]
             result = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
@@ -268,11 +271,32 @@ class NetworkScanner:
                 try:
                     # Use -sn -PR for ARP scan if in same network, but nmap -sn is usually enough
                     # For detailed info we need at least some port scanning
+                    # We use -Pn to skip ping since we already know it's alive
                     host_result = await self.port_scan(host, "1-1000")
-                    if "error" not in host_result:
+                    
+                    if "error" not in host_result and host_result.get("hosts"):
                         result["hosts"].extend(host_result.get("hosts", []))
+                    else:
+                        # If port scan failed or returned no info, add basic host info
+                        # since we know it's alive from ping sweep
+                        logger.warning(f"Port scan failed for {host}, adding basic info")
+                        result["hosts"].append({
+                            "addresses": [{"addr": host, "addrtype": "ipv4"}],
+                            "hostnames": [],
+                            "ports": [],
+                            "os": {},
+                            "scripts": []
+                        })
                 except Exception as e:
                     logger.error(f"Error scanning host {host}: {str(e)}")
+                    # Add basic info even on exception
+                    result["hosts"].append({
+                        "addresses": [{"addr": host, "addrtype": "ipv4"}],
+                        "hostnames": [],
+                        "ports": [],
+                        "os": {},
+                        "scripts": []
+                    })
 
             return result
 

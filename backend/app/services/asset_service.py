@@ -143,6 +143,13 @@ class AssetService:
         offline_result = await self.db.execute(offline_query)
         offline_assets = offline_result.scalar() or 0
 
+        # Active scans and connections
+        from app.api.v1.endpoints.discovery import active_scans
+        from app.services.access_hub import access_hub
+        
+        active_scans_count = len([s for s in active_scans.values() if s.get("status") == "running"])
+        active_connections_count = access_hub.get_active_connections().get("active_count", 0)
+
         # By type
         type_query = select(Asset.asset_type, func.count(Asset.id)).group_by(Asset.asset_type)
         type_result = await self.db.execute(type_query)
@@ -163,6 +170,8 @@ class AssetService:
             total_assets=total_assets,
             online_assets=online_assets,
             offline_assets=offline_assets,
+            active_scans=active_scans_count,
+            active_connections=active_connections_count,
             by_type=by_type,
             by_vendor=by_vendor,
             recently_discovered=recently_discovered

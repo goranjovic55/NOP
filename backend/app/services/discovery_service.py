@@ -11,6 +11,7 @@ from datetime import datetime
 import ipaddress
 
 from app.models.asset import Asset, AssetStatus, AssetType
+from app.models.event import Event, EventType, EventSeverity
 from app.services.scanner import scanner
 from app.schemas.asset import AssetCreate
 
@@ -99,6 +100,17 @@ class DiscoveryService:
                 asset.services = services
                 asset.asset_type = asset_type
                 logger.info(f"Updated asset: {ip_address}")
+                
+                # Log event for asset update (optional, but good for visibility)
+                event = Event(
+                    event_type=EventType.ASSET_DISCOVERED,
+                    severity=EventSeverity.INFO,
+                    title="Asset Updated",
+                    description=f"Asset updated at {ip_address} ({hostname or 'no hostname'})",
+                    source_ip=ip_address,
+                    event_metadata={"ip": ip_address, "hostname": hostname, "mac": mac_address, "status": "updated"}
+                )
+                self.db.add(event)
             else:
                 # Create new asset
                 asset = Asset(
@@ -116,6 +128,17 @@ class DiscoveryService:
                 )
                 self.db.add(asset)
                 logger.info(f"Created new asset: {ip_address}")
+                
+                # Log event for new asset discovery
+                event = Event(
+                    event_type=EventType.ASSET_DISCOVERED,
+                    severity=EventSeverity.INFO,
+                    title="New Asset Discovered",
+                    description=f"New asset discovered at {ip_address} ({hostname or 'no hostname'})",
+                    source_ip=ip_address,
+                    event_metadata={"ip": ip_address, "hostname": hostname, "mac": mac_address}
+                )
+                self.db.add(event)
 
         # Mark assets that were NOT found in this scan as OFFLINE
         # ONLY if this was a full network scan.
@@ -127,3 +150,4 @@ class DiscoveryService:
                     logger.info(f"Asset {asset.ip_address} marked as OFFLINE")
 
         await self.db.commit()
+        logger.info("Committed all asset updates and events to database")

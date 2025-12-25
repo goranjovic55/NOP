@@ -78,6 +78,8 @@ class AssetStats(BaseModel):
     total_assets: int
     online_assets: int
     offline_assets: int
+    active_scans: int
+    active_connections: int
     by_type: Dict[str, int]
     by_vendor: Dict[str, int]
     recently_discovered: int
