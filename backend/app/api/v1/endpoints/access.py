@@ -207,10 +207,10 @@ async def test_environment_ssh():
     """Test SSH connection to test environment"""
     try:
         result = await access_hub.test_ssh_connection(
-            host="172.19.0.11",  # Test SSH server
-            port=2222,
+            host="172.21.0.69",  # Test SSH server
+            port=22,
             username="testuser",
-            password="testpass"
+            password="testpassword"
         )
         return result
     except Exception as e:
@@ -220,7 +220,15 @@ async def test_environment_ssh():
 async def test_environment_services():
     """Scan services in test environment"""
     try:
-        hosts = ["172.19.0.10", "172.19.0.11", "172.19.0.12", "172.19.0.13"]
+        hosts = [
+            "172.21.0.42",  # Web
+            "172.21.0.69",  # SSH
+            "172.21.0.123", # DB
+            "172.21.0.200", # File
+            "172.21.0.50",  # RDP
+            "172.21.0.51",  # VNC
+            "172.21.0.52"   # FTP
+        ]
         results = []
 
         for host in hosts:
@@ -228,7 +236,7 @@ async def test_environment_services():
             results.append(result)
 
         return {
-            "test_environment": "172.19.0.0/24",
+            "test_environment": "172.21.0.0/24",
             "hosts_scanned": len(hosts),
             "results": results
         }

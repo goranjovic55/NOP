@@ -144,11 +144,18 @@ class AssetService:
         offline_assets = offline_result.scalar() or 0
 
         # Active scans and connections
-        from app.api.v1.endpoints.discovery import active_scans
-        from app.services.access_hub import access_hub
-        
-        active_scans_count = len([s for s in active_scans.values() if s.get("status") == "running"])
-        active_connections_count = access_hub.get_active_connections().get("active_count", 0)
+        # Import here to avoid circular imports
+        try:
+            from app.api.v1.endpoints.discovery import active_scans
+            active_scans_count = len([s for s in active_scans.values() if s.get("status") == "running"])
+        except ImportError:
+            active_scans_count = 0
+            
+        try:
+            from app.services.access_hub import access_hub
+            active_connections_count = access_hub.get_active_connections().get("active_count", 0)
+        except ImportError:
+            active_connections_count = 0
 
         # By type
         type_query = select(Asset.asset_type, func.count(Asset.id)).group_by(Asset.asset_type)
