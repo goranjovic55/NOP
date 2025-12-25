@@ -42,8 +42,8 @@ const Dashboard: React.FC = () => {
       setStats({
         totalAssets: assetStats.total_assets,
         onlineAssets: assetStats.online_assets,
-        activeScans: 0, // Placeholder until scans API is ready
-        activeConnections: accessStatus.active_connections,
+        activeScans: assetStats.active_scans,
+        activeConnections: assetStats.active_connections,
         trafficVolume: `${(trafficStats.total_bytes / 1024 / 1024).toFixed(2)} MB`,
       });
 

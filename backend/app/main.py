@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
 from app.api.websockets.router import websocket_router
+from app.services.SnifferService import sniffer_service
 
 # Configure logging
 logging.basicConfig(
@@ -33,12 +34,21 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     
     logger.info("Database tables created")
+
+    # Start sniffing in background
+    try:
+        sniffer_service.start_sniffing(settings.NETWORK_INTERFACE, lambda x: None)
+        logger.info(f"Traffic sniffer started on {settings.NETWORK_INTERFACE}")
+    except Exception as e:
+        logger.error(f"Failed to start traffic sniffer: {e}")
+
     
     yield
     
     # Shutdown
     logger.info("Shutting down Network Observatory Platform...")
 
+    sniffer_service.stop_sniffing()
 
 # Create FastAPI application
 app = FastAPI(

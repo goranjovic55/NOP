@@ -253,12 +253,13 @@
     "entityType": "FeatureUpdate",
     "observations": [
       "Updated dashboard to use real data for assets, traffic, and system activity",
-      "Fixed scanning event discrepancy where discovered hosts were dropped if port scan failed",
+      "Fixed scanning event discrepancy where discovered hosts were dropped if port scan fails",
       "Integrated active scan and connection counts into asset statistics",
       "Resolved NameError in SnifferService",
       "Updated AssetStats schema to include active scans and connections",
       "Modified scanner.py to ensure basic host info is added even if port scan fails",
-      "Fixed SSH connection failure by trimming whitespace from credentials in AccessHub service"
+      "Fixed SSH connection failure by trimming whitespace from credentials in AccessHub service",
+      "Enabled traffic sniffer service on backend startup"
     ]
   },
   {
