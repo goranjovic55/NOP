@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
@@ -20,7 +20,7 @@ const Assets: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState<number>(30);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   const [scanSettings, setScanSettings] = useState<ScanSettings>(() => {
     const saved = localStorage.getItem('nop_scan_settings');
     return saved ? JSON.parse(saved) : {
@@ -32,29 +32,33 @@ const Assets: React.FC = () => {
     };
   });
 
-  const { token, isAuthenticated } = useAuthStore();
+  const { token } = useAuthStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchAssets = async (showLoading = true) => {
+  const fetchAssets = useCallback(async (showLoading = true) => {
     if (!token) return;
     try {
       if (showLoading) setLoading(true);
       const data = await assetService.getAssets(token, statusFilter === 'all' ? undefined : statusFilter);
       setAssets(data);
-      if (selectedAsset) {
-        const updated = data.find(a => a.id === selectedAsset.id);
-        if (updated) setSelectedAsset(updated);
-      }
+      
+      // Update selected asset if it exists in the new data
+      setSelectedAsset(prev => {
+        if (!prev) return null;
+        const updated = data.find(a => a.id === prev.id);
+        return updated || prev;
+      });
+      
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch assets');
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }, [token, statusFilter]);
 
-  const triggerScan = async (type: 'manual' | 'auto') => {
+  const triggerScan = useCallback(async (type: 'manual' | 'auto') => {
     if (!token) return;
     const scanType = type === 'manual' ? scanSettings.manualScanType : scanSettings.autoScanType;
     try {
@@ -63,29 +67,34 @@ const Assets: React.FC = () => {
     } catch (err) {
       console.error('Scan trigger failed:', err);
     }
-  };
+  }, [token, scanSettings]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchAssets(true);
+  }, [fetchAssets]);
 
   // UI Refresh Timer
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (refreshInterval > 0) {
-      timerRef.current = setInterval(() => fetchAssets(false), refreshInterval * 1000);
+      timerRef.current = setInterval(() => {
+        fetchAssets(false);
+      }, refreshInterval * 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [token, statusFilter, refreshInterval]);
+  }, [fetchAssets, refreshInterval]);
 
   // Auto-Scan Timer
   useEffect(() => {
     if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
     if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
-      autoScanTimerRef.current = setInterval(() => triggerScan('auto'), scanSettings.autoScanInterval * 60 * 1000);
+      autoScanTimerRef.current = setInterval(() => {
+        triggerScan('auto');
+      }, scanSettings.autoScanInterval * 60 * 1000);
     }
     return () => { if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current); };
-  }, [token, scanSettings]);
-
-  useEffect(() => {
-    fetchAssets();
-  }, [token, statusFilter]);
+  }, [triggerScan, scanSettings.autoScanEnabled, scanSettings.autoScanInterval]);
 
   const handleSaveSettings = (newSettings: ScanSettings) => {
     setScanSettings(newSettings);
@@ -154,8 +163,8 @@ const Assets: React.FC = () => {
                 <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 assets.map((asset) => (
-                  <tr 
-                    key={asset.id} 
+                  <tr
+                    key={asset.id}
                     className={`hover:bg-cyber-darker cursor-pointer transition-colors ${selectedAsset?.id === asset.id ? 'bg-cyber-darker border-l-2 border-cyber-red' : ''}`}
                     onClick={() => setSelectedAsset(asset)}
                   >
@@ -178,12 +187,12 @@ const Assets: React.FC = () => {
       </div>
 
       <AssetDetailsSidebar asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
-      
-      <ScanSettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        settings={scanSettings} 
-        onSave={handleSaveSettings} 
+
+      <ScanSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={scanSettings}
+        onSave={handleSaveSettings}
       />
     </div>
   );
