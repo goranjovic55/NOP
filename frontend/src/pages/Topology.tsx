@@ -248,10 +248,10 @@ const Topology: React.FC = () => {
           }}
           nodeRelSize={6}
           linkColor={() => '#00f0ff'} // Cyber Blue
-          linkWidth={1}
+          linkWidth={(link: any) => Math.max(1, Math.min(8, Math.log10((link.value || 0) + 1)))}
           linkDirectionalParticles={isPlaying ? 4 : 0}
           linkDirectionalParticleSpeed={d => d.value * 0.001 + 0.001}
-          linkDirectionalParticleWidth={2}
+          linkDirectionalParticleWidth={(link: any) => Math.max(2, Math.min(6, Math.log10((link.value || 0) + 1)))}
           linkDirectionalParticleColor={() => '#ffffff'}
           backgroundColor="#050505"
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
