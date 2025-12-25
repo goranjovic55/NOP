@@ -23,6 +23,7 @@ Active development on Dashboard features, specifically Asset management, auto-di
     - Integrated real-time asset and connection data.
     - Refined visualization with constant node sizes, better separation, and hover details.
     - Implemented dynamic link thickness based on traffic volume (logarithmic scale).
+    - Filtered topology to only show online hosts and connections between them.
 - **Traffic Page**:
     - Added interface selection with real-time traffic sparklines (Wireshark-style).
     - Implemented per-interface traffic history tracking in backend.
