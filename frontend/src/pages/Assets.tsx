@@ -52,6 +52,23 @@ const Assets: React.FC = () => {
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Refs for accessing latest state in intervals/timeouts
+  const scanSettingsRef = useRef(scanSettings);
+  const isScanningRef = useRef(isScanning);
+  const activeScanIdRef = useRef(activeScanId);
+
+  useEffect(() => {
+    scanSettingsRef.current = scanSettings;
+  }, [scanSettings]);
+
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+  }, [isScanning]);
+
+  useEffect(() => {
+    activeScanIdRef.current = activeScanId;
+  }, [activeScanId]);
+
   const fetchAssets = useCallback(async (showLoading = true) => {
     if (!token) return;
     try {
@@ -106,10 +123,11 @@ const Assets: React.FC = () => {
 
   const triggerScan = useCallback(async (type: 'manual' | 'auto') => {
     if (!token) return;
-    const scanType = type === 'manual' ? scanSettings.manualScanType : scanSettings.autoScanType;
+    const currentSettings = scanSettingsRef.current;
+    const scanType = type === 'manual' ? currentSettings.manualScanType : currentSettings.autoScanType;
     try {
       setIsScanning(true);
-      const result = await assetService.startScan(token, scanSettings.networkRange, scanType);
+      const result = await assetService.startScan(token, currentSettings.networkRange, scanType);
       if (result && result.scan_id) {
         setActiveScanId(result.scan_id);
       } else {
@@ -121,7 +139,7 @@ const Assets: React.FC = () => {
       console.error('Discovery failed:', err);
       setIsScanning(false);
     }
-  }, [token, scanSettings]);
+  }, [token]);
 
   // Poll for scan status
   useEffect(() => {
@@ -152,18 +170,24 @@ const Assets: React.FC = () => {
   // Auto-scan trigger
   useEffect(() => {
     if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
+    
     if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
-      // Initial check or setup interval
-      autoScanTimerRef.current = setInterval(() => {
-        if (!isScanning && !activeScanId) {
+      const runAutoScan = () => {
+        if (!isScanningRef.current && !activeScanIdRef.current) {
           triggerScan('auto');
         }
-      }, scanSettings.autoScanInterval * 60 * 1000);
+      };
+
+      // Run immediately when enabled or settings change
+      runAutoScan();
+
+      autoScanTimerRef.current = setInterval(runAutoScan, scanSettings.autoScanInterval * 60 * 1000);
     }
+    
     return () => {
       if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
     };
-  }, [scanSettings.autoScanEnabled, scanSettings.autoScanInterval, triggerScan, isScanning, activeScanId]);
+  }, [scanSettings.autoScanEnabled, scanSettings.autoScanInterval, triggerScan]);
 
   useEffect(() => {
     fetchAssets(true);

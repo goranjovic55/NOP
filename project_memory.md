@@ -13,6 +13,7 @@ Active development on Dashboard features, specifically Asset management and auto
 - **Assets Page**:
     - Implemented auto-refresh functionality.
     - Fixed auto-discovery logic by correcting timer implementation and state management in `Assets.tsx`.
+    - Confirmed auto-discovery is working.
     - Updated `assetService.ts` to support scan status polling.
     - Enhanced `ScanSettingsModal` for better configuration.
 - **Access Hub**:
