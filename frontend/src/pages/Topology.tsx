@@ -69,11 +69,12 @@ const Topology: React.FC = () => {
       
       // Add assets as nodes
       assets.forEach(asset => {
+        if (asset.status !== 'online') return; // Only show online hosts
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
           name: asset.hostname || asset.ip_address,
           val: 1,
-          group: asset.status === 'online' ? 'online' : 'offline',
+          group: 'online',
           ip: asset.ip_address,
           status: asset.status,
           details: asset
@@ -85,33 +86,14 @@ const Topology: React.FC = () => {
       const connections = trafficStats.connections || [];
       
       connections.forEach(conn => {
-        // Ensure source and target nodes exist (add if discovered via traffic but not in assets)
-        if (!nodesMap.has(conn.source)) {
-          nodesMap.set(conn.source, {
-            id: conn.source,
-            name: conn.source,
-            val: 1,
-            group: 'external',
-            ip: conn.source,
-            status: 'unknown'
+        // Only add links if both source and target are known online nodes
+        if (nodesMap.has(conn.source) && nodesMap.has(conn.target)) {
+          links.push({
+            source: conn.source,
+            target: conn.target,
+            value: conn.value
           });
         }
-        if (!nodesMap.has(conn.target)) {
-          nodesMap.set(conn.target, {
-            id: conn.target,
-            name: conn.target,
-            val: 1,
-            group: 'external',
-            ip: conn.target,
-            status: 'unknown'
-          });
-        }
-
-        links.push({
-          source: conn.source,
-          target: conn.target,
-          value: conn.value
-        });
       });
 
       // Calculate Centrality (Degree)
