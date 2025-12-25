@@ -6,26 +6,25 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "12000:3000"
+      - "12000:80"
     environment:
       - REACT_APP_API_URL=
       - REACT_APP_WS_URL=
     depends_on:
       - backend
     networks:
-      - nop-network
+      - nop-internal
     restart: unless-stopped
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # No ports exposed to host to avoid conflicts and for security
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-secret-key-change-this
-      - ADMIN_PASSWORD=changeme
+      - ADMIN_PASSWORD=admin123
     depends_on:
       - postgres
       - redis
@@ -34,14 +33,13 @@ services:
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - nop-network
+      - nop-internal
       - test-network
     restart: unless-stopped
     privileged: true
 
   postgres:
     image: postgres:15-alpine
-    # No ports exposed to host
     environment:
       - POSTGRES_DB=nop
       - POSTGRES_USER=nop
@@ -49,29 +47,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - nop-network
+      - nop-internal
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    # No ports exposed to host
     volumes:
       - redis_data:/data
     networks:
-      - nop-network
+      - nop-internal
     restart: unless-stopped
 
 networks:
-  nop-network:
+  nop-internal:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
   test-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.0/16
+    name: nop_test-network
+    external: true
 
 volumes:
   postgres_data:
