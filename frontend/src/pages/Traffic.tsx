@@ -26,12 +26,26 @@ interface Stream {
 interface Interface {
   name: string;
   ip: string;
+  activity: number[];
 }
+
+const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data: number[], width?: number, height?: number, color?: string }) => {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data, 1);
+  const step = width / (data.length - 1 || 1);
+  const points = data.map((val, i) => `${i * step},${height - (val / max) * height}`).join(' ');
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
 
 const Traffic: React.FC = () => {
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
   const [selectedIface, setSelectedIface] = useState<string>('');
+  const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
   const [filter, setFilter] = useState('');
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
@@ -42,7 +56,9 @@ const Traffic: React.FC = () => {
 
   useEffect(() => {
     fetchInterfaces();
+    const interval = setInterval(fetchInterfaces, 1000); // Poll interfaces every second
     return () => {
+      clearInterval(interval);
       if (wsRef.current) wsRef.current.close();
     };
   }, []);
@@ -60,7 +76,10 @@ const Traffic: React.FC = () => {
       });
       const data = await response.json();
       setInterfaces(data);
-      if (data.length > 0) setSelectedIface(data[0].name);
+      // Only set default if nothing selected and we have data
+      if (data.length > 0 && !selectedIface) {
+        setSelectedIface(data[0].name);
+      }
     } catch (err) {
       console.error('Failed to fetch interfaces:', err);
     }
@@ -173,18 +192,41 @@ const Traffic: React.FC = () => {
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-4 bg-cyber-darker p-4 border border-cyber-gray">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative">
           <label className="text-xs text-cyber-purple font-bold uppercase">Interface:</label>
-          <select
-            value={selectedIface}
-            onChange={(e) => setSelectedIface(e.target.value)}
-            disabled={isSniffing}
-            className="bg-cyber-dark border border-cyber-gray text-cyber-blue text-xs p-1 outline-none focus:border-cyber-red"
-          >
-            {interfaces.map(iface => (
-              <option key={iface.name} value={iface.name}>{iface.name} ({iface.ip})</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => !isSniffing && setIsInterfaceListOpen(!isInterfaceListOpen)}
+              disabled={isSniffing}
+              className={`bg-cyber-dark border border-cyber-gray text-cyber-blue text-xs p-1 min-w-[200px] text-left flex justify-between items-center ${isSniffing ? 'opacity-50 cursor-not-allowed' : 'hover:border-cyber-blue'}`}
+            >
+              <span>{selectedIface || 'Select Interface'}</span>
+              <span className="text-[10px]">▼</span>
+            </button>
+            
+            {isInterfaceListOpen && (
+              <div className="absolute top-full left-0 mt-1 w-[300px] bg-cyber-darker border border-cyber-blue z-50 shadow-xl max-h-[400px] overflow-y-auto">
+                {interfaces.map(iface => (
+                  <div
+                    key={iface.name}
+                    onClick={() => {
+                      setSelectedIface(iface.name);
+                      setIsInterfaceListOpen(false);
+                    }}
+                    className={`p-2 hover:bg-cyber-blue/10 cursor-pointer border-b border-cyber-gray/30 flex items-center justify-between ${selectedIface === iface.name ? 'bg-cyber-blue/20' : ''}`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-cyber-blue font-bold text-xs">{iface.name}</span>
+                      <span className="text-cyber-gray-light text-[10px]">{iface.ip}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Sparkline data={iface.activity} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 flex items-center space-x-2">

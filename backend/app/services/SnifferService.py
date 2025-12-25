@@ -25,7 +25,9 @@ class SnifferService:
             "connections": {}
         }
         self.traffic_history = []
+        self.interface_history = {} # Store history for each interface
         self.last_bytes_check = 0
+        self.last_if_stats = {}
         self.start_background_sniffing()
 
     def start_background_sniffing(self):
@@ -38,7 +40,9 @@ class SnifferService:
 
     def _run_stats_collector(self):
         while True:
-            time.sleep(5)
+            time.sleep(1) # Update every second for smoother graphs
+            
+            # Global stats (from sniffing)
             current_bytes = self.stats["total_bytes"]
             delta = current_bytes - self.last_bytes_check
             self.last_bytes_check = current_bytes
@@ -49,18 +53,47 @@ class SnifferService:
                 "value": delta
             })
 
-            # Keep last 20 points (approx 100 seconds)
+            # Keep last 20 points
             if len(self.traffic_history) > 20:
                 self.traffic_history.pop(0)
+            
+            # Per-interface stats (from psutil)
+            io_counters = psutil.net_io_counters(pernic=True)
+            for iface, counters in io_counters.items():
+                if iface not in self.interface_history:
+                    self.interface_history[iface] = []
+                
+                prev_bytes = self.last_if_stats.get(iface, 0)
+                curr_bytes = counters.bytes_recv + counters.bytes_sent
+                
+                # First run or counter reset
+                if prev_bytes == 0 or curr_bytes < prev_bytes:
+                    if_delta = 0
+                else:
+                    if_delta = curr_bytes - prev_bytes
+                
+                self.last_if_stats[iface] = curr_bytes
+                
+                self.interface_history[iface].append(if_delta)
+                if len(self.interface_history[iface]) > 30: # Keep last 30 points
+                    self.interface_history[iface].pop(0)
 
-    def get_interfaces(self) -> List[Dict[str, str]]:
+    def get_interfaces(self) -> List[Dict[str, Any]]:
         interfaces = []
         for iface, addrs in psutil.net_if_addrs().items():
             ip = "N/A"
             for addr in addrs:
                 if addr.family == 2:  # AF_INET
                     ip = addr.address
-            interfaces.append({"name": iface, "ip": ip})
+            
+            # Get history for this interface
+            history = self.interface_history.get(iface, [0] * 30)
+            
+            interfaces.append({
+                "name": iface, 
+                "ip": ip,
+                "activity": history
+            })
         return interfaces
 
     def _packet_callback(self, packet):
