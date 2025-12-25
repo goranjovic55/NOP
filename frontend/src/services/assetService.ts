@@ -23,7 +23,7 @@ export const assetService = {
     if (status) {
       params.status = status;
     }
-    
+
     try {
       const response = await axios.get(`${API_URL}/assets/`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -36,12 +36,10 @@ export const assetService = {
     }
   },
 
-  startScan: async (token: string): Promise<void> => {
-    // The backend expects a POST to /api/v1/discovery/scan with a network range
-    // We'll scan the test network range
+  startScan: async (token: string, network: string = '172.21.0.0/24', scanType: string = 'basic'): Promise<void> => {
     await axios.post(`${API_URL}/discovery/scan`, {
-      network: '172.21.0.0/24',
-      scan_type: 'basic'
+      network: network,
+      scan_type: scanType
     }, {
       headers: { Authorization: `Bearer ${token}` }
     });

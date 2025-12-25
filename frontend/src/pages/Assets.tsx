@@ -2,78 +2,94 @@ import React, { useState, useEffect, useRef } from 'react';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
+import ScanSettingsModal from '../components/ScanSettingsModal';
+
+interface ScanSettings {
+  autoScanEnabled: boolean;
+  autoScanInterval: number;
+  autoScanType: string;
+  manualScanType: string;
+  networkRange: string;
+}
 
 const Assets: React.FC = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [refreshInterval, setRefreshInterval] = useState<number>(30); // Default 30s
+  const [refreshInterval, setRefreshInterval] = useState<number>(30);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const { token, isAuthenticated } = useAuthStore();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  const [scanSettings, setScanSettings] = useState<ScanSettings>(() => {
+    const saved = localStorage.getItem('nop_scan_settings');
+    return saved ? JSON.parse(saved) : {
+      autoScanEnabled: false,
+      autoScanInterval: 15,
+      autoScanType: 'basic',
+      manualScanType: 'basic',
+      networkRange: '172.21.0.0/24'
+    };
+  });
 
+  const { token, isAuthenticated } = useAuthStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchAssets = async (showLoading = true) => {
-    if (!token) {
-      if (isAuthenticated) {
-        setError('Session error: Token missing. Please try logging out and back in.');
-      } else {
-        setError('Please log in to view assets.');
-      }
-      setLoading(false);
-      return;
-    }
-
+    if (!token) return;
     try {
       if (showLoading) setLoading(true);
       const data = await assetService.getAssets(token, statusFilter === 'all' ? undefined : statusFilter);
       setAssets(data);
-      
-      // Update selected asset if it exists in the new data
       if (selectedAsset) {
         const updated = data.find(a => a.id === selectedAsset.id);
         if (updated) setSelectedAsset(updated);
       }
-      
       setError(null);
     } catch (err: any) {
-      console.error('Error fetching assets:', err);
       setError(err.response?.data?.detail || err.message || 'Failed to fetch assets');
     } finally {
       if (showLoading) setLoading(false);
     }
   };
 
-  // Initial fetch and interval setup
+  const triggerScan = async (type: 'manual' | 'auto') => {
+    if (!token) return;
+    const scanType = type === 'manual' ? scanSettings.manualScanType : scanSettings.autoScanType;
+    try {
+      await assetService.startScan(token, scanSettings.networkRange, scanType);
+      console.log(`${type} scan started: ${scanType} on ${scanSettings.networkRange}`);
+    } catch (err) {
+      console.error('Scan trigger failed:', err);
+    }
+  };
+
+  // UI Refresh Timer
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (refreshInterval > 0) {
+      timerRef.current = setInterval(() => fetchAssets(false), refreshInterval * 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [token, statusFilter, refreshInterval]);
+
+  // Auto-Scan Timer
+  useEffect(() => {
+    if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current);
+    if (scanSettings.autoScanEnabled && scanSettings.autoScanInterval > 0) {
+      autoScanTimerRef.current = setInterval(() => triggerScan('auto'), scanSettings.autoScanInterval * 60 * 1000);
+    }
+    return () => { if (autoScanTimerRef.current) clearInterval(autoScanTimerRef.current); };
+  }, [token, scanSettings]);
+
   useEffect(() => {
     fetchAssets();
-  }, [token, isAuthenticated, statusFilter]);
+  }, [token, statusFilter]);
 
-  useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    if (refreshInterval > 0) {
-      timerRef.current = setInterval(() => {
-        fetchAssets(false); // Don't show loading spinner for background refreshes
-      }, refreshInterval * 1000);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [token, isAuthenticated, statusFilter, refreshInterval, selectedAsset]);
-
-  const startScan = async () => {
-    if (!token) return;
-    try {
-      await assetService.startScan(token);
-      alert('Scan started. Please wait a few moments for results to update.');
-    } catch (err) {
-      alert('Scan failed');
-    }
+  const handleSaveSettings = (newSettings: ScanSettings) => {
+    setScanSettings(newSettings);
+    localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
   };
 
   return (
@@ -83,7 +99,6 @@ const Assets: React.FC = () => {
           <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Assets</h2>
 
           <div className="flex flex-wrap items-center gap-4">
-            {/* Auto Refresh Control */}
             <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
               <span className="text-xs text-cyber-purple uppercase font-bold">Auto-Refresh:</span>
               <select
@@ -96,11 +111,9 @@ const Assets: React.FC = () => {
                 <option value={10} className="bg-cyber-darker">10s</option>
                 <option value={30} className="bg-cyber-darker">30s</option>
                 <option value={60} className="bg-cyber-darker">1m</option>
-                <option value={300} className="bg-cyber-darker">5m</option>
               </select>
             </div>
 
-            {/* Status Filter */}
             <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
               <span className="text-xs text-cyber-purple uppercase font-bold">Filter:</span>
               <select
@@ -114,16 +127,15 @@ const Assets: React.FC = () => {
               </select>
             </div>
 
+            <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-cyber-darker border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue transition-colors text-sm font-bold">
+              CONFIG
+            </button>
             <button onClick={() => fetchAssets(true)} className="btn-cyber px-4 py-2">Refresh</button>
-            <button onClick={startScan} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Scan</button>
+            <button onClick={() => triggerScan('manual')} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Scan</button>
           </div>
         </div>
 
-        {error && (
-          <div className="bg-cyber-darker border border-cyber-red text-cyber-red p-4 cyber-glow">
-            &gt; ERROR: {error}
-          </div>
-        )}
+        {error && <div className="bg-cyber-darker border border-cyber-red text-cyber-red p-4 cyber-glow">&gt; ERROR: {error}</div>}
 
         <div className="bg-cyber-dark border border-cyber-gray overflow-hidden">
           <table className="min-w-full divide-y divide-cyber-gray">
@@ -139,7 +151,7 @@ const Assets: React.FC = () => {
               {loading && assets.length === 0 ? (
                 <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
               ) : assets.length === 0 && !error ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">No assets found matching criteria.</td></tr>
+                <tr><td colSpan={4} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 assets.map((asset) => (
                   <tr 
@@ -165,10 +177,13 @@ const Assets: React.FC = () => {
         </div>
       </div>
 
-      {/* Sidebar */}
-      <AssetDetailsSidebar 
-        asset={selectedAsset} 
-        onClose={() => setSelectedAsset(null)} 
+      <AssetDetailsSidebar asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
+      
+      <ScanSettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        settings={scanSettings} 
+        onSave={handleSaveSettings} 
       />
     </div>
   );
