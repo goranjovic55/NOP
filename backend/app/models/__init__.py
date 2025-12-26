@@ -10,6 +10,7 @@ from .scan import Scan, ScanResult
 from .event import Event
 from .vulnerability import Vulnerability
 from .topology import TopologyEdge
+from .settings import Settings
 
 __all__ = [
     "User",
@@ -20,5 +21,6 @@ __all__ = [
     "ScanResult",
     "Event",
     "Vulnerability",
-    "TopologyEdge"
+    "TopologyEdge",
+    "Settings"
 ]
