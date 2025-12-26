@@ -103,7 +103,17 @@ const Settings: React.FC = () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/v1/settings/');
-      setSettings(response.data);
+      
+      // Validate response structure
+      if (response.data && 
+          response.data.scan && 
+          response.data.discovery && 
+          response.data.access && 
+          response.data.system) {
+        setSettings(response.data);
+      } else {
+        throw new Error('Invalid settings response structure');
+      }
     } catch (error) {
       console.error('Error fetching settings:', error);
       showMessage('error', 'Failed to load settings');

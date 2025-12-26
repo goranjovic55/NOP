@@ -27,6 +27,14 @@ DEFAULT_SETTINGS = {
     "system": SystemSettingsConfig().dict()
 }
 
+# Schema mapping for validation
+SCHEMA_MAP = {
+    "scan": ScanSettingsConfig,
+    "discovery": DiscoverySettingsConfig,
+    "access": AccessSettingsConfig,
+    "system": SystemSettingsConfig
+}
+
 
 async def get_settings_by_category(db: AsyncSession, category: str) -> Dict[str, Any]:
     """Get settings for a specific category"""
@@ -86,19 +94,13 @@ async def update_settings(
     db: AsyncSession = Depends(get_db)
 ):
     """Update settings for a specific category"""
-    if category not in ["scan", "discovery", "access", "system"]:
+    if category not in SCHEMA_MAP:
         raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
     
     try:
         # Validate the config against the appropriate schema
-        if category == "scan":
-            validated_config = ScanSettingsConfig(**request).dict()
-        elif category == "discovery":
-            validated_config = DiscoverySettingsConfig(**request).dict()
-        elif category == "access":
-            validated_config = AccessSettingsConfig(**request).dict()
-        elif category == "system":
-            validated_config = SystemSettingsConfig(**request).dict()
+        schema_class = SCHEMA_MAP[category]
+        validated_config = schema_class(**request).dict()
         
         await upsert_settings(db, category, validated_config)
         
