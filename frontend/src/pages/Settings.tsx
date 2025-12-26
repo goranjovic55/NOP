@@ -148,7 +148,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const updateSetting = (key: string, value: any) => {
+  const updateSetting = (key: string, value: string | number | boolean) => {
     if (!settings) return;
     setSettings({
       ...settings,
@@ -244,7 +244,7 @@ const Settings: React.FC = () => {
 };
 
 // Scan Settings Panel
-const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: any) => void }> = ({ settings, onChange }) => {
+const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
       {/* Port Scanning */}
@@ -413,7 +413,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
 };
 
 // Discovery Settings Panel
-const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: (key: string, value: any) => void }> = ({ settings, onChange }) => {
+const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
       {/* Discovery Method */}
@@ -549,7 +549,7 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
 };
 
 // Access Settings Panel
-const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: string, value: any) => void }> = ({ settings, onChange }) => {
+const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
       {/* Authentication */}
@@ -736,7 +736,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 };
 
 // System Settings Panel
-const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: string, value: any) => void }> = ({ settings, onChange }) => {
+const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
       {/* General */}
@@ -975,7 +975,7 @@ const SettingsSelect: React.FC<{
   label: string; 
   value: string; 
   options: { value: string; label: string }[];
-  onChange: (value: any) => void; 
+  onChange: (value: string) => void; 
   description?: string 
 }> = ({ label, value, options, onChange, description }) => {
   return (

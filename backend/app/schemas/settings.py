@@ -3,7 +3,7 @@ Settings schemas for request/response validation
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Literal
 
 
 class ScanSettingsConfig(BaseModel):

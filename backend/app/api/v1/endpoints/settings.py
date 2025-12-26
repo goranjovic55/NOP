@@ -9,7 +9,6 @@ from app.core.database import get_db
 from app.models.settings import Settings
 from app.schemas.settings import (
     SettingsResponse,
-    SettingsUpdateRequest,
     ScanSettingsConfig,
     DiscoverySettingsConfig,
     AccessSettingsConfig,
