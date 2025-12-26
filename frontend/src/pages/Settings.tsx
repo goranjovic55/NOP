@@ -39,16 +39,9 @@ interface AccessSettings {
   session_timeout: number;
   max_login_attempts: number;
   lockout_duration: number;
-  min_password_length: number;
-  require_uppercase: boolean;
-  require_lowercase: boolean;
-  require_numbers: boolean;
-  require_special_chars: boolean;
-  password_expiry_days: number;
-  mfa_enabled: boolean;
-  mfa_required_for_admin: boolean;
-  rbac_enabled: boolean;
-  default_user_role: 'viewer' | 'operator' | 'admin';
+  enable_credential_vault: boolean;
+  vault_timeout: number;
+  require_password_for_vault: boolean;
   api_access_enabled: boolean;
   api_rate_limit: number;
   log_all_access: boolean;
@@ -571,91 +564,39 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
         />
       </SettingsSection>
 
-      {/* Password Policy */}
-      <SettingsSection title="Password Policy">
-        <SettingsSlider
-          label="Minimum Password Length"
-          value={settings.min_password_length}
-          min={6}
-          max={32}
-          onChange={(val) => onChange('min_password_length', val)}
-        />
-        
-        <div className="grid grid-cols-2 gap-4">
-          <SettingsToggle
-            label="Require Uppercase"
-            value={settings.require_uppercase}
-            onChange={(val) => onChange('require_uppercase', val)}
-          />
-          
-          <SettingsToggle
-            label="Require Lowercase"
-            value={settings.require_lowercase}
-            onChange={(val) => onChange('require_lowercase', val)}
-          />
-          
-          <SettingsToggle
-            label="Require Numbers"
-            value={settings.require_numbers}
-            onChange={(val) => onChange('require_numbers', val)}
-          />
-          
-          <SettingsToggle
-            label="Require Special Characters"
-            value={settings.require_special_chars}
-            onChange={(val) => onChange('require_special_chars', val)}
-          />
-        </div>
-        
-        <SettingsSlider
-          label="Password Expiry"
-          value={settings.password_expiry_days}
-          min={0}
-          max={365}
-          unit="days"
-          onChange={(val) => onChange('password_expiry_days', val)}
-          description="Set to 0 for no expiry"
-        />
-      </SettingsSection>
-
-      {/* Multi-Factor Authentication */}
-      <SettingsSection title="Multi-Factor Authentication (TOTP)">
+      {/* Credential Vault */}
+      <SettingsSection title="Credential Vault">
         <SettingsToggle
-          label="Enable MFA"
-          value={settings.mfa_enabled}
-          onChange={(val) => onChange('mfa_enabled', val)}
-          description="Uses TOTP (Time-based One-Time Password) like Google Authenticator"
+          label="Enable Credential Vault"
+          value={settings.enable_credential_vault}
+          onChange={(val) => onChange('enable_credential_vault', val)}
+          description="Store and manage saved connection credentials securely"
         />
         
-        {settings.mfa_enabled && (
-          <SettingsToggle
-            label="Require MFA for Admin"
-            value={settings.mfa_required_for_admin}
-            onChange={(val) => onChange('mfa_required_for_admin', val)}
-          />
+        {settings.enable_credential_vault && (
+          <>
+            <SettingsSlider
+              label="Vault Auto-Lock Timeout"
+              value={settings.vault_timeout}
+              min={1}
+              max={60}
+              unit="minutes"
+              onChange={(val) => onChange('vault_timeout', val)}
+              description="Automatically lock vault after inactivity"
+            />
+            
+            <SettingsToggle
+              label="Require Password Re-entry"
+              value={settings.require_password_for_vault}
+              onChange={(val) => onChange('require_password_for_vault', val)}
+              description="Require login password to access credential vault"
+            />
+          </>
         )}
       </SettingsSection>
 
-      {/* Access Control */}
-      <SettingsSection title="Access Control">
-        <SettingsToggle
-          label="Enable RBAC"
-          value={settings.rbac_enabled}
-          onChange={(val) => onChange('rbac_enabled', val)}
-          description="Role-Based Access Control"
-        />
-        
-        <SettingsSelect
-          label="Default User Role"
-          value={settings.default_user_role}
-          options={[
-            { value: 'viewer', label: 'Viewer (Read-Only)' },
-            { value: 'operator', label: 'Operator (Limited Write)' },
-            { value: 'admin', label: 'Admin (Full Access)' }
-          ]}
-          onChange={(val) => onChange('default_user_role', val)}
-        />
-        
+      {/* API Access */}
+      <SettingsSection title="API Access">
         <SettingsToggle
           label="Enable API Access"
           value={settings.api_access_enabled}

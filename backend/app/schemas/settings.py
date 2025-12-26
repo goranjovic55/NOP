@@ -67,21 +67,12 @@ class AccessSettingsConfig(BaseModel):
     max_login_attempts: int = Field(default=5, ge=3, le=10, description="Maximum login attempts")
     lockout_duration: int = Field(default=30, ge=5, le=120, description="Account lockout duration in minutes")
     
-    # Password policy
-    min_password_length: int = Field(default=8, ge=6, le=32, description="Minimum password length")
-    require_uppercase: bool = Field(default=True, description="Require uppercase letters")
-    require_lowercase: bool = Field(default=True, description="Require lowercase letters")
-    require_numbers: bool = Field(default=True, description="Require numbers")
-    require_special_chars: bool = Field(default=True, description="Require special characters")
-    password_expiry_days: int = Field(default=90, ge=0, le=365, description="Password expiry in days (0=never)")
+    # Credential vault
+    enable_credential_vault: bool = Field(default=True, description="Enable credential vault for saved connections")
+    vault_timeout: int = Field(default=15, ge=1, le=60, description="Vault auto-lock timeout in minutes")
+    require_password_for_vault: bool = Field(default=True, description="Require password re-entry to access vault")
     
-    # Multi-factor authentication
-    mfa_enabled: bool = Field(default=False, description="Enable multi-factor authentication")
-    mfa_required_for_admin: bool = Field(default=True, description="Require MFA for admin users")
-    
-    # Access control
-    rbac_enabled: bool = Field(default=True, description="Enable role-based access control")
-    default_user_role: Literal["viewer", "operator", "admin"] = Field(default="viewer", description="Default user role")
+    # API access
     api_access_enabled: bool = Field(default=True, description="Enable API access")
     api_rate_limit: int = Field(default=100, ge=10, le=1000, description="API rate limit per minute")
     
