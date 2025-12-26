@@ -142,7 +142,7 @@ class SnifferService:
                 packet_data["protocol"] = "UDP"
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
-            elif packet[IP].proto == 1:  # ICMP
+            elif packet[IP].proto == 1:  # ICMP (Internet Control Message Protocol)
                 protocol = "ICMP"
                 packet_data["protocol"] = "ICMP"
                 packet_data["info"] = "ICMP Echo/Reply"

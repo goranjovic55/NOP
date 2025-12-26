@@ -32,15 +32,24 @@ interface GraphData {
   links: GraphLink[];
 }
 
+// Color constants for protocol visualization
+const PROTOCOL_COLORS = {
+  TCP: '#00ff41',    // Green
+  UDP: '#00f0ff',    // Blue
+  ICMP: '#ffff00',   // Yellow
+  OTHER_IP: '#ff00ff', // Magenta
+  DEFAULT: '#00f0ff'   // Blue
+};
+
 // Utility functions
 const getProtocolColor = (protocols?: string[]): string => {
-  if (!protocols || protocols.length === 0) return '#00f0ff'; // Default blue
+  if (!protocols || protocols.length === 0) return PROTOCOL_COLORS.DEFAULT;
   const protocol = protocols[0]; // Use primary protocol
-  if (protocol === 'TCP') return '#00ff41'; // Green
-  if (protocol === 'UDP') return '#00f0ff'; // Blue
-  if (protocol === 'ICMP') return '#ffff00'; // Yellow
-  if (protocol.startsWith('IP_')) return '#ff00ff'; // Magenta
-  return '#00f0ff'; // Default blue
+  if (protocol === 'TCP') return PROTOCOL_COLORS.TCP;
+  if (protocol === 'UDP') return PROTOCOL_COLORS.UDP;
+  if (protocol === 'ICMP') return PROTOCOL_COLORS.ICMP;
+  if (protocol.startsWith('IP_')) return PROTOCOL_COLORS.OTHER_IP;
+  return PROTOCOL_COLORS.DEFAULT;
 };
 
 const formatTrafficMB = (bytes: number): string => {
@@ -618,11 +627,11 @@ const Topology: React.FC = () => {
             <span>UDP Traffic</span>
           </div>
           <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5" style={{backgroundColor: '#ffff00'}}></span>
+            <span className="w-6 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP}}></span>
             <span>ICMP Traffic</span>
           </div>
           <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5" style={{backgroundColor: '#ff00ff'}}></span>
+            <span className="w-6 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.OTHER_IP}}></span>
             <span>Other IP</span>
           </div>
           <div className="text-xs mt-2 pt-2 border-t border-cyber-gray text-cyber-gray">
