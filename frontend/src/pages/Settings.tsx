@@ -16,8 +16,6 @@ interface ScanSettings {
   auto_scan_schedule: string;
   generate_reports: boolean;
   report_format: 'pdf' | 'html' | 'json' | 'all';
-  email_reports: boolean;
-  email_recipients: string;
 }
 
 interface DiscoverySettings {
@@ -38,7 +36,6 @@ interface DiscoverySettings {
 }
 
 interface AccessSettings {
-  auth_method: 'local' | 'ldap' | 'saml' | 'oauth';
   session_timeout: number;
   max_login_attempts: number;
   lockout_duration: number;
@@ -49,7 +46,6 @@ interface AccessSettings {
   require_special_chars: boolean;
   password_expiry_days: number;
   mfa_enabled: boolean;
-  mfa_method: 'totp' | 'sms' | 'email';
   mfa_required_for_admin: boolean;
   rbac_enabled: boolean;
   default_user_role: 'viewer' | 'operator' | 'admin';
@@ -399,22 +395,6 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
               ]}
               onChange={(val) => onChange('report_format', val)}
             />
-            
-            <SettingsToggle
-              label="Email Reports"
-              value={settings.email_reports}
-              onChange={(val) => onChange('email_reports', val)}
-            />
-            
-            {settings.email_reports && (
-              <SettingsInput
-                label="Email Recipients"
-                value={settings.email_recipients}
-                onChange={(val) => onChange('email_recipients', val)}
-                placeholder="admin@example.com, security@example.com"
-                description="Comma-separated email addresses"
-              />
-            )}
           </>
         )}
       </SettingsSection>
@@ -564,18 +544,6 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
     <div className="space-y-6">
       {/* Authentication */}
       <SettingsSection title="Authentication">
-        <SettingsSelect
-          label="Authentication Method"
-          value={settings.auth_method}
-          options={[
-            { value: 'local', label: 'Local Authentication' },
-            { value: 'ldap', label: 'LDAP/Active Directory' },
-            { value: 'saml', label: 'SAML SSO' },
-            { value: 'oauth', label: 'OAuth 2.0' }
-          ]}
-          onChange={(val) => onChange('auth_method', val)}
-        />
-        
         <SettingsSlider
           label="Session Timeout"
           value={settings.session_timeout}
@@ -651,32 +619,20 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
       </SettingsSection>
 
       {/* Multi-Factor Authentication */}
-      <SettingsSection title="Multi-Factor Authentication">
+      <SettingsSection title="Multi-Factor Authentication (TOTP)">
         <SettingsToggle
           label="Enable MFA"
           value={settings.mfa_enabled}
           onChange={(val) => onChange('mfa_enabled', val)}
+          description="Uses TOTP (Time-based One-Time Password) like Google Authenticator"
         />
         
         {settings.mfa_enabled && (
-          <>
-            <SettingsSelect
-              label="MFA Method"
-              value={settings.mfa_method}
-              options={[
-                { value: 'totp', label: 'TOTP (Google Authenticator)' },
-                { value: 'sms', label: 'SMS' },
-                { value: 'email', label: 'Email' }
-              ]}
-              onChange={(val) => onChange('mfa_method', val)}
-            />
-            
-            <SettingsToggle
-              label="Require MFA for Admin"
-              value={settings.mfa_required_for_admin}
-              onChange={(val) => onChange('mfa_required_for_admin', val)}
-            />
-          </>
+          <SettingsToggle
+            label="Require MFA for Admin"
+            value={settings.mfa_required_for_admin}
+            onChange={(val) => onChange('mfa_required_for_admin', val)}
+          />
         )}
       </SettingsSection>
 
@@ -857,7 +813,7 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
               label="Notification Channels"
               value={settings.notification_channels}
               onChange={(val) => onChange('notification_channels', val)}
-              placeholder="email,webhook,slack"
+              placeholder="webhook,slack"
               description="Comma-separated list of channels"
             />
             

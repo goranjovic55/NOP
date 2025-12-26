@@ -31,8 +31,6 @@ class ScanSettingsConfig(BaseModel):
     # Reporting
     generate_reports: bool = Field(default=True, description="Generate scan reports")
     report_format: Literal["pdf", "html", "json", "all"] = Field(default="all", description="Report format")
-    email_reports: bool = Field(default=False, description="Email scan reports")
-    email_recipients: str = Field(default="", description="Email recipients (comma-separated)")
 
 
 class DiscoverySettingsConfig(BaseModel):
@@ -64,8 +62,7 @@ class DiscoverySettingsConfig(BaseModel):
 
 class AccessSettingsConfig(BaseModel):
     """Access control settings configuration"""
-    # Authentication
-    auth_method: Literal["local", "ldap", "saml", "oauth"] = Field(default="local", description="Authentication method")
+    # Authentication (local only for single system)
     session_timeout: int = Field(default=60, ge=5, le=480, description="Session timeout in minutes")
     max_login_attempts: int = Field(default=5, ge=3, le=10, description="Maximum login attempts")
     lockout_duration: int = Field(default=30, ge=5, le=120, description="Account lockout duration in minutes")
@@ -80,7 +77,6 @@ class AccessSettingsConfig(BaseModel):
     
     # Multi-factor authentication
     mfa_enabled: bool = Field(default=False, description="Enable multi-factor authentication")
-    mfa_method: Literal["totp", "sms", "email"] = Field(default="totp", description="MFA method")
     mfa_required_for_admin: bool = Field(default=True, description="Require MFA for admin users")
     
     # Access control
@@ -115,7 +111,7 @@ class SystemSettingsConfig(BaseModel):
     
     # Notifications
     enable_notifications: bool = Field(default=True, description="Enable notifications")
-    notification_channels: str = Field(default="email,webhook", description="Notification channels (comma-separated)")
+    notification_channels: str = Field(default="webhook", description="Notification channels (comma-separated)")
     webhook_url: str = Field(default="", description="Webhook URL for notifications")
     
     # Monitoring
