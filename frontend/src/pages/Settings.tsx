@@ -192,10 +192,48 @@ const Settings: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'scan' as const, label: 'Scan Settings', icon: '⚡' },
-    { id: 'discovery' as const, label: 'Discovery Settings', icon: '📡' },
-    { id: 'access' as const, label: 'Access Settings', icon: '🔒' },
-    { id: 'system' as const, label: 'System Settings', icon: '⚙' }
+    { 
+      id: 'scan' as const, 
+      label: 'Scan Settings', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'discovery' as const, 
+      label: 'Discovery Settings', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="2"/>
+          <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1" opacity="0.3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'access' as const, 
+      label: 'Access Settings', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2"/>
+          <path d="M8 11V7a4 4 0 118 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'system' as const, 
+      label: 'System Settings', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+          <path d="M12 1v3M12 20v3M3.5 4.5l2.1 2.1M18.4 18.4l2.1 2.1M1 12h3M20 12h3M3.5 19.5l2.1-2.1M18.4 5.6l2.1-2.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      )
+    }
   ];
 
   return (
@@ -218,13 +256,13 @@ const Settings: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 font-bold uppercase text-sm tracking-wider transition-all ${
+            className={`flex items-center px-6 py-3 font-bold uppercase text-sm tracking-wider transition-all ${
               activeTab === tab.id
                 ? 'bg-cyber-darker border-t-2 border-x-2 border-cyber-red text-cyber-red'
                 : 'text-cyber-gray-light hover:text-cyber-purple'
             }`}
           >
-            <span className="mr-2">{tab.icon}</span>
+            <span className="mr-2 inline-flex">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
