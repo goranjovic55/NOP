@@ -32,6 +32,21 @@ interface GraphData {
   links: GraphLink[];
 }
 
+// Utility functions
+const getProtocolColor = (protocols?: string[]): string => {
+  if (!protocols || protocols.length === 0) return '#00f0ff'; // Default blue
+  const protocol = protocols[0]; // Use primary protocol
+  if (protocol === 'TCP') return '#00ff41'; // Green
+  if (protocol === 'UDP') return '#00f0ff'; // Blue
+  if (protocol === 'ICMP') return '#ffff00'; // Yellow
+  if (protocol.startsWith('IP_')) return '#ff00ff'; // Magenta
+  return '#00f0ff'; // Default blue
+};
+
+const formatTrafficMB = (bytes: number): string => {
+  return (bytes / 1024 / 1024).toFixed(2);
+};
+
 const Topology: React.FC = () => {
   const { token } = useAuthStore();
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -355,18 +370,14 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return '#00f0ff20'; // Very dim blue for no traffic
             
-            // Prioritize protocol coloring
-            if (link.protocols && link.protocols.length > 0) {
-              const protocol = link.protocols[0]; // Use primary protocol
-              if (protocol === 'TCP') return '#00ff41'; // Green for TCP
-              if (protocol === 'UDP') return '#00f0ff'; // Blue for UDP
-              if (protocol === 'ICMP') return '#ffff00'; // Yellow for ICMP
-              if (protocol.startsWith('IP_')) return '#ff00ff'; // Magenta for other IP
-            }
+            // Use utility function for protocol coloring
+            const color = getProtocolColor(link.protocols);
             
-            // Fallback to bidirectional coloring
-            if (link.bidirectional) return '#00ff41'; // Cyber green for bidirectional
-            return '#00f0ff'; // Cyber blue for unidirectional
+            // Fallback to bidirectional coloring if no protocol info
+            if (color === '#00f0ff' && link.bidirectional) {
+              return '#00ff41'; // Cyber green for bidirectional
+            }
+            return color;
           }}
           linkWidth={(link: any) => {
             // Width based on total traffic volume
@@ -403,22 +414,11 @@ const Topology: React.FC = () => {
             if (typeof start !== 'object' || typeof end !== 'object') return;
             
             const totalTraffic = link.value + (link.reverseValue || 0);
-            if (!totalTraffic) return;
+            if (!totalTraffic) return; // Early return for zero traffic
             
             // Calculate link color and width
             const width = Math.max(1, Math.min(5, Math.log10(totalTraffic + 1) * 1.5));
-            
-            // Protocol-based coloring
-            let color = '#00f0ff'; // Default blue
-            if (link.protocols && link.protocols.length > 0) {
-              const protocol = link.protocols[0];
-              if (protocol === 'TCP') color = '#00ff41';
-              else if (protocol === 'UDP') color = '#00f0ff';
-              else if (protocol === 'ICMP') color = '#ffff00';
-              else if (protocol.startsWith('IP_')) color = '#ff00ff';
-            } else if (link.bidirectional) {
-              color = '#00ff41';
-            }
+            const color = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
             
             // Draw the link line
             ctx.beginPath();
@@ -573,18 +573,18 @@ const Topology: React.FC = () => {
               <div className="flex justify-between">
                 <span className="font-semibold">Traffic:</span>
                 <span>
-                  {((hoveredLink.value + (hoveredLink.reverseValue || 0)) / 1024 / 1024).toFixed(2)} MB
+                  {formatTrafficMB(hoveredLink.value + (hoveredLink.reverseValue || 0))} MB
                 </span>
               </div>
               {hoveredLink.bidirectional && (
                 <>
                   <div className="flex justify-between text-xs mt-2 pt-2 border-t border-cyber-gray">
                     <span>→ Forward:</span>
-                    <span>{(hoveredLink.value / 1024 / 1024).toFixed(2)} MB</span>
+                    <span>{formatTrafficMB(hoveredLink.value)} MB</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span>← Reverse:</span>
-                    <span>{((hoveredLink.reverseValue || 0) / 1024 / 1024).toFixed(2)} MB</span>
+                    <span>{formatTrafficMB(hoveredLink.reverseValue || 0)} MB</span>
                   </div>
                 </>
               )}

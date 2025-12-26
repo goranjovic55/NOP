@@ -145,6 +145,7 @@ class SnifferService:
             elif packet[IP].proto == 1:  # ICMP
                 protocol = "ICMP"
                 packet_data["protocol"] = "ICMP"
+                packet_data["info"] = "ICMP Echo/Reply"
                 self.stats["protocols"]["ICMP"] = self.stats["protocols"].get("ICMP", 0) + 1
             else:
                 proto = packet[IP].proto
