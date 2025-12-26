@@ -233,10 +233,8 @@
     "name": "NOPProjectStatus",
     "entityType": "ProjectState",
     "observations": [
-      "Last updated: 2025-12-25",
+      "Last updated: 2025-12-26T10:35:15.121845",
       "Network Observatory Platform fully implemented and operational",
-      "Dashboard updated to use real data for assets, traffic, and system activity",
-      "Scanning event discrepancy fixed (hosts retained even if port scan fails)",
       "All test suites passing with 100% success rate",
       "Docker environment deployed with all services running",
       "Frontend accessible on port 12001, Backend on port 12000",
