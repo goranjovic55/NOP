@@ -242,15 +242,24 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       console.error('[GUACAMOLE-CLIENT] Error details:', errorMsg);
       updateTabStatus(tab.id, 'failed');
       
-      // Show user-friendly error message
+      // Show user-friendly error message with debugging info
       if (displayRef.current) {
         displayRef.current.innerHTML = `
-          <div style="color: #ff3366; padding: 20px; font-family: monospace; background: #000;">
-            <h3>Connection Failed</h3>
-            <p>Error: ${errorMsg}</p>
-            <p>Host: ${tab.ip}:${tab.protocol === 'rdp' ? 3389 : 5900}</p>
-            <p>Protocol: ${tab.protocol.toUpperCase()}</p>
-            <p>Check browser console for more details.</p>
+          <div style="color: #ff3366; padding: 20px; font-family: monospace; background: #000; border: 1px solid #ff3366;">
+            <h3 style="margin-bottom: 15px;">⚠️ Connection Failed</h3>
+            <p><strong>Error:</strong> ${errorMsg}</p>
+            <p><strong>Host:</strong> ${tab.ip}:${tab.protocol === 'rdp' ? 3389 : 5900}</p>
+            <p><strong>Protocol:</strong> ${tab.protocol.toUpperCase()}</p>
+            <p><strong>Username:</strong> ${username}</p>
+            <hr style="border-color: #333; margin: 15px 0;" />
+            <p style="color: #888; font-size: 12px;">
+              <strong>Debugging Tips:</strong><br/>
+              1. Check browser console (F12) for detailed logs<br/>
+              2. Verify the target host is reachable<br/>
+              3. Confirm credentials are correct<br/>
+              4. For VNC: password is typically required, username may be optional<br/>
+              5. For RDP: both username and password are required
+            </p>
           </div>
         `;
       }
