@@ -18,6 +18,13 @@ yarn-error.log*
 # React build
 frontend/build/
 
+# Nuitka build artifacts
+*.build/
+*.dist/
+*.onefile-build/
+backend/dist/
+backend/build/
+
 # IDEs
 .vscode/
 .idea/
@@ -27,3 +34,10 @@ frontend/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Portable build artifacts
+backend/frontend_build/
+*.so
+*.dylib
+*.dll
+*.pyd

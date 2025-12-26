@@ -1,0 +1,18 @@
+# Requirements for building portable executable with Nuitka
+# These are build dependencies only
+
+# Nuitka compiler
+nuitka>=2.0
+ordered-set
+
+# Core runtime dependencies (already in requirements.txt)
+# These will be bundled into the executable:
+# - fastapi[all]
+# - uvicorn[standard]
+# - sqlalchemy
+# - pydantic
+# - etc.
+
+# Additional for portable mode
+aiosqlite>=0.19.0  # Async SQLite support
+pyyaml>=6.0        # Configuration file support

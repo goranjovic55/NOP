@@ -1,0 +1,110 @@
+name: Build Portable Executable
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libpcap-dev ccache patchelf
+      
+      - name: Build portable executable
+        run: |
+          chmod +x scripts/build_portable.sh
+          ./scripts/build_portable.sh
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nop-portable-linux-amd64
+          path: backend/dist/nop-portable-*
+  
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Build portable executable
+        run: |
+          cd backend
+          .\build_nuitka.bat
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nop-portable-windows
+          path: backend/dist/nop-portable-windows.exe
+  
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Build portable executable
+        run: |
+          chmod +x scripts/build_portable.sh
+          ./scripts/build_portable.sh --platform macos
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nop-portable-macos
+          path: backend/dist/nop-portable-macos
+  
+  create-release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            nop-portable-linux-amd64/*
+            nop-portable-windows/*
+            nop-portable-macos/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
