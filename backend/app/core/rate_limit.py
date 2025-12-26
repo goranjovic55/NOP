@@ -5,7 +5,7 @@ Provides rate limiting for API endpoints to prevent abuse.
 """
 
 import time
-from typing import Dict, Optional, Callable
+from typing import Dict, Optional, Callable, Tuple
 from fastapi import Request, HTTPException, status
 from functools import wraps
 import asyncio
@@ -64,7 +64,7 @@ class RateLimiter:
         rate: int = 60, 
         period: int = 60,
         key_func: Optional[Callable] = None
-    ) -> tuple[bool, Dict]:
+    ) -> Tuple[bool, Dict[str, str]]:
         """
         Check if request is allowed under rate limit.
         

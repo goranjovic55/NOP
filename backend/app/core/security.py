@@ -138,18 +138,44 @@ def get_credential_vault() -> CredentialVault:
 
 
 # Legacy encryption functions (wrapper around new vault)
-def encrypt_data(data: str, asset_id: str = "default") -> str:
-    """Encrypt sensitive data using the credential vault"""
+def encrypt_data(data: str, asset_id: Optional[str] = None) -> str:
+    """
+    Encrypt sensitive data using the credential vault.
+    
+    Args:
+        data: The plaintext data to encrypt
+        asset_id: Asset ID to bind encryption to. If None, uses a global context.
+                  For maximum security, always provide an asset_id.
+    
+    Returns:
+        Base64-encoded encrypted data
+    """
     vault = get_credential_vault()
-    encrypted = vault.encrypt(data, asset_id)
+    # Use a distinct context if no asset_id provided, but log a warning
+    context = asset_id if asset_id else "global_context"
+    if asset_id is None:
+        logger.debug("encrypt_data called without asset_id - using global context")
+    encrypted = vault.encrypt(data, context)
     return base64.urlsafe_b64encode(encrypted).decode()
 
 
-def decrypt_data(encrypted_data: str, asset_id: str = "default") -> str:
-    """Decrypt sensitive data using the credential vault"""
+def decrypt_data(encrypted_data: str, asset_id: Optional[str] = None) -> str:
+    """
+    Decrypt sensitive data using the credential vault.
+    
+    Args:
+        encrypted_data: Base64-encoded encrypted data
+        asset_id: Asset ID that was used during encryption. Must match.
+    
+    Returns:
+        Decrypted plaintext data
+    """
     vault = get_credential_vault()
+    context = asset_id if asset_id else "global_context"
+    if asset_id is None:
+        logger.debug("decrypt_data called without asset_id - using global context")
     encrypted = base64.urlsafe_b64decode(encrypted_data.encode())
-    return vault.decrypt(encrypted, asset_id)
+    return vault.decrypt(encrypted, context)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -211,10 +237,23 @@ def generate_api_key() -> str:
 
 
 def validate_secret_key(key: str) -> bool:
-    """Validate that secret key meets minimum security requirements"""
-    if key == "your-secret-key-change-this":
-        return False
-    if key == "your-secret-key-change-this-to-random-string-at-least-32-chars":
+    """
+    Validate that secret key meets minimum security requirements.
+    
+    This is a utility function for runtime checks.
+    See also: Settings.validate_secret_key in config.py for startup validation.
+    
+    Args:
+        key: The secret key to validate
+        
+    Returns:
+        True if key meets requirements, False otherwise
+    """
+    default_values = [
+        "your-secret-key-change-this",
+        "your-secret-key-change-this-to-random-string-at-least-32-chars"
+    ]
+    if key in default_values:
         return False
     if len(key) < 32:
         return False

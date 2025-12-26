@@ -11,7 +11,7 @@ import asyncio
 import re
 import logging
 import aiohttp
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable, Awaitable
 from datetime import datetime
 from pathlib import Path
 
@@ -109,7 +109,6 @@ class PassiveDiscoveryService:
                 "/var/lib/dhcp/dhcpd.leases",       # ISC DHCP
                 "/var/lib/misc/dnsmasq.leases",     # dnsmasq
                 "/var/lib/dhcpd/dhcpd.leases",      # Alternative ISC path
-                "/var/lib/NetworkManager/dnsmasq-*.leases",  # NetworkManager
             ]
         
         discovered = []
@@ -299,7 +298,7 @@ class PassiveDiscoveryService:
     async def start_background_discovery(
         self, 
         interval: int = 60,
-        callback: Optional[callable] = None
+        callback: Optional[Callable[[List[Dict[str, Any]]], Awaitable[None]]] = None
     ) -> None:
         """
         Start continuous background discovery.
