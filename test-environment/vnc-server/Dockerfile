@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -s /bin/bash vncuser && \
     echo "vncuser:vnc123" | chpasswd
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 EXPOSE 5900
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-n"]
