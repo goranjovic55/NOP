@@ -17,4 +17,4 @@ COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 EXPOSE 5900
 
-CMD ["/usr/bin/supervisord", "-n"]
+CMD ["/usr/bin/supervisord"]
