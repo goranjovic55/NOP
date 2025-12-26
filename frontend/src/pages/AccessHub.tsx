@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import ProtocolConnection from '../components/ProtocolConnection';
 
 const AccessHub: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, addTab } = useAccessStore();
   const activeTab = tabs.find(t => t.id === activeTabId);
+  const [showNewConnectionModal, setShowNewConnectionModal] = useState(false);
+  const [newConnectionIp, setNewConnectionIp] = useState('');
+  const [newConnectionProtocol, setNewConnectionProtocol] = useState<Protocol>('vnc');
 
   const handleNewConnection = () => {
-    // For now, just a placeholder or a modal could be opened
-    const ip = prompt("Enter IP address:");
-    if (ip) {
-      addTab(ip, 'ssh');
+    setShowNewConnectionModal(true);
+  };
+
+  const handleCreateConnection = () => {
+    if (newConnectionIp) {
+      addTab(newConnectionIp, newConnectionProtocol);
+      setNewConnectionIp('');
+      setShowNewConnectionModal(false);
     }
   };
 
@@ -25,6 +32,57 @@ const AccessHub: React.FC = () => {
           New Connection
         </button>
       </div>
+
+      {/* New Connection Modal */}
+      {showNewConnectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-cyber-dark border border-cyber-gray p-6 rounded-lg w-96">
+            <h3 className="text-lg font-bold text-cyber-blue mb-4">New Connection</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-cyber-gray-light mb-1">Host IP / Hostname</label>
+                <input
+                  type="text"
+                  value={newConnectionIp}
+                  onChange={(e) => setNewConnectionIp(e.target.value)}
+                  className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none"
+                  placeholder="e.g., test-vnc or 172.19.0.3"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-cyber-gray-light mb-1">Protocol</label>
+                <select
+                  value={newConnectionProtocol}
+                  onChange={(e) => setNewConnectionProtocol(e.target.value as Protocol)}
+                  className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none"
+                >
+                  <option value="vnc">VNC (Remote Desktop)</option>
+                  <option value="rdp">RDP (Windows Remote Desktop)</option>
+                  <option value="ssh">SSH (Terminal)</option>
+                  <option value="telnet">Telnet</option>
+                  <option value="ftp">FTP (File Transfer)</option>
+                  <option value="web">Web Interface</option>
+                </select>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreateConnection}
+                  className="flex-1 btn-cyber border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black py-2"
+                >
+                  Connect
+                </button>
+                <button
+                  onClick={() => setShowNewConnectionModal(false)}
+                  className="flex-1 btn-cyber border-cyber-gray text-cyber-gray hover:bg-cyber-gray hover:text-black py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs Header */}
       <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar">

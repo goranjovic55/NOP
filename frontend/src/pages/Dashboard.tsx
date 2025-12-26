@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
     if (!token) return;
 
     try {
-      const [assetStats, trafficStats, accessStatus, recentEvents] = await Promise.all([
+      const [assetStats, trafficStats, , recentEvents] = await Promise.all([
         dashboardService.getAssetStats(token),
         dashboardService.getTrafficStats(token),
         dashboardService.getAccessStatus(token),
@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
         setTrafficData(trafficStats.traffic_history);
       } else if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
         // Fallback to protocols if no history (should not happen with new backend)
-        const mockTraffic = Object.entries(trafficStats.protocols).map(([name, value], index) => ({
+        const mockTraffic = Object.entries(trafficStats.protocols).map(([name, value]) => ({
           time: name,
           value: value as number
         }));
@@ -80,6 +80,7 @@ const Dashboard: React.FC = () => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: string; glowColor: string }> = 
