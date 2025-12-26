@@ -1,0 +1,25 @@
+{"type":"entity","name":"Global.Pattern.Architecture.ServiceLayer","entityType":"Pattern","observations":["Encapsulate business logic in service classes","Separates concerns from controllers/handlers","upd:2025-12-26,refs:5"]}
+{"type":"entity","name":"Global.Pattern.Architecture.Repository","entityType":"Pattern","observations":["Abstract data access behind repository interface","Enables database swapping and testing","upd:2025-12-26,refs:3"]}
+{"type":"entity","name":"Global.Pattern.Architecture.DependencyInjection","entityType":"Pattern","observations":["Inject dependencies rather than creating them","Improves testability and flexibility","upd:2025-12-26,refs:4"]}
+{"type":"entity","name":"Global.Pattern.ErrorHandling.GracefulDegradation","entityType":"Pattern","observations":["Continue operation on non-critical errors","Log errors, provide fallbacks","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.ErrorHandling.CategorizedErrors","entityType":"Pattern","observations":["Categorize errors by type for appropriate handling","ValidationError, NotFoundError, AuthError patterns","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Testing.AAA","entityType":"Pattern","observations":["Arrange-Act-Assert test structure","Clear separation of setup, execution, verification","upd:2025-12-26,refs:3"]}
+{"type":"entity","name":"Global.Pattern.Testing.UnitIsolation","entityType":"Pattern","observations":["Unit tests should be independent","No shared state, no order dependency","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Logging.StructuredFormat","entityType":"Pattern","observations":["Consistent log formatting with context","Include timestamp, level, module, message","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Logging.LeveledLogging","entityType":"Pattern","observations":["DEBUG-INFO-WARNING-ERROR levels","Appropriate level for each message","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.API.RESTful","entityType":"Pattern","observations":["Resource-based URLs, HTTP verbs for actions","GET read, POST create, PUT update, DELETE remove","upd:2025-12-26,refs:3"]}
+{"type":"entity","name":"Global.Pattern.Security.JWTAuth","entityType":"Pattern","observations":["JSON Web Tokens for stateless authentication","Access token + refresh token pattern","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Design.Strategy","entityType":"Pattern","observations":["Define family of algorithms, make interchangeable","Useful for multiple implementations of same interface","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Design.Factory","entityType":"Pattern","observations":["Encapsulate object creation logic","Useful when creation is complex or conditional","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Design.Observer","entityType":"Pattern","observations":["One-to-many dependency, notify on state change","Useful for event-driven systems","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Pattern.Code.SingleResponsibility","entityType":"Pattern","observations":["Each class/function has one reason to change","Improves maintainability and testability","upd:2025-12-26,refs:3"]}
+{"type":"entity","name":"Global.Pattern.Code.DRY","entityType":"Pattern","observations":["Don't Repeat Yourself","Extract common logic to reusable functions","upd:2025-12-26,refs:3"]}
+{"type":"entity","name":"Global.Pattern.Code.KISS","entityType":"Pattern","observations":["Keep It Simple, Stupid","Simplest solution that works","upd:2025-12-26,refs:2"]}
+{"type":"entity","name":"Global.Workflow.MultiAgent.Orchestrator","entityType":"Workflow","observations":["Lead agent coordinates specialists","Maintains task control, integrates results","upd:2025-12-26,refs:1"]}
+{"type":"entity","name":"Global.Workflow.MultiAgent.ContextHandoff","entityType":"Workflow","observations":["Structured context passed between agents","Problem, constraints, expected output format","upd:2025-12-26,refs:1"]}
+{"type":"entity","name":"Global.Workflow.MultiAgent.ResultIntegration","entityType":"Workflow","observations":["Combine specialist outputs coherently","Resolve conflicts, maintain coherence","upd:2025-12-26,refs:1"]}
+{"type":"relation","from":"Global.Pattern.Architecture.ServiceLayer","to":"Global.Pattern.Architecture.DependencyInjection","relationType":"USES"}
+{"type":"relation","from":"Global.Pattern.Architecture.Repository","to":"Global.Pattern.Architecture.DependencyInjection","relationType":"USES"}
+{"type":"relation","from":"Global.Pattern.Testing.AAA","to":"Global.Pattern.Testing.UnitIsolation","relationType":"COMPLEMENTS"}
+{"type":"relation","from":"Global.Workflow.MultiAgent.Orchestrator","to":"Global.Workflow.MultiAgent.ContextHandoff","relationType":"USES"}
+{"type":"relation","from":"Global.Workflow.MultiAgent.Orchestrator","to":"Global.Workflow.MultiAgent.ResultIntegration","relationType":"USES"}
