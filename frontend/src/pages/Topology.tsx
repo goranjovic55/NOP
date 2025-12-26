@@ -22,6 +22,9 @@ interface GraphLink {
   source: string;
   target: string;
   value: number; // traffic volume
+  protocols?: string[]; // list of protocols used
+  bidirectional?: boolean; // if traffic flows both ways
+  reverseValue?: number; // traffic in reverse direction
 }
 
 interface GraphData {
@@ -35,8 +38,10 @@ const Topology: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
   const [filterMode, setFilterMode] = useState<'subnet' | 'all'>('subnet');
+  const [trafficThreshold, setTrafficThreshold] = useState<number>(0); // Minimum bytes to show connection
   const [isPlaying, setIsPlaying] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -96,22 +101,18 @@ const Topology: React.FC = () => {
         });
       });
 
-      // Process Links
-      const links: GraphLink[] = [];
+      // Process Links - Aggregate bidirectional connections
+      const linksMap = new Map<string, GraphLink>();
       const connections = trafficStats.connections || [];
       
       connections.forEach(conn => {
-        if (filterMode === 'subnet') {
-          // Only add links if both source and target are known nodes (which are already filtered)
-          if (nodesMap.has(conn.source) && nodesMap.has(conn.target)) {
-            links.push({
-              source: conn.source,
-              target: conn.target,
-              value: conn.value
-            });
-          }
-        } else {
-          // 'all' mode: Add external nodes if missing
+        const shouldInclude = filterMode === 'all' || 
+          (nodesMap.has(conn.source) && nodesMap.has(conn.target));
+        
+        if (!shouldInclude) return;
+        
+        // Add external nodes if in 'all' mode
+        if (filterMode === 'all') {
           if (!nodesMap.has(conn.source)) {
             nodesMap.set(conn.source, {
               id: conn.source,
@@ -132,12 +133,44 @@ const Topology: React.FC = () => {
               status: 'unknown'
             });
           }
-          links.push({
-            source: conn.source,
-            target: conn.target,
-            value: conn.value
+        }
+        
+        // Create bidirectional link keys (always use alphabetically sorted order)
+        const [node1, node2] = conn.source < conn.target 
+          ? [conn.source, conn.target] 
+          : [conn.target, conn.source];
+        const linkKey = `${node1}<->${node2}`;
+        
+        if (linksMap.has(linkKey)) {
+          // Update existing link with reverse traffic
+          const existing = linksMap.get(linkKey)!;
+          if (existing.source === conn.source) {
+            existing.value += conn.value;
+          } else {
+            existing.reverseValue = (existing.reverseValue || 0) + conn.value;
+            existing.bidirectional = true;
+          }
+          // Merge protocols
+          if (conn.protocols) {
+            existing.protocols = Array.from(new Set([...(existing.protocols || []), ...conn.protocols]));
+          }
+        } else {
+          // Create new link
+          linksMap.set(linkKey, {
+            source: node1,
+            target: node2,
+            value: conn.source === node1 ? conn.value : 0,
+            reverseValue: conn.source === node2 ? conn.value : 0,
+            bidirectional: false,
+            protocols: conn.protocols || []
           });
         }
+      });
+      
+      const links = Array.from(linksMap.values()).filter(link => {
+        // Filter by traffic threshold
+        const totalTraffic = link.value + (link.reverseValue || 0);
+        return totalTraffic >= trafficThreshold;
       });
 
       // Calculate Centrality (Degree)
@@ -259,6 +292,22 @@ const Topology: React.FC = () => {
             </button>
           </div>
 
+          <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-gray">
+            <label className="text-xs text-cyber-gray-light whitespace-nowrap">Min Traffic:</label>
+            <select 
+              value={trafficThreshold}
+              onChange={(e) => setTrafficThreshold(Number(e.target.value))}
+              className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-blue"
+            >
+              <option value={0}>All</option>
+              <option value={1024}>1 KB</option>
+              <option value={10240}>10 KB</option>
+              <option value={102400}>100 KB</option>
+              <option value={1048576}>1 MB</option>
+              <option value={10485760}>10 MB</option>
+            </select>
+          </div>
+
 
           <button 
             onClick={() => setIsPlaying(!isPlaying)}
@@ -268,6 +317,17 @@ const Topology: React.FC = () => {
           </button>
 
           <button onClick={fetchData} className="btn-cyber px-4 py-2">Refresh</button>
+          
+          <div className="flex items-center space-x-4 text-xs text-cyber-gray-light border-l border-cyber-gray pl-4">
+            <div className="flex items-center space-x-1">
+              <span className="font-bold text-cyber-blue">{graphData.nodes.length}</span>
+              <span>Nodes</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="font-bold text-cyber-green">{graphData.links.length}</span>
+              <span>Links</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -290,19 +350,119 @@ const Topology: React.FC = () => {
             return '#8b5cf6'; // Cyber Purple (External/Unknown)
           }}
           nodeRelSize={6}
-          linkColor={() => '#00f0ff'} // Cyber Blue
-          linkWidth={(link: any) => Math.max(0.5, Math.min(3, Math.log10((link.value || 0) + 1)))}
-          linkDirectionalParticles={isPlaying ? 4 : 0}
-          linkDirectionalParticleSpeed={d => d.value * 0.001 + 0.001}
-          linkDirectionalParticleWidth={(link: any) => Math.max(1, Math.min(3, Math.log10((link.value || 0) + 1)))}
-          linkDirectionalParticleColor={() => '#ffffff'}
+          linkColor={(link: any) => {
+            // Color based on protocol type (EtherApe-style)
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            if (!totalTraffic) return '#00f0ff20'; // Very dim blue for no traffic
+            
+            // Prioritize protocol coloring
+            if (link.protocols && link.protocols.length > 0) {
+              const protocol = link.protocols[0]; // Use primary protocol
+              if (protocol === 'TCP') return '#00ff41'; // Green for TCP
+              if (protocol === 'UDP') return '#00f0ff'; // Blue for UDP
+              if (protocol === 'ICMP') return '#ffff00'; // Yellow for ICMP
+              if (protocol.startsWith('IP_')) return '#ff00ff'; // Magenta for other IP
+            }
+            
+            // Fallback to bidirectional coloring
+            if (link.bidirectional) return '#00ff41'; // Cyber green for bidirectional
+            return '#00f0ff'; // Cyber blue for unidirectional
+          }}
+          linkWidth={(link: any) => {
+            // Width based on total traffic volume
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            if (!totalTraffic) return 0.5;
+            // Logarithmic scale for better visualization
+            return Math.max(1, Math.min(5, Math.log10(totalTraffic + 1) * 1.5));
+          }}
+          linkDirectionalParticles={isPlaying ? (link: any) => {
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            if (!totalTraffic) return 0;
+            // More particles for higher traffic
+            return Math.max(2, Math.min(8, Math.log10(totalTraffic + 1)));
+          } : 0}
+          linkDirectionalParticleSpeed={(link: any) => {
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            // Speed proportional to traffic volume
+            return Math.max(0.001, Math.min(0.01, totalTraffic * 0.000001 + 0.002));
+          }}
+          linkDirectionalParticleWidth={(link: any) => {
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            return Math.max(1, Math.min(4, Math.log10(totalTraffic + 1)));
+          }}
+          linkDirectionalParticleColor={(link: any) => {
+            // Particle color based on link type
+            if (link.bidirectional) return '#00ff41'; // Green particles
+            return '#ffffff'; // White particles
+          }}
+          linkCanvasObject={(link: any, ctx, globalScale) => {
+            // Custom link rendering with bidirectional arrows
+            const start = link.source;
+            const end = link.target;
+            
+            if (typeof start !== 'object' || typeof end !== 'object') return;
+            
+            const totalTraffic = link.value + (link.reverseValue || 0);
+            if (!totalTraffic) return;
+            
+            // Calculate link color and width
+            const width = Math.max(1, Math.min(5, Math.log10(totalTraffic + 1) * 1.5));
+            
+            // Protocol-based coloring
+            let color = '#00f0ff'; // Default blue
+            if (link.protocols && link.protocols.length > 0) {
+              const protocol = link.protocols[0];
+              if (protocol === 'TCP') color = '#00ff41';
+              else if (protocol === 'UDP') color = '#00f0ff';
+              else if (protocol === 'ICMP') color = '#ffff00';
+              else if (protocol.startsWith('IP_')) color = '#ff00ff';
+            } else if (link.bidirectional) {
+              color = '#00ff41';
+            }
+            
+            // Draw the link line
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width / globalScale;
+            ctx.stroke();
+            
+            // Draw directional indicators for bidirectional links
+            if (link.bidirectional && globalScale > 1.5) {
+              const dx = end.x - start.x;
+              const dy = end.y - start.y;
+              const length = Math.sqrt(dx * dx + dy * dy);
+              
+              if (length > 0) {
+                const arrowSize = 8 / globalScale;
+                const midX = (start.x + end.x) / 2;
+                const midY = (start.y + end.y) / 2;
+                
+                // Normalize direction
+                const ux = dx / length;
+                const uy = dy / length;
+                
+                // Draw small double-headed arrow indicator
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(midX, midY, arrowSize / 2, 0, 2 * Math.PI);
+                ctx.fill();
+              }
+            }
+          }}
           backgroundColor="#050505"
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
           dagLevelDistance={100}
           d3VelocityDecay={0.3}
           onNodeHover={(node: any) => {
-            document.body.style.cursor = node ? 'pointer' : 'null';
+            document.body.style.cursor = node ? 'pointer' : 'default';
             setHoveredNode(node || null);
+            if (node) setHoveredLink(null); // Clear link hover when hovering node
+          }}
+          onLinkHover={(link: any) => {
+            setHoveredLink(link || null);
+            if (link) setHoveredNode(null); // Clear node hover when hovering link
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;
@@ -377,9 +537,64 @@ const Topology: React.FC = () => {
             </div>
           </div>
         )}
+        
+        {/* Link Hover Tooltip */}
+        {hoveredLink && (
+          <div 
+            className="absolute z-20 bg-cyber-darker border border-cyber-green p-3 rounded shadow-lg pointer-events-none"
+            style={{ 
+              top: 20, 
+              right: 20,
+              minWidth: '250px'
+            }}
+          >
+            <h3 className="text-cyber-green font-bold text-lg mb-2">Connection</h3>
+            <div className="space-y-1 text-sm text-cyber-gray-light">
+              <div className="flex justify-between">
+                <span className="font-semibold">Source:</span>
+                <span className="text-cyber-blue">{typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Target:</span>
+                <span className="text-cyber-blue">{typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Direction:</span>
+                <span className={hoveredLink.bidirectional ? 'text-cyber-green' : 'text-cyber-blue'}>
+                  {hoveredLink.bidirectional ? '↔ Bidirectional' : '→ Unidirectional'}
+                </span>
+              </div>
+              {hoveredLink.protocols && hoveredLink.protocols.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="font-semibold">Protocols:</span>
+                  <span className="text-cyber-purple">{hoveredLink.protocols.join(', ')}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="font-semibold">Traffic:</span>
+                <span>
+                  {((hoveredLink.value + (hoveredLink.reverseValue || 0)) / 1024 / 1024).toFixed(2)} MB
+                </span>
+              </div>
+              {hoveredLink.bidirectional && (
+                <>
+                  <div className="flex justify-between text-xs mt-2 pt-2 border-t border-cyber-gray">
+                    <span>→ Forward:</span>
+                    <span>{(hoveredLink.value / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span>← Reverse:</span>
+                    <span>{((hoveredLink.reverseValue || 0) / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-2 text-xs text-cyber-gray-light opacity-80">
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-3 text-xs text-cyber-gray-light opacity-90">
+          <div className="font-bold text-cyber-blue mb-2 uppercase">Nodes</div>
           <div className="flex items-center space-x-2 mb-1">
             <span className="w-3 h-3 rounded-full bg-cyber-green"></span>
             <span>Online Asset</span>
@@ -388,9 +603,31 @@ const Topology: React.FC = () => {
             <span className="w-3 h-3 rounded-full bg-cyber-red"></span>
             <span>Offline Asset</span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 mb-3">
             <span className="w-3 h-3 rounded-full bg-cyber-purple"></span>
             <span>External/Unknown</span>
+          </div>
+          
+          <div className="font-bold text-cyber-blue mb-2 uppercase border-t border-cyber-gray pt-2">Connections</div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-6 h-0.5 bg-cyber-green"></span>
+            <span>TCP Traffic</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-6 h-0.5 bg-cyber-blue"></span>
+            <span>UDP Traffic</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-6 h-0.5" style={{backgroundColor: '#ffff00'}}></span>
+            <span>ICMP Traffic</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-6 h-0.5" style={{backgroundColor: '#ff00ff'}}></span>
+            <span>Other IP</span>
+          </div>
+          <div className="text-xs mt-2 pt-2 border-t border-cyber-gray text-cyber-gray">
+            <div>Line width = traffic volume</div>
+            <div>Particles = active flow</div>
           </div>
         </div>
       </div>

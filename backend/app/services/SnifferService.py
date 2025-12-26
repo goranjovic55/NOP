@@ -22,7 +22,7 @@ class SnifferService:
             "total_bytes": 0,
             "top_talkers": {},
             "protocols": {},
-            "connections": {}
+            "connections": {},  # Format: "src-dst": {"bytes": int, "protocols": set()}
         }
         self.traffic_history = []
         self.interface_history = {} # Store history for each interface
@@ -130,26 +130,33 @@ class SnifferService:
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
             
-            # Track connections (src -> dst)
-            conn_key = f"{src}-{dst}"
-            self.stats["connections"][conn_key] = self.stats["connections"].get(conn_key, 0) + len(packet)
-
+            # Determine protocol
+            protocol = "OTHER"
             if TCP in packet:
+                protocol = "TCP"
                 packet_data["protocol"] = "TCP"
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
             elif UDP in packet:
+                protocol = "UDP"
                 packet_data["protocol"] = "UDP"
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
-            elif ARP in packet:
-                packet_data["protocol"] = "ARP"
-                packet_data["source"] = packet[ARP].psrc
-                packet_data["destination"] = packet[ARP].pdst
-                self.stats["protocols"]["ARP"] = self.stats["protocols"].get("ARP", 0) + 1
+            elif packet[IP].proto == 1:  # ICMP
+                protocol = "ICMP"
+                packet_data["protocol"] = "ICMP"
+                self.stats["protocols"]["ICMP"] = self.stats["protocols"].get("ICMP", 0) + 1
             else:
                 proto = packet[IP].proto
+                protocol = f"IP_{proto}"
                 self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
+            
+            # Track connections (src -> dst) with protocol info
+            conn_key = f"{src}-{dst}"
+            if conn_key not in self.stats["connections"]:
+                self.stats["connections"][conn_key] = {"bytes": 0, "protocols": set()}
+            self.stats["connections"][conn_key]["bytes"] += len(packet)
+            self.stats["connections"][conn_key]["protocols"].add(protocol)
 
         if self.callback:
             self.callback(packet_data)
@@ -195,11 +202,16 @@ class SnifferService:
         # Sort top talkers and return top 5
         sorted_talkers = sorted(self.stats["top_talkers"].items(), key=lambda x: x[1], reverse=True)[:5]
         
-        # Format connections
+        # Format connections with protocol information
         connections = []
-        for key, bytes_count in self.stats["connections"].items():
+        for key, conn_data in self.stats["connections"].items():
             src, dst = key.split('-')
-            connections.append({"source": src, "target": dst, "value": bytes_count})
+            connections.append({
+                "source": src, 
+                "target": dst, 
+                "value": conn_data["bytes"],
+                "protocols": list(conn_data["protocols"])
+            })
 
         return {
             "total_flows": self.stats["total_flows"],
