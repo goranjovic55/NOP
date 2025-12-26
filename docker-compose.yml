@@ -54,7 +54,10 @@ services:
 
   guacd:
     image: guacamole/guacd:latest
-    platform: linux/amd64
+    # Note: Remove platform line to auto-detect architecture (works on both ARM and x86_64)
+    # If you still get exec format error, manually set to your architecture:
+    # platform: linux/arm64  # For ARM64 devices like Radxa E54C
+    # platform: linux/amd64  # For x86_64 systems
     networks:
       - nop-internal
       - test-network
