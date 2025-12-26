@@ -62,7 +62,7 @@ class DiscoverySettingsConfig(BaseModel):
 
 class AccessSettingsConfig(BaseModel):
     """Access control settings configuration"""
-    # Authentication (local only for single system)
+    # Authentication settings - local authentication only for single-system deployment
     session_timeout: int = Field(default=60, ge=5, le=480, description="Session timeout in minutes")
     max_login_attempts: int = Field(default=5, ge=3, le=10, description="Maximum login attempts")
     lockout_duration: int = Field(default=30, ge=5, le=120, description="Account lockout duration in minutes")
