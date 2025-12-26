@@ -189,6 +189,86 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
         fetchFtpFiles(newPath);
       }
     };
+
+  // HTTP Tunnel implementation for environments where WebSocket doesn't work
+  const setupHTTPTunnel = async () => {
+    console.log('[HTTP-TUNNEL] Setting up HTTP tunnel connection (fallback mode)');
+    console.log('[HTTP-TUNNEL] Target:', tab.ip);
+    console.log('[HTTP-TUNNEL] Protocol:', tab.protocol);
+    
+    const port = tab.protocol === 'rdp' ? 3389 : 5900;
+    const width = displayRef.current?.clientWidth || 1024;
+    const height = displayRef.current?.clientHeight || 768;
+    
+    try {
+      // Step 1: Create tunnel session
+      const connectUrl = `/api/v1/access/http-tunnel/connect?` + new URLSearchParams({
+        host: tab.ip,
+        port: port.toString(),
+        protocol: tab.protocol,
+        username: username,
+        password: password,
+        width: width.toString(),
+        height: height.toString(),
+        dpi: '96'
+      }).toString();
+      
+      console.log('[HTTP-TUNNEL] Connecting...');
+      const connectResponse = await fetch(connectUrl, { method: 'POST' });
+      
+      if (!connectResponse.ok) {
+        throw new Error(`Failed to connect: ${connectResponse.status}`);
+      }
+      
+      const connectData = await connectResponse.json();
+      const sessionId = connectData.session_id;
+      console.log('[HTTP-TUNNEL] Session created:', sessionId);
+      
+      // Step 2: Create display canvas
+      if (displayRef.current) {
+        displayRef.current.innerHTML = `
+          <div style="color: #00ff88; padding: 20px; font-family: monospace; background: #000; text-align: center;">
+            <h3>🔗 HTTP Tunnel Connected</h3>
+            <p>Session: ${sessionId.substring(0, 8)}...</p>
+            <p>Target: ${tab.protocol.toUpperCase()}://${tab.ip}:${port}</p>
+            <canvas id="guac-display" width="${width}" height="${height}" style="border: 1px solid #333;"></canvas>
+            <p style="color: #888; font-size: 12px; margin-top: 10px;">
+              Using HTTP tunnel mode (WebSocket unavailable in this environment)
+            </p>
+          </div>
+        `;
+      }
+      
+      // Step 3: Start reading from the tunnel using Server-Sent Events
+      const eventSource = new EventSource(`/api/v1/access/http-tunnel/read/${sessionId}`);
+      
+      eventSource.onmessage = (event) => {
+        console.log('[HTTP-TUNNEL] Received:', event.data.substring(0, 100));
+        // TODO: Parse Guacamole instructions and render to canvas
+      };
+      
+      eventSource.onerror = (error) => {
+        console.error('[HTTP-TUNNEL] EventSource error:', error);
+        eventSource.close();
+      };
+      
+      updateTabStatus(tab.id, 'connected');
+      console.log('[HTTP-TUNNEL] ✓ Connection established');
+      
+    } catch (error) {
+      console.error('[HTTP-TUNNEL] Connection failed:', error);
+      updateTabStatus(tab.id, 'failed');
+      if (displayRef.current) {
+        displayRef.current.innerHTML = `
+          <div style="color: #ff3366; padding: 20px; font-family: monospace; background: #000;">
+            <h3>⚠️ HTTP Tunnel Connection Failed</h3>
+            <p>${error}</p>
+          </div>
+        `;
+      }
+    }
+  };
+
   const setupGuacamole = () => {
     console.log('[GUACAMOLE-CLIENT] Setting up Guacamole connection');
     console.log('[GUACAMOLE-CLIENT] Target:', tab.ip);
@@ -207,6 +287,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       dpi: '96'
     });
 
+    // Use WebSocket tunnel - it should work through nginx proxy
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
     
@@ -218,7 +299,9 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     // Add tunnel event handlers for debugging
     (tunnel as any).onerror = (status: any) => {
       console.error('[GUACAMOLE-CLIENT] Tunnel error:', status);
-      updateTabStatus(tab.id, 'failed');
+      // Fallback to HTTP tunnel if WebSocket fails
+      console.log('[GUACAMOLE-CLIENT] WebSocket failed, falling back to HTTP tunnel...');
+      setupHTTPTunnel();
     };
     
     (tunnel as any).onstatechange = (state: number) => {

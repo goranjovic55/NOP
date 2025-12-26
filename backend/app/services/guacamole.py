@@ -184,7 +184,7 @@ class GuacamoleTunnel:
             while self.connected:
                 # Create tasks
                 ws_task = asyncio.create_task(self.websocket.receive_text())
-                sock_task = loop.sock_recv(self.socket, 4096)
+                sock_task = asyncio.create_task(loop.sock_recv(self.socket, 4096))
                 
                 done, pending = await asyncio.wait(
                     [ws_task, sock_task],
@@ -287,3 +287,122 @@ class GuacamoleTunnel:
             current_pos = dot_pos + 1 + length + 1 # +1 for comma or semicolon
             
         return parts
+
+    # HTTP Tunnel methods (for environments where WebSocket doesn't work)
+    
+    async def connect_http(self, protocol: str, connection_args: dict):
+        """
+        Connect to guacd for HTTP tunnel mode (no WebSocket needed)
+        """
+        connection_start = time.time()
+        
+        logger.info(f"[GUACAMOLE-HTTP] Starting HTTP tunnel connection to guacd at {self.guacd_host}:{self.guacd_port}")
+        logger.info(f"[GUACAMOLE-HTTP] Protocol: {protocol}")
+        logger.info(f"[GUACAMOLE-HTTP] Connection args: {self._sanitize_args_for_log(connection_args)}")
+        
+        try:
+            # Connect to guacd
+            logger.debug(f"[GUACAMOLE-HTTP] Creating socket connection...")
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(10)
+            
+            try:
+                self.socket.connect((self.guacd_host, self.guacd_port))
+                logger.info(f"[GUACAMOLE-HTTP] Successfully connected to guacd")
+            except socket.error as e:
+                logger.error(f"[GUACAMOLE-HTTP] Failed to connect to guacd: {e}")
+                raise
+            
+            self.socket.setblocking(False)
+            
+            # 1. Select protocol
+            logger.debug(f"[GUACAMOLE-HTTP] Sending 'select' instruction with protocol: {protocol}")
+            self._send_instruction("select", [protocol])
+            
+            # 2. Receive "args" instruction from guacd
+            logger.debug(f"[GUACAMOLE-HTTP] Waiting for 'args' instruction...")
+            instruction = await self._read_instruction_async()
+            logger.debug(f"[GUACAMOLE-HTTP] Received: {instruction}")
+            
+            if not instruction or instruction[0] != "args":
+                logger.error(f"[GUACAMOLE-HTTP] Expected 'args', got: {instruction}")
+                return False
+                
+            # Prepare args values
+            arg_names = instruction[1:]
+            arg_values = []
+            for name in arg_names:
+                value = connection_args.get(name, "")
+                arg_values.append(value)
+                
+            # Send "size" instruction
+            screen_width = connection_args.get("width", "1024")
+            screen_height = connection_args.get("height", "768")
+            screen_dpi = connection_args.get("dpi", "96")
+            self._send_instruction("size", [screen_width, screen_height, screen_dpi])
+            
+            # Send "audio" instruction (disable audio)
+            self._send_instruction("audio", [])
+            
+            # Send "video" instruction (disable video)
+            self._send_instruction("video", [])
+            
+            # Send "image" instruction (supported formats)
+            self._send_instruction("image", ["image/png", "image/jpeg"])
+            
+            # Send "connect" instruction with arguments
+            logger.debug(f"[GUACAMOLE-HTTP] Sending 'connect' instruction")
+            self._send_instruction("connect", arg_values)
+            
+            # Wait for "ready" instruction
+            logger.debug(f"[GUACAMOLE-HTTP] Waiting for 'ready' instruction...")
+            ready_instruction = await self._read_instruction_async()
+            logger.debug(f"[GUACAMOLE-HTTP] Received: {ready_instruction}")
+            
+            if ready_instruction and ready_instruction[0] == "ready":
+                self.connected = True
+                connection_time = time.time() - connection_start
+                logger.info(f"[GUACAMOLE-HTTP] ✓ Connection established in {connection_time:.2f}s")
+                logger.info(f"[GUACAMOLE-HTTP] Connection ID: {ready_instruction[1] if len(ready_instruction) > 1 else 'unknown'}")
+                return True
+            else:
+                logger.error(f"[GUACAMOLE-HTTP] Expected 'ready', got: {ready_instruction}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"[GUACAMOLE-HTTP] Connection error: {e}")
+            traceback.print_exc()
+            return False
+    
+    async def read_http(self):
+        """Read data from guacd for HTTP tunnel"""
+        if not self.connected or not self.socket:
+            return None
+        
+        try:
+            loop = asyncio.get_event_loop()
+            data = await asyncio.wait_for(
+                loop.sock_recv(self.socket, 8192),
+                timeout=0.1
+            )
+            if data:
+                return data.decode('utf-8')
+            return None
+        except asyncio.TimeoutError:
+            return None
+        except Exception as e:
+            logger.error(f"[GUACAMOLE-HTTP] Read error: {e}")
+            return None
+    
+    async def write_http(self, data: str):
+        """Write data to guacd for HTTP tunnel"""
+        if not self.connected or not self.socket:
+            return False
+        
+        try:
+            self.socket.sendall(data.encode('utf-8'))
+            return True
+        except Exception as e:
+            logger.error(f"[GUACAMOLE-HTTP] Write error: {e}")
+            return False
+
