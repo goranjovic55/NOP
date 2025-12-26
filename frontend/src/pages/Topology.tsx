@@ -19,8 +19,8 @@ interface GraphNode {
 }
 
 interface GraphLink {
-  source: string;
-  target: string;
+  source: string | GraphNode;
+  target: string | GraphNode;
   value: number; // traffic volume
   protocols?: string[]; // list of protocols used
   bidirectional?: boolean; // if traffic flows both ways
@@ -200,8 +200,10 @@ const Topology: React.FC = () => {
       // Calculate Centrality (Degree)
       const degreeMap = new Map<string, number>();
       links.forEach(link => {
-        degreeMap.set(link.source, (degreeMap.get(link.source) || 0) + 1);
-        degreeMap.set(link.target, (degreeMap.get(link.target) || 0) + 1);
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        degreeMap.set(sourceId, (degreeMap.get(sourceId) || 0) + 1);
+        degreeMap.set(targetId, (degreeMap.get(targetId) || 0) + 1);
       });
 
       // Update node sizes based on centrality

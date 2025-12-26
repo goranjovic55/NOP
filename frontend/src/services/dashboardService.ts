@@ -19,7 +19,7 @@ export interface TrafficStats {
   top_talkers: any[];
   protocols: Record<string, number>;
   traffic_history: { time: string; value: number }[];
-  connections: { source: string; target: string; value: number }[];
+  connections: { source: string; target: string; value: number; protocols?: string[] }[];
 }
 
 export interface SystemEvent {
