@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import json
 import asyncio
+import time
 from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
 from app.services.access_hub import access_hub
@@ -327,7 +328,15 @@ async def guacamole_tunnel(
     height: int = 768,
     dpi: int = 96
 ):
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[ACCESS-TUNNEL] WebSocket connection request received")
+    logger.info(f"[ACCESS-TUNNEL] Protocol: {protocol}, Host: {host}, Port: {port}, User: {username}")
+    logger.info(f"[ACCESS-TUNNEL] Screen: {width}x{height}@{dpi}")
+    
     await websocket.accept()
+    logger.debug(f"[ACCESS-TUNNEL] WebSocket accepted")
     
     # guacd hostname is the service name in docker-compose
     tunnel = GuacamoleTunnel("guacd", 4822)
@@ -344,19 +353,203 @@ async def guacamole_tunnel(
         "security": "any"
     }
     
+    logger.debug(f"[ACCESS-TUNNEL] Connection args prepared (password hidden)")
+    
     import uuid
     conn_id = str(uuid.uuid4())
+    logger.debug(f"[ACCESS-TUNNEL] Connection ID: {conn_id}")
+    
     access_hub.add_connection(conn_id, {
         "host": host,
         "port": port,
         "protocol": protocol,
         "username": username
     })
+    logger.info(f"[ACCESS-TUNNEL] Connection registered in access hub")
 
     try:
+        logger.info(f"[ACCESS-TUNNEL] Attempting to connect to guacd...")
         if await tunnel.connect(websocket, protocol, connection_args):
+            logger.info(f"[ACCESS-TUNNEL] ✓ Successfully connected, starting tunnel relay")
             await tunnel.run()
+            logger.info(f"[ACCESS-TUNNEL] Tunnel relay completed")
         else:
+            logger.error(f"[ACCESS-TUNNEL] ✗ Failed to connect to guacd")
             await websocket.close(code=1011, reason="Failed to connect to guacd")
+    except Exception as e:
+        logger.error(f"[ACCESS-TUNNEL] Exception in tunnel: {e}")
+        logger.exception("Full exception details:")
+        try:
+            await websocket.close(code=1011, reason=f"Error: {str(e)}")
+        except:
+            pass
     finally:
         access_hub.remove_connection(conn_id)
+        logger.info(f"[ACCESS-TUNNEL] Connection {conn_id} closed and removed from access hub")
+
+
+# HTTP Tunnel for environments where WebSocket doesn't work (e.g., Codespaces HTTPS proxy)
+# Uses Server-Sent Events for server->client and POST for client->server
+
+from fastapi import Request, Response
+from fastapi.responses import StreamingResponse
+import uuid as uuid_module
+
+# Store active HTTP tunnel sessions
+http_tunnel_sessions = {}
+
+class HTTPTunnelSession:
+    def __init__(self, tunnel: GuacamoleTunnel, protocol: str, connection_args: dict):
+        self.tunnel = tunnel
+        self.protocol = protocol
+        self.connection_args = connection_args
+        self.connected = False
+        self.read_buffer = asyncio.Queue()
+        self.last_activity = time.time()
+        
+    async def connect(self):
+        """Connect to guacd"""
+        if self.connected:
+            return True
+        try:
+            self.connected = await self.tunnel.connect_http(self.protocol, self.connection_args)
+            return self.connected
+        except Exception as e:
+            logger.error(f"[HTTP-TUNNEL] Connection failed: {e}")
+            return False
+
+
+@router.post("/http-tunnel/connect")
+async def http_tunnel_connect(
+    host: str,
+    port: int,
+    protocol: str,
+    username: str = "",
+    password: str = "",
+    width: int = 1024,
+    height: int = 768,
+    dpi: int = 96
+):
+    """
+    Create a new HTTP tunnel session.
+    Returns a session ID to use for read/write operations.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    session_id = str(uuid_module.uuid4())
+    logger.info(f"[HTTP-TUNNEL] Creating session {session_id} for {protocol}://{host}:{port}")
+    
+    tunnel = GuacamoleTunnel("guacd", 4822)
+    
+    connection_args = {
+        "hostname": host,
+        "port": str(port),
+        "username": username,
+        "password": password if password else "",
+        "width": str(width),
+        "height": str(height),
+        "dpi": str(dpi),
+        "ignore-cert": "true",
+        "security": "any"
+    }
+    
+    try:
+        connected = await tunnel.connect_http(protocol, connection_args)
+        if connected:
+            http_tunnel_sessions[session_id] = {
+                "tunnel": tunnel,
+                "last_activity": time.time()
+            }
+            logger.info(f"[HTTP-TUNNEL] Session {session_id} connected successfully")
+            return {"session_id": session_id, "status": "connected"}
+        else:
+            logger.error(f"[HTTP-TUNNEL] Failed to connect session {session_id}")
+            return Response(content='{"error": "Failed to connect to guacd"}', status_code=500)
+    except Exception as e:
+        logger.error(f"[HTTP-TUNNEL] Error creating session: {e}")
+        return Response(content=f'{{"error": "{str(e)}"}}', status_code=500)
+
+
+@router.get("/http-tunnel/read/{session_id}")
+async def http_tunnel_read(session_id: str):
+    """
+    Read data from the tunnel using Server-Sent Events.
+    This endpoint streams data from guacd to the client.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if session_id not in http_tunnel_sessions:
+        return Response(content='{"error": "Session not found"}', status_code=404)
+    
+    session = http_tunnel_sessions[session_id]
+    tunnel = session["tunnel"]
+    session["last_activity"] = time.time()
+    
+    async def generate():
+        try:
+            while session_id in http_tunnel_sessions:
+                data = await tunnel.read_http()
+                if data:
+                    # Send as SSE format
+                    yield f"data: {data}\n\n"
+                else:
+                    await asyncio.sleep(0.01)
+        except Exception as e:
+            logger.error(f"[HTTP-TUNNEL] Read error: {e}")
+            yield f"event: error\ndata: {str(e)}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@router.post("/http-tunnel/write/{session_id}")
+async def http_tunnel_write(session_id: str, request: Request):
+    """
+    Write data to the tunnel.
+    Client sends Guacamole instructions via POST body.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if session_id not in http_tunnel_sessions:
+        return Response(content='{"error": "Session not found"}', status_code=404)
+    
+    session = http_tunnel_sessions[session_id]
+    tunnel = session["tunnel"]
+    session["last_activity"] = time.time()
+    
+    try:
+        body = await request.body()
+        data = body.decode('utf-8')
+        await tunnel.write_http(data)
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"[HTTP-TUNNEL] Write error: {e}")
+        return Response(content=f'{{"error": "{str(e)}"}}', status_code=500)
+
+
+@router.post("/http-tunnel/disconnect/{session_id}")
+async def http_tunnel_disconnect(session_id: str):
+    """Disconnect and clean up the HTTP tunnel session."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if session_id in http_tunnel_sessions:
+        session = http_tunnel_sessions.pop(session_id)
+        try:
+            session["tunnel"].disconnect()
+        except:
+            pass
+        logger.info(f"[HTTP-TUNNEL] Session {session_id} disconnected")
+        return {"status": "disconnected"}
+    return {"status": "not_found"}
+

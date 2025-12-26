@@ -1,8 +1,15 @@
 # Build stage
 FROM node:18-alpine as build-stage
 WORKDIR /app
+
+# Set CI to false to prevent treating warnings as errors
+ENV CI=false
+
+# Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
+
+# Copy source and build
 COPY . .
 RUN npm run build
 
