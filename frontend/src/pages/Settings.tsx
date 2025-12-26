@@ -2,37 +2,54 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 interface ScanSettings {
+  profile_name: string;
+  profile_description: string;
   port_scan_enabled: boolean;
   port_scan_type: 'quick' | 'full' | 'custom';
   custom_ports: string;
   port_scan_timeout: number;
+  tcp_scan_enabled: boolean;
+  udp_scan_enabled: boolean;
+  syn_scan: boolean;
   vuln_scan_enabled: boolean;
   vuln_scan_depth: 'basic' | 'standard' | 'deep';
   safe_checks_only: boolean;
+  check_cve_database: boolean;
+  detect_versions: boolean;
   max_concurrent_scans: number;
   scan_throttle: number;
+  retry_attempts: number;
+  parallel_threads: number;
   auto_scan_enabled: boolean;
   auto_scan_interval: number;
   auto_scan_schedule: string;
   generate_reports: boolean;
   report_format: 'pdf' | 'html' | 'json' | 'all';
+  verbose_output: boolean;
 }
 
 interface DiscoverySettings {
+  profile_name: string;
+  profile_description: string;
   discovery_enabled: boolean;
   discovery_method: 'arp' | 'ping' | 'both';
   network_range: string;
   discovery_interval: number;
   packets_per_second: number;
   discovery_timeout: number;
+  ping_retries: number;
   enable_dns_resolution: boolean;
   enable_os_detection: boolean;
   enable_service_detection: boolean;
   passive_discovery: boolean;
+  fingerprint_os: boolean;
+  detect_vpn: boolean;
   interface_name: string;
   promiscuous_mode: boolean;
   exclude_ranges: string;
   include_only_ranges: string;
+  min_response_time: number;
+  max_response_time: number;
 }
 
 interface AccessSettings {
@@ -175,10 +192,10 @@ const Settings: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'scan' as const, label: 'Scan Settings', icon: '🔍' },
-    { id: 'discovery' as const, label: 'Discovery Settings', icon: '🌐' },
-    { id: 'access' as const, label: 'Access Settings', icon: '🔐' },
-    { id: 'system' as const, label: 'System Settings', icon: '⚙️' }
+    { id: 'scan' as const, label: 'Scan Settings', icon: '⚡' },
+    { id: 'discovery' as const, label: 'Discovery Settings', icon: '📡' },
+    { id: 'access' as const, label: 'Access Settings', icon: '🔒' },
+    { id: 'system' as const, label: 'System Settings', icon: '⚙' }
   ];
 
   return (
@@ -246,6 +263,25 @@ const Settings: React.FC = () => {
 const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
+      {/* Profile Configuration */}
+      <SettingsSection title="Profile Configuration">
+        <SettingsInput
+          label="Profile Name"
+          value={settings.profile_name}
+          onChange={(val) => onChange('profile_name', val)}
+          placeholder="Default Scan"
+          description="Name for this scan profile (visible in scanner)"
+        />
+        
+        <SettingsInput
+          label="Profile Description"
+          value={settings.profile_description}
+          onChange={(val) => onChange('profile_description', val)}
+          placeholder="Describe this scan configuration..."
+          description="Optional description for this profile"
+        />
+      </SettingsSection>
+
       {/* Port Scanning */}
       <SettingsSection title="Port Scanning">
         <SettingsToggle
@@ -253,6 +289,206 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
           value={settings.port_scan_enabled}
           onChange={(val) => onChange('port_scan_enabled', val)}
         />
+        
+        {settings.port_scan_enabled && (
+          <>
+            <SettingsSelect
+              label="Scan Type"
+              value={settings.port_scan_type}
+              options={[
+                { value: 'quick', label: 'Quick Scan (Top 100 Ports)' },
+                { value: 'full', label: 'Full Scan (All 65535 Ports)' },
+                { value: 'custom', label: 'Custom Port List' }
+              ]}
+              onChange={(val) => onChange('port_scan_type', val)}
+            />
+            
+            {settings.port_scan_type === 'custom' && (
+              <SettingsInput
+                label="Custom Ports"
+                value={settings.custom_ports}
+                onChange={(val) => onChange('custom_ports', val)}
+                placeholder="22,80,443,3389"
+                description="Comma-separated list of ports"
+              />
+            )}
+            
+            <SettingsSlider
+              label="Port Scan Timeout"
+              value={settings.port_scan_timeout}
+              min={1}
+              max={60}
+              unit="seconds"
+              onChange={(val) => onChange('port_scan_timeout', val)}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <SettingsToggle
+                label="TCP Scan"
+                value={settings.tcp_scan_enabled}
+                onChange={(val) => onChange('tcp_scan_enabled', val)}
+              />
+              
+              <SettingsToggle
+                label="UDP Scan"
+                value={settings.udp_scan_enabled}
+                onChange={(val) => onChange('udp_scan_enabled', val)}
+              />
+            </div>
+            
+            <SettingsToggle
+              label="SYN Scan (Stealth)"
+              value={settings.syn_scan}
+              onChange={(val) => onChange('syn_scan', val)}
+              description="Use SYN packets for stealthier scanning"
+            />
+          </>
+        )}
+      </SettingsSection>
+
+      {/* Vulnerability Scanning */}
+      <SettingsSection title="Vulnerability Scanning">
+        <SettingsToggle
+          label="Enable Vulnerability Scanning"
+          value={settings.vuln_scan_enabled}
+          onChange={(val) => onChange('vuln_scan_enabled', val)}
+        />
+        
+        {settings.vuln_scan_enabled && (
+          <>
+            <SettingsSelect
+              label="Scan Depth"
+              value={settings.vuln_scan_depth}
+              options={[
+                { value: 'basic', label: 'Basic - Quick checks only' },
+                { value: 'standard', label: 'Standard - Balanced approach' },
+                { value: 'deep', label: 'Deep - Comprehensive scanning' }
+              ]}
+              onChange={(val) => onChange('vuln_scan_depth', val)}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <SettingsToggle
+                label="Safe Checks Only"
+                value={settings.safe_checks_only}
+                onChange={(val) => onChange('safe_checks_only', val)}
+              />
+              
+              <SettingsToggle
+                label="Check CVE Database"
+                value={settings.check_cve_database}
+                onChange={(val) => onChange('check_cve_database', val)}
+              />
+              
+              <SettingsToggle
+                label="Detect Versions"
+                value={settings.detect_versions}
+                onChange={(val) => onChange('detect_versions', val)}
+              />
+            </div>
+          </>
+        )}
+      </SettingsSection>
+
+      {/* Performance */}
+      <SettingsSection title="Performance & Scheduling">
+        <SettingsSlider
+          label="Max Concurrent Scans"
+          value={settings.max_concurrent_scans}
+          min={1}
+          max={50}
+          onChange={(val) => onChange('max_concurrent_scans', val)}
+        />
+        
+        <SettingsSlider
+          label="Scan Throttle"
+          value={settings.scan_throttle}
+          min={10}
+          max={1000}
+          unit="pps"
+          onChange={(val) => onChange('scan_throttle', val)}
+        />
+        
+        <SettingsSlider
+          label="Retry Attempts"
+          value={settings.retry_attempts}
+          min={1}
+          max={10}
+          onChange={(val) => onChange('retry_attempts', val)}
+          description="Number of retries for failed scans"
+        />
+        
+        <SettingsSlider
+          label="Parallel Threads"
+          value={settings.parallel_threads}
+          min={1}
+          max={100}
+          onChange={(val) => onChange('parallel_threads', val)}
+          description="Number of parallel scanning threads"
+        />
+        
+        <SettingsToggle
+          label="Enable Auto Scan"
+          value={settings.auto_scan_enabled}
+          onChange={(val) => onChange('auto_scan_enabled', val)}
+        />
+        
+        {settings.auto_scan_enabled && (
+          <>
+            <SettingsSlider
+              label="Auto Scan Interval"
+              value={settings.auto_scan_interval}
+              min={5}
+              max={1440}
+              unit="minutes"
+              onChange={(val) => onChange('auto_scan_interval', val)}
+            />
+            
+            <SettingsInput
+              label="Cron Schedule"
+              value={settings.auto_scan_schedule}
+              onChange={(val) => onChange('auto_scan_schedule', val)}
+              placeholder="0 2 * * *"
+              description="Cron expression for scheduled scans"
+            />
+          </>
+        )}
+      </SettingsSection>
+
+      {/* Reporting */}
+      <SettingsSection title="Reporting">
+        <SettingsToggle
+          label="Generate Reports"
+          value={settings.generate_reports}
+          onChange={(val) => onChange('generate_reports', val)}
+        />
+        
+        {settings.generate_reports && (
+          <>
+            <SettingsSelect
+              label="Report Format"
+              value={settings.report_format}
+              options={[
+                { value: 'pdf', label: 'PDF' },
+                { value: 'html', label: 'HTML' },
+                { value: 'json', label: 'JSON' },
+                { value: 'all', label: 'All Formats' }
+              ]}
+              onChange={(val) => onChange('report_format', val)}
+            />
+            
+            <SettingsToggle
+              label="Verbose Output"
+              value={settings.verbose_output}
+              onChange={(val) => onChange('verbose_output', val)}
+              description="Include detailed information in reports"
+            />
+          </>
+        )}
+      </SettingsSection>
+    </div>
+  );
+};
         
         {settings.port_scan_enabled && (
           <>
@@ -399,6 +635,25 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
 const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
     <div className="space-y-6">
+      {/* Profile Configuration */}
+      <SettingsSection title="Profile Configuration">
+        <SettingsInput
+          label="Profile Name"
+          value={settings.profile_name}
+          onChange={(val) => onChange('profile_name', val)}
+          placeholder="Default Discovery"
+          description="Name for this discovery profile (visible in scanner)"
+        />
+        
+        <SettingsInput
+          label="Profile Description"
+          value={settings.profile_description}
+          onChange={(val) => onChange('profile_description', val)}
+          placeholder="Describe this discovery configuration..."
+          description="Optional description for this profile"
+        />
+      </SettingsSection>
+
       {/* Discovery Method */}
       <SettingsSection title="Discovery Method">
         <SettingsToggle
@@ -460,36 +715,56 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
           unit="seconds"
           onChange={(val) => onChange('discovery_timeout', val)}
         />
+        
+        <SettingsSlider
+          label="Ping Retries"
+          value={settings.ping_retries}
+          min={1}
+          max={10}
+          onChange={(val) => onChange('ping_retries', val)}
+          description="Number of ping retries for unresponsive hosts"
+        />
       </SettingsSection>
 
       {/* Advanced Options */}
       <SettingsSection title="Advanced Options">
-        <SettingsToggle
-          label="Enable DNS Resolution"
-          value={settings.enable_dns_resolution}
-          onChange={(val) => onChange('enable_dns_resolution', val)}
-        />
-        
-        <SettingsToggle
-          label="Enable OS Detection"
-          value={settings.enable_os_detection}
-          onChange={(val) => onChange('enable_os_detection', val)}
-          description="Attempt to detect operating system"
-        />
-        
-        <SettingsToggle
-          label="Enable Service Detection"
-          value={settings.enable_service_detection}
-          onChange={(val) => onChange('enable_service_detection', val)}
-          description="Attempt to detect running services"
-        />
-        
-        <SettingsToggle
-          label="Passive Discovery"
-          value={settings.passive_discovery}
-          onChange={(val) => onChange('passive_discovery', val)}
-          description="Monitor network traffic for devices"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <SettingsToggle
+            label="DNS Resolution"
+            value={settings.enable_dns_resolution}
+            onChange={(val) => onChange('enable_dns_resolution', val)}
+          />
+          
+          <SettingsToggle
+            label="OS Detection"
+            value={settings.enable_os_detection}
+            onChange={(val) => onChange('enable_os_detection', val)}
+          />
+          
+          <SettingsToggle
+            label="Service Detection"
+            value={settings.enable_service_detection}
+            onChange={(val) => onChange('enable_service_detection', val)}
+          />
+          
+          <SettingsToggle
+            label="Passive Discovery"
+            value={settings.passive_discovery}
+            onChange={(val) => onChange('passive_discovery', val)}
+          />
+          
+          <SettingsToggle
+            label="OS Fingerprinting"
+            value={settings.fingerprint_os}
+            onChange={(val) => onChange('fingerprint_os', val)}
+          />
+          
+          <SettingsToggle
+            label="Detect VPN"
+            value={settings.detect_vpn}
+            onChange={(val) => onChange('detect_vpn', val)}
+          />
+        </div>
       </SettingsSection>
 
       {/* Network Interface */}
@@ -512,6 +787,44 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
       {/* Filters */}
       <SettingsSection title="Network Filters">
         <SettingsInput
+          label="Exclude Ranges"
+          value={settings.exclude_ranges}
+          onChange={(val) => onChange('exclude_ranges', val)}
+          placeholder="192.168.1.0/24, 10.0.0.0/8"
+          description="Comma-separated CIDR ranges to exclude"
+        />
+        
+        <SettingsInput
+          label="Include Only Ranges"
+          value={settings.include_only_ranges}
+          onChange={(val) => onChange('include_only_ranges', val)}
+          placeholder="172.21.0.0/24"
+          description="If set, only scan these ranges"
+        />
+        
+        <SettingsSlider
+          label="Min Response Time"
+          value={settings.min_response_time}
+          min={0}
+          max={10000}
+          unit="ms"
+          onChange={(val) => onChange('min_response_time', val)}
+          description="Filter out hosts responding faster than this"
+        />
+        
+        <SettingsSlider
+          label="Max Response Time"
+          value={settings.max_response_time}
+          min={100}
+          max={30000}
+          unit="ms"
+          onChange={(val) => onChange('max_response_time', val)}
+          description="Filter out hosts responding slower than this"
+        />
+      </SettingsSection>
+    </div>
+  );
+};
           label="Exclude Ranges"
           value={settings.exclude_ranges}
           onChange={(val) => onChange('exclude_ranges', val)}

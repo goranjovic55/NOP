@@ -8,20 +8,31 @@ from typing import Literal
 
 class ScanSettingsConfig(BaseModel):
     """Scan settings configuration"""
+    # Profile
+    profile_name: str = Field(default="Default Scan", description="Profile name for this scan configuration")
+    profile_description: str = Field(default="", description="Description of this scan profile")
+    
     # Port scanning
     port_scan_enabled: bool = Field(default=False, description="Enable port scanning")
     port_scan_type: Literal["quick", "full", "custom"] = Field(default="quick", description="Port scan type")
     custom_ports: str = Field(default="22,80,443,3389", description="Custom ports to scan")
     port_scan_timeout: int = Field(default=5, ge=1, le=60, description="Port scan timeout in seconds")
+    tcp_scan_enabled: bool = Field(default=True, description="Enable TCP port scanning")
+    udp_scan_enabled: bool = Field(default=False, description="Enable UDP port scanning")
+    syn_scan: bool = Field(default=True, description="Use SYN scan (stealth)")
     
     # Vulnerability scanning
     vuln_scan_enabled: bool = Field(default=False, description="Enable vulnerability scanning")
     vuln_scan_depth: Literal["basic", "standard", "deep"] = Field(default="standard", description="Vulnerability scan depth")
     safe_checks_only: bool = Field(default=True, description="Only perform safe vulnerability checks")
+    check_cve_database: bool = Field(default=True, description="Check against CVE database")
+    detect_versions: bool = Field(default=True, description="Detect service versions")
     
     # Performance
     max_concurrent_scans: int = Field(default=5, ge=1, le=50, description="Maximum concurrent scans")
     scan_throttle: int = Field(default=100, ge=10, le=1000, description="Packets per second throttle")
+    retry_attempts: int = Field(default=3, ge=1, le=10, description="Number of retry attempts")
+    parallel_threads: int = Field(default=10, ge=1, le=100, description="Number of parallel scanning threads")
     
     # Scheduling
     auto_scan_enabled: bool = Field(default=False, description="Enable automatic scanning")
@@ -31,10 +42,15 @@ class ScanSettingsConfig(BaseModel):
     # Reporting
     generate_reports: bool = Field(default=True, description="Generate scan reports")
     report_format: Literal["pdf", "html", "json", "all"] = Field(default="all", description="Report format")
+    verbose_output: bool = Field(default=False, description="Include verbose details in reports")
 
 
 class DiscoverySettingsConfig(BaseModel):
     """Discovery settings configuration"""
+    # Profile
+    profile_name: str = Field(default="Default Discovery", description="Profile name for this discovery configuration")
+    profile_description: str = Field(default="", description="Description of this discovery profile")
+    
     # Discovery method
     discovery_enabled: bool = Field(default=True, description="Enable network discovery")
     discovery_method: Literal["arp", "ping", "both"] = Field(default="arp", description="Discovery method")
@@ -44,12 +60,15 @@ class DiscoverySettingsConfig(BaseModel):
     discovery_interval: int = Field(default=5, ge=1, le=60, description="Discovery interval in minutes")
     packets_per_second: int = Field(default=100, ge=10, le=1000, description="Packets per second")
     discovery_timeout: int = Field(default=30, ge=5, le=300, description="Discovery timeout in seconds")
+    ping_retries: int = Field(default=3, ge=1, le=10, description="Number of ping retries")
     
     # Advanced options
     enable_dns_resolution: bool = Field(default=True, description="Enable DNS resolution")
     enable_os_detection: bool = Field(default=False, description="Enable OS detection")
     enable_service_detection: bool = Field(default=False, description="Enable service detection")
     passive_discovery: bool = Field(default=True, description="Enable passive discovery")
+    fingerprint_os: bool = Field(default=False, description="Perform OS fingerprinting")
+    detect_vpn: bool = Field(default=False, description="Attempt to detect VPN connections")
     
     # Network interfaces
     interface_name: str = Field(default="eth0", description="Network interface to use")
@@ -58,6 +77,8 @@ class DiscoverySettingsConfig(BaseModel):
     # Filters
     exclude_ranges: str = Field(default="", description="Exclude IP ranges (comma-separated)")
     include_only_ranges: str = Field(default="", description="Include only these ranges (comma-separated)")
+    min_response_time: int = Field(default=0, ge=0, le=10000, description="Minimum response time filter (ms)")
+    max_response_time: int = Field(default=5000, ge=100, le=30000, description="Maximum response time filter (ms)")
 
 
 class AccessSettingsConfig(BaseModel):
