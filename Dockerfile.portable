@@ -1,0 +1,71 @@
+# Multi-stage Dockerfile for building NOP portable executable
+# This creates a consistent build environment for Nuitka compilation
+
+# Stage 1: Frontend Builder
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /build/frontend
+
+COPY frontend/package*.json ./
+RUN npm ci --quiet
+
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Backend Builder (Nuitka)
+FROM python:3.11-slim AS backend-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    ccache \
+    patchelf \
+    libpcap-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/backend
+
+# Install Python dependencies
+COPY backend/requirements.txt backend/requirements-portable.txt ./
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-portable.txt
+
+# Copy backend code
+COPY backend/ ./
+
+# Copy frontend build from previous stage
+COPY --from=frontend-builder /build/frontend/build ./frontend_build
+
+# Build with Nuitka
+RUN python -m nuitka \
+    --standalone \
+    --onefile \
+    --follow-imports \
+    --assume-yes-for-downloads \
+    --output-filename=nop-portable \
+    --output-dir=dist \
+    --include-data-dir=./frontend_build=frontend_build \
+    --include-package=app \
+    --include-package=fastapi \
+    --include-package=uvicorn \
+    --include-package=sqlalchemy \
+    --include-package=pydantic \
+    --enable-plugin=anti-bloat \
+    --nofollow-import-to=pytest \
+    --nofollow-import-to=black \
+    --nofollow-import-to=IPython \
+    --jobs=$(nproc) \
+    --lto=yes \
+    --remove-output \
+    portable_main.py
+
+# Stage 3: Package for distribution
+FROM scratch AS export
+
+COPY --from=backend-builder /build/backend/dist/nop-portable /
+
+# Usage:
+# docker build -f Dockerfile.portable --target export --output dist .
