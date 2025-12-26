@@ -53,11 +53,18 @@ services:
     restart: unless-stopped
 
   guacd:
-    image: guacamole/guacd
+    image: guacamole/guacd:latest
+    platform: linux/amd64
     networks:
       - nop-internal
       - test-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
