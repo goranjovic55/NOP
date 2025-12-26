@@ -45,6 +45,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       }
     };
     fetchCreds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, tab.ip, tab.protocol]);
 
   useEffect(() => {
@@ -83,6 +84,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       if (tab.status === 'connected' && tab.protocol === 'ftp') {
         fetchFtpFiles(ftpPath);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab.status, tab.protocol]);
 
     const handleFtpDownload = async (filename: string) => {

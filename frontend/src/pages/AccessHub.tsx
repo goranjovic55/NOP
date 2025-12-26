@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAccessStore, Protocol } from '../store/accessStore';
+import { useAccessStore } from '../store/accessStore';
 import ProtocolConnection from '../components/ProtocolConnection';
 
 const AccessHub: React.FC = () => {

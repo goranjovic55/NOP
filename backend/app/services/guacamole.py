@@ -4,10 +4,19 @@ import threading
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
 import time
+import traceback
 
 # Configure detailed logging for Guacamole tunnel
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+# Create console handler if not already configured
+if not logger.handlers:
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
 class GuacamoleTunnel:
     def __init__(self, guacd_host: str, guacd_port: int):
@@ -105,12 +114,26 @@ class GuacamoleTunnel:
             logger.debug(f"[GUACAMOLE] Step 7: Sending 'connect' instruction with {len(arg_values)} arguments")
             self._send_instruction("connect", arg_values)
             
-            # 3. Wait for "ready"
-            logger.debug(f"[GUACAMOLE] Step 8: Waiting for 'ready' instruction from guacd...")
+            # 3. Wait for "ready" or "error"
+            logger.debug(f"[GUACAMOLE] Step 8: Waiting for 'ready' or 'error' instruction from guacd...")
             instruction = await self._read_instruction_async()
             logger.debug(f"[GUACAMOLE] Received instruction: {instruction}")
             
-            if not instruction or instruction[0] != "ready":
+            if not instruction:
+                logger.error(f"[GUACAMOLE] No instruction received from guacd - connection may have been closed")
+                logger.error(f"[GUACAMOLE] Connection to {protocol}://{connection_args.get('hostname')}:{connection_args.get('port')} FAILED")
+                return False
+            
+            if instruction[0] == "error":
+                error_msg = instruction[1] if len(instruction) > 1 else "Unknown error"
+                error_code = instruction[2] if len(instruction) > 2 else "?"
+                logger.error(f"[GUACAMOLE] ✗ guacd returned error: {error_msg} (code: {error_code})")
+                logger.error(f"[GUACAMOLE] Connection to {protocol}://{connection_args.get('hostname')}:{connection_args.get('port')} FAILED")
+                # Send error to websocket client
+                await self.websocket.send_text(f"5.error,{len(error_msg)}.{error_msg},{len(error_code)}.{error_code};")
+                return False
+                
+            if instruction[0] != "ready":
                 logger.error(f"[GUACAMOLE] Expected 'ready' instruction, got: {instruction}")
                 logger.error(f"[GUACAMOLE] Connection to {protocol}://{connection_args.get('hostname')}:{connection_args.get('port')} FAILED")
                 return False

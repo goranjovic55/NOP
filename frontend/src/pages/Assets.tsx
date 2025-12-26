@@ -26,7 +26,7 @@ const Assets: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [subnetFilter, setSubnetFilter] = useState<string>('');
-  const [refreshInterval, setRefreshInterval] = useState<number>(30);
+  const [refreshInterval] = useState<number>(30);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('ip');

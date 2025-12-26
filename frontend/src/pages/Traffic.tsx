@@ -61,6 +61,7 @@ const Traffic: React.FC = () => {
       clearInterval(interval);
       if (wsRef.current) wsRef.current.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
