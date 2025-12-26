@@ -327,7 +327,15 @@ async def guacamole_tunnel(
     height: int = 768,
     dpi: int = 96
 ):
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[ACCESS-TUNNEL] WebSocket connection request received")
+    logger.info(f"[ACCESS-TUNNEL] Protocol: {protocol}, Host: {host}, Port: {port}, User: {username}")
+    logger.info(f"[ACCESS-TUNNEL] Screen: {width}x{height}@{dpi}")
+    
     await websocket.accept()
+    logger.debug(f"[ACCESS-TUNNEL] WebSocket accepted")
     
     # guacd hostname is the service name in docker-compose
     tunnel = GuacamoleTunnel("guacd", 4822)
@@ -344,19 +352,36 @@ async def guacamole_tunnel(
         "security": "any"
     }
     
+    logger.debug(f"[ACCESS-TUNNEL] Connection args prepared (password hidden)")
+    
     import uuid
     conn_id = str(uuid.uuid4())
+    logger.debug(f"[ACCESS-TUNNEL] Connection ID: {conn_id}")
+    
     access_hub.add_connection(conn_id, {
         "host": host,
         "port": port,
         "protocol": protocol,
         "username": username
     })
+    logger.info(f"[ACCESS-TUNNEL] Connection registered in access hub")
 
     try:
+        logger.info(f"[ACCESS-TUNNEL] Attempting to connect to guacd...")
         if await tunnel.connect(websocket, protocol, connection_args):
+            logger.info(f"[ACCESS-TUNNEL] ✓ Successfully connected, starting tunnel relay")
             await tunnel.run()
+            logger.info(f"[ACCESS-TUNNEL] Tunnel relay completed")
         else:
+            logger.error(f"[ACCESS-TUNNEL] ✗ Failed to connect to guacd")
             await websocket.close(code=1011, reason="Failed to connect to guacd")
+    except Exception as e:
+        logger.error(f"[ACCESS-TUNNEL] Exception in tunnel: {e}")
+        logger.exception("Full exception details:")
+        try:
+            await websocket.close(code=1011, reason=f"Error: {str(e)}")
+        except:
+            pass
     finally:
         access_hub.remove_connection(conn_id)
+        logger.info(f"[ACCESS-TUNNEL] Connection {conn_id} closed and removed from access hub")
