@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Network Observatory Platform - Access Hub</title>
+    <script>
+        var module = {exports: {}};
+        var exports = module.exports;
+    </script>
+    <script src="guacamole.js"></script>
+    <script>
+        window.Guacamole = module.exports.Guacamole || module.exports;
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #00ff88;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background: #151932;
+            border-right: 2px solid #ff3366;
+            padding: 20px;
+        }
+        .logo {
+            color: #ff3366;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+        .nav-item {
+            padding: 12px;
+            margin: 8px 0;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .nav-item.active {
+            background: #0a0e27;
+            border-left-color: #00ff88;
+            color: #00ff88;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        h1 {
+            color: #ff3366;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+        }
+        .connection-form {
+            background: #151932;
+            border: 2px solid #00ff88;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            color: #00ccff;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        input, select {
+            padding: 8px;
+            background: #0a0e27;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+        }
+        button {
+            background: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button:disabled { background: #666; }
+        button.secondary { background: #00ccff; }
+        .status-bar {
+            background: #151932;
+            border: 1px solid #00ff88;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px;
+        }
+        .status-bar.connected { border-color: #00ff88; background: #00ff8811; }
+        .status-bar.connecting { border-color: #00ccff; background: #00ccff11; animation: pulse 1.5s infinite; }
+        .status-bar.failed { border-color: #ff3366; background: #ff336611; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .display-container {
+            flex: 1;
+            background: #000;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .display-container canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex-direction: column;
+            color: #666;
+        }
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <div class="logo">◉ NOP</div>
+            <div class="nav-item">Dashboard</div>
+            <div class="nav-item">Assets</div>
+            <div class="nav-item active">Access Hub</div>
+            <div class="nav-item">Topology</div>
+            <div class="nav-item">Traffic</div>
+            <div class="nav-item">Scans</div>
+            <div class="nav-item">Settings</div>
+        </div>
+        <div class="main-content">
+            <h1>🖥️ Access Hub</h1>
+            
+            <div class="connection-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Target Host</label>
+                        <input type="text" id="host" value="172.18.0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Protocol</label>
+                        <select id="protocol">
+                            <option value="vnc">VNC</option>
+                            <option value="rdp">RDP</option>
+                            <option value="ssh">SSH</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Port</label>
+                        <input type="number" id="port" value="5900">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="username" value="">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" value="vnc123">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button onclick="connect()">Connect</button>
+                        <button onclick="disconnect()" id="disconnectBtn" class="secondary" disabled>Disconnect</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusBar" class="status-bar">
+                <span id="statusText">⚪ Disconnected</span>
+                <span id="statusDetails">No active connection</span>
+            </div>
+
+            <div class="display-container" id="displayContainer">
+                <div class="empty-state">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">No Active Connections</p>
+                    <p style="font-size: 11px; margin-top: 10px;">Enter connection details above and click Connect</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let client = null;
+
+        function updateStatus(state, text, details) {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+            const statusDetails = document.getElementById('statusDetails');
+            
+            statusBar.className = 'status-bar ' + state;
+            statusText.textContent = text;
+            statusDetails.textContent = details;
+        }
+
+        function connect() {
+            const host = document.getElementById('host').value;
+            const port = document.getElementById('port').value;
+            const protocol = document.getElementById('protocol').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            console.log('[GUACAMOLE-CLIENT] Setting up Guacamole connection');
+            console.log('[GUACAMOLE-CLIENT] Target:', host);
+            console.log('[GUACAMOLE-CLIENT] Protocol:', protocol);
+            console.log('[GUACAMOLE-CLIENT] Port:', port);
+            
+            updateStatus('connecting', '🔵 Connecting...', `Establishing ${protocol.toUpperCase()} connection to ${host}:${port}`);
+            document.getElementById('disconnectBtn').disabled = false;
+
+            const params = new URLSearchParams({
+                host, port, protocol, username, password,
+                width: '1024',
+                height: '768',
+                dpi: '96'
+            });
+
+            const wsUrl = `ws://localhost:8000/api/v1/access/tunnel?${params}`;
+            console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/****** '******'));
+
+            const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
+            
+            tunnel.onerror = (status) => {
+                console.error('[GUACAMOLE-CLIENT] Tunnel error:', status);
+                updateStatus('failed', '🔴 Connection Failed', 'Tunnel error: ' + JSON.stringify(status));
+            };
+
+            tunnel.onstatechange = (state) => {
+                const states = ['IDLE', 'CONNECTING', 'WAITING', 'CONNECTED', 'DISCONNECTING', 'DISCONNECTED'];
+                console.log('[GUACAMOLE-CLIENT] Tunnel state changed:', states[state]);
+            };
+
+            client = new Guacamole.Client(tunnel);
+
+            const display = client.getDisplay();
+            const container = document.getElementById('displayContainer');
+            container.innerHTML = '';
+            container.appendChild(display.getElement());
+
+            console.log('[GUACAMOLE-CLIENT] Display element attached to DOM');
+
+            client.onerror = (error) => {
+                const errorMsg = error.message || JSON.stringify(error);
+                console.error('[GUACAMOLE-CLIENT] Client error:', errorMsg);
+                updateStatus('failed', '🔴 Connection Failed', errorMsg);
+            };
+
+            client.onstatechange = (state) => {
+                const states = ['IDLE', 'CONNECTING', 'WAITING', 'CONNECTED', 'DISCONNECTING', 'DISCONNECTED'];
+                console.log('[GUACAMOLE-CLIENT] Client state changed:', states[state]);
+                
+                if (state === 3) { // CONNECTED
+                    console.log('[GUACAMOLE-CLIENT] ✓ Successfully connected to remote host');
+                    updateStatus('connected', '🟢 Connected', `Active ${protocol.toUpperCase()} session to ${host}:${port}`);
+                } else if (state === 5) { // DISCONNECTED
+                    console.log('[GUACAMOLE-CLIENT] Disconnected from remote host');
+                    updateStatus('', '⚪ Disconnected', 'Connection closed');
+                    document.getElementById('disconnectBtn').disabled = true;
+                }
+            };
+
+            const mouse = new Guacamole.Mouse(display.getElement());
+            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = (mouseState) => {
+                client.sendMouseState(mouseState);
+            };
+
+            const keyboard = new Guacamole.Keyboard(document);
+            keyboard.onkeydown = (keysym) => client.sendKeyEvent(1, keysym);
+            keyboard.onkeyup = (keysym) => client.sendKeyEvent(0, keysym);
+
+            console.log('[GUACAMOLE-CLIENT] Initiating connection...');
+            client.connect();
+        }
+
+        function disconnect() {
+            if (client) {
+                client.disconnect();
+                console.log('[GUACAMOLE-CLIENT] Disconnected');
+            }
+            updateStatus('', '⚪ Disconnected', 'No active connection');
+            document.getElementById('disconnectBtn').disabled = true;
+            
+            const container = document.getElementById('displayContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">No Active Connections</p>
+                    <p style="font-size: 11px; margin-top: 10px;">Enter connection details above and click Connect</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
