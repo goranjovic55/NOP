@@ -23,6 +23,35 @@ interface Stream {
   lastSeen: number;
 }
 
+interface PingResult {
+  seq: number;
+  status: string;
+  time_ms?: number;
+  http_code?: string;
+  error?: string;
+  note?: string;
+}
+
+interface PingResponse {
+  protocol: string;
+  target: string;
+  port?: number;
+  count?: number;
+  successful?: number;
+  failed?: number;
+  packet_loss?: number;
+  min_ms?: number;
+  max_ms?: number;
+  avg_ms?: number;
+  results?: PingResult[];
+  raw_output?: string;
+  transmitted?: number;
+  received?: number;
+  timestamp: string;
+  error?: string;
+  note?: string;
+}
+
 interface Interface {
   name: string;
   ip: string;
@@ -61,7 +90,8 @@ const Traffic: React.FC = () => {
   const [pingPacketSize, setPingPacketSize] = useState('56');
   const [pingUseHttps, setPingUseHttps] = useState(false);
   const [pingInProgress, setPingInProgress] = useState(false);
-  const [pingResults, setPingResults] = useState<any>(null);
+  const [pingResults, setPingResults] = useState<PingResponse | null>(null);
+  const [pingError, setPingError] = useState<string>('');
   
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
@@ -206,15 +236,16 @@ const Traffic: React.FC = () => {
 
   const handlePing = async () => {
     if (!pingTarget) {
-      alert('Please enter a target IP or hostname');
+      setPingError('Please enter a target IP or hostname');
       return;
     }
 
+    setPingError('');
     setPingInProgress(true);
     setPingResults(null);
 
     try {
-      const requestBody: any = {
+      const requestBody = {
         target: pingTarget,
         protocol: pingProtocol,
         count: parseInt(pingCount),
@@ -450,10 +481,16 @@ const Traffic: React.FC = () => {
                   <input
                     type="text"
                     value={pingTarget}
-                    onChange={(e) => setPingTarget(e.target.value)}
+                    onChange={(e) => {
+                      setPingTarget(e.target.value);
+                      setPingError('');
+                    }}
                     placeholder="e.g. 192.168.1.1 or example.com"
                     className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
                   />
+                  {pingError && (
+                    <p className="text-cyber-red text-xs mt-1">⚠ {pingError}</p>
+                  )}
                 </div>
 
                 {/* Protocol Selection */}
@@ -710,7 +747,7 @@ const Traffic: React.FC = () => {
                         <div className="bg-cyber-darker border border-cyber-blue p-4">
                           <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Individual Results</h4>
                           <div className="space-y-2">
-                            {pingResults.results.map((result: any, idx: number) => (
+                            {pingResults.results.map((result: PingResult, idx: number) => (
                               <div key={idx} className="flex items-center justify-between py-1 border-b border-cyber-gray/20">
                                 <span className="text-cyber-gray-light">
                                   Seq {result.seq}:

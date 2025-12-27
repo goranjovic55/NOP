@@ -5,6 +5,7 @@ import asyncio
 import subprocess
 import re
 import time
+import ipaddress
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 
@@ -15,8 +16,47 @@ class PingService:
     Provides functionality similar to hping3 for testing firewall rules and services.
     """
 
-    def __init__(self):
-        self.active_pings: Dict[str, asyncio.Task] = {}
+    def _validate_target(self, target: str) -> str:
+        """
+        Validate and sanitize target hostname or IP address.
+        
+        Args:
+            target: Target IP or hostname to validate
+            
+        Returns:
+            Validated target string
+            
+        Raises:
+            ValueError: If target is invalid
+        """
+        # Remove whitespace
+        target = target.strip()
+        
+        # Check if empty
+        if not target:
+            raise ValueError("Target cannot be empty")
+        
+        # Try to parse as IP address first
+        try:
+            ipaddress.ip_address(target)
+            return target
+        except ValueError:
+            pass
+        
+        # Validate as hostname (RFC 1123)
+        # Allow alphanumeric, hyphens, dots, max 253 chars
+        if len(target) > 253:
+            raise ValueError("Hostname too long")
+        
+        # Check for valid hostname pattern
+        hostname_pattern = re.compile(
+            r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$'
+        )
+        
+        if not hostname_pattern.match(target):
+            raise ValueError("Invalid hostname format")
+        
+        return target
 
     async def icmp_ping(
         self,
@@ -38,12 +78,20 @@ class PingService:
             Dictionary with ping results
         """
         try:
+            # Validate target
+            validated_target = self._validate_target(target)
+            
+            # Validate numeric parameters
+            count = max(1, min(100, count))
+            timeout = max(1, min(30, timeout))
+            packet_size = max(1, min(65500, packet_size))
+            
             cmd = [
                 'ping',
                 '-c', str(count),
                 '-W', str(timeout),
                 '-s', str(packet_size),
-                target
+                validated_target
             ]
             
             process = await asyncio.create_subprocess_exec(
@@ -85,6 +133,16 @@ class PingService:
         Returns:
             Dictionary with ping results
         """
+        # Validate target
+        validated_target = self._validate_target(target)
+        
+        # Validate port
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            raise ValueError("Port must be between 1 and 65535")
+        
+        # Validate numeric parameters
+        count = max(1, min(100, count))
+        timeout = max(1, min(30, timeout))
         results = []
         successful = 0
         failed = 0
@@ -96,7 +154,7 @@ class PingService:
             start_time = time.time()
             try:
                 reader, writer = await asyncio.wait_for(
-                    asyncio.open_connection(target, port),
+                    asyncio.open_connection(validated_target, port),
                     timeout=timeout
                 )
                 elapsed = (time.time() - start_time) * 1000  # Convert to ms
@@ -136,7 +194,7 @@ class PingService:
         
         return {
             'protocol': 'TCP',
-            'target': target,
+            'target': validated_target,
             'port': port,
             'count': count,
             'successful': successful,
@@ -168,6 +226,16 @@ class PingService:
         Returns:
             Dictionary with ping results
         """
+        # Validate target
+        validated_target = self._validate_target(target)
+        
+        # Validate port
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            raise ValueError("Port must be between 1 and 65535")
+        
+        # Validate numeric parameters
+        count = max(1, min(100, count))
+        timeout = max(1, min(30, timeout))
         results = []
         
         for i in range(count):
@@ -177,7 +245,7 @@ class PingService:
                 loop = asyncio.get_event_loop()
                 transport, protocol = await loop.create_datagram_endpoint(
                     lambda: asyncio.DatagramProtocol(),
-                    remote_addr=(target, port)
+                    remote_addr=(validated_target, port)
                 )
                 
                 # Send test packet
@@ -205,7 +273,7 @@ class PingService:
         
         return {
             'protocol': 'UDP',
-            'target': target,
+            'target': validated_target,
             'port': port,
             'count': count,
             'results': results,
@@ -234,6 +302,16 @@ class PingService:
         Returns:
             Dictionary with ping results
         """
+        # Validate target
+        validated_target = self._validate_target(target)
+        
+        # Validate port
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            raise ValueError("Port must be between 1 and 65535")
+        
+        # Validate numeric parameters
+        count = max(1, min(100, count))
+        timeout = max(1, min(30, timeout))
         results = []
         successful = 0
         failed = 0
@@ -242,7 +320,9 @@ class PingService:
         total_time = 0
         
         protocol_str = 'https' if use_https else 'http'
-        url = f"{protocol_str}://{target}:{port}/"
+        # Construct URL with validated components
+        # Port is already validated as integer in range 1-65535
+        url = f"{protocol_str}://{validated_target}:{port}/"
         
         for i in range(count):
             start_time = time.time()
@@ -295,7 +375,7 @@ class PingService:
         
         return {
             'protocol': 'HTTPS' if use_https else 'HTTP',
-            'target': target,
+            'target': validated_target,
             'port': port,
             'url': url,
             'count': count,
@@ -377,6 +457,10 @@ class PingService:
             Dictionary with ping results
         """
         protocol = protocol.lower()
+        
+        # Validate protocol
+        if protocol not in ['icmp', 'tcp', 'udp', 'http']:
+            raise ValueError(f"Unsupported protocol: {protocol}. Use: icmp, tcp, udp, or http")
         
         if protocol == 'icmp':
             return await self.icmp_ping(target, count, timeout, packet_size)
