@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface ScanTab {
   id: string;
   ip: string;
+  ips?: string[]; // For multi-host scans
   hostname?: string;
   status: 'idle' | 'running' | 'completed' | 'failed';
   logs: string[];
@@ -21,7 +22,7 @@ export interface ScanOptions {
 interface ScanState {
   tabs: ScanTab[];
   activeTabId: string | null;
-  addTab: (ip: string, hostname?: string) => void;
+  addTab: (ip: string | string[], hostname?: string) => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateTabOptions: (id: string, options: Partial<ScanOptions>) => void;
@@ -38,17 +39,29 @@ export const useScanStore = create<ScanState>((set) => ({
   onScanComplete: undefined,
   setOnScanComplete: (callback) => set({ onScanComplete: callback }),
   addTab: (ip, hostname) => set((state) => {
-    const existingTab = state.tabs.find(t => t.ip === ip);
-    if (existingTab) {
-      return { activeTabId: existingTab.id };
+    const isMultiHost = Array.isArray(ip);
+    const primaryIp = isMultiHost ? ip[0] : ip;
+    const ips = isMultiHost ? ip : undefined;
+    
+    // For single IP, check if tab already exists
+    if (!isMultiHost) {
+      const existingTab = state.tabs.find(t => t.ip === ip);
+      if (existingTab) {
+        return { activeTabId: existingTab.id };
+      }
     }
+    
     const newId = Math.random().toString(36).substring(7);
+    
     const newTab: ScanTab = {
       id: newId,
-      ip,
-      hostname,
+      ip: primaryIp,
+      ips,
+      hostname: isMultiHost ? undefined : hostname,
       status: 'idle',
-      logs: [`[INFO] Initialized scan tab for ${ip}`],
+      logs: isMultiHost 
+        ? [`[INFO] Initialized multi-host scan for ${ip.length} targets`, ...ip.map((ipAddr, idx) => `[INFO] Target ${idx + 1}: ${ipAddr}`)]
+        : [`[INFO] Initialized scan tab for ${primaryIp}`],
       options: {
         scanType: 'basic',
         ports: '1-1000',
