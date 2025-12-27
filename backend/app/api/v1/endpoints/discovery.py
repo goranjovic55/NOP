@@ -5,13 +5,15 @@ Network discovery endpoints
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
 from app.services.scanner import scanner
+from app.services.SnifferService import sniffer_service
 import uuid
 import asyncio
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +172,38 @@ async def scan_host_ports(host: str, ports: str = "1-1000"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/passive-discovery")
+async def get_passive_discovery(db: AsyncSession = Depends(get_db)):
+    """Get hosts discovered passively from network traffic"""
+    try:
+        discovered_hosts = sniffer_service.get_discovered_hosts()
+        return {
+            "hosts": discovered_hosts,
+            "total": len(discovered_hosts),
+            "discovery_method": "passive"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/passive-discovery/import")
+async def import_passive_discovery(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """Import passively discovered hosts into asset database"""
+    try:
+        discovered_hosts = sniffer_service.get_discovered_hosts()
+        
+        # Process in background
+        background_tasks.add_task(process_passive_discovery, discovered_hosts)
+        
+        return {
+            "message": "Passive discovery import started",
+            "hosts_found": len(discovered_hosts)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/test-environment")
 async def discover_test_environment():
     """Discover the test environment network"""
@@ -188,6 +222,16 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
     try:
         active_scans[scan_id]["started_at"] = "now"
         
+        # Determine discovery method based on scan type
+        if request.scan_type == "ping_only" or request.scan_type == "ping":
+            discovery_method = "ping"
+        elif request.scan_type == "arp":
+            discovery_method = "arp"
+        elif request.scan_type == "comprehensive":
+            discovery_method = "comprehensive"
+        else:
+            discovery_method = request.scan_type or "nmap"
+        
         if request.scan_type == "ping_only":
             hosts = await scanner.ping_sweep(request.network)
             results = {
@@ -204,7 +248,7 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         # Process results and update assets
         async with AsyncSessionLocal() as db:
             discovery_service = DiscoveryService(db)
-            await discovery_service.process_scan_results(results)
+            await discovery_service.process_scan_results(results, discovery_method=discovery_method)
             
             # Log event for scan completed
             event = Event(
@@ -226,6 +270,9 @@ async def run_host_scan(scan_id: str, request: HostScanRequest):
     """Run host scan in background"""
     try:
         active_scans[scan_id]["started_at"] = "now"
+        
+        # Determine discovery method
+        discovery_method = request.scan_type if request.scan_type == "comprehensive" else "nmap"
         
         if request.scan_type == "comprehensive":
             results = await scanner.comprehensive_scan(request.host)
@@ -254,8 +301,55 @@ async def run_host_scan(scan_id: str, request: HostScanRequest):
         # Process results and update assets
         async with AsyncSessionLocal() as db:
             discovery_service = DiscoveryService(db)
-            await discovery_service.process_scan_results(results, is_full_network_scan=False)
+            await discovery_service.process_scan_results(results, is_full_network_scan=False, discovery_method=discovery_method)
         
     except Exception as e:
         active_scans[scan_id]["status"] = "failed"
         active_scans[scan_id]["error"] = str(e)
+
+async def process_passive_discovery(discovered_hosts: List[Dict]):
+    """Process passively discovered hosts and add them to the database"""
+    try:
+        async with AsyncSessionLocal() as db:
+            from app.models.asset import Asset, AssetStatus
+            from sqlalchemy import select, cast
+            from sqlalchemy.dialects.postgresql import INET
+            from datetime import datetime
+            
+            for host_data in discovered_hosts:
+                ip_address = host_data.get("ip_address")
+                if not ip_address:
+                    continue
+                
+                # Check if asset already exists - cast string to INET for comparison
+                result = await db.execute(
+                    select(Asset).where(Asset.ip_address == cast(ip_address, INET))
+                )
+                asset = result.scalar_one_or_none()
+                
+                if asset:
+                    # Update existing asset with passive discovery info
+                    asset.last_seen = datetime.now()
+                    # Don't change status - passive discovery doesn't confirm reachability
+                    if host_data.get("mac_address") and not asset.mac_address:
+                        asset.mac_address = host_data.get("mac_address")
+                    # Add discovery method if not already set
+                    if not asset.discovery_method or asset.discovery_method == "unknown":
+                        asset.discovery_method = "passive"
+                else:
+                    # Create new asset with passive discovery
+                    new_asset = Asset(
+                        ip_address=ip_address,
+                        mac_address=host_data.get("mac_address"),
+                        status=AssetStatus.UNKNOWN,  # Status unknown until active scan
+                        discovery_method="passive",
+                        first_seen=datetime.fromtimestamp(host_data.get("first_seen", time.time())),
+                        last_seen=datetime.fromtimestamp(host_data.get("last_seen", time.time()))
+                    )
+                    db.add(new_asset)
+                
+            await db.commit()
+            logger.info(f"Processed {len(discovered_hosts)} passively discovered hosts")
+            
+    except Exception as e:
+        logger.error(f"Error processing passive discovery: {e}")

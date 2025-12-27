@@ -7,6 +7,7 @@ interface ScanSettings {
   manualScanType: 'arp' | 'ping';
   networkRange: string;
   pps: number; // Packets Per Second
+  passiveDiscoveryEnabled: boolean;
 }
 
 interface ScanSettingsModalProps {
@@ -78,6 +79,21 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
               <option value="arp">ARP Scan (Local Network)</option>
               <option value="ping">ICMP Ping Sweep</option>
             </select>
+          </div>
+
+          <div className="border-t border-cyber-gray pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <label className="text-xs text-cyber-purple uppercase font-bold">Enable Passive Discovery</label>
+                <p className="text-[10px] text-cyber-gray-light italic mt-1">Discover hosts from network traffic (less intrusive)</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={localSettings.passiveDiscoveryEnabled}
+                onChange={(e) => setLocalSettings({ ...localSettings, passiveDiscoveryEnabled: e.target.checked })}
+                className="w-5 h-5 accent-cyber-green"
+              />
+            </div>
           </div>
 
           <div className="border-t border-cyber-gray pt-4">

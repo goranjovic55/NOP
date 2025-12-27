@@ -9,12 +9,13 @@ export interface Asset {
   mac_address?: string;
   hostname?: string;
   asset_type: string;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'unknown';
   last_seen: string;
   vendor?: string;
   model?: string;
   os_name?: string;
   open_ports?: number[];
+  discovery_method?: string;
 }
 
 export const assetService = {
@@ -57,5 +58,11 @@ export const assetService = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  importPassiveDiscovery: async (token: string): Promise<void> => {
+    await axios.post(`${API_URL}/discovery/passive-discovery/import`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 };

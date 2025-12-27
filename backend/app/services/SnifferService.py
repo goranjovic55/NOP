@@ -1,6 +1,7 @@
 import asyncio
 import json
 import threading
+import ipaddress
 from typing import Dict, List, Optional, Callable, Any
 from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap
 import psutil
@@ -24,6 +25,8 @@ class SnifferService:
             "protocols": {},
             "connections": {},  # Format: "src-dst": {"bytes": int, "protocols": set()}
         }
+        # Passive discovery tracking
+        self.discovered_hosts = {}  # Format: {"ip": {"first_seen": timestamp, "last_seen": timestamp, "mac": str, "protocols": set()}}
         self.traffic_history = []
         self.interface_history = {} # Store history for each interface
         self.last_bytes_check = 0
@@ -114,9 +117,14 @@ class SnifferService:
             "raw": packet.build().hex()
         }
 
+        # Track MAC addresses from Ethernet layer
+        src_mac = None
+        dst_mac = None
         if Ether in packet:
             packet_data["source"] = packet[Ether].src
             packet_data["destination"] = packet[Ether].dst
+            src_mac = packet[Ether].src
+            dst_mac = packet[Ether].dst
 
         if IP in packet:
             packet_data["source"] = packet[IP].src
@@ -130,6 +138,35 @@ class SnifferService:
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
             
+            # Passive discovery: Track discovered hosts
+            current_time = time.time()
+            
+            # Track source IP
+            if src not in self.discovered_hosts:
+                self.discovered_hosts[src] = {
+                    "first_seen": current_time,
+                    "last_seen": current_time,
+                    "mac": src_mac,
+                    "protocols": set()
+                }
+            else:
+                self.discovered_hosts[src]["last_seen"] = current_time
+                if src_mac and not self.discovered_hosts[src]["mac"]:
+                    self.discovered_hosts[src]["mac"] = src_mac
+            
+            # Track destination IP (only if it's not broadcast/multicast)
+            if dst not in self.discovered_hosts and not self._is_broadcast_or_multicast(dst):
+                self.discovered_hosts[dst] = {
+                    "first_seen": current_time,
+                    "last_seen": current_time,
+                    "mac": dst_mac,
+                    "protocols": set()
+                }
+            elif dst in self.discovered_hosts:
+                self.discovered_hosts[dst]["last_seen"] = current_time
+                if dst_mac and not self.discovered_hosts[dst]["mac"]:
+                    self.discovered_hosts[dst]["mac"] = dst_mac
+            
             # Determine protocol
             protocol = "OTHER"
             if TCP in packet:
@@ -137,16 +174,31 @@ class SnifferService:
                 packet_data["protocol"] = "TCP"
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
+                # Track protocol for passive discovery
+                if src in self.discovered_hosts:
+                    self.discovered_hosts[src]["protocols"].add("TCP")
+                if dst in self.discovered_hosts:
+                    self.discovered_hosts[dst]["protocols"].add("TCP")
             elif UDP in packet:
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
+                # Track protocol for passive discovery
+                if src in self.discovered_hosts:
+                    self.discovered_hosts[src]["protocols"].add("UDP")
+                if dst in self.discovered_hosts:
+                    self.discovered_hosts[dst]["protocols"].add("UDP")
             elif packet[IP].proto == 1:  # ICMP (Internet Control Message Protocol)
                 protocol = "ICMP"
                 packet_data["protocol"] = "ICMP"
                 packet_data["info"] = "ICMP Echo/Reply"
                 self.stats["protocols"]["ICMP"] = self.stats["protocols"].get("ICMP", 0) + 1
+                # Track protocol for passive discovery
+                if src in self.discovered_hosts:
+                    self.discovered_hosts[src]["protocols"].add("ICMP")
+                if dst in self.discovered_hosts:
+                    self.discovered_hosts[dst]["protocols"].add("ICMP")
             else:
                 proto = packet[IP].proto
                 protocol = f"IP_{proto}"
@@ -228,5 +280,31 @@ class SnifferService:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         wrpcap(filepath, self.captured_packets)
         return filepath
+
+    def _is_broadcast_or_multicast(self, ip: str) -> bool:
+        """Check if IP is broadcast or multicast address"""
+        try:
+            addr = ipaddress.ip_address(ip)
+            return addr.is_multicast or addr.is_reserved or addr.is_loopback
+        except ValueError:
+            return True  # Invalid IP, skip it
+
+    def get_discovered_hosts(self) -> List[Dict[str, Any]]:
+        """Get list of passively discovered hosts from network traffic"""
+        hosts = []
+        for ip, data in self.discovered_hosts.items():
+            hosts.append({
+                "ip_address": ip,
+                "mac_address": data.get("mac"),
+                "first_seen": data.get("first_seen"),
+                "last_seen": data.get("last_seen"),
+                "protocols": list(data.get("protocols", set())),
+                "discovery_method": "passive"
+            })
+        return hosts
+
+    def clear_discovered_hosts(self):
+        """Clear the discovered hosts cache"""
+        self.discovered_hosts = {}
 
 sniffer_service = SnifferService()

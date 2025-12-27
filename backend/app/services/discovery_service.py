@@ -21,8 +21,14 @@ class DiscoveryService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def process_scan_results(self, results: Dict[str, Any], is_full_network_scan: bool = True):
-        """Process nmap scan results and update assets in database"""
+    async def process_scan_results(self, results: Dict[str, Any], is_full_network_scan: bool = True, discovery_method: str = "nmap"):
+        """Process nmap scan results and update assets in database
+        
+        Args:
+            results: Scan results from nmap
+            is_full_network_scan: Whether this was a full network scan
+            discovery_method: Method used for discovery (arp, ping, comprehensive, etc.)
+        """
         if "hosts" not in results:
             logger.warning("No hosts found in scan results")
             return
@@ -99,6 +105,9 @@ class DiscoveryService:
                 asset.open_ports = open_ports
                 asset.services = services
                 asset.asset_type = asset_type
+                # Update discovery method if it's more detailed than current
+                if not asset.discovery_method or asset.discovery_method in ["unknown", "passive", "arp", "ping"]:
+                    asset.discovery_method = discovery_method
                 logger.info(f"Updated asset: {ip_address}")
                 
                 # Log event for asset update (optional, but good for visibility)
@@ -122,7 +131,7 @@ class DiscoveryService:
                     status=AssetStatus.ONLINE,
                     open_ports=open_ports,
                     services=services,
-                    discovery_method="nmap",
+                    discovery_method=discovery_method,
                     asset_type=asset_type,
                     confidence_score=0.8
                 )

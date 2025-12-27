@@ -13,6 +13,7 @@ interface ScanSettings {
   manualScanType: 'arp' | 'ping';
   networkRange: string;
   pps: number;
+  passiveDiscoveryEnabled: boolean;
 }
 
 type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time';
@@ -41,7 +42,8 @@ const Assets: React.FC = () => {
       autoScanType: 'arp',
       manualScanType: 'arp',
       networkRange: '172.21.0.0/24',
-      pps: 100
+      pps: 100,
+      passiveDiscoveryEnabled: true
     };
   });
 
@@ -189,6 +191,28 @@ const Assets: React.FC = () => {
     };
   }, [scanSettings.autoScanEnabled, scanSettings.autoScanInterval, triggerScan]);
 
+  // Passive discovery import
+  const importPassiveDiscovery = useCallback(async () => {
+    if (!token || !scanSettings.passiveDiscoveryEnabled) return;
+    try {
+      await assetService.importPassiveDiscovery(token);
+      fetchAssets(false);
+    } catch (err) {
+      console.error('Failed to import passive discovery:', err);
+    }
+  }, [token, scanSettings.passiveDiscoveryEnabled, fetchAssets]);
+
+  // Periodic passive discovery import
+  useEffect(() => {
+    if (scanSettings.passiveDiscoveryEnabled) {
+      // Import passive discoveries every 30 seconds
+      const passiveTimer = setInterval(importPassiveDiscovery, 30000);
+      // Run immediately
+      importPassiveDiscovery();
+      return () => clearInterval(passiveTimer);
+    }
+  }, [scanSettings.passiveDiscoveryEnabled, importPassiveDiscovery]);
+
   useEffect(() => {
     fetchAssets(true);
   }, [fetchAssets]);
@@ -306,6 +330,22 @@ const Assets: React.FC = () => {
               </select>
             </div>
 
+            <button 
+              onClick={() => {
+                const newSettings = { ...scanSettings, passiveDiscoveryEnabled: !scanSettings.passiveDiscoveryEnabled };
+                setScanSettings(newSettings);
+                localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
+              }}
+              className={`p-2 px-3 border text-sm font-bold transition-colors ${
+                scanSettings.passiveDiscoveryEnabled 
+                  ? 'bg-cyber-green bg-opacity-10 border-cyber-green text-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.3)]' 
+                  : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-green'
+              }`}
+              title="Toggle passive network discovery from traffic"
+            >
+              {scanSettings.passiveDiscoveryEnabled ? '● PASSIVE ON' : '○ PASSIVE OFF'}
+            </button>
+
             <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-cyber-darker border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue transition-colors text-sm font-bold">
               CONFIG
             </button>
@@ -355,14 +395,15 @@ const Assets: React.FC = () => {
                 >
                   Intel {sortField === 'scanned_time' && (sortOrder === 'asc' ? '▲' : '▼')}
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Discovery</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Services</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
               ) : filteredAndSortedAssets.length === 0 && !error ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 filteredAndSortedAssets.map((asset: any) => {
                   const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
@@ -404,6 +445,21 @@ const Assets: React.FC = () => {
                             <span className="text-cyber-gray-light text-[10px] font-bold uppercase border border-cyber-gray px-1 opacity-40 w-fit">Unscanned</span>
                           )}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {asset.discovery_method ? (
+                          <span className={`text-[10px] font-bold uppercase border px-1.5 py-0.5 ${
+                            asset.discovery_method === 'passive' ? 'border-cyber-green text-cyber-green shadow-[0_0_3px_rgba(0,255,65,0.3)]' :
+                            asset.discovery_method === 'arp' ? 'border-cyber-blue text-cyber-blue' :
+                            asset.discovery_method === 'ping' ? 'border-cyber-purple text-cyber-purple' :
+                            asset.discovery_method === 'comprehensive' ? 'border-cyber-red text-cyber-red shadow-[0_0_3px_rgba(255,0,64,0.3)]' :
+                            'border-cyber-gray text-cyber-gray-light'
+                          }`}>
+                            {asset.discovery_method.toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="text-cyber-gray-light text-[10px] opacity-40">N/A</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {asset.open_ports && asset.open_ports.length > 0 ? (

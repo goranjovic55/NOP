@@ -543,7 +543,7 @@ const Scans: React.FC = () => {
         </>
       ) : (
         activeTab && (
-        <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
+          <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-cyber-darker p-6 border border-cyber-gray">
             <div className="space-y-4">
               <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Scan Configuration</h3>
@@ -665,6 +665,7 @@ const Scans: React.FC = () => {
             </div>
           </div>
         </div>
+        )
       )}
     </div>
   );
