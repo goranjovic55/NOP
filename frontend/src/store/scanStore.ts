@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface ScanTab {
   id: string;
   ip: string;
+  ips?: string[]; // For multi-host scans
   hostname?: string;
   status: 'idle' | 'running' | 'completed' | 'failed';
   logs: string[];
@@ -21,7 +22,7 @@ export interface ScanOptions {
 interface ScanState {
   tabs: ScanTab[];
   activeTabId: string | null;
-  addTab: (ip: string, hostname?: string) => void;
+  addTab: (ipOrIps: string | string[], hostname?: string) => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateTabOptions: (id: string, options: Partial<ScanOptions>) => void;
@@ -37,18 +38,25 @@ export const useScanStore = create<ScanState>((set) => ({
   activeTabId: null,
   onScanComplete: undefined,
   setOnScanComplete: (callback) => set({ onScanComplete: callback }),
-  addTab: (ip, hostname) => set((state) => {
+  addTab: (ipOrIps, hostname) => set((state) => {
+    // Handle both single IP and array of IPs
+    const isSingleIp = typeof ipOrIps === 'string';
+    const ip = isSingleIp ? ipOrIps : ipOrIps[0];
+    const ips = isSingleIp ? undefined : ipOrIps;
+    
     const existingTab = state.tabs.find(t => t.ip === ip);
-    if (existingTab) {
+    if (existingTab && isSingleIp) {
       return { activeTabId: existingTab.id };
     }
     const newId = Math.random().toString(36).substring(7);
+    const displayText = isSingleIp ? ip : `${ipOrIps.length} hosts`;
     const newTab: ScanTab = {
       id: newId,
       ip,
+      ips,
       hostname,
       status: 'idle',
-      logs: [`[INFO] Initialized scan tab for ${ip}`],
+      logs: [`[INFO] Initialized scan tab for ${displayText}`],
       options: {
         scanType: 'basic',
         ports: '1-1000',

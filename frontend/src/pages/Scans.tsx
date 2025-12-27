@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useScanStore } from '../store/scanStore';
 import { useAuthStore } from '../store/authStore';
-import { assetService } from '../services/assetService';
+import { assetService, Asset } from '../services/assetService';
 import axios from 'axios';
 
 const Scans: React.FC = () => {
@@ -10,12 +10,10 @@ const Scans: React.FC = () => {
   const activeTab = tabs.find(t => t.id === activeTabId);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [manualIp, setManualIp] = useState('');
-  const [showHostSelector, setShowHostSelector] = useState(false);
-  const [availableHosts, setAvailableHosts] = useState<any[]>([]);
-  const [selectedHosts, setSelectedHosts] = useState<Set<string>>(new Set());
-  const [loadingHosts, setLoadingHosts] = useState(false);
-  const [currentView, setCurrentView] = useState<'selection' | 'scan'>('selection');
-  const [scanFilter, setScanFilter] = useState<'all' | 'scanned' | 'unscanned'>('all');
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
+  const [showDashboard, setShowDashboard] = useState(true);
 
   useEffect(() => {
     if (logEndRef.current) {
@@ -23,55 +21,41 @@ const Scans: React.FC = () => {
     }
   }, [activeTab?.logs]);
 
-  // Load available hosts on component mount
   useEffect(() => {
-    loadAvailableHosts();
-    const interval = setInterval(loadAvailableHosts, 10000); // Refresh every 10s
+    const fetchAssets = async () => {
+      if (!token) return;
+      try {
+        setLoading(true);
+        const data = await assetService.getAssets(token);
+        
+        // Merge with local scan results to determine which assets have been scanned
+        const localResults = JSON.parse(localStorage.getItem('nop_local_scan_results') || '{}');
+        const mergedData = data.map(asset => {
+          const localData = localResults[asset.ip_address];
+          if (localData) {
+            return { 
+              ...asset, 
+              ...localData,
+              has_been_scanned: true,
+              last_detailed_scan: localData.last_detailed_scan
+            };
+          }
+          return { ...asset, has_been_scanned: false, last_detailed_scan: null };
+        });
+        
+        setAssets(mergedData);
+      } catch (err) {
+        console.error('Failed to fetch assets:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAssets();
+    // Refresh assets every 30 seconds
+    const interval = setInterval(fetchAssets, 30000);
     return () => clearInterval(interval);
   }, [token]);
-
-  // Load available hosts for selection
-  const loadAvailableHosts = async () => {
-    if (!token) return;
-    setLoadingHosts(true);
-    try {
-      const hosts = await assetService.getAssets(token);
-      setAvailableHosts(hosts);
-    } catch (err) {
-      console.error('Failed to load hosts:', err);
-    } finally {
-      setLoadingHosts(false);
-    }
-  };
-
-  const toggleHostSelection = (ip: string) => {
-    const newSelected = new Set(selectedHosts);
-    if (newSelected.has(ip)) {
-      newSelected.delete(ip);
-    } else {
-      newSelected.add(ip);
-    }
-    setSelectedHosts(newSelected);
-  };
-
-  const handleStartMultiScan = async () => {
-    if (selectedHosts.size === 0) return;
-    
-    for (const ip of Array.from(selectedHosts)) {
-      const host = availableHosts.find(h => h.ip_address === ip);
-      addTab(ip, host?.hostname);
-    }
-    
-    setCurrentView('scan');
-    setSelectedHosts(new Set());
-  };
-
-  const filteredHosts = availableHosts.filter(host => {
-    if (scanFilter === 'all') return true;
-    if (scanFilter === 'scanned') return host.open_ports && host.open_ports.length > 0;
-    if (scanFilter === 'unscanned') return !host.open_ports || host.open_ports.length === 0;
-    return true;
-  });
 
   const handleStartScan = async (id: string) => {
     const tab = tabs.find(t => t.id === id);
@@ -79,68 +63,80 @@ const Scans: React.FC = () => {
 
     startScan(id);
 
-    const { ip, options } = tab;
+    const { ip, ips, options } = tab;
+    const isMultiHost = !!ips && ips.length > 0;
+    const hostsToScan = isMultiHost ? ips : [ip];
 
-    addLog(id, `[SCAN] Initializing real-time scan for ${ip}...`);
+    addLog(id, `[SCAN] Initializing real-time scan for ${hostsToScan.length} host(s)...`);
     addLog(id, `[SCAN] Requesting backend to perform ${options.scanType} scan...`);
 
     try {
-      const response = await axios.post('/api/v1/discovery/scan/host', {
-        host: ip,
-        scan_type: options.scanType === 'basic' ? 'ports' : options.scanType,
-        ports: options.ports
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // For multi-host, we'll scan each sequentially
+      for (const host of hostsToScan) {
+        addLog(id, `[SCAN] Scanning ${host}...`);
+        
+        const response = await axios.post('/api/v1/discovery/scan/host', {
+          host: host,
+          scan_type: options.scanType === 'basic' ? 'ports' : options.scanType,
+          ports: options.ports
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      const scanId = response.data.scan_id;
-      addLog(id, `[SCAN] Backend scan started. ID: ${scanId}`);
+        const scanId = response.data.scan_id;
+        addLog(id, `[SCAN] Backend scan started for ${host}. ID: ${scanId}`);
 
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusRes = await axios.get(`/api/v1/discovery/scans/${scanId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          const data = statusRes.data;
-          if (data.status === 'completed') {
-            clearInterval(pollInterval);
-            addLog(id, `[SUCCESS] Backend scan completed.`);
-
-            const hostResults = data.results?.hosts?.[0];
-            if (hostResults) {
-              const osName = hostResults.os?.name || 'Unknown';
-              const openPorts = hostResults.ports?.filter((p: any) => p.state === 'open').map((p: any) => parseInt(p.portid)) || [];
-
-              addLog(id, `[INFO] OS details: ${osName}`);
-              openPorts.forEach((port: number) => {
-                addLog(id, `[INFO] Discovered open port ${port}/tcp`);
+        // Poll for this host's scan
+        await new Promise<void>((resolve) => {
+          const pollInterval = setInterval(async () => {
+            try {
+              const statusRes = await axios.get(`/api/v1/discovery/scans/${scanId}`, {
+                headers: { Authorization: `Bearer ${token}` }
               });
 
-              if (onScanComplete) {
-                onScanComplete(ip, {
-                  os_name: osName,
-                  open_ports: openPorts,
-                  hostname: hostResults.hostnames?.[0]?.name,
-                  vendor: hostResults.addresses?.find((a: any) => a.addrtype === 'mac')?.vendor
-                });
+              const data = statusRes.data;
+              if (data.status === 'completed') {
+                clearInterval(pollInterval);
+                addLog(id, `[SUCCESS] Scan completed for ${host}.`);
+
+                const hostResults = data.results?.hosts?.[0];
+                if (hostResults) {
+                  const osName = hostResults.os?.name || 'Unknown';
+                  const openPorts = hostResults.ports?.filter((p: any) => p.state === 'open').map((p: any) => parseInt(p.portid)) || [];
+
+                  addLog(id, `[INFO] ${host} - OS: ${osName}`);
+                  openPorts.forEach((port: number) => {
+                    addLog(id, `[INFO] ${host} - Open port ${port}/tcp`);
+                  });
+
+                  if (onScanComplete) {
+                    onScanComplete(host, {
+                      os_name: osName,
+                      open_ports: openPorts,
+                      hostname: hostResults.hostnames?.[0]?.name,
+                      vendor: hostResults.addresses?.find((a: any) => a.addrtype === 'mac')?.vendor
+                    });
+                  }
+                }
+                resolve();
+              } else if (data.status === 'failed') {
+                clearInterval(pollInterval);
+                addLog(id, `[ERROR] Scan failed for ${host}: ${data.error}`);
+                resolve();
+              } else {
+                addLog(id, `[SCAN] ${host} - Still running...`);
               }
+            } catch (err) {
+              clearInterval(pollInterval);
+              addLog(id, `[ERROR] Failed to poll scan status for ${host}.`);
+              resolve();
             }
-            setScanStatus(id, 'completed');
-            addLog(id, `[SUCCESS] Nmap done: 1 IP address (1 host up) scanned.`);
-          } else if (data.status === 'failed') {
-            clearInterval(pollInterval);
-            addLog(id, `[ERROR] Backend scan failed: ${data.error}`);
-            setScanStatus(id, 'failed');
-          } else {
-            addLog(id, `[SCAN] Still running...`);
-          }
-        } catch (err) {
-          clearInterval(pollInterval);
-          addLog(id, `[ERROR] Failed to poll scan status.`);
-          setScanStatus(id, 'failed');
-        }
-      }, 3000);
+          }, 3000);
+        });
+      }
+      
+      setScanStatus(id, 'completed');
+      addLog(id, `[SUCCESS] All scans completed. ${hostsToScan.length} host(s) scanned.`);
 
     } catch (err: any) {
       addLog(id, `[ERROR] Failed to start backend scan: ${err.message}`);
@@ -153,212 +149,242 @@ const Scans: React.FC = () => {
     if (manualIp.trim()) {
       addTab(manualIp.trim());
       setManualIp('');
+      setShowDashboard(false); // Switch to the new scan tab
     }
   };
 
-  if (tabs.length === 0) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-        {/* Header with filters */}
-        <div className="flex justify-between items-center bg-cyber-darker p-4 border border-cyber-gray">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-cyber-purple font-bold uppercase tracking-widest">Host Selection</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setScanFilter('all')}
-                className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                  scanFilter === 'all'
-                    ? 'bg-cyber-purple text-white'
-                    : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple'
-                }`}
-              >
-                All ({availableHosts.length})
-              </button>
-              <button
-                onClick={() => setScanFilter('scanned')}
-                className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                  scanFilter === 'scanned'
-                    ? 'bg-cyber-green text-white'
-                    : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-green'
-                }`}
-              >
-                Scanned ({availableHosts.filter(h => h.open_ports && h.open_ports.length > 0).length})
-              </button>
-              <button
-                onClick={() => setScanFilter('unscanned')}
-                className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                  scanFilter === 'unscanned'
-                    ? 'bg-cyber-red text-white'
-                    : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-red'
-                }`}
-              >
-                Unscanned ({availableHosts.filter(h => !h.open_ports || h.open_ports.length === 0).length})
-              </button>
-            </div>
+  const toggleAssetSelection = (ipAddress: string) => {
+    const newSelected = new Set(selectedAssets);
+    if (newSelected.has(ipAddress)) {
+      newSelected.delete(ipAddress);
+    } else {
+      newSelected.add(ipAddress);
+    }
+    setSelectedAssets(newSelected);
+  };
+
+  const handleScanSelectedAssets = () => {
+    if (selectedAssets.size === 0) return;
+    
+    const ipsArray = Array.from(selectedAssets);
+    addTab(ipsArray);
+    setSelectedAssets(new Set());
+    setShowDashboard(false); // Switch to the new scan tab
+  };
+
+  const handleScanSingleAsset = (asset: Asset) => {
+    addTab(asset.ip_address, asset.hostname);
+    setShowDashboard(false); // Switch to the new scan tab
+  };
+
+  // Filter to only show unscanned assets
+  const unscannedAssets = assets.filter((asset: any) => !asset.has_been_scanned);
+
+  // Dashboard view component
+  const DashboardView = () => (
+    <div className="flex flex-col space-y-6">
+      {/* Manual IP Input Section - Top */}
+      <div className="bg-cyber-darker border border-cyber-gray p-6">
+        <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2 mb-4">
+          Manual IP Address Scan
+        </h3>
+        <form onSubmit={handleManualSubmit} className="flex space-x-2">
+          <input
+            type="text"
+            value={manualIp}
+            onChange={(e) => setManualIp(e.target.value)}
+            placeholder="Enter IP Address (e.g. 192.168.1.1)"
+            className="flex-1 bg-cyber-dark border border-cyber-gray p-3 text-cyber-blue outline-none focus:border-cyber-red transition-colors font-mono"
+          />
+          <button
+            type="submit"
+            className="btn-cyber border-cyber-red text-cyber-red px-6 py-3 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest"
+          >
+            Initialize
+          </button>
+        </form>
+      </div>
+
+      {/* Unscanned Assets Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-cyber-red font-bold uppercase tracking-widest text-xl cyber-glow-red">
+              Unscanned Assets
+            </h3>
+            <p className="text-cyber-purple text-sm mt-1">
+              Select assets to scan. Click to scan individually or select multiple for multi-host scan.
+            </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-cyber-gray-light text-sm">
-              {selectedHosts.size} selected
-            </span>
+          {selectedAssets.size > 0 && (
             <button
-              onClick={handleStartMultiScan}
-              disabled={selectedHosts.size === 0}
-              className={`px-6 py-2 font-bold uppercase tracking-widest transition-all ${
-                selectedHosts.size === 0
-                  ? 'border border-cyber-gray text-cyber-gray cursor-not-allowed'
-                  : 'border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white cyber-glow-red'
-              }`}
+              onClick={handleScanSelectedAssets}
+              className="btn-cyber border-cyber-red text-cyber-red px-6 py-3 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest"
             >
-              Start Scans ({selectedHosts.size})
+              Scan Selected ({selectedAssets.size})
             </button>
-          </div>
+          )}
         </div>
 
-        {/* Host cards grid */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-cyber-dark">
-          {loadingHosts ? (
-            <div className="text-center text-cyber-gray-light py-12">
-              <div className="text-xl">Loading hosts...</div>
+        {loading ? (
+          <div className="text-center py-12 text-cyber-gray-light">
+            Loading assets...
+          </div>
+        ) : unscannedAssets.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-cyber-gray-light text-lg uppercase tracking-widest">
+              No Unscanned Assets Available
             </div>
-          ) : filteredHosts.length === 0 ? (
-            <div className="text-center text-cyber-gray-light py-12">
-              <div className="text-xl mb-2">No hosts available</div>
-              <p className="text-sm">Run a discovery scan from Assets page to detect hosts</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredHosts.map((host) => {
-                const isScanned = host.open_ports && host.open_ports.length > 0;
-                const isSelected = selectedHosts.has(host.ip_address);
-                
-                return (
-                  <div
-                    key={host.id}
-                    onClick={() => toggleHostSelection(host.ip_address)}
-                    className={`relative p-4 border-2 cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-cyber-purple bg-cyber-darker shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                        : 'border-cyber-gray hover:border-cyber-blue bg-cyber-darker'
-                    }`}
-                  >
-                    {/* Selection checkbox */}
-                    <div className="absolute top-2 right-2">
+            <p className="text-cyber-purple text-sm mt-2">
+              All discovered assets have been scanned. Use manual IP scan above to scan specific targets.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {unscannedAssets.map((asset: any) => {
+              const isSelected = selectedAssets.has(asset.ip_address);
+              return (
+                <div
+                  key={asset.id}
+                  className={`bg-cyber-darker border-2 transition-all cursor-pointer ${
+                    isSelected 
+                      ? 'border-cyber-red shadow-[0_0_10px_rgba(255,0,64,0.5)]' 
+                      : 'border-cyber-gray hover:border-cyber-blue'
+                  }`}
+                >
+                  <div className="p-4 space-y-3">
+                    {/* Header with checkbox */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-cyber-blue font-mono font-bold text-lg">
+                          {asset.ip_address}
+                        </div>
+                        {asset.hostname && (
+                          <div className="text-cyber-gray-light text-xs truncate">
+                            {asset.hostname}
+                          </div>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => {}}
-                        className="w-5 h-5 accent-cyber-purple"
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleAssetSelection(asset.ip_address);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-5 h-5 accent-cyber-red cursor-pointer"
                       />
                     </div>
 
-                    {/* Status badge */}
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className={`px-2 py-1 text-[10px] font-bold uppercase border ${
-                        host.status === 'online'
-                          ? 'text-cyber-green border-cyber-green'
-                          : 'text-cyber-red border-cyber-red opacity-60'
+                    {/* Status */}
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                        asset.status === 'online' 
+                          ? 'text-cyber-green border border-cyber-green' 
+                          : 'text-cyber-gray-light border border-cyber-gray opacity-60'
                       }`}>
-                        {host.status}
+                        {asset.status}
                       </span>
-                      {isScanned && (
-                        <span className="px-2 py-1 text-[10px] font-bold uppercase border border-cyber-green text-cyber-green shadow-[0_0_3px_#00ff41]">
-                          Scanned
-                        </span>
-                      )}
+                      <span className="text-cyber-gray-light text-xs opacity-60">
+                        Last seen: {asset.last_seen ? new Date(asset.last_seen).toLocaleTimeString() : 'Never'}
+                      </span>
                     </div>
 
-                    {/* IP Address */}
-                    <div className="text-cyber-blue font-mono text-lg font-bold mb-2">
-                      {host.ip_address}
-                    </div>
-
-                    {/* Hostname */}
-                    <div className="text-cyber-gray-light text-sm mb-3">
-                      {host.hostname || 'Unknown hostname'}
-                    </div>
-
-                    {/* Details grid */}
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-cyber-purple uppercase font-bold">OS:</span>
-                        <span className="text-cyber-gray-light">{host.os_name || 'Unknown'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-cyber-purple uppercase font-bold">MAC:</span>
-                        <span className="text-cyber-gray-light font-mono">{host.mac_address ? host.mac_address.substring(0, 17) : 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-cyber-purple uppercase font-bold">Vendor:</span>
-                        <span className="text-cyber-gray-light">{host.vendor || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {/* Open ports */}
-                    {isScanned && (
-                      <div className="mt-3 pt-3 border-t border-cyber-gray">
-                        <div className="text-[10px] text-cyber-purple uppercase font-bold mb-2">Services</div>
-                        <div className="flex flex-wrap gap-1">
-                          {host.open_ports.includes(22) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">SSH</span>}
-                          {host.open_ports.includes(3389) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">RDP</span>}
-                          {host.open_ports.includes(5900) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">VNC</span>}
-                          {host.open_ports.includes(23) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">TELNET</span>}
-                          {(host.open_ports.includes(80) || host.open_ports.includes(443) || host.open_ports.includes(8080)) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">WEB</span>}
-                          {(host.open_ports.includes(21) || host.open_ports.includes(20)) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">FTP</span>}
-                          {host.open_ports.length > 6 && <span className="text-[9px] text-cyber-gray-light">+{host.open_ports.length - 6} more</span>}
-                        </div>
+                    {/* Asset Info */}
+                    {(asset.vendor || asset.os_name) && (
+                      <div className="text-xs text-cyber-purple space-y-1 border-t border-cyber-gray pt-2">
+                        {asset.vendor && (
+                          <div>Vendor: {asset.vendor}</div>
+                        )}
+                        {asset.os_name && (
+                          <div>OS: {asset.os_name}</div>
+                        )}
                       </div>
                     )}
 
-                    {/* Last seen */}
-                    <div className="mt-3 text-[10px] text-cyber-gray-light opacity-50">
-                      Last seen: {host.last_seen ? new Date(host.last_seen).toLocaleString() : 'Never'}
-                    </div>
+                    {/* Scan Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleScanSingleAsset(asset);
+                      }}
+                      className="w-full btn-cyber border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white py-2 text-sm uppercase font-bold tracking-widest"
+                    >
+                      Scan Now
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-      {/* Tab bar */}
+      {/* Manual IP Input Section - Always visible at top */}
+      <div className="bg-cyber-darker border border-cyber-gray p-4">
+        <form onSubmit={handleManualSubmit} className="flex items-center space-x-2">
+          <label className="text-xs text-cyber-purple uppercase font-bold whitespace-nowrap">
+            Manual IP:
+          </label>
+          <input
+            type="text"
+            value={manualIp}
+            onChange={(e) => setManualIp(e.target.value)}
+            placeholder="e.g. 192.168.1.1"
+            className="flex-1 bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
+          />
+          <button
+            type="submit"
+            className="btn-cyber border-cyber-red text-cyber-red px-4 py-2 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest text-sm"
+          >
+            Add Scan
+          </button>
+        </form>
+      </div>
+
+      {/* Tab Bar */}
       <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar">
-        {/* Default Host Selection Tab */}
+        {/* Dashboard Tab - Always present */}
         <div
-          onClick={() => setCurrentView('selection')}
+          onClick={() => setShowDashboard(true)}
           className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
-            currentView === 'selection'
+            showDashboard
               ? 'bg-cyber-darker border-cyber-purple text-cyber-purple'
               : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
           }`}
         >
           <div className="flex-1">
-            <div className="text-xs font-bold uppercase">Host Selection</div>
-            <div className="text-[10px] opacity-60">{availableHosts.length} hosts</div>
+            <div className="text-xs font-bold uppercase">⌂ Scan Dashboard</div>
+            <div className="text-[10px] opacity-60">{unscannedAssets.length} unscanned</div>
           </div>
         </div>
 
-        {/* Scan tabs */}
+        {/* Active Scan Tabs */}
         {tabs.map((tab) => (
           <div
             key={tab.id}
             onClick={() => {
               setActiveTab(tab.id);
-              setCurrentView('scan');
+              setShowDashboard(false);
             }}
             className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
-              activeTabId === tab.id && currentView === 'scan'
+              activeTabId === tab.id && !showDashboard
                 ? 'bg-cyber-darker border-cyber-red text-cyber-red'
                 : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
             }`}
           >
             <div className="flex-1 truncate">
-              <div className="text-xs font-bold uppercase">{tab.ip}</div>
-              <div className="text-[10px] opacity-60">{tab.hostname || 'Manual Target'}</div>
+              <div className="text-xs font-bold uppercase">
+                {tab.ips ? `Multi-host (${tab.ips.length})` : tab.ip}
+              </div>
+              <div className="text-[10px] opacity-60">
+                {tab.ips ? tab.ips.slice(0, 2).join(', ') + (tab.ips.length > 2 ? '...' : '') : (tab.hostname || 'Manual Target')}
+              </div>
             </div>
             {tab.status === 'running' && (
               <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping"></div>
@@ -367,7 +393,6 @@ const Scans: React.FC = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 removeTab(tab.id);
-                if (tabs.length === 1) setCurrentView('selection');
               }}
               className="hover:text-cyber-red ml-2"
             >
@@ -375,175 +400,26 @@ const Scans: React.FC = () => {
             </button>
           </div>
         ))}
+        <button
+          onClick={() => {
+            const ip = prompt('Enter IP Address:');
+            if (ip) {
+              addTab(ip);
+              setShowDashboard(false);
+            }
+          }}
+          className="px-4 py-2 text-cyber-blue hover:text-cyber-red transition-colors text-xl"
+          title="Add Manual Scan"
+        >
+          +
+        </button>
       </div>
 
-      {/* Content area */}
-      {currentView === 'selection' ? (
-        <>
-          {/* Host selection header */}
-          <div className="flex justify-between items-center bg-cyber-darker p-4 border border-cyber-gray">
-            <div className="flex items-center space-x-4">
-              <h2 className="text-cyber-purple font-bold uppercase tracking-widest">Select Hosts for Scanning</h2>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setScanFilter('all')}
-                  className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                    scanFilter === 'all'
-                      ? 'bg-cyber-purple text-white'
-                      : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple'
-                  }`}
-                >
-                  All ({availableHosts.length})
-                </button>
-                <button
-                  onClick={() => setScanFilter('scanned')}
-                  className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                    scanFilter === 'scanned'
-                      ? 'bg-cyber-green text-white'
-                      : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-green'
-                  }`}
-                >
-                  Scanned ({availableHosts.filter(h => h.open_ports && h.open_ports.length > 0).length})
-                </button>
-                <button
-                  onClick={() => setScanFilter('unscanned')}
-                  className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${
-                    scanFilter === 'unscanned'
-                      ? 'bg-cyber-red text-white'
-                      : 'border border-cyber-gray text-cyber-gray-light hover:border-cyber-red'
-                  }`}
-                >
-                  Unscanned ({availableHosts.filter(h => !h.open_ports || h.open_ports.length === 0).length})
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-cyber-gray-light text-sm">
-                {selectedHosts.size} selected
-              </span>
-              <button
-                onClick={handleStartMultiScan}
-                disabled={selectedHosts.size === 0}
-                className={`px-6 py-2 font-bold uppercase tracking-widest transition-all ${
-                  selectedHosts.size === 0
-                    ? 'border border-cyber-gray text-cyber-gray cursor-not-allowed'
-                    : 'border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white cyber-glow-red'
-                }`}
-              >
-                Start Scans ({selectedHosts.size})
-              </button>
-            </div>
-          </div>
-
-          {/* Host cards grid */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-cyber-dark">
-            {loadingHosts ? (
-              <div className="text-center text-cyber-gray-light py-12">
-                <div className="text-xl">Loading hosts...</div>
-              </div>
-            ) : filteredHosts.length === 0 ? (
-              <div className="text-center text-cyber-gray-light py-12">
-                <div className="text-xl mb-2">No hosts available</div>
-                <p className="text-sm">Run a discovery scan from Assets page to detect hosts</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredHosts.map((host) => {
-                  const isScanned = host.open_ports && host.open_ports.length > 0;
-                  const isSelected = selectedHosts.has(host.ip_address);
-                  
-                  return (
-                    <div
-                      key={host.id}
-                      onClick={() => toggleHostSelection(host.ip_address)}
-                      className={`relative p-4 border-2 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-cyber-purple bg-cyber-darker shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                          : 'border-cyber-gray hover:border-cyber-blue bg-cyber-darker'
-                      }`}
-                    >
-                      {/* Selection checkbox */}
-                      <div className="absolute top-2 right-2">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}}
-                          className="w-5 h-5 accent-cyber-purple"
-                        />
-                      </div>
-
-                      {/* Status badge */}
-                      <div className="flex items-center space-x-2 mb-3">
-                        <span className={`px-2 py-1 text-[10px] font-bold uppercase border ${
-                          host.status === 'online'
-                            ? 'text-cyber-green border-cyber-green'
-                            : 'text-cyber-red border-cyber-red opacity-60'
-                        }`}>
-                          {host.status}
-                        </span>
-                        {isScanned && (
-                          <span className="px-2 py-1 text-[10px] font-bold uppercase border border-cyber-green text-cyber-green shadow-[0_0_3px_#00ff41]">
-                            Scanned
-                          </span>
-                        )}
-                      </div>
-
-                      {/* IP Address */}
-                      <div className="text-cyber-blue font-mono text-lg font-bold mb-2">
-                        {host.ip_address}
-                      </div>
-
-                      {/* Hostname */}
-                      <div className="text-cyber-gray-light text-sm mb-3">
-                        {host.hostname || 'Unknown hostname'}
-                      </div>
-
-                      {/* Details grid */}
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-cyber-purple uppercase font-bold">OS:</span>
-                          <span className="text-cyber-gray-light">{host.os_name || 'Unknown'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-cyber-purple uppercase font-bold">MAC:</span>
-                          <span className="text-cyber-gray-light font-mono">{host.mac_address ? host.mac_address.substring(0, 17) : 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-cyber-purple uppercase font-bold">Vendor:</span>
-                          <span className="text-cyber-gray-light">{host.vendor || 'N/A'}</span>
-                        </div>
-                      </div>
-
-                      {/* Open ports */}
-                      {isScanned && (
-                        <div className="mt-3 pt-3 border-t border-cyber-gray">
-                          <div className="text-[10px] text-cyber-purple uppercase font-bold mb-2">Services</div>
-                          <div className="flex flex-wrap gap-1">
-                            {host.open_ports.includes(22) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">SSH</span>}
-                            {host.open_ports.includes(3389) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">RDP</span>}
-                            {host.open_ports.includes(5900) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">VNC</span>}
-                            {host.open_ports.includes(23) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">TELNET</span>}
-                            {(host.open_ports.includes(80) || host.open_ports.includes(443) || host.open_ports.includes(8080)) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">WEB</span>}
-                            {(host.open_ports.includes(21) || host.open_ports.includes(20)) && <span className="text-[9px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">FTP</span>}
-                            {host.open_ports.length > 6 && <span className="text-[9px] text-cyber-gray-light">+{host.open_ports.length - 6} more</span>}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last seen */}
-                      <div className="mt-3 text-[10px] text-cyber-gray-light opacity-50">
-                        Last seen: {host.last_seen ? new Date(host.last_seen).toLocaleString() : 'Never'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        activeTab && (
-          <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
+      {/* Content Area */}
+      {showDashboard ? (
+        <DashboardView />
+      ) : activeTab ? (
+        <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-cyber-darker p-6 border border-cyber-gray">
             <div className="space-y-4">
               <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Scan Configuration</h3>
@@ -646,7 +522,9 @@ const Scans: React.FC = () => {
           <div className="flex-1 flex flex-col bg-black border border-cyber-gray overflow-hidden">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
               <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest">Real-time Scan Output</span>
-              <span className="text-[10px] text-cyber-gray-light font-mono">{activeTab.ip}</span>
+              <span className="text-[10px] text-cyber-gray-light font-mono">
+                {activeTab.ips ? `${activeTab.ips.length} hosts` : activeTab.ip}
+              </span>
             </div>
             <div className="flex-1 p-4 font-mono text-xs overflow-y-auto custom-scrollbar space-y-1">
               {activeTab.logs.map((log, i) => (
@@ -665,8 +543,7 @@ const Scans: React.FC = () => {
             </div>
           </div>
         </div>
-        )
-      )}
+      ) : null}
     </div>
   );
 };
