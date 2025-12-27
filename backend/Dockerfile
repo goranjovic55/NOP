@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     hping3 \
     traceroute \
     tcptraceroute \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
