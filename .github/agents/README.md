@@ -2,7 +2,16 @@
 
 > **✅ Official Format**: These agents use GitHub's official custom agent format and can be selected in GitHub Copilot when merged to the default branch.
 
-This directory contains **GitHub Custom Agents** - specialized AI assistants that can be invoked in GitHub Copilot for different development tasks.
+This directory contains **GitHub Custom Agents** - optimized, action-oriented AI assistants for development tasks.
+
+## Agent Design Philosophy
+
+These agents are designed for **real-world effectiveness**:
+- ✅ **Short & Focused** (80-120 lines each) - fits in context window
+- ✅ **Action-Oriented** - clear "what to do" not "what you are"
+- ✅ **Concrete Examples** - real code, actual commands
+- ✅ **Standalone** - each agent is self-contained
+- ✅ **Obedient** - simple instructions that will be followed
 
 ## Official GitHub Agent Format
 
@@ -12,423 +21,147 @@ These agents follow the official GitHub custom agent specification:
 - **Documentation**: https://gh.io/customagents/config
 - **CLI Testing**: https://gh.io/customagents/cli
 
-## What This Is
+## Agents
 
-✅ **Official GitHub Custom Agents**: Recognized and selectable in GitHub Copilot  
-✅ **Automatic Availability**: Available after merging to default branch  
-✅ **Sub-Agent Support**: Agents can delegate to other agents  
-✅ **Structured Workflows**: Each agent has specialized capabilities  
+### DevTeam (Orchestrator) - 83 lines
+**File**: `DevTeam.agent.md`  
+**Purpose**: Coordinates specialist agents for complex tasks
+
+**Capabilities**:
+- Breaks down requests into steps
+- Delegates to appropriate specialists
+- Integrates results from multiple agents
+- Manages workflow between agents
+
+**When to use**: Multi-step tasks requiring design, implementation, and validation
+
+---
+
+### Architect - 85 lines
+**File**: `Architect.agent.md`  
+**Purpose**: System design and architecture decisions
+
+**Capabilities**:
+- Designs system architecture
+- Evaluates technology trade-offs
+- Defines component structure
+- Documents design decisions
+
+**When to use**: Need architectural guidance, technology choices, or system design
+
+---
+
+### Developer - 99 lines
+**File**: `Developer.agent.md`  
+**Purpose**: Code implementation and bug fixes
+
+**Capabilities**:
+- Writes clean, tested code
+- Implements features following patterns
+- Fixes bugs with regression tests
+- Refactors code
+
+**When to use**: Need code written, bugs fixed, or features implemented
+
+---
+
+### Reviewer - 97 lines
+**File**: `Reviewer.agent.md`  
+**Purpose**: Code review and quality validation
+
+**Capabilities**:
+- Reviews code quality
+- Runs tests and checks coverage
+- Validates security
+- Ensures standards compliance
+
+**When to use**: Need code reviewed, tested, or validated
+
+---
+
+### Researcher - 114 lines
+**File**: `Researcher.agent.md`  
+**Purpose**: Codebase investigation and analysis
+
+**Capabilities**:
+- Explores codebase structure
+- Finds patterns and conventions
+- Investigates issues
+- Documents findings
+
+**When to use**: Need to understand existing code or investigate problems
 
 ## How to Use
 
 ### In GitHub Copilot
-When working in GitHub Copilot, you can:
-1. Select a custom agent from the agent picker
-2. Mention an agent with `@AgentName`
-3. Agents can call sub-agents for specialized tasks
+1. Select agent from agent picker in Copilot
+2. Or mention with `@AgentName` in chat
+3. Provide clear, specific task
 
-### Agent Selection
+### Examples
+
 ```
-# In GitHub Copilot chat or editor:
-@DevTeam implement authentication system
-@Architect design the database schema
-@Developer fix the bug in auth.py
-@Reviewer validate the test coverage
-@Researcher analyze the codebase structure
+@DevTeam add JWT authentication to the API
+→ DevTeam will coordinate Architect, Developer, and Reviewer
+
+@Architect design a caching strategy for our API
+→ Architect will evaluate options and recommend approach
+
+@Developer implement the authentication endpoints
+→ Developer will write code with tests
+
+@Reviewer check the auth implementation for security issues
+→ Reviewer will validate and test
+
+@Researcher how does our current auth system work?
+→ Researcher will investigate and document findings
 ```
 
 ### Sub-Agent Delegation
-The DevTeam orchestrator can delegate to specialist agents:
-```
-@DevTeam create a new feature
-  → DevTeam calls @Architect for design
-  → DevTeam calls @Developer for implementation
-  → DevTeam calls @Reviewer for validation
-```
 
-## Agent Roles
+DevTeam orchestrates by delegating to specialists:
 
 ```
-DevTeam (Orchestrator)
-├── Architect  → Design decisions, patterns, structure
-├── Developer  → Implementation, debugging, code
-├── Reviewer   → Testing, validation, quality
-└── Researcher → Investigation, analysis, documentation
+User: "@DevTeam add user authentication"
+
+DevTeam:
+1. @Architect design JWT auth system
+   [waits for response]
+2. @Developer implement based on Architect's design
+   [waits for response]
+3. @Reviewer validate implementation and security
+   [integrates all responses]
 ```
 
-## Agents
-
-### DevTeam (Orchestrator)
-**File**: `DevTeam.agent.md`  
-**Role**: Lead orchestrator for multi-agent development workflows  
-**Responsibilities**:
-- Analyze user requests and break into tasks
-- Delegate to appropriate specialists
-- Integrate results from specialists
-- Track progress and maintain context
-- Coordinate knowledge updates
-
-**Use when**: Complex multi-step tasks, coordinating multiple specialists
-
----
-
-### Architect (Design Specialist)
-**File**: `Architect.agent.md`  
-**Role**: Design and architecture specialist  
-**Responsibilities**:
-- Design system architecture and component structure
-- Analyze trade-offs and document alternatives
-- Define interfaces, patterns, and data flow
-- Make technology and framework decisions
-- Document design decisions for knowledge graph
-
-**Use when**: Design decisions, architectural planning, pattern selection
-
----
-
-### Developer (Implementation Specialist)
-**File**: `Developer.agent.md`  
-**Role**: Implementation and coding specialist  
-**Responsibilities**:
-- Write clean, idiomatic code following patterns
-- Implement features based on designs
-- Debug issues and fix problems
-- Create initial tests for new code
-- Refactor and optimize code
-
-**Use when**: Code implementation, bug fixes, refactoring
-
----
-
-### Reviewer (Quality Specialist)
-**File**: `Reviewer.agent.md`  
-**Role**: Quality assurance and validation specialist  
-**Responsibilities**:
-- Review code for quality and standards
-- Run and create comprehensive tests
-- Validate changes work correctly
-- Check for regressions
-- Approve or request changes
-
-**Use when**: Code review, testing, quality validation
-
----
-
-### Researcher (Investigation Specialist)
-**File**: `Researcher.agent.md`  
-**Role**: Investigation and analysis specialist  
-**Responsibilities**:
-- Investigate problems and gather context
-- Explore codebase structure and patterns
-- Analyze dependencies and relationships
-- Document findings for knowledge graph
-- Identify gaps and opportunities
-
-**Use when**: Codebase exploration, pattern discovery, investigation
-
-## Architecture
-
-### Agent Hierarchy
-
-The framework uses a **orchestrator-specialist** pattern:
-
-1. **Orchestrator (DevTeam)**: Maintains overall task control, delegates to specialists
-2. **Specialists**: Focus on specific domains, return structured results
-
-### Communication Protocol
-
-Agents communicate using structured formats:
-
-#### Session Start
-```
-[SESSION: role=Lead | task=<description> | phase=CONTEXT]
-```
-
-#### Delegation
-```
-[DELEGATE: agent=<specialist> | task=<description>]
-```
-
-#### Context Handoff
-```json
-{
-  "task": "specific task",
-  "context": {
-    "problem": "what needs solving",
-    "constraints": ["list"],
-    "expected_output": "deliverable"
-  }
-}
-```
-
-#### Return Contract
-```json
-{
-  "status": "complete|partial|blocked",
-  "result": "what was accomplished",
-  "artifacts": ["files created/modified"],
-  "learnings": ["for knowledge graph"]
-}
-```
-
-## Integration
-
-### Instructions
-Agents integrate with instruction modules in `/.github/instructions/`:
-- **protocols.md**: Communication protocols
-- **phases.md**: Workflow phases
-- **standards.md**: Quality standards
-- **structure.md**: Project structure
-- **examples.md**: Usage examples
-
-### Workflows
-Agents execute structured workflows in `/.github/workflows/`:
-- **init_project.md**: Greenfield project creation
-- **import_project.md**: Adopt existing codebase
-- **refactor_code.md**: Code optimization
-- **update_knowledge.md**: Sync knowledge graph
-- **update_documents.md**: Sync documentation
-- **update_tests.md**: Improve test coverage
-
-### Knowledge System
-Agents maintain a unified knowledge system:
-
-| File | Location | Content | Scope |
-|------|----------|---------|-------|
-| `project_knowledge.json` | Project root | Entities + codegraph + relations | Project-specific |
-| `global_knowledge.json` | `.github/` | Universal patterns | Cross-project |
-
-#### Knowledge Format (JSONL)
-```json
-{"type":"entity","name":"Project.Domain.Type_Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD,refs:N"]}
-{"type":"codegraph","name":"ComponentName","nodeType":"class","dependencies":["Dep1"],"dependents":["User1"]}
-{"type":"relation","from":"Entity.A","to":"Entity.B","relationType":"USES"}
-```
-
-## Usage
-
-### Direct Agent Invocation
-Select a specific agent for focused work:
-```
-# For design work
-Use: Architect
-
-# For implementation
-Use: Developer
-
-# For review and testing
-Use: Reviewer
-
-# For investigation
-Use: Researcher
-```
-
-### Orchestrated Workflow
-Use DevTeam for complex tasks requiring multiple specialists:
-```
-# DevTeam automatically delegates to:
-- Architect for design
-- Developer for implementation  
-- Reviewer for validation
-- Researcher for investigation
-```
-
-## Workflow Patterns
-
-### Feature Implementation
-```
-DevTeam
-├── Architect: Design feature
-├── Developer: Implement feature
-└── Reviewer: Validate implementation
-```
-
-### Bug Investigation
-```
-DevTeam
-├── Researcher: Investigate root cause
-├── Developer: Fix bug
-└── Reviewer: Validate fix
-```
-
-### Refactoring
-```
-DevTeam
-├── Researcher: Analyze code quality
-├── Architect: Design improvements
-├── Developer: Implement refactoring
-└── Reviewer: Validate no breakage
-```
-
-## Quality Gates
-
-Each agent enforces quality gates:
-
-| Phase | Gate | Owner |
-|-------|------|-------|
-| Context | Knowledge loaded | DevTeam |
-| Design | Alternatives considered | Architect |
-| Implementation | Tests pass | Developer |
-| Review | Quality verified | Reviewer |
-| Complete | User acceptance | DevTeam |
-
-## Portability
-
-### Framework Files (Portable)
-These files can be copied to any project:
-```
-.github/
-├── agents/              # This directory
-├── instructions/        # Instruction modules
-├── workflows/           # Workflow templates
-└── global_knowledge.json # Universal patterns
-```
-
-### Project-Specific Files
-These stay with each project:
-```
-project_knowledge.json   # Project entities and codegraph
-```
-
-## Best Practices
-
-### For Orchestrator (DevTeam)
-- Load knowledge before planning
-- Delegate to appropriate specialists
-- Track all delegations
-- Integrate results coherently
-- Update knowledge after work
-
-### For Specialists
-- Focus on assigned domain
-- Follow handoff protocols
-- Return structured results
-- Report learnings
-- Flag blockers immediately
-
-### For All Agents
-- Use standard communication tags
-- Maintain context awareness
-- Follow project conventions
-- Document decisions
-- Update knowledge graph
-
-## Examples
-
-### Example 1: Add Authentication
-```
-[SESSION: role=Lead | task="Add JWT authentication"]
-
-[DELEGATE: agent=Architect | task="Design auth system"]
-→ Architect returns JWT + refresh token design
-
-[DELEGATE: agent=Developer | task="Implement auth service"]
-→ Developer creates auth_service.py, security.py
-
-[DELEGATE: agent=Reviewer | task="Validate implementation"]
-→ Reviewer runs tests, approves
-
-[COMPLETE: task="JWT auth" | result="complete" | learnings=3]
-[KNOWLEDGE: added=5 | updated=2 | type=project]
-```
-
-### Example 2: Refactor Large File
-```
-[SESSION: role=Lead | task="Refactor auth_service.py (800 lines)"]
-
-[DELEGATE: agent=Researcher | task="Analyze file structure"]
-→ Researcher identifies 3 cohesive components
-
-[DELEGATE: agent=Architect | task="Design split approach"]
-→ Architect proposes split into service, utils, validators
-
-[DELEGATE: agent=Developer | task="Split files and update imports"]
-→ Developer creates 3 files, updates 8 imports
-
-[DELEGATE: agent=Reviewer | task="Validate no breakage"]
-→ Reviewer confirms all tests pass
-
-[COMPLETE: task="refactor" | result="800→3x200 lines" | learnings=2]
-```
-
-## Troubleshooting
-
-### Knowledge Not Loading
-- Check `project_knowledge.json` exists in project root
-- Verify JSON format is valid JSONL
-- Create empty file if missing: `echo '' > project_knowledge.json`
-
-### Agent Communication Issues
-- Ensure using standard session tags
-- Check handoff format matches specification
-- Review `/.github/instructions/protocols.md`
-
-### Quality Gate Failures
-- Review standards in `/.github/instructions/standards.md`
-- Check specific agent requirements
-- Consult workflow documentation
-
-## Version
-
-**Version**: 2.0  
-**Last Updated**: 2025-12-27  
-**Type**: Official GitHub Custom Agents
-
-## Official GitHub Format Compliance
-
-### Agent File Format
-```yaml
----
-name: AgentName
-description: What the agent does and its capabilities
----
-
-# Agent Content
-
-Detailed instructions and workflows...
-```
-
-### Official Documentation
-- **Config Format**: https://gh.io/customagents/config
-- **CLI Testing**: https://gh.io/customagents/cli
-- **GitHub Docs**: https://docs.github.com/en/copilot
-
-### Key Features
-✅ **Automatic Recognition**: Available in Copilot after merge to default branch  
-✅ **Agent Selection**: Can be selected via agent picker or @mentions  
-✅ **Sub-Agent Calls**: Agents can delegate to other agents  
-✅ **Structured Workflows**: Each agent has specialized domain expertise  
+## Optimization Notes
+
+**Previous version**: 2,863 lines (too verbose, won't fit in context)  
+**Current version**: 478 lines (80% reduction)
+
+**Changes**:
+- Removed complex protocols and JSON handoffs
+- Removed abstract workflow phases
+- Added concrete examples and templates
+- Focused on actionable instructions
+- Made each agent standalone
+
+**Result**: Agents are now effective in real-world use with GitHub Copilot.
 
 ## Integration with Repository
 
-### Knowledge System
-Agents reference and update:
-- `project_knowledge.json` - Project-specific entities and patterns
-- `.github/global_knowledge.json` - Universal patterns
+Agents can reference:
+- **Knowledge**: `project_knowledge.json`, `.github/global_knowledge.json`
+- **Instructions**: `.github/instructions/` (protocols, standards, etc.)
+- **Workflows**: `.github/workflows/` (init_project, refactor_code, etc.)
 
-### Instructions
-Agents follow protocols in `.github/instructions/`:
-- `protocols.md` - Communication protocols
-- `phases.md` - Workflow phases
-- `standards.md` - Quality standards
-- `structure.md` - Project structure
-
-### Workflows
-Agents execute workflows in `.github/workflows/`:
-- `init_project.md` - Greenfield project creation
-- `import_project.md` - Adopt existing codebase
-- `refactor_code.md` - Code optimization
-- `update_knowledge.md` - Sync knowledge graph
-- `update_documents.md` - Sync documentation
-- `update_tests.md` - Improve test coverage
+But agents are designed to work standalone without requiring external files.
 
 ## References
 
 - **Official Format**: https://gh.io/customagents/config
+- **CLI Testing**: https://gh.io/customagents/cli
 - **Main Instructions**: `/.github/copilot-instructions.md`
-- **Protocols**: `/.github/instructions/protocols.md`
-- **Workflows**: `/.github/workflows/`
 
 ---
 
-For detailed information on each agent, refer to individual `.agent.md` files in this directory.
+For detailed agent instructions, see individual `.agent.md` files in this directory.
