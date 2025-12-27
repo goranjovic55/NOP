@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
+import { useDiscoveryStore } from '../store/discoveryStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuthStore();
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
+  const { isDiscovering } = useDiscoveryStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
@@ -77,6 +79,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <span className="font-medium tracking-wide uppercase text-sm">
                       {item.name}
                     </span>
+                  )}
+                  {item.name === 'Assets' && isDiscovering && (
+                    <div className={`absolute right-2 w-2 h-2 bg-cyber-blue rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>

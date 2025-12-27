@@ -3,6 +3,7 @@ import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
+import { useDiscoveryStore } from '../store/discoveryStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
 import ScanSettingsModal from '../components/ScanSettingsModal';
 
@@ -50,6 +51,7 @@ const Assets: React.FC = () => {
   const { token } = useAuthStore();
   const { setOnScanComplete, tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
+  const { setIsDiscovering } = useDiscoveryStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,17 +131,22 @@ const Assets: React.FC = () => {
     const scanType = type === 'manual' ? currentSettings.manualScanType : currentSettings.autoScanType;
     try {
       setIsScanning(true);
+      setIsDiscovering(true);
       const result = await assetService.startScan(token, currentSettings.networkRange, scanType);
       if (result && result.scan_id) {
         setActiveScanId(result.scan_id);
       } else {
         // Fallback if no scan_id returned
         if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
-        statusTimeoutRef.current = setTimeout(() => setIsScanning(false), 5000);
+        statusTimeoutRef.current = setTimeout(() => {
+          setIsScanning(false);
+          setIsDiscovering(false);
+        }, 5000);
       }
     } catch (err) {
       console.error('Discovery failed:', err);
       setIsScanning(false);
+      setIsDiscovering(false);
     }
   }, [token]);
 
@@ -152,6 +159,7 @@ const Assets: React.FC = () => {
           const status = await assetService.getScanStatus(token, activeScanId);
           if (status.status === 'completed' || status.status === 'failed') {
             setIsScanning(false);
+            setIsDiscovering(false);
             setActiveScanId(null);
             if (status.status === 'completed') {
               fetchAssets(false);
@@ -160,6 +168,7 @@ const Assets: React.FC = () => {
         } catch (err) {
           console.error("Failed to poll scan status", err);
           setIsScanning(false);
+          setIsDiscovering(false);
           setActiveScanId(null);
         }
       }, 2000);

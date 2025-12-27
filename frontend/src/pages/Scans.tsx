@@ -183,28 +183,6 @@ const Scans: React.FC = () => {
   // Dashboard view component
   const DashboardView = () => (
     <div className="flex flex-col space-y-6">
-      {/* Manual IP Input Section - Top */}
-      <div className="bg-cyber-darker border border-cyber-gray p-6">
-        <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2 mb-4">
-          Manual IP Address Scan
-        </h3>
-        <form onSubmit={handleManualSubmit} className="flex space-x-2">
-          <input
-            type="text"
-            value={manualIp}
-            onChange={(e) => setManualIp(e.target.value)}
-            placeholder="Enter IP Address (e.g. 192.168.1.1)"
-            className="flex-1 bg-cyber-dark border border-cyber-gray p-3 text-cyber-blue outline-none focus:border-cyber-red transition-colors font-mono"
-          />
-          <button
-            type="submit"
-            className="btn-cyber border-cyber-red text-cyber-red px-6 py-3 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest"
-          >
-            Initialize
-          </button>
-        </form>
-      </div>
-
       {/* Unscanned Assets Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -246,41 +224,32 @@ const Scans: React.FC = () => {
               return (
                 <div
                   key={asset.id}
-                  className={`bg-cyber-darker border-2 transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'border-cyber-red shadow-[0_0_10px_rgba(255,0,64,0.5)]' 
-                      : 'border-cyber-gray hover:border-cyber-blue'
-                  }`}
-                >
-                  <div className="p-4 space-y-3">
-                    {/* Header with checkbox */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-cyber-blue font-mono font-bold text-lg">
-                          {asset.ip_address}
-                        </div>
-                        {asset.hostname && (
-                          <div className="text-cyber-gray-light text-xs truncate">
-                            {asset.hostname}
+                    onClick={() => toggleAssetSelection(asset.ip_address)}
+                    className={`bg-cyber-darker border-2 transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'border-cyber-red shadow-[0_0_10px_rgba(255,0,64,0.5)]' 
+                        : 'border-cyber-gray hover:border-cyber-blue'
+                    }`}
+                  >
+                    <div className="p-4 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-cyber-blue font-mono font-bold text-lg">
+                            {asset.ip_address}
                           </div>
-                        )}
+                          {asset.hostname && (
+                            <div className="text-cyber-gray-light text-xs truncate">
+                              {asset.hostname}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleAssetSelection(asset.ip_address);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-5 h-5 accent-cyber-red cursor-pointer"
-                      />
-                    </div>
 
-                    {/* Status */}
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                        asset.status === 'online' 
+                      {/* Status */}
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                          asset.status === 'online' 
                           ? 'text-cyber-green border border-cyber-green' 
                           : 'text-cyber-gray-light border border-cyber-gray opacity-60'
                       }`}>
