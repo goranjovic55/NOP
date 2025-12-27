@@ -7,7 +7,8 @@ A comprehensive network operations and security management platform with advance
 ```
 NOP/
 ├── .github/                    # GitHub configuration & agent framework
-│   ├── chatmodes/             # Multi-agent chatmode configurations
+│   ├── agents/                 # Multi-agent system (*.agent.md)
+│   ├── chatmodes/             # Legacy chatmodes (deprecated, use agents/)
 │   ├── instructions/          # Agent instruction modules
 │   ├── workflows/             # GitHub Actions workflows
 │   ├── scripts/               # Automation scripts
@@ -127,7 +128,7 @@ docker-compose -f docker-compose.test.yml up -d --build
 
 ## 🤖 Agent Framework
 
-This project uses a multi-agent architecture for development:
+This project uses a multi-agent architecture for development. See `.github/agents/README.md` for complete documentation.
 
 ### Agents
 - **DevTeam (Orchestrator)** - Coordinates tasks, integrates results
@@ -138,6 +139,8 @@ This project uses a multi-agent architecture for development:
 
 ### Usage
 Agents automatically coordinate based on task complexity. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
+
+For detailed agent documentation, see `.github/agents/`.
 
 ## 📦 Tech Stack
 

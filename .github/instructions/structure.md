@@ -29,7 +29,8 @@ project/
 ├── config/                 # Configuration files
 ├── scripts/                # Utility scripts
 ├── .github/                # Agent framework
-│   ├── chatmodes/          # Agent definitions
+│   ├── agents/             # Agent definitions (*.agent.md)
+│   ├── chatmodes/          # Legacy chatmodes (deprecated, use agents/)
 │   ├── instructions/       # Workflow modules
 │   ├── workflows/          # CI/CD (optional)
 │   └── global_memory.json  # Universal patterns
@@ -45,12 +46,19 @@ project/
 ### Portable (.github/)
 ```
 .github/
-├── chatmodes/
-│   ├── DevTeam.chatmode.md      # Lead orchestrator
-│   ├── Architect.chatmode.md    # Design specialist
-│   ├── Developer.chatmode.md    # Implementation specialist
-│   ├── Reviewer.chatmode.md     # Quality specialist
-│   └── Researcher.chatmode.md   # Investigation specialist
+├── agents/
+│   ├── DevTeam.agent.md          # Lead orchestrator
+│   ├── Architect.agent.md        # Design specialist
+│   ├── Developer.agent.md        # Implementation specialist
+│   ├── Reviewer.agent.md         # Quality specialist
+│   ├── Researcher.agent.md       # Investigation specialist
+│   └── README.md                 # Agent documentation
+├── chatmodes/                    # Legacy (deprecated, use agents/)
+│   ├── DevTeam.chatmode.md
+│   ├── Architect.chatmode.md
+│   ├── Developer.chatmode.md
+│   ├── Reviewer.chatmode.md
+│   └── Researcher.chatmode.md
 ├── instructions/
 │   ├── phases.md                # Workflow phases
 │   ├── protocols.md             # Communication protocols

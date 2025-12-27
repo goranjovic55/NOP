@@ -111,7 +111,7 @@ Loading project context...
 ### Specialist Phases (Abbreviated)
 - Receive task → Execute → Return results
 - Each specialist has domain-specific workflow
-- See individual chatmode files for details
+- See individual agent files in `.github/agents/` for details
 
 ---
 
@@ -251,14 +251,14 @@ Results integrated when both complete.
 
 1. **Copy `.github/` folder** to new project
 2. **Create `project_knowledge.json`** in project root (empty OK)
-3. **Select chatmode** based on work type
+3. **Select agent** based on work type (see `.github/agents/`)
 4. **Knowledge builds** organically through work
 
 ### What's Portable
-- All chatmodes (orchestrator + specialists)
-- Instruction modules
+- All agents (orchestrator + specialists in `.github/agents/`)
+- Instruction modules (`.github/instructions/`)
 - `global_knowledge.json` (universal patterns)
-- Workflow templates
+- Workflow templates (`.github/workflows/`)
 
 ### What's Project-Specific
 - `project_knowledge.json`
@@ -266,10 +266,12 @@ Results integrated when both complete.
 
 ---
 
-## 12. Chatmode Reference
+## 12. Agent Reference
 
-| Chatmode | Role | Use When |
-|----------|------|----------|
+See `.github/agents/README.md` for complete documentation.
+
+| Agent | Role | Use When |
+|-------|------|----------|
 | **DevTeam** | Orchestrator | Complex multi-step tasks, default |
 | **Architect** | Design | Pure design thinking, no implementation |
 | **Developer** | Implementation | Direct coding, no design needed |
@@ -277,7 +279,7 @@ Results integrated when both complete.
 | **Researcher** | Investigation | Exploration, documentation |
 
 ### Direct vs Orchestrated
-- **Direct**: User selects specific chatmode for focused work
+- **Direct**: User invokes specific agent for focused work
 - **Orchestrated**: DevTeam delegates to specialists as needed
 
 ---
