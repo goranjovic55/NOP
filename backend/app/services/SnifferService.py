@@ -8,6 +8,10 @@ import time
 import os
 
 class SnifferService:
+    # Constants for packet crafting
+    PACKET_SEND_TIMEOUT = 3  # seconds
+    RESPONSE_HEX_MAX_LENGTH = 200  # characters
+    
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
@@ -234,6 +238,16 @@ class SnifferService:
         Craft and send a custom packet based on configuration
         Returns response packet and trace information
         """
+        # TCP flag mapping
+        TCP_FLAG_MAP = {
+            "SYN": "S",
+            "ACK": "A",
+            "FIN": "F",
+            "RST": "R",
+            "PSH": "P",
+            "URG": "U"
+        }
+        
         try:
             protocol = packet_config.get("protocol", "TCP")
             source_ip = packet_config.get("source_ip")
@@ -260,14 +274,11 @@ class SnifferService:
                         "error": "Source and destination ports are required for TCP"
                     }
                 
-                # Convert flag names to scapy flag string
+                # Convert flag names to scapy flag string using mapping
                 flag_str = ""
-                if "SYN" in flags: flag_str += "S"
-                if "ACK" in flags: flag_str += "A"
-                if "FIN" in flags: flag_str += "F"
-                if "RST" in flags: flag_str += "R"
-                if "PSH" in flags: flag_str += "P"
-                if "URG" in flags: flag_str += "U"
+                for flag_name in flags:
+                    if flag_name in TCP_FLAG_MAP:
+                        flag_str += TCP_FLAG_MAP[flag_name]
                 if not flag_str:
                     flag_str = "S"  # Default to SYN
                 
@@ -322,15 +333,18 @@ class SnifferService:
             # Add payload if provided
             if payload and packet:
                 trace.append(f"Adding payload: {len(payload)} characters")
-                packet = packet / payload.encode() if isinstance(payload, str) else packet / payload
+                if isinstance(payload, str):
+                    packet = packet / payload.encode()
+                else:
+                    packet = packet / payload
             
             # Send the packet and wait for response
             trace.append("Sending packet...")
             start_time = time.time()
             
             try:
-                # sr1 sends packet and receives first response (timeout 3 seconds)
-                response = sr1(packet, timeout=3, verbose=0)
+                # sr1 sends packet and receives first response
+                response = sr1(packet, timeout=self.PACKET_SEND_TIMEOUT, verbose=0)
                 elapsed = time.time() - start_time
                 
                 if response:
@@ -344,7 +358,7 @@ class SnifferService:
                         "source": None,
                         "destination": None,
                         "length": len(response),
-                        "raw_hex": response.build().hex()[:200]  # First 200 chars
+                        "raw_hex": response.build().hex()[:self.RESPONSE_HEX_MAX_LENGTH]
                     }
                     
                     if IP in response:
@@ -378,7 +392,7 @@ class SnifferService:
                         "trace": trace
                     }
                 else:
-                    trace.append(f"No response received (timeout: 3s)")
+                    trace.append(f"No response received (timeout: {self.PACKET_SEND_TIMEOUT}s)")
                     return {
                         "success": True,
                         "sent_packet": {

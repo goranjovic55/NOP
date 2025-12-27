@@ -64,7 +64,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
       console.error('Failed to send packet:', err);
       setResponse({
         success: false,
-        error: 'Failed to send packet. Please check your connection.',
+        error: 'Failed to send packet. Please check network permissions, destination IP validity, or try a different protocol.',
       });
     } finally {
       setIsSending(false);
