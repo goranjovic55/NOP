@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = '/api/v1';
+import apiClient from '../utils/apiClient';
 
 interface LoginResponse {
   access_token: string;
@@ -27,7 +25,7 @@ export const authService = {
       params.append("username", username);
       params.append("password", password);
 
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, params, {
+      const response = await apiClient.post('/auth/login', params, {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
@@ -37,7 +35,7 @@ export const authService = {
     },
 
   async getCurrentUser(token: string): Promise<User> {
-    const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+    const response = await apiClient.get('/auth/me', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -47,7 +45,7 @@ export const authService = {
   },
 
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+    const response = await apiClient.post('/auth/refresh', {
       refresh_token: refreshToken,
     });
     
@@ -55,6 +53,6 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await axios.post(`${API_BASE_URL}/auth/logout`);
+    await apiClient.post('/auth/logout');
   },
 };
