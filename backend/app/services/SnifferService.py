@@ -268,6 +268,10 @@ class SnifferService:
             icmp_type = packet_config.get("icmp_type")
             icmp_code = packet_config.get("icmp_code")
             
+            # Multi-packet sending parameters
+            packet_count = packet_config.get("packet_count", 1)
+            pps = packet_config.get("pps", 1)
+            
             if not dest_ip:
                 return {
                     "success": False,
@@ -276,6 +280,12 @@ class SnifferService:
             
             trace = []
             packet = None
+            
+            # Add multi-packet info to trace
+            if packet_count == 0:
+                trace.append(f"Mode: Continuous sending at {pps} packets/second")
+            elif packet_count > 1:
+                trace.append(f"Sending {packet_count} packets at {pps} packets/second")
             
             # Build the packet based on protocol
             if protocol == "TCP":
@@ -444,10 +454,53 @@ class SnifferService:
                     else:
                         packet = packet / payload
             
-            # Send the packet and wait for response
+            # Send the packet(s)
             trace.append("Sending packet...")
             start_time = time.time()
             
+            # For continuous or multi-packet sending
+            if packet_count == 0 or packet_count > 1:
+                sent_count = 0
+                delay = 1.0 / pps if pps > 0 else 0
+                
+                # For demo purposes, limit continuous to 100 packets per request
+                max_packets = 100 if packet_count == 0 else packet_count
+                
+                trace.append(f"Multi-packet mode: sending up to {max_packets} packets")
+                
+                for i in range(max_packets):
+                    try:
+                        send(packet, verbose=0)
+                        sent_count += 1
+                        if delay > 0 and i < max_packets - 1:
+                            time.sleep(delay)
+                        
+                        # Break for continuous mode after 100 (safety limit)
+                        if packet_count == 0 and sent_count >= 100:
+                            trace.append(f"Safety limit reached: sent {sent_count} packets")
+                            break
+                    except Exception as e:
+                        trace.append(f"Error sending packet {i+1}: {str(e)}")
+                        break
+                
+                elapsed = time.time() - start_time
+                trace.append(f"Sent {sent_count} packets in {elapsed:.3f} seconds ({sent_count/elapsed:.1f} pps)")
+                
+                return {
+                    "success": True,
+                    "sent_packet": {
+                        "protocol": protocol,
+                        "source": packet[IP].src if IP in packet else "N/A",
+                        "destination": packet[IP].dst if IP in packet else dest_ip,
+                        "summary": packet.summary(),
+                        "length": len(packet),
+                        "count": sent_count
+                    },
+                    "response": None,
+                    "trace": trace
+                }
+            
+            # Single packet mode - wait for response
             try:
                 # sr1 sends packet and receives first response
                 response = sr1(packet, timeout=self.PACKET_SEND_TIMEOUT, verbose=0)
