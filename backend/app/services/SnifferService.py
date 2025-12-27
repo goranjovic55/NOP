@@ -2,7 +2,7 @@ import asyncio
 import json
 import threading
 from typing import Dict, List, Optional, Callable, Any
-from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap
+from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sr1, ICMP
 import psutil
 import time
 import os
@@ -228,5 +228,182 @@ class SnifferService:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         wrpcap(filepath, self.captured_packets)
         return filepath
+
+    def craft_and_send_packet(self, packet_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Craft and send a custom packet based on configuration
+        Returns response packet and trace information
+        """
+        try:
+            protocol = packet_config.get("protocol", "TCP")
+            source_ip = packet_config.get("source_ip")
+            dest_ip = packet_config.get("dest_ip")
+            source_port = packet_config.get("source_port")
+            dest_port = packet_config.get("dest_port")
+            payload = packet_config.get("payload", "")
+            flags = packet_config.get("flags", [])
+            
+            if not dest_ip:
+                return {
+                    "success": False,
+                    "error": "Destination IP is required"
+                }
+            
+            trace = []
+            packet = None
+            
+            # Build the packet based on protocol
+            if protocol == "TCP":
+                if not source_port or not dest_port:
+                    return {
+                        "success": False,
+                        "error": "Source and destination ports are required for TCP"
+                    }
+                
+                # Convert flag names to scapy flag string
+                flag_str = ""
+                if "SYN" in flags: flag_str += "S"
+                if "ACK" in flags: flag_str += "A"
+                if "FIN" in flags: flag_str += "F"
+                if "RST" in flags: flag_str += "R"
+                if "PSH" in flags: flag_str += "P"
+                if "URG" in flags: flag_str += "U"
+                if not flag_str:
+                    flag_str = "S"  # Default to SYN
+                
+                trace.append(f"Building TCP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
+                trace.append(f"TCP Flags: {flag_str} ({', '.join(flags) if flags else 'SYN'})")
+                
+                if source_ip:
+                    packet = IP(src=source_ip, dst=dest_ip) / TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                else:
+                    packet = IP(dst=dest_ip) / TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                    
+            elif protocol == "UDP":
+                if not source_port or not dest_port:
+                    return {
+                        "success": False,
+                        "error": "Source and destination ports are required for UDP"
+                    }
+                
+                trace.append(f"Building UDP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
+                
+                if source_ip:
+                    packet = IP(src=source_ip, dst=dest_ip) / UDP(sport=source_port, dport=dest_port)
+                else:
+                    packet = IP(dst=dest_ip) / UDP(sport=source_port, dport=dest_port)
+                    
+            elif protocol == "ICMP":
+                trace.append(f"Building ICMP packet: {source_ip or 'auto'} -> {dest_ip}")
+                
+                if source_ip:
+                    packet = IP(src=source_ip, dst=dest_ip) / ICMP()
+                else:
+                    packet = IP(dst=dest_ip) / ICMP()
+                    
+            elif protocol == "ARP":
+                trace.append(f"Building ARP packet for {dest_ip}")
+                packet = ARP(pdst=dest_ip)
+                
+            elif protocol == "IP":
+                trace.append(f"Building raw IP packet: {source_ip or 'auto'} -> {dest_ip}")
+                
+                if source_ip:
+                    packet = IP(src=source_ip, dst=dest_ip)
+                else:
+                    packet = IP(dst=dest_ip)
+            
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unsupported protocol: {protocol}"
+                }
+            
+            # Add payload if provided
+            if payload and packet:
+                trace.append(f"Adding payload: {len(payload)} characters")
+                packet = packet / payload.encode() if isinstance(payload, str) else packet / payload
+            
+            # Send the packet and wait for response
+            trace.append("Sending packet...")
+            start_time = time.time()
+            
+            try:
+                # sr1 sends packet and receives first response (timeout 3 seconds)
+                response = sr1(packet, timeout=3, verbose=0)
+                elapsed = time.time() - start_time
+                
+                if response:
+                    trace.append(f"Response received in {elapsed:.3f} seconds")
+                    trace.append(f"Response summary: {response.summary()}")
+                    
+                    # Parse response details
+                    response_data = {
+                        "summary": response.summary(),
+                        "protocol": None,
+                        "source": None,
+                        "destination": None,
+                        "length": len(response),
+                        "raw_hex": response.build().hex()[:200]  # First 200 chars
+                    }
+                    
+                    if IP in response:
+                        response_data["source"] = response[IP].src
+                        response_data["destination"] = response[IP].dst
+                        
+                        if TCP in response:
+                            response_data["protocol"] = "TCP"
+                            response_data["tcp_flags"] = str(response[TCP].flags)
+                            response_data["sport"] = response[TCP].sport
+                            response_data["dport"] = response[TCP].dport
+                        elif UDP in response:
+                            response_data["protocol"] = "UDP"
+                            response_data["sport"] = response[UDP].sport
+                            response_data["dport"] = response[UDP].dport
+                        elif ICMP in response:
+                            response_data["protocol"] = "ICMP"
+                            response_data["icmp_type"] = response[ICMP].type
+                            response_data["icmp_code"] = response[ICMP].code
+                    
+                    return {
+                        "success": True,
+                        "sent_packet": {
+                            "protocol": protocol,
+                            "source": packet[IP].src if IP in packet else "N/A",
+                            "destination": packet[IP].dst if IP in packet else dest_ip,
+                            "summary": packet.summary(),
+                            "length": len(packet)
+                        },
+                        "response": response_data,
+                        "trace": trace
+                    }
+                else:
+                    trace.append(f"No response received (timeout: 3s)")
+                    return {
+                        "success": True,
+                        "sent_packet": {
+                            "protocol": protocol,
+                            "source": packet[IP].src if IP in packet else "N/A",
+                            "destination": packet[IP].dst if IP in packet else dest_ip,
+                            "summary": packet.summary(),
+                            "length": len(packet)
+                        },
+                        "response": None,
+                        "trace": trace
+                    }
+                    
+            except Exception as send_err:
+                trace.append(f"Error during send: {str(send_err)}")
+                return {
+                    "success": False,
+                    "error": f"Failed to send packet: {str(send_err)}",
+                    "trace": trace
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Packet crafting error: {str(e)}"
+            }
 
 sniffer_service = SnifferService()

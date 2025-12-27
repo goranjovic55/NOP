@@ -74,3 +74,12 @@ async def get_traffic_flows():
 async def get_traffic_stats():
     """Get traffic statistics"""
     return sniffer_service.get_stats()
+
+@router.post("/craft")
+async def craft_packet(packet_config: Dict):
+    """Craft and send a custom packet"""
+    try:
+        result = sniffer_service.craft_and_send_packet(packet_config)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

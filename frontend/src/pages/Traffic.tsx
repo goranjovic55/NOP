@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
+import PacketCrafting from '../components/PacketCrafting';
 
 interface Packet {
   id: string;
@@ -50,6 +51,7 @@ const Traffic: React.FC = () => {
   const [filter, setFilter] = useState('');
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showCrafting, setShowCrafting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
@@ -192,6 +194,10 @@ const Traffic: React.FC = () => {
   };
 
   return (
+    <>
+      {showCrafting ? (
+        <PacketCrafting onBack={() => setShowCrafting(false)} />
+      ) : (
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-4 bg-cyber-darker p-4 border border-cyber-gray">
@@ -261,6 +267,13 @@ const Traffic: React.FC = () => {
           className="px-4 py-1 border border-cyber-gray text-cyber-gray-light text-xs uppercase hover:border-cyber-blue hover:text-cyber-blue disabled:opacity-50"
         >
           {isExporting ? 'Exporting...' : 'Export PCAP'}
+        </button>
+
+        <button 
+          onClick={() => setShowCrafting(true)}
+          className="px-6 py-1 border-2 border-cyber-purple text-cyber-purple font-bold uppercase tracking-widest text-xs hover:bg-cyber-purple hover:text-white transition-all"
+        >
+          Craft Packet
         </button>
       </div>
 
@@ -385,6 +398,8 @@ const Traffic: React.FC = () => {
         </div>
       )}
     </div>
+    )}
+    </>
   );
 };
 
