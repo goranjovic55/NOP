@@ -1,0 +1,6 @@
+{"type":"entity","name":"Frontend.AccessHub.VaultFeature","entityType":"Feature","observations":["Password-protected credential vault with group management","Three sorting modes: Recent, Frequent, Name","Supports adding/removing credentials from vault","Cyberpunk-styled UI with green accents and geometric symbols","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Frontend.AccessHub.ConnectionManagement","entityType":"Feature","observations":["Resizable connection area with drag handle","Fullscreen mode for active connections","Password-protected quick connect from vault","Tab-based connection interface","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Frontend.AccessHub.GroupManagement","entityType":"Feature","observations":["User-defined groups for organizing hosts","Group selector dropdown with custom styling","Add new groups via modal interface","Filter credentials by selected group","upd:2025-12-27,refs:1"]}
+{"type":"codegraph","name":"AccessHub.tsx","nodeType":"component","dependencies":["useAccessStore","ProtocolConnection"],"dependents":["Layout"]}
+{"type":"relation","from":"AccessHub","to":"VaultFeature","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"VaultFeature","to":"GroupManagement","relationType":"USES"}
