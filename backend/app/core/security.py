@@ -9,7 +9,6 @@ from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 import secrets
 import base64
 
@@ -93,8 +92,7 @@ def generate_api_key() -> str:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(None)  # Will be overridden by dependency injection
+    token: str = Depends(oauth2_scheme)
 ):
     """
     Dependency function to get current user from JWT token

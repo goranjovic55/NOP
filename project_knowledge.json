@@ -1,17 +1,28 @@
-{"type":"entity","name":"NOP.Project.Architecture","entityType":"System","observations":["Full-stack network operations platform","FastAPI backend + React frontend + Docker infrastructure","Multi-protocol remote access (SSH, VNC, RDP, FTP)","upd:2025-12-27,refs:1"]}
-{"type":"entity","name":"NOP.Backend.FastAPI","entityType":"Service","observations":["REST API with async operations","JWT authentication and session management","PostgreSQL + Redis data layer","upd:2025-12-27,refs:1"]}
-{"type":"entity","name":"NOP.Frontend.React","entityType":"Service","observations":["TypeScript + Tailwind CSS","Zustand state management","Cyberpunk-themed UI design","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"NOP.Project.Architecture","entityType":"System","observations":["Full-stack network operations platform","FastAPI backend + React frontend + Docker infrastructure","Multi-protocol remote access (SSH, VNC, RDP, FTP)","Host management with system monitoring, terminal, filesystem, desktop","upd:2025-12-27,refs:2"]}
+{"type":"entity","name":"NOP.Backend.FastAPI","entityType":"Service","observations":["REST API with async operations","JWT authentication and session management","PostgreSQL + Redis data layer","WebSocket terminal with PTY support","upd:2025-12-27,refs:2"]}
+{"type":"entity","name":"NOP.Frontend.React","entityType":"Service","observations":["TypeScript + Tailwind CSS","Zustand state management","Cyberpunk-themed UI with geometric icons","xterm.js terminal integration","upd:2025-12-27,refs:2"]}
 {"type":"entity","name":"Frontend.AccessHub.VaultFeature","entityType":"Feature","observations":["Password-protected credential vault with group management","Three sorting modes: Recent, Frequent, Name","Supports adding/removing credentials from vault","Cyberpunk-styled UI with green accents and geometric symbols","upd:2025-12-27,refs:1"]}
 {"type":"entity","name":"Frontend.AccessHub.ConnectionManagement","entityType":"Feature","observations":["Resizable connection area with drag handle","Fullscreen mode for active connections","Password-protected quick connect from vault","Tab-based connection interface","upd:2025-12-27,refs:1"]}
 {"type":"entity","name":"Frontend.AccessHub.GroupManagement","entityType":"Feature","observations":["User-defined groups for organizing hosts","Group selector dropdown with custom styling","Add new groups via modal interface","Filter credentials by selected group","upd:2025-12-27,refs:1"]}
 {"type":"entity","name":"Backend.Services.AssetService","entityType":"Service","observations":["Network asset discovery and management","NMAP integration for scanning","Asset metadata and tracking","upd:2025-12-27,refs:1"]}
 {"type":"entity","name":"Backend.Services.GuacamoleService","entityType":"Service","observations":["Remote desktop protocol handling","VNC, RDP, SSH connection management","Apache Guacamole integration","upd:2025-12-27,refs:1"]}
-{"type":"entity","name":"Backend.Core.Security","entityType":"Module","observations":["JWT token generation and validation","Password hashing with bcrypt","Role-based access control","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Backend.Core.Security","entityType":"Module","observations":["JWT token generation and validation","Password hashing with bcrypt","Role-based access control","Fixed: Removed problematic db dependency in get_current_user","upd:2025-12-27,refs:2"]}
+{"type":"entity","name":"Frontend.Host.SystemMetrics","entityType":"Feature","observations":["Real-time CPU, memory, disk, network monitoring","Process table with top processes by CPU usage","Cyberpunk-styled progress bars and data displays","psutil integration for system metrics","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Frontend.Host.Terminal","entityType":"Feature","observations":["WebSocket-based PTY terminal","xterm.js with FitAddon for responsive sizing","Cyberpunk color theme with neon accents","Resize support with TIOCSWINSZ","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Frontend.Host.DataVault","entityType":"Feature","observations":["Dual-pane file browser (Target Node + Operator Storage)","Resumeable file uploads with chunked transfer","File System Access API for direct directory linking","Drag-and-drop file selection","Pause/resume upload controls","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Frontend.Host.Desktop","entityType":"Feature","observations":["VNC and RDP remote desktop connections","Guacamole-based protocol handling","Configurable host, port, and protocol","upd:2025-12-27,refs:1"]}
+{"type":"entity","name":"Backend.Host.Endpoints","entityType":"Module","observations":["System info and metrics endpoints","Filesystem browse, read, write, delete operations","File upload (base64) and download endpoints","WebSocket terminal with PTY fork and ioctl","upd:2025-12-27,refs:1"]}
 {"type":"codegraph","name":"AccessHub.tsx","nodeType":"component","dependencies":["useAccessStore","ProtocolConnection"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Host.tsx","nodeType":"component","dependencies":["hostService","useAuthStore","useAccessStore","Terminal","FitAddon","ProtocolConnection"],"dependents":["Layout"]}
+{"type":"codegraph","name":"host.py","nodeType":"endpoint","dependencies":["psutil","pty","security"],"dependents":["router"]}
 {"type":"codegraph","name":"AssetService.py","nodeType":"service","dependencies":["Database","NMAP"],"dependents":["DiscoveryEndpoint"]}
 {"type":"codegraph","name":"GuacamoleService.py","nodeType":"service","dependencies":["HTTPClient","ConnectionPool"],"dependents":["AccessEndpoint"]}
 {"type":"relation","from":"AccessHub","to":"VaultFeature","relationType":"IMPLEMENTS"}
 {"type":"relation","from":"VaultFeature","to":"GroupManagement","relationType":"USES"}
 {"type":"relation","from":"Backend.FastAPI","to":"Backend.Services","relationType":"DEPENDS_ON"}
 {"type":"relation","from":"Frontend.React","to":"Backend.FastAPI","relationType":"CONSUMES"}
+{"type":"relation","from":"Host.tsx","to":"Backend.Host.Endpoints","relationType":"CONSUMES"}
+{"type":"relation","from":"Host.tsx","to":"Terminal","relationType":"USES"}
+{"type":"relation","from":"Host.tsx","to":"DataVault","relationType":"IMPLEMENTS"}
+
 

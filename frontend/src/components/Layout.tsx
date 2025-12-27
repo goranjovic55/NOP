@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'Access Hub', href: '/access', icon: '⬡', symbol: '◉' },
-    { name: 'Host', href: '/host', icon: '⬢', symbol: '◉' },
+    { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
   ];
 

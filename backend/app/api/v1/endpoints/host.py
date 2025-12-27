@@ -291,78 +291,202 @@ async def delete_path(
         raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
 
 
+@router.post("/filesystem/upload")
+async def upload_file(
+    path: str = Body(..., description="Destination path on server"),
+    content: str = Body(..., description="Base64 encoded file content"),
+    filename: str = Body(..., description="Original filename"),
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Upload a file from the operator's computer to the server"""
+    import base64
+    try:
+        target_dir = Path(path).resolve()
+        
+        # Ensure target directory exists
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        target_file = target_dir / filename
+        
+        # Decode base64 content and write
+        file_data = base64.b64decode(content)
+        target_file.write_bytes(file_data)
+        
+        return {
+            "status": "success",
+            "path": str(target_file),
+            "size": len(file_data),
+            "message": f"File uploaded successfully to {target_file}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+
+
+@router.get("/filesystem/download")
+async def download_file(
+    path: str,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Download a file from the server to the operator's computer"""
+    import base64
+    try:
+        target_path = Path(path).resolve()
+        
+        if not target_path.exists():
+            raise HTTPException(status_code=404, detail="File does not exist")
+        
+        if not target_path.is_file():
+            raise HTTPException(status_code=400, detail="Path is not a file")
+        
+        # Limit file size to 50MB for download
+        file_size = target_path.stat().st_size
+        if file_size > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 50MB)")
+        
+        # Read file and encode as base64
+        file_data = target_path.read_bytes()
+        content_base64 = base64.b64encode(file_data).decode('utf-8')
+        
+        return {
+            "path": str(target_path),
+            "filename": target_path.name,
+            "content": content_base64,
+            "size": file_size,
+            "is_binary": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+
 @router.websocket("/terminal")
-async def terminal_websocket(websocket: WebSocket, token: str = None):
+async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     """
-    WebSocket endpoint for terminal access
+    WebSocket endpoint for terminal access using PTY
     
-    Note: This is a basic implementation. For production use, consider:
-    1. Proper authentication via token query parameter or connection handshake
-    2. Using pty for real terminal emulation
-    3. Rate limiting and timeout controls
-    4. Audit logging of terminal sessions
+    This provides a fully interactive terminal experience with:
+    - Proper PTY (pseudo-terminal) emulation
+    - Window resize support
+    - Signal handling
     """
-    # Basic token validation (should be enhanced with proper JWT verification)
+    import pty
+    import struct
+    import fcntl
+    import termios
+    import select
+    
+    # Basic token validation
     if not token:
         await websocket.close(code=1008, reason="Authentication required")
         return
     
+    # TODO: Add proper JWT token verification here
+    # For now, just check that token is provided
+    
     await websocket.accept()
     
-    try:
-        # Note: This is a simplified implementation
-        # In production, you'd want to use pty for a real terminal
-        import subprocess
+    # Create PTY
+    master_fd, slave_fd = pty.openpty()
+    
+    # Fork a child process
+    pid = os.fork()
+    
+    if pid == 0:
+        # Child process
+        os.close(master_fd)
+        os.setsid()
         
-        process = subprocess.Popen(
-            ['/bin/bash'],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=0
-        )
+        # Set up the slave as the controlling terminal
+        os.dup2(slave_fd, 0)  # stdin
+        os.dup2(slave_fd, 1)  # stdout
+        os.dup2(slave_fd, 2)  # stderr
         
-        async def read_output():
-            while True:
-                try:
-                    if process.stdout:
-                        output = process.stdout.readline()
-                        if output:
-                            await websocket.send_json({
-                                "type": "output",
-                                "data": output
-                            })
-                    await asyncio.sleep(0.1)
-                except Exception:
-                    break
+        if slave_fd > 2:
+            os.close(slave_fd)
         
-        # Start output reader
-        output_task = asyncio.create_task(read_output())
-        
-        # Handle input
+        # Execute bash
+        os.execvp('/bin/bash', ['/bin/bash', '-l'])
+    
+    # Parent process
+    os.close(slave_fd)
+    
+    # Set non-blocking mode
+    import fcntl
+    flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+    fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+    
+    async def read_pty():
+        """Read from PTY and send to WebSocket"""
+        loop = asyncio.get_event_loop()
         while True:
-            data = await websocket.receive_json()
-            
-            if data.get('type') == 'input' and process.stdin:
-                command = data.get('data', '')
-                process.stdin.write(command + '\n')
-                process.stdin.flush()
-            elif data.get('type') == 'resize':
-                # Handle terminal resize (would need pty for this)
-                pass
-            elif data.get('type') == 'close':
+            try:
+                await asyncio.sleep(0.01)  # Small delay to prevent CPU spinning
+                try:
+                    data = os.read(master_fd, 4096)
+                    if data:
+                        await websocket.send_text(data.decode('utf-8', errors='replace'))
+                except OSError:
+                    pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                break
+    
+    read_task = asyncio.create_task(read_pty())
+    
+    try:
+        while True:
+            try:
+                data = await websocket.receive()
+                
+                if data['type'] == 'websocket.receive':
+                    if 'text' in data:
+                        text = data['text']
+                        
+                        # Check if it's a resize command (JSON)
+                        if text.startswith('{'):
+                            try:
+                                cmd = json.loads(text)
+                                if cmd.get('type') == 'resize':
+                                    cols = cmd.get('cols', 80)
+                                    rows = cmd.get('rows', 24)
+                                    # Set terminal size
+                                    winsize = struct.pack('HHHH', rows, cols, 0, 0)
+                                    fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+                                continue
+                            except json.JSONDecodeError:
+                                pass
+                        
+                        # Regular terminal input
+                        os.write(master_fd, text.encode('utf-8'))
+                        
+                    elif 'bytes' in data:
+                        os.write(master_fd, data['bytes'])
+                        
+                elif data['type'] == 'websocket.disconnect':
+                    break
+                    
+            except WebSocketDisconnect:
                 break
                 
-    except WebSocketDisconnect:
-        pass
     except Exception as e:
-        await websocket.send_json({
-            "type": "error",
-            "data": str(e)
-        })
+        try:
+            await websocket.send_text(f"\r\n\x1b[31mError: {str(e)}\x1b[0m\r\n")
+        except:
+            pass
     finally:
-        if 'process' in locals():
-            process.terminate()
-        if 'output_task' in locals():
-            output_task.cancel()
+        read_task.cancel()
+        try:
+            await read_task
+        except asyncio.CancelledError:
+            pass
+        
+        # Clean up
+        os.close(master_fd)
+        try:
+            os.kill(pid, 9)
+            os.waitpid(pid, 0)
+        except:
+            pass
+
