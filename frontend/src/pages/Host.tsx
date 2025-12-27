@@ -4,10 +4,17 @@ import { useAuthStore } from '../store/authStore';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+import ProtocolConnection from '../components/ProtocolConnection';
+import { useAccessStore, Protocol } from '../store/accessStore';
 
 const Host: React.FC = () => {
   const { token } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem'>('metrics');
+  const { addTab } = useAccessStore();
+  const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
+  const [desktopProtocol, setDesktopProtocol] = useState<Protocol>('vnc');
+  const [desktopHost, setDesktopHost] = useState('localhost');
+  const [desktopPort, setDesktopPort] = useState('5900');
+  const [desktopConnectionTab, setDesktopConnectionTab] = useState<any>(null);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
@@ -232,6 +239,16 @@ const Host: React.FC = () => {
           }`}
         >
           ⬢ Filesystem
+        </button>
+        <button
+          onClick={() => setActiveTab('desktop')}
+          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+            activeTab === 'desktop'
+              ? 'text-cyber-red border-b-2 border-cyber-red'
+              : 'text-cyber-gray-light hover:text-cyber-purple'
+          }`}
+        >
+          ◉ Desktop
         </button>
       </div>
 
@@ -516,6 +533,85 @@ const Host: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Desktop Tab */}
+      {activeTab === 'desktop' && (
+        <div className="bg-cyber-dark border border-cyber-gray p-4">
+          <div className="mb-4">
+            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
+              <span className="mr-2">◉</span> Desktop Access (VNC/RDP)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Protocol</label>
+                <select
+                  value={desktopProtocol}
+                  onChange={(e) => setDesktopProtocol(e.target.value as Protocol)}
+                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2"
+                >
+                  <option value="vnc">VNC</option>
+                  <option value="rdp">RDP</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Host</label>
+                <input
+                  type="text"
+                  value={desktopHost}
+                  onChange={(e) => setDesktopHost(e.target.value)}
+                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2 font-mono"
+                  placeholder="localhost"
+                />
+              </div>
+              <div>
+                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Port</label>
+                <input
+                  type="text"
+                  value={desktopPort}
+                  onChange={(e) => setDesktopPort(e.target.value)}
+                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2 font-mono"
+                  placeholder="5900"
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const newTab = {
+                  id: `desktop-${Date.now()}`,
+                  protocol: desktopProtocol,
+                  ip: desktopHost,
+                  port: parseInt(desktopPort) || (desktopProtocol === 'vnc' ? 5900 : 3389),
+                  status: 'disconnected' as const,
+                  credentials: null,
+                };
+                setDesktopConnectionTab(newTab);
+              }}
+              className="px-4 py-2 bg-cyber-green text-black uppercase text-sm font-bold hover:bg-opacity-80"
+            >
+              Connect
+            </button>
+          </div>
+          
+          {desktopConnectionTab ? (
+            <div className="border border-cyber-gray bg-cyber-black min-h-[600px]">
+              <ProtocolConnection tab={desktopConnectionTab} />
+            </div>
+          ) : (
+            <div className="border border-cyber-gray bg-cyber-black min-h-[600px] flex items-center justify-center">
+              <div className="text-center text-cyber-gray-light">
+                <div className="text-6xl mb-4">◉</div>
+                <div className="text-lg uppercase mb-2">No Connection</div>
+                <div className="text-sm">
+                  Configure connection settings above and click Connect
+                </div>
+                <div className="text-xs mt-4 text-cyber-purple">
+                  Default VNC port: 5900 | Default RDP port: 3389
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
