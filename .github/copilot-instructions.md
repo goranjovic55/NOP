@@ -1,12 +1,15 @@
 # Universal Agent Framework - Multi-Agent Architecture
 
-**Version**: 2.0 | **Type**: Portable | **Scope**: Any project | **Architecture**: Orchestrator + Specialists
+> **📋 Framework Type**: Custom organizational and documentation framework  
+> **⚠️ Note**: This is NOT GitHub's official multi-agent format. GitHub Copilot does not automatically route to multiple agents. This framework serves as structured documentation and workflow guides for AI-assisted development.
+
+**Version**: 2.0 | **Type**: Custom/Portable | **Scope**: Any project | **Architecture**: Orchestrator + Specialists
 
 ---
 
 ## Overview
 
-This framework implements a **multi-agent architecture** where:
+This framework implements a **documented multi-agent architecture** for organizing development workflows:
 - **DevTeam (Lead)** orchestrates and maintains task control
 - **Specialists** (Architect, Developer, Reviewer, Researcher) handle domain-specific work
 - **Structured handoffs** enable coherent collaboration

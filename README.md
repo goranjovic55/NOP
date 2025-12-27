@@ -128,9 +128,11 @@ docker-compose -f docker-compose.test.yml up -d --build
 
 ## 🤖 Agent Framework
 
-This project uses a multi-agent architecture for development. See `.github/agents/README.md` for complete documentation.
+> **Note**: This is a custom organizational framework for documenting development workflows, not GitHub's official agent system. Agents serve as reference documentation and are manually invoked.
 
-### Agents
+This project uses a custom multi-agent architecture for organizing development workflows. See `.github/agents/README.md` for complete documentation.
+
+### Agents (Documentation Roles)
 - **DevTeam (Orchestrator)** - Coordinates tasks, integrates results
 - **Architect** - Design decisions, patterns, structure
 - **Developer** - Implementation, debugging, code
@@ -138,7 +140,7 @@ This project uses a multi-agent architecture for development. See `.github/agent
 - **Researcher** - Investigation, analysis, documentation
 
 ### Usage
-Agents automatically coordinate based on task complexity. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
+Agents serve as workflow documentation and can be manually referenced in development. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
 
 For detailed agent documentation, see `.github/agents/`.
 

@@ -1,10 +1,41 @@
-# GitHub Copilot Agents
+# Custom Agent Framework
 
-This directory contains the **Universal Agent Framework** - a multi-agent system for collaborative software development.
+> **⚠️ Important**: This is a **custom organizational framework**, NOT GitHub's official agent format. GitHub Copilot does not automatically route tasks to these agents. They serve as documentation and workflow guides that can be manually referenced.
 
-## Overview
+This directory contains the **Universal Agent Framework** - a custom documentation system for organizing AI-assisted development workflows.
 
-The agent framework implements a team-based approach where specialized agents work together to accomplish complex development tasks:
+## What This Is
+
+This is a **custom framework** that provides:
+- 📚 **Workflow Documentation**: Structured guides for development patterns
+- 🧭 **Team Collaboration**: Shared mental models for AI-assisted work
+- 📋 **Reference Material**: Detailed specifications for different development roles
+- 🔄 **Process Organization**: Clear handoff protocols and quality gates
+
+**This is NOT**:
+- ❌ GitHub's official multi-agent system
+- ❌ Automatically invoked by GitHub Copilot Cloud
+- ❌ A replacement for `.github/copilot-instructions.md`
+
+## How to Use
+
+### Manual Reference Approach
+When working with GitHub Copilot, manually reference these agents:
+```
+"Follow the Developer agent workflow from .github/agents/Developer.agent.md"
+"Apply the Architect patterns from .github/agents/Architect.agent.md"
+```
+
+### Documentation Purpose
+Use agents as:
+- Team collaboration guides
+- Workflow documentation
+- AI prompt templates
+- Quality standards reference
+
+## Agent Roles
+
+The agent framework implements a team-based approach where specialized roles are documented:
 
 ```
 DevTeam (Orchestrator)
@@ -330,15 +361,50 @@ project_knowledge.json   # Project entities and codegraph
 
 **Version**: 2.0  
 **Last Updated**: 2025-12-27  
-**Compatibility**: GitHub Copilot, Universal Agent Framework
+**Type**: Custom Framework (not GitHub official)
+
+## Clarification: GitHub Copilot Integration
+
+### What This Framework Is
+- **Custom documentation system** for organizing development workflows
+- **Reference material** for AI-assisted development patterns
+- **Team collaboration guide** with defined roles and protocols
+- **Knowledge management** structure for project context
+
+### What This Framework Is NOT
+- ❌ **NOT** GitHub's official multi-agent format
+- ❌ **NOT** automatically recognized by GitHub Copilot Cloud
+- ❌ **NOT** automatically routed by GitHub's infrastructure
+- ❌ **NOT** a replacement for `.github/copilot-instructions.md`
+
+### GitHub's Official Support (Dec 2025)
+GitHub Copilot officially supports:
+- ✅ Single `.github/copilot-instructions.md` file for custom instructions
+- ✅ GitHub Copilot Extensions (OAuth apps with server endpoints)
+- ✅ Manual workspace context via chat interface
+
+### How to Actually Use This
+1. **As Documentation**: Reference agent files when working with teams
+2. **Manual Prompts**: "Follow Developer agent workflow from .github/agents/"
+3. **Template Library**: Copy patterns from agents into prompts
+4. **Workflow Guides**: Use as procedural documentation
+5. **Knowledge Base**: Maintain project patterns and decisions
+
+### Relationship to copilot-instructions.md
+This framework complements (not replaces) `.github/copilot-instructions.md`:
+- **copilot-instructions.md**: Actual GitHub Copilot configuration (323 lines)
+- **agents/**: Extended workflow documentation and team guides (2,863 lines)
+- Both can coexist and serve different purposes
 
 ## References
 
-- **Main Instructions**: `/.github/copilot-instructions.md`
+- **Main Instructions**: `/.github/copilot-instructions.md` (GitHub Copilot config)
 - **Protocols**: `/.github/instructions/protocols.md`
 - **Workflows**: `/.github/workflows/`
 - **Knowledge Format**: See standards.md
 
 ---
+
+**Disclaimer**: This is a community-created organizational framework. For official GitHub Copilot documentation, see [GitHub Copilot Documentation](https://docs.github.com/en/copilot).
 
 For detailed information on each agent, refer to individual `.agent.md` files in this directory.
