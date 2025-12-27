@@ -35,11 +35,7 @@ export const authService = {
     },
 
   async getCurrentUser(token: string): Promise<User> {
-    const response = await apiClient.get('/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.get('/auth/me');
     
     return response.data;
   },

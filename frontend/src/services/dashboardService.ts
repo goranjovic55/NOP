@@ -31,29 +31,22 @@ export interface SystemEvent {
 
 export const dashboardService = {
   getAssetStats: async (token: string): Promise<DashboardStats> => {
-    const response = await apiClient.get('/assets/stats', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await apiClient.get('/assets/stats');
     return response.data;
   },
 
   getTrafficStats: async (token: string): Promise<TrafficStats> => {
-    const response = await apiClient.get('/traffic/stats', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await apiClient.get('/traffic/stats');
     return response.data;
   },
 
   getAccessStatus: async (token: string) => {
-    const response = await apiClient.get('/access/status', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await apiClient.get('/access/status');
     return response.data;
   },
 
   getEvents: async (token: string, limit: number = 10): Promise<SystemEvent[]> => {
     const response = await apiClient.get('/events/', {
-      headers: { Authorization: `Bearer ${token}` },
       params: { limit }
     });
     return response.data;

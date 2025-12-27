@@ -22,10 +22,7 @@ export const assetService = {
     }
 
     try {
-      const response = await apiClient.get('/assets/', {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+      const response = await apiClient.get('/assets/', { params });
       return response.data.assets || [];
     } catch (error) {
       console.error('Asset fetch error:', error);
@@ -37,22 +34,16 @@ export const assetService = {
     const response = await apiClient.post('/discovery/scan', {
       network: network,
       scan_type: scanType
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
   },
 
   deleteAllAssets: async (token: string): Promise<void> => {
-    await apiClient.delete('/assets/clear-all', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    await apiClient.delete('/assets/clear-all');
   },
 
   getScanStatus: async (token: string, scanId: string): Promise<any> => {
-    const response = await apiClient.get(`/discovery/scans/${scanId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await apiClient.get(`/discovery/scans/${scanId}`);
     return response.data;
   }
 };

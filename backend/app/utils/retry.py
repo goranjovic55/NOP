@@ -203,7 +203,7 @@ class CircuitBreaker:
             Exception: If circuit is open or function fails
         """
         if self.state == "OPEN":
-            if time.time() - self.last_failure_time >= self.recovery_timeout:
+            if self.last_failure_time is not None and time.time() - self.last_failure_time >= self.recovery_timeout:
                 self.state = "HALF_OPEN"
                 logger.info(f"Circuit breaker entering HALF_OPEN state for {func.__name__}")
             else:
@@ -235,7 +235,7 @@ class CircuitBreaker:
     async def async_call(self, func: Callable, *args, **kwargs) -> Any:
         """Async version of call method."""
         if self.state == "OPEN":
-            if time.time() - self.last_failure_time >= self.recovery_timeout:
+            if self.last_failure_time is not None and time.time() - self.last_failure_time >= self.recovery_timeout:
                 self.state = "HALF_OPEN"
                 logger.info(f"Circuit breaker entering HALF_OPEN state for {func.__name__}")
             else:
