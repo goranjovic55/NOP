@@ -1,41 +1,52 @@
-# Custom Agent Framework
+# GitHub Custom Agents
 
-> **⚠️ Important**: This is a **custom organizational framework**, NOT GitHub's official agent format. GitHub Copilot does not automatically route tasks to these agents. They serve as documentation and workflow guides that can be manually referenced.
+> **✅ Official Format**: These agents use GitHub's official custom agent format and can be selected in GitHub Copilot when merged to the default branch.
 
-This directory contains the **Universal Agent Framework** - a custom documentation system for organizing AI-assisted development workflows.
+This directory contains **GitHub Custom Agents** - specialized AI assistants that can be invoked in GitHub Copilot for different development tasks.
+
+## Official GitHub Agent Format
+
+These agents follow the official GitHub custom agent specification:
+- **Location**: `.github/agents/*.agent.md`
+- **Format**: YAML frontmatter with `name` and `description`
+- **Documentation**: https://gh.io/customagents/config
+- **CLI Testing**: https://gh.io/customagents/cli
 
 ## What This Is
 
-This is a **custom framework** that provides:
-- 📚 **Workflow Documentation**: Structured guides for development patterns
-- 🧭 **Team Collaboration**: Shared mental models for AI-assisted work
-- 📋 **Reference Material**: Detailed specifications for different development roles
-- 🔄 **Process Organization**: Clear handoff protocols and quality gates
-
-**This is NOT**:
-- ❌ GitHub's official multi-agent system
-- ❌ Automatically invoked by GitHub Copilot Cloud
-- ❌ A replacement for `.github/copilot-instructions.md`
+✅ **Official GitHub Custom Agents**: Recognized and selectable in GitHub Copilot  
+✅ **Automatic Availability**: Available after merging to default branch  
+✅ **Sub-Agent Support**: Agents can delegate to other agents  
+✅ **Structured Workflows**: Each agent has specialized capabilities  
 
 ## How to Use
 
-### Manual Reference Approach
-When working with GitHub Copilot, manually reference these agents:
+### In GitHub Copilot
+When working in GitHub Copilot, you can:
+1. Select a custom agent from the agent picker
+2. Mention an agent with `@AgentName`
+3. Agents can call sub-agents for specialized tasks
+
+### Agent Selection
 ```
-"Follow the Developer agent workflow from .github/agents/Developer.agent.md"
-"Apply the Architect patterns from .github/agents/Architect.agent.md"
+# In GitHub Copilot chat or editor:
+@DevTeam implement authentication system
+@Architect design the database schema
+@Developer fix the bug in auth.py
+@Reviewer validate the test coverage
+@Researcher analyze the codebase structure
 ```
 
-### Documentation Purpose
-Use agents as:
-- Team collaboration guides
-- Workflow documentation
-- AI prompt templates
-- Quality standards reference
+### Sub-Agent Delegation
+The DevTeam orchestrator can delegate to specialist agents:
+```
+@DevTeam create a new feature
+  → DevTeam calls @Architect for design
+  → DevTeam calls @Developer for implementation
+  → DevTeam calls @Reviewer for validation
+```
 
 ## Agent Roles
-
-The agent framework implements a team-based approach where specialized roles are documented:
 
 ```
 DevTeam (Orchestrator)
@@ -361,50 +372,63 @@ project_knowledge.json   # Project entities and codegraph
 
 **Version**: 2.0  
 **Last Updated**: 2025-12-27  
-**Type**: Custom Framework (not GitHub official)
+**Type**: Official GitHub Custom Agents
 
-## Clarification: GitHub Copilot Integration
+## Official GitHub Format Compliance
 
-### What This Framework Is
-- **Custom documentation system** for organizing development workflows
-- **Reference material** for AI-assisted development patterns
-- **Team collaboration guide** with defined roles and protocols
-- **Knowledge management** structure for project context
+### Agent File Format
+```yaml
+---
+name: AgentName
+description: What the agent does and its capabilities
+---
 
-### What This Framework Is NOT
-- ❌ **NOT** GitHub's official multi-agent format
-- ❌ **NOT** automatically recognized by GitHub Copilot Cloud
-- ❌ **NOT** automatically routed by GitHub's infrastructure
-- ❌ **NOT** a replacement for `.github/copilot-instructions.md`
+# Agent Content
 
-### GitHub's Official Support (Dec 2025)
-GitHub Copilot officially supports:
-- ✅ Single `.github/copilot-instructions.md` file for custom instructions
-- ✅ GitHub Copilot Extensions (OAuth apps with server endpoints)
-- ✅ Manual workspace context via chat interface
+Detailed instructions and workflows...
+```
 
-### How to Actually Use This
-1. **As Documentation**: Reference agent files when working with teams
-2. **Manual Prompts**: "Follow Developer agent workflow from .github/agents/"
-3. **Template Library**: Copy patterns from agents into prompts
-4. **Workflow Guides**: Use as procedural documentation
-5. **Knowledge Base**: Maintain project patterns and decisions
+### Official Documentation
+- **Config Format**: https://gh.io/customagents/config
+- **CLI Testing**: https://gh.io/customagents/cli
+- **GitHub Docs**: https://docs.github.com/en/copilot
 
-### Relationship to copilot-instructions.md
-This framework complements (not replaces) `.github/copilot-instructions.md`:
-- **copilot-instructions.md**: Actual GitHub Copilot configuration (323 lines)
-- **agents/**: Extended workflow documentation and team guides (2,863 lines)
-- Both can coexist and serve different purposes
+### Key Features
+✅ **Automatic Recognition**: Available in Copilot after merge to default branch  
+✅ **Agent Selection**: Can be selected via agent picker or @mentions  
+✅ **Sub-Agent Calls**: Agents can delegate to other agents  
+✅ **Structured Workflows**: Each agent has specialized domain expertise  
+
+## Integration with Repository
+
+### Knowledge System
+Agents reference and update:
+- `project_knowledge.json` - Project-specific entities and patterns
+- `.github/global_knowledge.json` - Universal patterns
+
+### Instructions
+Agents follow protocols in `.github/instructions/`:
+- `protocols.md` - Communication protocols
+- `phases.md` - Workflow phases
+- `standards.md` - Quality standards
+- `structure.md` - Project structure
+
+### Workflows
+Agents execute workflows in `.github/workflows/`:
+- `init_project.md` - Greenfield project creation
+- `import_project.md` - Adopt existing codebase
+- `refactor_code.md` - Code optimization
+- `update_knowledge.md` - Sync knowledge graph
+- `update_documents.md` - Sync documentation
+- `update_tests.md` - Improve test coverage
 
 ## References
 
-- **Main Instructions**: `/.github/copilot-instructions.md` (GitHub Copilot config)
+- **Official Format**: https://gh.io/customagents/config
+- **Main Instructions**: `/.github/copilot-instructions.md`
 - **Protocols**: `/.github/instructions/protocols.md`
 - **Workflows**: `/.github/workflows/`
-- **Knowledge Format**: See standards.md
 
 ---
-
-**Disclaimer**: This is a community-created organizational framework. For official GitHub Copilot documentation, see [GitHub Copilot Documentation](https://docs.github.com/en/copilot).
 
 For detailed information on each agent, refer to individual `.agent.md` files in this directory.

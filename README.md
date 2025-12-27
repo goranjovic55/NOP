@@ -128,21 +128,23 @@ docker-compose -f docker-compose.test.yml up -d --build
 
 ## 🤖 Agent Framework
 
-> **Note**: This is a custom organizational framework for documenting development workflows, not GitHub's official agent system. Agents serve as reference documentation and are manually invoked.
+> **✅ Official GitHub Custom Agents**: These agents use GitHub's official custom agent format and are automatically available in GitHub Copilot when merged to the default branch.
 
-This project uses a custom multi-agent architecture for organizing development workflows. See `.github/agents/README.md` for complete documentation.
+This project uses GitHub's official custom agent system for organizing development workflows. See `.github/agents/README.md` for complete documentation.
 
-### Agents (Documentation Roles)
-- **DevTeam (Orchestrator)** - Coordinates tasks, integrates results
-- **Architect** - Design decisions, patterns, structure
+### Agents (Official GitHub Custom Agents)
+- **DevTeam (Orchestrator)** - Coordinates tasks, delegates to specialists, integrates results
+- **Architect** - Design decisions, patterns, system architecture
 - **Developer** - Implementation, debugging, code
-- **Reviewer** - Testing, validation, quality
-- **Researcher** - Investigation, analysis, documentation
+- **Reviewer** - Testing, validation, quality assurance
+- **Researcher** - Investigation, codebase exploration, analysis
 
 ### Usage
-Agents serve as workflow documentation and can be manually referenced in development. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
+Select agents in GitHub Copilot using `@AgentName` or the agent picker. Agents can delegate to sub-agents for specialized tasks. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
 
 For detailed agent documentation, see `.github/agents/`.
+
+**Format**: https://gh.io/customagents/config | **CLI**: https://gh.io/customagents/cli
 
 ## 📦 Tech Stack
 
