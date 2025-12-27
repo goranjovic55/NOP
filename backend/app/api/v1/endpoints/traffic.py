@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPExce
 from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
+from app.services.PingService import ping_service
+from app.schemas.traffic import PingRequest, PingResponse
 import asyncio
 import json
 import os
@@ -74,3 +76,32 @@ async def get_traffic_flows():
 async def get_traffic_stats():
     """Get traffic statistics"""
     return sniffer_service.get_stats()
+
+
+@router.post("/ping", response_model=PingResponse)
+async def advanced_ping(request: PingRequest):
+    """
+    Perform advanced ping with support for multiple protocols.
+    Similar to hping3 functionality for testing firewall rules and services.
+    
+    Supported protocols:
+    - ICMP: Standard ping
+    - TCP: TCP connection ping to specific port
+    - UDP: UDP packet ping to specific port
+    - HTTP: HTTP/HTTPS request ping
+    """
+    try:
+        result = await ping_service.advanced_ping(
+            target=request.target,
+            protocol=request.protocol,
+            port=request.port,
+            count=request.count,
+            timeout=request.timeout,
+            packet_size=request.packet_size,
+            use_https=request.use_https
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ping failed: {str(e)}")
