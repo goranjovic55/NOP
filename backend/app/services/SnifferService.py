@@ -255,6 +255,7 @@ class SnifferService:
             source_port = packet_config.get("source_port")
             dest_port = packet_config.get("dest_port")
             payload = packet_config.get("payload", "")
+            payload_format = packet_config.get("payload_format", "ascii")
             flags = packet_config.get("flags", [])
             
             # Advanced header fields
@@ -420,11 +421,28 @@ class SnifferService:
             
             # Add payload if provided
             if payload and packet:
-                trace.append(f"Adding payload: {len(payload)} characters")
-                if isinstance(payload, str):
-                    packet = packet / payload.encode()
+                # Process payload based on format
+                if payload_format == "hex":
+                    # Remove spaces and convert hex to bytes
+                    hex_str = payload.replace(" ", "").replace("\n", "")
+                    try:
+                        payload_bytes = bytes.fromhex(hex_str)
+                        trace.append(f"Adding hex payload: {len(payload_bytes)} bytes")
+                        packet = packet / payload_bytes
+                    except ValueError as e:
+                        trace.append(f"Invalid hex payload: {str(e)}")
+                        return {
+                            "success": False,
+                            "error": f"Invalid hex payload format: {str(e)}",
+                            "trace": trace
+                        }
                 else:
-                    packet = packet / payload
+                    # ASCII format
+                    trace.append(f"Adding ASCII payload: {len(payload)} characters")
+                    if isinstance(payload, str):
+                        packet = packet / payload.encode()
+                    else:
+                        packet = packet / payload
             
             # Send the packet and wait for response
             trace.append("Sending packet...")

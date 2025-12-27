@@ -35,6 +35,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
   const [icmpType, setIcmpType] = useState('8');
   const [icmpCode, setIcmpCode] = useState('0');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [payloadFormat, setPayloadFormat] = useState<'ascii' | 'hex'>('ascii');
 
   const protocols = ['TCP', 'UDP', 'ICMP', 'ARP', 'IP'];
   const tcpFlags = ['SYN', 'ACK', 'FIN', 'RST', 'PSH', 'URG'];
@@ -57,6 +58,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
         source_port: sourcePort ? parseInt(sourcePort) : undefined,
         dest_port: destPort ? parseInt(destPort) : undefined,
         payload,
+        payload_format: payloadFormat,
         flags: protocol === 'TCP' ? flags : undefined,
         // Advanced header fields
         ttl: ttl ? parseInt(ttl) : undefined,
@@ -207,14 +209,50 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
 
               {/* Payload */}
               <div className="col-span-2 space-y-2">
-                <label className="text-xs text-cyber-gray-light font-bold uppercase">Payload / Data</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-cyber-gray-light font-bold uppercase">Payload / Data</label>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setPayloadFormat('ascii')}
+                      className={`px-3 py-1 text-[10px] uppercase transition-all ${
+                        payloadFormat === 'ascii'
+                          ? 'bg-cyber-purple text-white border border-cyber-purple'
+                          : 'bg-cyber-darker text-cyber-gray-light border border-cyber-gray hover:border-cyber-purple'
+                      }`}
+                    >
+                      ASCII
+                    </button>
+                    <button
+                      onClick={() => setPayloadFormat('hex')}
+                      className={`px-3 py-1 text-[10px] uppercase transition-all ${
+                        payloadFormat === 'hex'
+                          ? 'bg-cyber-purple text-white border border-cyber-purple'
+                          : 'bg-cyber-darker text-cyber-gray-light border border-cyber-gray hover:border-cyber-purple'
+                      }`}
+                    >
+                      HEX
+                    </button>
+                  </div>
+                </div>
                 <textarea
                   value={payload}
                   onChange={(e) => setPayload(e.target.value)}
-                  placeholder="Enter payload data (hex or ASCII)"
+                  placeholder={payloadFormat === 'hex' 
+                    ? "Enter hex bytes (e.g., 48656c6c6f or 48 65 6c 6c 6f)" 
+                    : "Enter ASCII text (e.g., Hello World)"}
                   rows={4}
                   className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono resize-none"
                 />
+                {payloadFormat === 'hex' && payload && (
+                  <div className="text-[10px] text-cyber-gray-light">
+                    {payload.replace(/\s/g, '').match(/.{1,2}/g)?.length || 0} bytes
+                  </div>
+                )}
+                {payloadFormat === 'ascii' && payload && (
+                  <div className="text-[10px] text-cyber-gray-light">
+                    {payload.length} characters ({new Blob([payload]).size} bytes)
+                  </div>
+                )}
               </div>
 
               {/* Advanced Options Toggle */}
