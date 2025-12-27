@@ -14,7 +14,6 @@ import os
 import shutil
 from datetime import datetime
 from app.core.security import get_current_user
-from app.schemas.user import User
 
 router = APIRouter()
 
@@ -26,7 +25,7 @@ class WriteFileRequest(BaseModel):
 
 @router.get("/system/info")
 async def get_system_info(
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get basic system information"""
     try:
@@ -46,7 +45,7 @@ async def get_system_info(
 
 @router.get("/system/metrics")
 async def get_system_metrics(
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get real-time system metrics"""
     try:
@@ -127,7 +126,7 @@ async def get_system_metrics(
 
 @router.get("/system/processes")
 async def get_processes(
-    current_user: User = Depends(get_current_user),
+    current_user: Dict = Depends(get_current_user),
     limit: int = 50
 ) -> List[Dict[str, Any]]:
     """Get list of running processes"""
@@ -157,7 +156,7 @@ async def get_processes(
 @router.get("/filesystem/browse")
 async def browse_filesystem(
     path: str = "/",
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Browse filesystem directory"""
     try:
@@ -206,7 +205,7 @@ async def browse_filesystem(
 @router.get("/filesystem/read")
 async def read_file(
     path: str,
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Read file contents"""
     try:
@@ -244,7 +243,7 @@ async def read_file(
 @router.post("/filesystem/write")
 async def write_file(
     request: WriteFileRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, str]:
     """Write content to file"""
     try:
@@ -268,7 +267,7 @@ async def write_file(
 @router.delete("/filesystem/delete")
 async def delete_path(
     path: str,
-    current_user: User = Depends(get_current_user)
+    current_user: Dict = Depends(get_current_user)
 ) -> Dict[str, str]:
     """Delete file or directory"""
     try:
