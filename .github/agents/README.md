@@ -23,14 +23,15 @@ These agents follow the official GitHub custom agent specification:
 
 ## Agents
 
-### DevTeam (Orchestrator) - 83 lines
+### DevTeam (Orchestrator) - 104 lines
 **File**: `DevTeam.agent.md`  
-**Purpose**: Coordinates specialist agents for complex tasks
+**Purpose**: Coordinates specialist agents using #runSubagent tool
 
 **Capabilities**:
 - Breaks down requests into steps
-- Delegates to appropriate specialists
-- Integrates results from multiple agents
+- Uses `#runSubagent` tool to invoke specialists
+- Supports sequential and parallel subagent execution
+- Integrates results from multiple subagents
 - Manages workflow between agents
 
 **When to use**: Multi-step tasks requiring design, implementation, and validation
@@ -102,7 +103,7 @@ These agents follow the official GitHub custom agent specification:
 
 ```
 @DevTeam add JWT authentication to the API
-→ DevTeam will coordinate Architect, Developer, and Reviewer
+→ DevTeam uses #runSubagent to coordinate Architect, Developer, and Reviewer
 
 @Architect design a caching strategy for our API
 → Architect will evaluate options and recommend approach
@@ -117,20 +118,42 @@ These agents follow the official GitHub custom agent specification:
 → Researcher will investigate and document findings
 ```
 
-### Sub-Agent Delegation
+### Sub-Agent Delegation with #runSubagent
 
-DevTeam orchestrates by delegating to specialists:
+DevTeam orchestrates using the `#runSubagent` tool to invoke specialists:
 
 ```
 User: "@DevTeam add user authentication"
 
 DevTeam:
-1. @Architect design JWT auth system
-   [waits for response]
-2. @Developer implement based on Architect's design
-   [waits for response]
-3. @Reviewer validate implementation and security
-   [integrates all responses]
+Breaking down into sequential steps:
+
+Step 1: Design
+#runSubagent Architect
+Design JWT auth system with access/refresh tokens
+
+[Architect completes and returns design]
+
+Step 2: Implementation
+#runSubagent Developer
+Implement auth based on Architect's design
+
+[Developer completes and returns code]
+
+Step 3: Validation
+#runSubagent Reviewer
+Validate implementation and security
+
+[Reviewer completes and returns validation]
+
+Final: [DevTeam integrates all subagent outputs]
+```
+
+**Parallel Execution** for independent tasks:
+```
+#runSubagent Developer --task "Create API endpoints"
+#runSubagent Developer --task "Create database models"
+#runSubagent Developer --task "Write tests"
 ```
 
 ## Optimization Notes
