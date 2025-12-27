@@ -33,6 +33,25 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
     }
   };
 
+  // Determine available services based on open ports
+  const getAvailableServices = (): Protocol[] => {
+    if (!asset || !asset.open_ports || asset.open_ports.length === 0) {
+      return [];
+    }
+    
+    const services: Protocol[] = [];
+    if (asset.open_ports.includes(22)) services.push('ssh');
+    if (asset.open_ports.includes(3389)) services.push('rdp');
+    if (asset.open_ports.includes(5900)) services.push('vnc');
+    if (asset.open_ports.includes(23)) services.push('telnet');
+    if (asset.open_ports.includes(80) || asset.open_ports.includes(443) || asset.open_ports.includes(8080)) services.push('web');
+    if (asset.open_ports.includes(21) || asset.open_ports.includes(20)) services.push('ftp');
+    
+    return services;
+  };
+
+  const availableServices = getAvailableServices();
+
   return (
     <div className={`fixed inset-y-0 right-0 w-96 bg-cyber-dark border-l border-cyber-gray shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${asset ? 'translate-x-0' : 'translate-x-full'}`}>
       {asset && (
@@ -110,28 +129,35 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
 
             {/* Action Buttons */}
             <div className="pt-6 space-y-3">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowConnectOptions(!showConnectOptions)}
-                  className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all group"
-                >
-                  <span className="font-bold uppercase tracking-widest">Connect</span>
-                </button>
-                
-                {showConnectOptions && (
-                  <div className="absolute bottom-full left-0 w-full bg-cyber-dark border border-cyber-blue mb-2 shadow-2xl z-10">
-                    {(['ssh', 'rdp', 'vnc', 'telnet', 'exploit', 'web', 'ftp'] as Protocol[]).map((proto) => (
-                      <button
-                        key={proto}
-                        onClick={() => handleConnectClick(proto)}
-                        className="w-full text-left px-4 py-2 text-xs font-bold uppercase text-cyber-blue hover:bg-cyber-blue hover:text-white transition-colors border-b border-cyber-gray last:border-0"
-                      >
-                        {proto}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {availableServices.length > 0 ? (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowConnectOptions(!showConnectOptions)}
+                    className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all group"
+                  >
+                    <span className="font-bold uppercase tracking-widest">Connect</span>
+                  </button>
+                  
+                  {showConnectOptions && (
+                    <div className="absolute bottom-full left-0 w-full bg-cyber-dark border border-cyber-blue mb-2 shadow-2xl z-10">
+                      {availableServices.map((proto) => (
+                        <button
+                          key={proto}
+                          onClick={() => handleConnectClick(proto)}
+                          className="w-full text-left px-4 py-2 text-xs font-bold uppercase text-cyber-blue hover:bg-cyber-blue hover:text-white transition-colors border-b border-cyber-gray last:border-0"
+                        >
+                          {proto}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center space-y-2 py-3 border-2 border-cyber-gray text-cyber-gray opacity-50">
+                  <span className="font-bold uppercase tracking-widest text-xs">No Services Discovered</span>
+                  <span className="text-[10px] text-cyber-gray-light">Run a detailed scan to detect services</span>
+                </div>
+              )}
               
               <button
                 onClick={handleScanClick}

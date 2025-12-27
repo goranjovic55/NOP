@@ -355,13 +355,14 @@ const Assets: React.FC = () => {
                 >
                   Intel {sortField === 'scanned_time' && (sortOrder === 'asc' ? '▲' : '▼')}
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Services</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
               ) : filteredAndSortedAssets.length === 0 && !error ? (
-                <tr><td colSpan={5} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 filteredAndSortedAssets.map((asset: any) => {
                   const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
@@ -403,6 +404,20 @@ const Assets: React.FC = () => {
                             <span className="text-cyber-gray-light text-[10px] font-bold uppercase border border-cyber-gray px-1 opacity-40 w-fit">Unscanned</span>
                           )}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {asset.open_ports && asset.open_ports.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {asset.open_ports.includes(22) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">SSH</span>}
+                            {asset.open_ports.includes(3389) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">RDP</span>}
+                            {asset.open_ports.includes(5900) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">VNC</span>}
+                            {asset.open_ports.includes(23) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">TELNET</span>}
+                            {(asset.open_ports.includes(80) || asset.open_ports.includes(443) || asset.open_ports.includes(8080)) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">WEB</span>}
+                            {(asset.open_ports.includes(21) || asset.open_ports.includes(20)) && <span className="text-[10px] font-bold uppercase border border-cyber-blue text-cyber-blue px-1.5 py-0.5">FTP</span>}
+                          </div>
+                        ) : (
+                          <span className="text-cyber-gray-light text-[10px] opacity-40">None</span>
+                        )}
                       </td>
                     </tr>
                   );
