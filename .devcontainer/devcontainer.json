@@ -1,0 +1,14 @@
+{
+  "name": "NOP Development",
+  "forwardPorts": [12000, 12001],
+  "portsAttributes": {
+    "12000": {
+      "label": "Frontend",
+      "onAutoForward": "notify"
+    },
+    "12001": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    }
+  }
+}

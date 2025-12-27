@@ -71,13 +71,17 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping'>('capture');
+  const [activeTab, setActiveTab] = useState<'capture' | 'ping'>(() => {
+    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping') || 'capture';
+  });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
   const [selectedIface, setSelectedIface] = useState<string>('');
   const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(() => {
+    return localStorage.getItem('nop_traffic_filter') || '';
+  });
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   
@@ -127,6 +131,15 @@ const Traffic: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Persist active tab and filter to localStorage
+  useEffect(() => {
+    localStorage.setItem('nop_traffic_active_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('nop_traffic_filter', filter);
+  }, [filter]);
 
   useEffect(() => {
     if (packetListEndRef.current && !selectedPacket) {

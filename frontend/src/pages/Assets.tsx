@@ -26,8 +26,12 @@ const Assets: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [subnetFilter, setSubnetFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    return localStorage.getItem('nop_assets_status_filter') || 'all';
+  });
+  const [subnetFilter, setSubnetFilter] = useState<string>(() => {
+    return localStorage.getItem('nop_assets_subnet_filter') || '';
+  });
   const [refreshInterval] = useState<number>(30);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -47,6 +51,15 @@ const Assets: React.FC = () => {
       passiveDiscoveryEnabled: true
     };
   });
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('nop_assets_status_filter', statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('nop_assets_subnet_filter', subnetFilter);
+  }, [subnetFilter]);
 
   const { token } = useAuthStore();
   const { setOnScanComplete, tabs: scanTabs } = useScanStore();
