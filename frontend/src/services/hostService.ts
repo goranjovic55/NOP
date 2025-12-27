@@ -131,10 +131,13 @@ export const hostService = {
   },
 
   writeFile: async (token: string, path: string, content: string): Promise<{ status: string; path: string; message: string }> => {
-    const response = await axios.post(`${API_URL}/api/v1/host/filesystem/write`, null, {
-      headers: { Authorization: `Bearer ${token}` },
-      params: { path, content },
-    });
+    const response = await axios.post(
+      `${API_URL}/api/v1/host/filesystem/write`,
+      { path, content },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     return response.data;
   },
 
@@ -147,7 +150,7 @@ export const hostService = {
   },
 
   createTerminalConnection: (token: string): WebSocket => {
-    const wsUrl = `${API_URL.replace('http', 'ws')}/api/v1/host/terminal`;
+    const wsUrl = `${API_URL.replace('http', 'ws')}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
     return ws;
   },

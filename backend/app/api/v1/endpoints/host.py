@@ -2,9 +2,10 @@
 Host management endpoints for system monitoring and access
 """
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Body
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+from pydantic import BaseModel
 import psutil
 import platform
 import asyncio
@@ -16,6 +17,11 @@ from app.core.security import get_current_user
 from app.schemas.user import User
 
 router = APIRouter()
+
+
+class WriteFileRequest(BaseModel):
+    path: str
+    content: str
 
 
 @router.get("/system/info")
@@ -75,9 +81,12 @@ async def get_system_metrics(
         # Process count
         process_count = len(psutil.pids())
         
+        # Calculate total CPU from per-core data
+        cpu_total = sum(cpu_percent) / len(cpu_percent) if cpu_percent else 0
+        
         return {
             "cpu": {
-                "percent_total": psutil.cpu_percent(interval=0),
+                "percent_total": cpu_total,
                 "percent_per_core": cpu_percent,
                 "core_count": psutil.cpu_count(logical=False),
                 "thread_count": psutil.cpu_count(logical=True),
@@ -234,19 +243,18 @@ async def read_file(
 
 @router.post("/filesystem/write")
 async def write_file(
-    path: str,
-    content: str,
+    request: WriteFileRequest,
     current_user: User = Depends(get_current_user)
 ) -> Dict[str, str]:
     """Write content to file"""
     try:
-        target_path = Path(path).resolve()
+        target_path = Path(request.path).resolve()
         
         # Create parent directories if they don't exist
         target_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Write content
-        target_path.write_text(content)
+        target_path.write_text(request.content)
         
         return {
             "status": "success",
@@ -285,8 +293,21 @@ async def delete_path(
 
 
 @router.websocket("/terminal")
-async def terminal_websocket(websocket: WebSocket):
-    """WebSocket endpoint for terminal access"""
+async def terminal_websocket(websocket: WebSocket, token: str = None):
+    """
+    WebSocket endpoint for terminal access
+    
+    Note: This is a basic implementation. For production use, consider:
+    1. Proper authentication via token query parameter or connection handshake
+    2. Using pty for real terminal emulation
+    3. Rate limiting and timeout controls
+    4. Audit logging of terminal sessions
+    """
+    # Basic token validation (should be enhanced with proper JWT verification)
+    if not token:
+        await websocket.close(code=1008, reason="Authentication required")
+        return
+    
     await websocket.accept()
     
     try:
