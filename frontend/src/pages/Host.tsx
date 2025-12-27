@@ -455,16 +455,28 @@ const Host: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => handleFileClick(item)}
-                  className={`w-full text-left px-3 py-2 border transition-colors ${
+                  className={`w-full text-left px-3 py-2 border transition-colors group ${
                     item.type === 'directory'
-                      ? 'border-cyber-purple hover:bg-cyber-darker text-cyber-purple'
-                      : 'border-cyber-gray hover:bg-cyber-darker text-cyber-green'
+                      ? 'border-cyber-purple hover:bg-cyber-darker hover:border-cyber-red'
+                      : 'border-cyber-gray hover:bg-cyber-darker hover:border-cyber-green'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <span>{item.type === 'directory' ? '📁' : '📄'}</span>
-                      <span className="font-mono text-sm truncate">{item.name}</span>
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      {item.type === 'directory' ? (
+                        <svg className="w-5 h-5 text-cyber-purple group-hover:text-cyber-red transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18" opacity="0.6" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-cyber-green group-hover:text-cyber-purple transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 3v6h6" opacity="0.6" />
+                        </svg>
+                      )}
+                      <span className={`font-mono text-sm truncate ${item.type === 'directory' ? 'text-cyber-purple group-hover:text-cyber-red' : 'text-cyber-green group-hover:text-cyber-purple'} transition-colors`}>
+                        {item.name}
+                      </span>
                     </div>
                     <div className="text-xs text-cyber-gray-light ml-2 flex-shrink-0">
                       {item.type === 'file' && item.size !== undefined && formatBytes(item.size)}
