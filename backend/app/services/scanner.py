@@ -12,6 +12,8 @@ from datetime import datetime
 import xml.etree.ElementTree as ET
 import logging
 
+from app.utils.retry import retry
+
 logger = logging.getLogger(__name__)
 
 class NetworkScanner:
@@ -20,6 +22,12 @@ class NetworkScanner:
     def __init__(self):
         self.scan_results = {}
 
+    @retry(
+        max_attempts=2,
+        base_delay=2.0,
+        exceptions=(subprocess.SubprocessError, asyncio.TimeoutError),
+        logger_name=__name__
+    )
     async def ping_sweep(self, network: str) -> List[str]:
         """Perform ping sweep to discover live hosts"""
         try:
@@ -52,6 +60,12 @@ class NetworkScanner:
             logger.error(f"Error in ping sweep: {str(e)}")
             return []
 
+    @retry(
+        max_attempts=2,
+        base_delay=2.0,
+        exceptions=(subprocess.SubprocessError, asyncio.TimeoutError),
+        logger_name=__name__
+    )
     async def port_scan(self, host: str, ports: str = "1-1000") -> Dict[str, Any]:
         """Perform port scan on a host"""
         try:
