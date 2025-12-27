@@ -57,7 +57,7 @@ async def get_online_assets(db: AsyncSession = Depends(get_db)):
             "hostname": asset.hostname or asset.ip_address,
             "status": asset.status
         }
-        for asset in result.items
+        for asset in result.assets
     ]
 
 
