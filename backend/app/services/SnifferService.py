@@ -257,6 +257,16 @@ class SnifferService:
             payload = packet_config.get("payload", "")
             flags = packet_config.get("flags", [])
             
+            # Advanced header fields
+            ttl = packet_config.get("ttl")
+            ip_id = packet_config.get("ip_id")
+            tos = packet_config.get("tos")
+            tcp_seq = packet_config.get("tcp_seq")
+            tcp_ack = packet_config.get("tcp_ack")
+            tcp_window = packet_config.get("tcp_window")
+            icmp_type = packet_config.get("icmp_type")
+            icmp_code = packet_config.get("icmp_code")
+            
             if not dest_ip:
                 return {
                     "success": False,
@@ -285,10 +295,38 @@ class SnifferService:
                 trace.append(f"Building TCP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
                 trace.append(f"TCP Flags: {flag_str} ({', '.join(flags) if flags else 'SYN'})")
                 
+                # Build IP layer
                 if source_ip:
-                    packet = IP(src=source_ip, dst=dest_ip) / TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
                 else:
-                    packet = IP(dst=dest_ip) / TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                # Build TCP layer
+                tcp_layer = TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                
+                # Apply TCP header options
+                if tcp_seq:
+                    tcp_layer.seq = tcp_seq
+                    trace.append(f"TCP Seq: {tcp_seq}")
+                if tcp_ack:
+                    tcp_layer.ack = tcp_ack
+                    trace.append(f"TCP Ack: {tcp_ack}")
+                if tcp_window:
+                    tcp_layer.window = tcp_window
+                    trace.append(f"TCP Window: {tcp_window}")
+                
+                packet = ip_layer / tcp_layer
                     
             elif protocol == "UDP":
                 if not source_port or not dest_port:
@@ -299,18 +337,55 @@ class SnifferService:
                 
                 trace.append(f"Building UDP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
                 
+                # Build IP layer
                 if source_ip:
-                    packet = IP(src=source_ip, dst=dest_ip) / UDP(sport=source_port, dport=dest_port)
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
                 else:
-                    packet = IP(dst=dest_ip) / UDP(sport=source_port, dport=dest_port)
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                packet = ip_layer / UDP(sport=source_port, dport=dest_port)
                     
             elif protocol == "ICMP":
                 trace.append(f"Building ICMP packet: {source_ip or 'auto'} -> {dest_ip}")
                 
+                # Build IP layer
                 if source_ip:
-                    packet = IP(src=source_ip, dst=dest_ip) / ICMP()
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
                 else:
-                    packet = IP(dst=dest_ip) / ICMP()
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                # Build ICMP layer with custom type/code if provided
+                icmp_layer = ICMP()
+                if icmp_type is not None:
+                    icmp_layer.type = icmp_type
+                    trace.append(f"ICMP Type: {icmp_type}")
+                if icmp_code is not None:
+                    icmp_layer.code = icmp_code
+                    trace.append(f"ICMP Code: {icmp_code}")
+                
+                packet = ip_layer / icmp_layer
                     
             elif protocol == "ARP":
                 trace.append(f"Building ARP packet for {dest_ip}")
@@ -320,9 +395,22 @@ class SnifferService:
                 trace.append(f"Building raw IP packet: {source_ip or 'auto'} -> {dest_ip}")
                 
                 if source_ip:
-                    packet = IP(src=source_ip, dst=dest_ip)
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
                 else:
-                    packet = IP(dst=dest_ip)
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                packet = ip_layer
             
             else:
                 return {

@@ -24,6 +24,17 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
   const [flags, setFlags] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [response, setResponse] = useState<PacketResponse | null>(null);
+  
+  // Advanced header fields
+  const [ttl, setTtl] = useState('64');
+  const [ipId, setIpId] = useState('');
+  const [tos, setTos] = useState('0');
+  const [tcpSeq, setTcpSeq] = useState('');
+  const [tcpAck, setTcpAck] = useState('');
+  const [tcpWindow, setTcpWindow] = useState('8192');
+  const [icmpType, setIcmpType] = useState('8');
+  const [icmpCode, setIcmpCode] = useState('0');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const protocols = ['TCP', 'UDP', 'ICMP', 'ARP', 'IP'];
   const tcpFlags = ['SYN', 'ACK', 'FIN', 'RST', 'PSH', 'URG'];
@@ -47,6 +58,15 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
         dest_port: destPort ? parseInt(destPort) : undefined,
         payload,
         flags: protocol === 'TCP' ? flags : undefined,
+        // Advanced header fields
+        ttl: ttl ? parseInt(ttl) : undefined,
+        ip_id: ipId ? parseInt(ipId) : undefined,
+        tos: tos ? parseInt(tos) : undefined,
+        tcp_seq: tcpSeq ? parseInt(tcpSeq) : undefined,
+        tcp_ack: tcpAck ? parseInt(tcpAck) : undefined,
+        tcp_window: tcpWindow ? parseInt(tcpWindow) : undefined,
+        icmp_type: protocol === 'ICMP' && icmpType ? parseInt(icmpType) : undefined,
+        icmp_code: protocol === 'ICMP' && icmpCode ? parseInt(icmpCode) : undefined,
       };
 
       const res = await fetch('/api/v1/traffic/craft', {
@@ -196,6 +216,155 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
                   className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono resize-none"
                 />
               </div>
+
+              {/* Advanced Options Toggle */}
+              <div className="col-span-2">
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="px-4 py-1 border border-cyber-gray text-cyber-gray-light text-xs uppercase hover:border-cyber-purple hover:text-cyber-purple transition-all"
+                >
+                  {showAdvanced ? '▼ Hide Advanced Options' : '▶ Show Advanced Options'}
+                </button>
+              </div>
+
+              {/* Advanced Header Fields */}
+              {showAdvanced && (
+                <>
+                  <div className="col-span-2 border-t border-cyber-gray pt-4 mb-2">
+                    <h4 className="text-xs text-cyber-purple font-bold uppercase">IP Header Options</h4>
+                  </div>
+
+                  {/* TTL */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-cyber-gray-light font-bold uppercase">TTL (Time To Live)</label>
+                    <input
+                      type="number"
+                      value={ttl}
+                      onChange={(e) => setTtl(e.target.value)}
+                      placeholder="64"
+                      min="1"
+                      max="255"
+                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                    />
+                  </div>
+
+                  {/* IP ID */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-cyber-gray-light font-bold uppercase">IP ID (Identification)</label>
+                    <input
+                      type="number"
+                      value={ipId}
+                      onChange={(e) => setIpId(e.target.value)}
+                      placeholder="Auto"
+                      min="0"
+                      max="65535"
+                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                    />
+                  </div>
+
+                  {/* TOS */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-cyber-gray-light font-bold uppercase">TOS (Type of Service)</label>
+                    <input
+                      type="number"
+                      value={tos}
+                      onChange={(e) => setTos(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      max="255"
+                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                    />
+                  </div>
+
+                  {/* TCP Header Options */}
+                  {protocol === 'TCP' && (
+                    <>
+                      <div className="col-span-2 border-t border-cyber-gray pt-4 mb-2 mt-4">
+                        <h4 className="text-xs text-cyber-purple font-bold uppercase">TCP Header Options</h4>
+                      </div>
+
+                      {/* TCP Sequence Number */}
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-gray-light font-bold uppercase">Sequence Number</label>
+                        <input
+                          type="number"
+                          value={tcpSeq}
+                          onChange={(e) => setTcpSeq(e.target.value)}
+                          placeholder="Auto"
+                          min="0"
+                          max="4294967295"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                        />
+                      </div>
+
+                      {/* TCP Acknowledgment Number */}
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-gray-light font-bold uppercase">Acknowledgment Number</label>
+                        <input
+                          type="number"
+                          value={tcpAck}
+                          onChange={(e) => setTcpAck(e.target.value)}
+                          placeholder="Auto"
+                          min="0"
+                          max="4294967295"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                        />
+                      </div>
+
+                      {/* TCP Window Size */}
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-gray-light font-bold uppercase">Window Size</label>
+                        <input
+                          type="number"
+                          value={tcpWindow}
+                          onChange={(e) => setTcpWindow(e.target.value)}
+                          placeholder="8192"
+                          min="0"
+                          max="65535"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* ICMP Header Options */}
+                  {protocol === 'ICMP' && (
+                    <>
+                      <div className="col-span-2 border-t border-cyber-gray pt-4 mb-2 mt-4">
+                        <h4 className="text-xs text-cyber-purple font-bold uppercase">ICMP Header Options</h4>
+                      </div>
+
+                      {/* ICMP Type */}
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-gray-light font-bold uppercase">ICMP Type</label>
+                        <input
+                          type="number"
+                          value={icmpType}
+                          onChange={(e) => setIcmpType(e.target.value)}
+                          placeholder="8 (Echo Request)"
+                          min="0"
+                          max="255"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                        />
+                      </div>
+
+                      {/* ICMP Code */}
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-gray-light font-bold uppercase">ICMP Code</label>
+                        <input
+                          type="number"
+                          value={icmpCode}
+                          onChange={(e) => setIcmpCode(e.target.value)}
+                          placeholder="0"
+                          min="0"
+                          max="255"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
               {/* Send Button */}
               <div className="col-span-2">
