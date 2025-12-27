@@ -41,6 +41,26 @@ async def get_asset_stats(db: AsyncSession = Depends(get_db)):
     return await asset_service.get_asset_stats()
 
 
+@router.get("/online", response_model=List[dict])
+async def get_online_assets(db: AsyncSession = Depends(get_db)):
+    """Get list of all assets (online and offline) for dropdown"""
+    asset_service = AssetService(db)
+    # Get all assets
+    result = await asset_service.get_assets(
+        page=1,
+        size=1000  # Get more assets for dropdown
+    )
+    # Return simplified list with IP, hostname, and status
+    return [
+        {
+            "ip_address": asset.ip_address,
+            "hostname": asset.hostname or asset.ip_address,
+            "status": asset.status
+        }
+        for asset in result.items
+    ]
+
+
 @router.get("/{asset_id}", response_model=AssetResponse)
 async def get_asset(
     asset_id: str,

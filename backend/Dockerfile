@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     libpcap-dev \
     ca-certificates \
+    hping3 \
+    traceroute \
+    tcptraceroute \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 

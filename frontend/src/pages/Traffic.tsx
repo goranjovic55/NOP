@@ -92,6 +92,9 @@ const Traffic: React.FC = () => {
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
   const [pingError, setPingError] = useState<string>('');
+  const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
+  const [showAssetDropdown, setShowAssetDropdown] = useState(false);
+  const assetDropdownRef = useRef<HTMLDivElement>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
@@ -105,6 +108,24 @@ const Traffic: React.FC = () => {
       if (wsRef.current) wsRef.current.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Fetch online assets when ping tab is active
+    if (activeTab === 'ping') {
+      fetchOnlineAssets();
+    }
+  }, [activeTab, token]);
+
+  useEffect(() => {
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
+        setShowAssetDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -128,6 +149,20 @@ const Traffic: React.FC = () => {
       setInterfaces(data);
     } catch (err) {
       console.error('Failed to fetch interfaces:', err);
+    }
+  };
+
+  const fetchOnlineAssets = async () => {
+    try {
+      const response = await fetch(`/api/v1/assets/online`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOnlineAssets(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch online assets:', err);
     }
   };
 
@@ -245,7 +280,7 @@ const Traffic: React.FC = () => {
     setPingResults(null);
 
     try {
-      const requestBody = {
+      const requestBody: any = {
         target: pingTarget,
         protocol: pingProtocol,
         count: parseInt(pingCount),
@@ -474,129 +509,190 @@ const Traffic: React.FC = () => {
               <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Advanced Ping Configuration</span>
             </div>
             <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-              <div className="max-w-4xl space-y-6">
-                {/* Target Input */}
-                <div className="space-y-2">
-                  <label className="text-xs text-cyber-blue font-bold uppercase">Target IP/Hostname</label>
-                  <input
-                    type="text"
-                    value={pingTarget}
-                    onChange={(e) => {
-                      setPingTarget(e.target.value);
-                      setPingError('');
-                    }}
-                    placeholder="e.g. 192.168.1.1 or example.com"
-                    className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
-                  />
-                  {pingError && (
-                    <p className="text-cyber-red text-xs mt-1">⚠ {pingError}</p>
-                  )}
-                </div>
-
-                {/* Protocol Selection */}
-                <div className="space-y-2">
-                  <label className="text-xs text-cyber-blue font-bold uppercase">Protocol</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {['icmp', 'tcp', 'udp', 'http'].map((proto) => (
-                      <button
-                        key={proto}
-                        onClick={() => setPingProtocol(proto)}
-                        className={`px-4 py-2 border-2 font-bold uppercase text-xs transition-all ${
-                          pingProtocol === proto
-                            ? 'bg-cyber-green text-black border-cyber-green'
-                            : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green'
-                        }`}
-                      >
-                        {proto.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Port (for TCP/UDP/HTTP) */}
-                {(pingProtocol === 'tcp' || pingProtocol === 'udp' || pingProtocol === 'http') && (
+              <div className="flex gap-6">
+                {/* Left Side: Configuration */}
+                <div className="flex-1 space-y-6">
+                  {/* Target Input */}
                   <div className="space-y-2">
-                    <label className="text-xs text-cyber-blue font-bold uppercase">Port</label>
-                    <input
-                      type="number"
-                      value={pingPort}
-                      onChange={(e) => setPingPort(e.target.value)}
-                      placeholder="80"
-                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
-                    />
+                    <label className="text-xs text-cyber-blue font-bold uppercase">Target IP/Hostname</label>
+                    <div className="relative" ref={assetDropdownRef}>
+                      <input
+                        type="text"
+                        value={pingTarget}
+                        onChange={(e) => {
+                          setPingTarget(e.target.value);
+                          setPingError('');
+                          setShowAssetDropdown(true);
+                        }}
+                        onFocus={() => setShowAssetDropdown(true)}
+                        placeholder="e.g. 192.168.1.1 or example.com"
+                        className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                      />
+                      
+                      {/* Assets Dropdown with Filter */}
+                      {showAssetDropdown && (() => {
+                        const filtered = onlineAssets.filter(asset => 
+                          asset.ip_address.toLowerCase().includes(pingTarget.toLowerCase()) ||
+                          asset.hostname.toLowerCase().includes(pingTarget.toLowerCase())
+                        );
+                        const onlineCount = filtered.filter(a => a.status === 'online').length;
+                        const offlineCount = filtered.filter(a => a.status === 'offline').length;
+                        
+                        return filtered.length > 0 ? (
+                          <div className="absolute top-full left-0 mt-1 w-full bg-cyber-darker border border-cyber-green z-50 shadow-xl max-h-[250px] overflow-y-auto custom-scrollbar">
+                            <div className="p-2 bg-cyber-darker border-b border-cyber-gray flex justify-between items-center">
+                              <span className="text-[10px] text-cyber-purple font-bold uppercase">Assets ({filtered.length})</span>
+                              <span className="text-[9px] text-cyber-gray-light">
+                                <span className="text-cyber-green">{onlineCount} online</span> / <span className="text-cyber-gray">{offlineCount} offline</span>
+                              </span>
+                            </div>
+                            {filtered.map((asset, idx) => {
+                              const isOnline = asset.status === 'online';
+                              return (
+                                <div
+                                  key={idx}
+                                  onClick={() => {
+                                    setPingTarget(asset.ip_address);
+                                    setShowAssetDropdown(false);
+                                    setPingError('');
+                                  }}
+                                  className={`p-2 cursor-pointer border-b border-cyber-gray/30 flex items-center justify-between ${
+                                    isOnline 
+                                      ? 'hover:bg-cyber-green/10' 
+                                      : 'hover:bg-cyber-gray/10 opacity-60'
+                                  }`}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className={`font-mono text-xs ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>
+                                      {asset.ip_address}
+                                    </span>
+                                    {asset.hostname !== asset.ip_address && (
+                                      <span className="text-cyber-gray-light text-[10px]">{asset.hostname}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold uppercase ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>
+                                      {isOnline ? '● ONLINE' : '○ OFFLINE'}
+                                    </span>
+                                    <span className={`text-[10px] ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>▸</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                    {pingError && (
+                      <p className="text-cyber-red text-xs mt-1">⚠ {pingError}</p>
+                    )}
                   </div>
-                )}
 
-                {/* HTTPS Toggle (for HTTP) */}
-                {pingProtocol === 'http' && (
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id="use-https"
-                      checked={pingUseHttps}
-                      onChange={(e) => setPingUseHttps(e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor="use-https" className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</label>
+                  {/* Protocol Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-cyber-blue font-bold uppercase">Protocol</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {['icmp', 'tcp', 'udp', 'http', 'dns'].map((proto) => (
+                        <button
+                          key={proto}
+                          onClick={() => setPingProtocol(proto)}
+                          className={`px-4 py-2 border-2 font-bold uppercase text-xs transition-all ${
+                            pingProtocol === proto
+                              ? 'bg-cyber-green text-black border-cyber-green'
+                              : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green'
+                          }`}
+                        >
+                          {proto.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
 
-                {/* Advanced Options */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs text-cyber-blue font-bold uppercase">Count</label>
-                    <input
-                      type="number"
-                      value={pingCount}
-                      onChange={(e) => setPingCount(e.target.value)}
-                      min="1"
-                      max="100"
-                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-cyber-blue font-bold uppercase">Timeout (s)</label>
-                    <input
-                      type="number"
-                      value={pingTimeout}
-                      onChange={(e) => setPingTimeout(e.target.value)}
-                      min="1"
-                      max="30"
-                      className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
-                    />
-                  </div>
-                  {pingProtocol === 'icmp' && (
+                  {/* Port (for TCP/UDP/HTTP/DNS) */}
+                  {(pingProtocol === 'tcp' || pingProtocol === 'udp' || pingProtocol === 'http' || pingProtocol === 'dns') && (
                     <div className="space-y-2">
-                      <label className="text-xs text-cyber-blue font-bold uppercase">Packet Size</label>
+                      <label className="text-xs text-cyber-blue font-bold uppercase">Port</label>
                       <input
                         type="number"
-                        value={pingPacketSize}
-                        onChange={(e) => setPingPacketSize(e.target.value)}
-                        min="1"
-                        max="65500"
+                        value={pingPort}
+                        onChange={(e) => setPingPort(e.target.value)}
+                        placeholder={pingProtocol === 'dns' ? '53' : pingProtocol === 'http' ? '80' : '443'}
                         className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
                       />
                     </div>
                   )}
+
+                  {/* HTTPS Toggle (for HTTP) */}
+                  {pingProtocol === 'http' && (
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="use-https"
+                        checked={pingUseHttps}
+                        onChange={(e) => setPingUseHttps(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="use-https" className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</label>
+                    </div>
+                  )}
+
+                  {/* Advanced Options */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs text-cyber-blue font-bold uppercase">Count</label>
+                      <input
+                        type="number"
+                        value={pingCount}
+                        onChange={(e) => setPingCount(e.target.value)}
+                        min="1"
+                        max="100"
+                        className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-cyber-blue font-bold uppercase">Timeout (s)</label>
+                      <input
+                        type="number"
+                        value={pingTimeout}
+                        onChange={(e) => setPingTimeout(e.target.value)}
+                        min="1"
+                        max="30"
+                        className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                      />
+                    </div>
+                    {pingProtocol === 'icmp' && (
+                      <div className="space-y-2">
+                        <label className="text-xs text-cyber-blue font-bold uppercase">Packet Size</label>
+                        <input
+                          type="number"
+                          value={pingPacketSize}
+                          onChange={(e) => setPingPacketSize(e.target.value)}
+                          min="1"
+                          max="65500"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Execute Button */}
+                  <div className="pt-4">
+                    <button
+                      onClick={handlePing}
+                      disabled={pingInProgress}
+                      className={`px-8 py-3 border-2 font-bold uppercase tracking-widest text-sm transition-all ${
+                        pingInProgress
+                          ? 'border-cyber-gray text-cyber-gray opacity-50 cursor-not-allowed'
+                          : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
+                      }`}
+                    >
+                      {pingInProgress ? 'Pinging...' : 'Execute Ping'}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Execute Button */}
-                <div className="pt-4">
-                  <button
-                    onClick={handlePing}
-                    disabled={pingInProgress}
-                    className={`px-8 py-3 border-2 font-bold uppercase tracking-widest text-sm transition-all ${
-                      pingInProgress
-                        ? 'border-cyber-gray text-cyber-gray opacity-50 cursor-not-allowed'
-                        : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
-                    }`}
-                  >
-                    {pingInProgress ? 'Pinging...' : 'Execute Ping'}
-                  </button>
-                </div>
-
-                {/* Info Box */}
-                <div className="bg-cyber-darker border border-cyber-blue/30 p-4">
+                {/* Right Side: Protocol Information */}
+                <div className="w-80 bg-cyber-darker border border-cyber-blue/30 p-4 h-fit">
                   <h4 className="text-xs text-cyber-blue font-bold uppercase mb-2">Protocol Information</h4>
                   <div className="text-[10px] text-cyber-gray-light space-y-1 font-mono">
                     {pingProtocol === 'icmp' && (
@@ -608,15 +704,17 @@ const Traffic: React.FC = () => {
                     )}
                     {pingProtocol === 'tcp' && (
                       <>
-                        <p>• Tests TCP port connectivity</p>
+                        <p>• TCP SYN packets via hping3</p>
                         <p>• Can bypass ICMP filters</p>
+                        <p>• Shows detailed packet information</p>
                         <p>• Useful for testing specific services</p>
                       </>
                     )}
                     {pingProtocol === 'udp' && (
                       <>
-                        <p>• Sends UDP packets to target port</p>
+                        <p>• UDP packets via hping3</p>
                         <p>• Connectionless protocol</p>
+                        <p>• Shows routing information</p>
                         <p>• No acknowledgment expected</p>
                       </>
                     )}
@@ -625,6 +723,15 @@ const Traffic: React.FC = () => {
                         <p>• HTTP/HTTPS request to web server</p>
                         <p>• Tests web service availability</p>
                         <p>• Returns HTTP status codes</p>
+                        <p>• Use HTTPS toggle for port 443</p>
+                      </>
+                    )}
+                    {pingProtocol === 'dns' && (
+                      <>
+                        <p>• DNS server query testing</p>
+                        <p>• Tests DNS responsiveness</p>
+                        <p>• Default port 53 (UDP)</p>
+                        <p>• Uses dig for queries</p>
                       </>
                     )}
                   </div>
