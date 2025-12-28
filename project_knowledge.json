@@ -49,3 +49,21 @@
 {"type":"relation","from":"Traffic.PacketCapture","to":"SnifferService","relationType":"CONSUMES"}
 {"type":"relation","from":"SnifferService","to":"Scapy","relationType":"USES"}
 {"type":"relation","from":"DiscoveryService","to":"AssetService","relationType":"UPDATES"}
+{"type":"entity","name":"NOP.AgentFramework","entityType":"System","observations":["Multi-agent orchestration framework using GitHub official custom agent format","DevTeam orchestrator coordinates specialist agents","Four specialist agents: Architect, Developer, Reviewer, Researcher","Structured delegation via #runSubagent tool","Workflow templates for common development tasks","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.DevTeam","entityType":"Agent","observations":["Orchestrator agent for complex multi-step tasks","Analyzes requests and breaks into steps","Delegates to specialists using #runSubagent tool","Integrates results from multiple specialists","Follows sequential or parallel delegation patterns","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.Architect","entityType":"Agent","observations":["Design and architecture specialist","Technology choice evaluation","Component structure definition","Trade-off analysis and documentation","Design decision recording","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.Developer","entityType":"Agent","observations":["Implementation specialist","Feature development and bug fixes","Code refactoring and optimization","Follows best practices and project patterns","Test writing and debugging","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.Reviewer","entityType":"Agent","observations":["Quality assurance specialist","Code review and validation","Test execution and coverage analysis","Security and bug detection","Standards compliance checking","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.Researcher","entityType":"Agent","observations":["Investigation and analysis specialist","Codebase exploration and pattern discovery","Dependency analysis and documentation","Issue identification and opportunity detection","Knowledge base updates","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"AgentFramework.Structure","entityType":"Infrastructure","observations":[".github/agents/ contains 5 agent definition files (.agent.md format)",".github/AGENTS_README.md documents agent usage and patterns",".github/DEMO_WORKFLOW.md provides comprehensive workflow examples",".github/copilot-instructions.md defines multi-agent architecture",".github/instructions/ contains framework documentation modules","Legacy chatmodes removed - using official GitHub agent format only","upd:2025-12-28,refs:1"]}
+{"type":"codegraph","name":"DevTeam.agent.md","nodeType":"agent","dependencies":["runSubagent","Architect","Developer","Reviewer","Researcher"],"dependents":["UserRequests"]}
+{"type":"codegraph","name":"Architect.agent.md","nodeType":"agent","dependencies":["DesignPatterns","TechnologyEvaluation"],"dependents":["DevTeam"]}
+{"type":"codegraph","name":"Developer.agent.md","nodeType":"agent","dependencies":["CodeGeneration","Testing","Debugging"],"dependents":["DevTeam"]}
+{"type":"codegraph","name":"Reviewer.agent.md","nodeType":"agent","dependencies":["QualityChecks","TestExecution","SecurityValidation"],"dependents":["DevTeam"]}
+{"type":"codegraph","name":"Researcher.agent.md","nodeType":"agent","dependencies":["CodebaseAnalysis","PatternDiscovery","Documentation"],"dependents":["DevTeam"]}
+{"type":"relation","from":"DevTeam","to":"Architect","relationType":"DELEGATES_TO"}
+{"type":"relation","from":"DevTeam","to":"Developer","relationType":"DELEGATES_TO"}
+{"type":"relation","from":"DevTeam","to":"Reviewer","relationType":"DELEGATES_TO"}
+{"type":"relation","from":"DevTeam","to":"Researcher","relationType":"DELEGATES_TO"}
+{"type":"relation","from":"AgentFramework","to":"project_knowledge.json","relationType":"USES"}
+{"type":"relation","from":"AgentFramework","to":"global_knowledge.json","relationType":"USES"}
