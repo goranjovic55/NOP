@@ -11,7 +11,6 @@ import AccessHub from './pages/AccessHub';
 import Host from './pages/Host';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
-import Exploit from './pages/Exploit';
 import { useAuthStore } from './store/authStore';
 
 const queryClient = new QueryClient({
@@ -45,7 +44,6 @@ function App() {
                 <Route path="/traffic" element={<Traffic />} />
                 <Route path="/scans" element={<Scans />} />
                 <Route path="/access" element={<AccessHub />} />
-                <Route path="/exploit" element={<Exploit />} />
                 <Route path="/host" element={<Host />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/login" element={<Navigate to="/dashboard" replace />} />

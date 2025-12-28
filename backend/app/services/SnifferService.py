@@ -1,14 +1,17 @@
 import asyncio
 import json
 import threading
-import ipaddress
 from typing import Dict, List, Optional, Callable, Any
-from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, ICMP, Raw, wrpcap
+from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sr1, ICMP
 import psutil
 import time
 import os
 
 class SnifferService:
+    # Constants for packet crafting
+    PACKET_SEND_TIMEOUT = 3  # seconds
+    RESPONSE_HEX_MAX_LENGTH = 200  # characters
+    
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
@@ -25,8 +28,6 @@ class SnifferService:
             "protocols": {},
             "connections": {},  # Format: "src-dst": {"bytes": int, "protocols": set()}
         }
-        # Passive discovery tracking
-        self.discovered_hosts = {}  # Format: {"ip": {"first_seen": timestamp, "last_seen": timestamp, "mac": str, "protocols": set()}}
         self.traffic_history = []
         self.interface_history = {} # Store history for each interface
         self.last_bytes_check = 0
@@ -99,6 +100,278 @@ class SnifferService:
             })
         return interfaces
 
+    def _dissect_packet(self, packet) -> Dict[str, Any]:
+        """Full protocol dissection for packet inspector"""
+        layers = {}
+        
+        # Ethernet Layer
+        if Ether in packet:
+            eth = packet[Ether]
+            ether_types = {0x0800: "IPv4", 0x0806: "ARP", 0x86DD: "IPv6", 0x8100: "VLAN"}
+            layers["ethernet"] = {
+                "src_mac": eth.src,
+                "dst_mac": eth.dst,
+                "type": ether_types.get(eth.type, f"0x{eth.type:04x}")
+            }
+        
+        # ARP Layer
+        if ARP in packet:
+            arp = packet[ARP]
+            arp_ops = {1: "Request (who-has)", 2: "Reply (is-at)"}
+            layers["arp"] = {
+                "hardware_type": arp.hwtype,
+                "protocol_type": f"0x{arp.ptype:04x}",
+                "hardware_size": arp.hwlen,
+                "protocol_size": arp.plen,
+                "operation": arp_ops.get(arp.op, str(arp.op)),
+                "sender_mac": arp.hwsrc,
+                "sender_ip": arp.psrc,
+                "target_mac": arp.hwdst,
+                "target_ip": arp.pdst
+            }
+        
+        # IP Layer
+        if IP in packet:
+            ip = packet[IP]
+            proto_names = {1: "ICMP", 6: "TCP", 17: "UDP", 47: "GRE", 50: "ESP", 51: "AH"}
+            flags = []
+            if ip.flags.DF: flags.append("DF")
+            if ip.flags.MF: flags.append("MF")
+            layers["ip"] = {
+                "version": ip.version,
+                "header_length": ip.ihl * 4,
+                "dscp": ip.tos >> 2,
+                "ecn": ip.tos & 0x03,
+                "total_length": ip.len,
+                "identification": ip.id,
+                "flags": ", ".join(flags) if flags else "None",
+                "fragment_offset": ip.frag,
+                "ttl": ip.ttl,
+                "protocol": ip.proto,
+                "protocol_name": proto_names.get(ip.proto, f"Unknown ({ip.proto})"),
+                "checksum": f"0x{ip.chksum:04x}" if ip.chksum else "N/A",
+                "src": ip.src,
+                "dst": ip.dst
+            }
+            # IP Options
+            if ip.options:
+                layers["ip"]["options"] = [str(opt) for opt in ip.options]
+        
+        # TCP Layer
+        if TCP in packet:
+            tcp = packet[TCP]
+            flags_list = []
+            if tcp.flags.F: flags_list.append("FIN")
+            if tcp.flags.S: flags_list.append("SYN")
+            if tcp.flags.R: flags_list.append("RST")
+            if tcp.flags.P: flags_list.append("PSH")
+            if tcp.flags.A: flags_list.append("ACK")
+            if tcp.flags.U: flags_list.append("URG")
+            if tcp.flags.E: flags_list.append("ECE")
+            if tcp.flags.C: flags_list.append("CWR")
+            
+            layers["tcp"] = {
+                "src_port": tcp.sport,
+                "dst_port": tcp.dport,
+                "seq": tcp.seq,
+                "ack": tcp.ack,
+                "data_offset": tcp.dataofs * 4,
+                "reserved": tcp.reserved,
+                "flags": " ".join(flags_list) if flags_list else "None",
+                "flags_raw": str(tcp.flags),
+                "window": tcp.window,
+                "checksum": f"0x{tcp.chksum:04x}",
+                "urgent_pointer": tcp.urgptr
+            }
+            # TCP Options
+            if tcp.options:
+                tcp_opts = []
+                for opt in tcp.options:
+                    if isinstance(opt, tuple):
+                        tcp_opts.append(f"{opt[0]}: {opt[1]}")
+                    else:
+                        tcp_opts.append(str(opt))
+                layers["tcp"]["options"] = tcp_opts
+            
+            # Application layer detection based on port
+            layers["application"] = self._detect_application(tcp.sport, tcp.dport, packet)
+        
+        # UDP Layer
+        if UDP in packet:
+            udp = packet[UDP]
+            layers["udp"] = {
+                "src_port": udp.sport,
+                "dst_port": udp.dport,
+                "length": udp.len,
+                "checksum": f"0x{udp.chksum:04x}" if udp.chksum else "N/A"
+            }
+            # Application layer detection
+            layers["application"] = self._detect_application(udp.sport, udp.dport, packet)
+        
+        # ICMP Layer
+        if ICMP in packet:
+            icmp = packet[ICMP]
+            icmp_types = {
+                0: "Echo Reply", 3: "Destination Unreachable", 4: "Source Quench",
+                5: "Redirect", 8: "Echo Request", 9: "Router Advertisement",
+                10: "Router Solicitation", 11: "Time Exceeded", 12: "Parameter Problem",
+                13: "Timestamp Request", 14: "Timestamp Reply", 17: "Address Mask Request",
+                18: "Address Mask Reply"
+            }
+            layers["icmp"] = {
+                "type": icmp.type,
+                "type_name": icmp_types.get(icmp.type, f"Unknown ({icmp.type})"),
+                "code": icmp.code,
+                "checksum": f"0x{icmp.chksum:04x}"
+            }
+            # Echo Request/Reply specific
+            if icmp.type in [0, 8]:
+                layers["icmp"]["identifier"] = icmp.id
+                layers["icmp"]["sequence"] = icmp.seq
+        
+        # DNS Layer
+        try:
+            from scapy.layers.dns import DNS, DNSQR, DNSRR
+            if DNS in packet:
+                dns = packet[DNS]
+                layers["dns"] = {
+                    "id": dns.id,
+                    "qr": "Response" if dns.qr else "Query",
+                    "opcode": dns.opcode,
+                    "aa": dns.aa,
+                    "tc": dns.tc,
+                    "rd": dns.rd,
+                    "ra": dns.ra,
+                    "rcode": dns.rcode,
+                    "qdcount": dns.qdcount,
+                    "ancount": dns.ancount,
+                    "nscount": dns.nscount,
+                    "arcount": dns.arcount
+                }
+                # Queries
+                if dns.qdcount > 0 and DNSQR in packet:
+                    queries = []
+                    for i in range(dns.qdcount):
+                        try:
+                            qr = packet[DNSQR][i] if hasattr(packet[DNSQR], '__getitem__') else packet[DNSQR]
+                            queries.append({
+                                "name": qr.qname.decode() if isinstance(qr.qname, bytes) else str(qr.qname),
+                                "type": qr.qtype,
+                                "class": qr.qclass
+                            })
+                        except:
+                            break
+                    layers["dns"]["queries"] = queries
+        except ImportError:
+            pass
+        
+        # HTTP detection (basic)
+        try:
+            from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
+            if HTTP in packet:
+                if HTTPRequest in packet:
+                    http = packet[HTTPRequest]
+                    layers["http"] = {
+                        "type": "Request",
+                        "method": http.Method.decode() if http.Method else "",
+                        "path": http.Path.decode() if http.Path else "",
+                        "host": http.Host.decode() if http.Host else "",
+                        "user_agent": http.User_Agent.decode() if hasattr(http, 'User_Agent') and http.User_Agent else ""
+                    }
+                elif HTTPResponse in packet:
+                    http = packet[HTTPResponse]
+                    layers["http"] = {
+                        "type": "Response",
+                        "status_code": http.Status_Code.decode() if http.Status_Code else "",
+                        "reason": http.Reason_Phrase.decode() if http.Reason_Phrase else ""
+                    }
+        except ImportError:
+            pass
+        
+        # TLS/SSL detection
+        try:
+            from scapy.layers.tls.all import TLS
+            if TLS in packet:
+                tls = packet[TLS]
+                layers["tls"] = {
+                    "type": "TLS",
+                    "version": str(tls.version) if hasattr(tls, 'version') else "Unknown"
+                }
+        except ImportError:
+            pass
+        
+        # Payload
+        payload_data = bytes(packet.payload.payload.payload) if hasattr(packet, 'payload') and hasattr(packet.payload, 'payload') and hasattr(packet.payload.payload, 'payload') else None
+        if not payload_data and hasattr(packet, 'load'):
+            payload_data = packet.load
+        if payload_data and len(payload_data) > 0:
+            # Try to decode as ASCII
+            try:
+                ascii_preview = payload_data[:200].decode('utf-8', errors='replace')
+            except:
+                ascii_preview = payload_data[:200].hex()
+            layers["payload"] = {
+                "length": len(payload_data),
+                "hex": payload_data[:100].hex(),
+                "preview": ascii_preview
+            }
+        
+        return layers
+    
+    def _detect_application(self, sport: int, dport: int, packet) -> Dict[str, Any]:
+        """Detect application layer protocol based on ports and content"""
+        app = {"protocol": "Unknown", "details": {}}
+        
+        # Common port mappings
+        port_map = {
+            20: ("FTP-Data", "File Transfer Protocol (Data)"),
+            21: ("FTP", "File Transfer Protocol"),
+            22: ("SSH", "Secure Shell"),
+            23: ("Telnet", "Telnet"),
+            25: ("SMTP", "Simple Mail Transfer Protocol"),
+            53: ("DNS", "Domain Name System"),
+            67: ("DHCP", "Dynamic Host Configuration Protocol"),
+            68: ("DHCP", "Dynamic Host Configuration Protocol"),
+            69: ("TFTP", "Trivial File Transfer Protocol"),
+            80: ("HTTP", "Hypertext Transfer Protocol"),
+            110: ("POP3", "Post Office Protocol v3"),
+            123: ("NTP", "Network Time Protocol"),
+            137: ("NetBIOS-NS", "NetBIOS Name Service"),
+            138: ("NetBIOS-DGM", "NetBIOS Datagram Service"),
+            139: ("NetBIOS-SSN", "NetBIOS Session Service"),
+            143: ("IMAP", "Internet Message Access Protocol"),
+            161: ("SNMP", "Simple Network Management Protocol"),
+            162: ("SNMP-Trap", "SNMP Trap"),
+            389: ("LDAP", "Lightweight Directory Access Protocol"),
+            443: ("HTTPS", "HTTP Secure"),
+            445: ("SMB", "Server Message Block"),
+            465: ("SMTPS", "SMTP Secure"),
+            514: ("Syslog", "System Logging Protocol"),
+            587: ("SMTP", "SMTP Submission"),
+            636: ("LDAPS", "LDAP Secure"),
+            993: ("IMAPS", "IMAP Secure"),
+            995: ("POP3S", "POP3 Secure"),
+            1433: ("MSSQL", "Microsoft SQL Server"),
+            1521: ("Oracle", "Oracle Database"),
+            3306: ("MySQL", "MySQL Database"),
+            3389: ("RDP", "Remote Desktop Protocol"),
+            5432: ("PostgreSQL", "PostgreSQL Database"),
+            5900: ("VNC", "Virtual Network Computing"),
+            6379: ("Redis", "Redis Database"),
+            8080: ("HTTP-Alt", "HTTP Alternate"),
+            8443: ("HTTPS-Alt", "HTTPS Alternate"),
+            27017: ("MongoDB", "MongoDB Database")
+        }
+        
+        for port in [sport, dport]:
+            if port in port_map:
+                app["protocol"] = port_map[port][0]
+                app["details"]["description"] = port_map[port][1]
+                app["details"]["port"] = port
+                break
+        
+        return app
+
     def _packet_callback(self, packet):
         # Store for PCAP export
         self.captured_packets.append(packet)
@@ -115,66 +388,16 @@ class SnifferService:
             "summary": packet.summary(),
             "info": "",
             "raw": packet.build().hex(),
-            "layers": {}
+            "layers": self._dissect_packet(packet)  # Full dissection
         }
 
-        # Dissect Ethernet layer
-        src_mac = None
-        dst_mac = None
         if Ether in packet:
             packet_data["source"] = packet[Ether].src
             packet_data["destination"] = packet[Ether].dst
-            src_mac = packet[Ether].src
-            dst_mac = packet[Ether].dst
-            ether_type = packet[Ether].type
-            ether_type_name = {0x0800: "IPv4", 0x0806: "ARP", 0x86DD: "IPv6", 0x8100: "VLAN"}.get(ether_type, f"0x{ether_type:04x}")
-            packet_data["layers"]["ethernet"] = {
-                "src_mac": src_mac,
-                "dst_mac": dst_mac,
-                "type": ether_type_name
-            }
-        
-        # Dissect ARP layer
-        if ARP in packet:
-            arp = packet[ARP]
-            op_name = {1: "Request (who-has)", 2: "Reply (is-at)"}.get(arp.op, f"Unknown ({arp.op})")
-            packet_data["protocol"] = "ARP"
-            packet_data["info"] = f"{op_name}: {arp.psrc} -> {arp.pdst}"
-            packet_data["layers"]["arp"] = {
-                "hardware_type": "Ethernet" if arp.hwtype == 1 else str(arp.hwtype),
-                "protocol_type": "IPv4" if arp.ptype == 0x0800 else f"0x{arp.ptype:04x}",
-                "operation": op_name,
-                "sender_mac": arp.hwsrc,
-                "sender_ip": arp.psrc,
-                "target_mac": arp.hwdst,
-                "target_ip": arp.pdst
-            }
 
         if IP in packet:
             packet_data["source"] = packet[IP].src
             packet_data["destination"] = packet[IP].dst
-            
-            # Dissect IP layer
-            ip = packet[IP]
-            proto_names = {1: "ICMP", 6: "TCP", 17: "UDP", 47: "GRE", 50: "ESP", 51: "AH", 89: "OSPF"}
-            ip_flags = []
-            if ip.flags.DF: ip_flags.append("DF")
-            if ip.flags.MF: ip_flags.append("MF")
-            packet_data["layers"]["ip"] = {
-                "version": ip.version,
-                "header_length": ip.ihl * 4,
-                "tos": ip.tos,
-                "total_length": ip.len,
-                "identification": ip.id,
-                "flags": ",".join(ip_flags) if ip_flags else "None",
-                "fragment_offset": ip.frag,
-                "ttl": ip.ttl,
-                "protocol": ip.proto,
-                "protocol_name": proto_names.get(ip.proto, f"Unknown ({ip.proto})"),
-                "checksum": f"0x{ip.chksum:04x}",
-                "src": ip.src,
-                "dst": ip.dst
-            }
 
             # Update stats
             self.stats["total_bytes"] += len(packet)
@@ -184,128 +407,31 @@ class SnifferService:
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
             
-            # Passive discovery: Track discovered hosts
-            current_time = time.time()
-            
-            # Track source IP
-            if src not in self.discovered_hosts:
-                self.discovered_hosts[src] = {
-                    "first_seen": current_time,
-                    "last_seen": current_time,
-                    "mac": src_mac,
-                    "protocols": set()
-                }
-            else:
-                self.discovered_hosts[src]["last_seen"] = current_time
-                if src_mac and not self.discovered_hosts[src]["mac"]:
-                    self.discovered_hosts[src]["mac"] = src_mac
-            
-            # Track destination IP (only if it's not broadcast/multicast)
-            if dst not in self.discovered_hosts and not self._is_broadcast_or_multicast(dst):
-                self.discovered_hosts[dst] = {
-                    "first_seen": current_time,
-                    "last_seen": current_time,
-                    "mac": dst_mac,
-                    "protocols": set()
-                }
-            elif dst in self.discovered_hosts:
-                self.discovered_hosts[dst]["last_seen"] = current_time
-                if dst_mac and not self.discovered_hosts[dst]["mac"]:
-                    self.discovered_hosts[dst]["mac"] = dst_mac
-            
-            # Determine protocol and dissect transport layer
+            # Determine protocol
             protocol = "OTHER"
             if TCP in packet:
-                tcp = packet[TCP]
                 protocol = "TCP"
                 packet_data["protocol"] = "TCP"
-                # Format TCP flags
-                flags_list = []
-                if tcp.flags.S: flags_list.append("SYN")
-                if tcp.flags.A: flags_list.append("ACK")
-                if tcp.flags.F: flags_list.append("FIN")
-                if tcp.flags.R: flags_list.append("RST")
-                if tcp.flags.P: flags_list.append("PSH")
-                if tcp.flags.U: flags_list.append("URG")
-                flags_str = ",".join(flags_list) if flags_list else "None"
-                packet_data["info"] = f"{tcp.sport} → {tcp.dport} [{flags_str}] Seq={tcp.seq} Ack={tcp.ack}"
-                packet_data["layers"]["tcp"] = {
-                    "src_port": tcp.sport,
-                    "dst_port": tcp.dport,
-                    "seq": tcp.seq,
-                    "ack": tcp.ack,
-                    "data_offset": tcp.dataofs * 4,
-                    "flags": flags_str,
-                    "window": tcp.window,
-                    "checksum": f"0x{tcp.chksum:04x}",
-                    "urgent_pointer": tcp.urgptr
-                }
+                packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
-                # Track protocol for passive discovery
-                if src in self.discovered_hosts:
-                    self.discovered_hosts[src]["protocols"].add("TCP")
-                if dst in self.discovered_hosts:
-                    self.discovered_hosts[dst]["protocols"].add("TCP")
             elif UDP in packet:
-                udp = packet[UDP]
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"
-                packet_data["info"] = f"{udp.sport} → {udp.dport} Len={udp.len}"
-                packet_data["layers"]["udp"] = {
-                    "src_port": udp.sport,
-                    "dst_port": udp.dport,
-                    "length": udp.len,
-                    "checksum": f"0x{udp.chksum:04x}"
-                }
+                packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
-                # Track protocol for passive discovery
-                if src in self.discovered_hosts:
-                    self.discovered_hosts[src]["protocols"].add("UDP")
-                if dst in self.discovered_hosts:
-                    self.discovered_hosts[dst]["protocols"].add("UDP")
-            elif ICMP in packet:
-                icmp = packet[ICMP]
+            elif packet[IP].proto == 1:  # ICMP (Internet Control Message Protocol)
                 protocol = "ICMP"
                 packet_data["protocol"] = "ICMP"
-                icmp_types = {
-                    0: "Echo Reply", 3: "Destination Unreachable", 4: "Source Quench",
-                    5: "Redirect", 8: "Echo Request", 9: "Router Advertisement",
-                    10: "Router Solicitation", 11: "Time Exceeded", 12: "Parameter Problem",
-                    13: "Timestamp Request", 14: "Timestamp Reply"
-                }
-                type_name = icmp_types.get(icmp.type, f"Type {icmp.type}")
-                packet_data["info"] = f"{type_name} (type={icmp.type}, code={icmp.code})"
-                icmp_layer = {
-                    "type": icmp.type,
-                    "type_name": type_name,
-                    "code": icmp.code,
-                    "checksum": f"0x{icmp.chksum:04x}"
-                }
-                # Add identifier and sequence for echo request/reply
-                if icmp.type in [0, 8]:
-                    icmp_layer["identifier"] = icmp.id
-                    icmp_layer["sequence"] = icmp.seq
-                packet_data["layers"]["icmp"] = icmp_layer
+                if ICMP in packet:
+                    icmp_types = {0: "Echo Reply", 8: "Echo Request", 3: "Dest Unreachable", 11: "Time Exceeded"}
+                    packet_data["info"] = icmp_types.get(packet[ICMP].type, f"Type {packet[ICMP].type}")
+                else:
+                    packet_data["info"] = "ICMP"
                 self.stats["protocols"]["ICMP"] = self.stats["protocols"].get("ICMP", 0) + 1
-                # Track protocol for passive discovery
-                if src in self.discovered_hosts:
-                    self.discovered_hosts[src]["protocols"].add("ICMP")
-                if dst in self.discovered_hosts:
-                    self.discovered_hosts[dst]["protocols"].add("ICMP")
             else:
                 proto = packet[IP].proto
                 protocol = f"IP_{proto}"
                 self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
-            
-            # Add payload information if present
-            if Raw in packet:
-                payload = packet[Raw].load
-                # Create ASCII preview (printable chars only)
-                preview = ''.join(chr(b) if 32 <= b < 127 else '.' for b in payload[:64])
-                packet_data["layers"]["payload"] = {
-                    "length": len(payload),
-                    "preview": preview
-                }
             
             # Track connections (src -> dst) with protocol info
             conn_key = f"{src}-{dst}"
@@ -384,30 +510,350 @@ class SnifferService:
         wrpcap(filepath, self.captured_packets)
         return filepath
 
-    def _is_broadcast_or_multicast(self, ip: str) -> bool:
-        """Check if IP is broadcast or multicast address"""
+    def craft_and_send_packet(self, packet_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Craft and send a custom packet based on configuration
+        Returns response packet and trace information
+        """
+        # TCP flag mapping
+        TCP_FLAG_MAP = {
+            "SYN": "S",
+            "ACK": "A",
+            "FIN": "F",
+            "RST": "R",
+            "PSH": "P",
+            "URG": "U"
+        }
+        
         try:
-            addr = ipaddress.ip_address(ip)
-            return addr.is_multicast or addr.is_reserved or addr.is_loopback
-        except ValueError:
-            return True  # Invalid IP, skip it
-
-    def get_discovered_hosts(self) -> List[Dict[str, Any]]:
-        """Get list of passively discovered hosts from network traffic"""
-        hosts = []
-        for ip, data in self.discovered_hosts.items():
-            hosts.append({
-                "ip_address": ip,
-                "mac_address": data.get("mac"),
-                "first_seen": data.get("first_seen"),
-                "last_seen": data.get("last_seen"),
-                "protocols": list(data.get("protocols", set())),
-                "discovery_method": "passive"
-            })
-        return hosts
-
-    def clear_discovered_hosts(self):
-        """Clear the discovered hosts cache"""
-        self.discovered_hosts = {}
+            protocol = packet_config.get("protocol", "TCP")
+            source_ip = packet_config.get("source_ip")
+            dest_ip = packet_config.get("dest_ip")
+            source_port = packet_config.get("source_port")
+            dest_port = packet_config.get("dest_port")
+            payload = packet_config.get("payload", "")
+            payload_format = packet_config.get("payload_format", "ascii")
+            flags = packet_config.get("flags", [])
+            
+            # Advanced header fields
+            ttl = packet_config.get("ttl")
+            ip_id = packet_config.get("ip_id")
+            tos = packet_config.get("tos")
+            tcp_seq = packet_config.get("tcp_seq")
+            tcp_ack = packet_config.get("tcp_ack")
+            tcp_window = packet_config.get("tcp_window")
+            icmp_type = packet_config.get("icmp_type")
+            icmp_code = packet_config.get("icmp_code")
+            
+            # Multi-packet sending parameters
+            packet_count = packet_config.get("packet_count", 1)
+            pps = packet_config.get("pps", 1)
+            
+            if not dest_ip:
+                return {
+                    "success": False,
+                    "error": "Destination IP is required"
+                }
+            
+            trace = []
+            packet = None
+            
+            # Add multi-packet info to trace
+            if packet_count == 0:
+                trace.append(f"Mode: Continuous sending at {pps} packets/second")
+            elif packet_count > 1:
+                trace.append(f"Sending {packet_count} packets at {pps} packets/second")
+            
+            # Build the packet based on protocol
+            if protocol == "TCP":
+                if not source_port or not dest_port:
+                    return {
+                        "success": False,
+                        "error": "Source and destination ports are required for TCP"
+                    }
+                
+                # Convert flag names to scapy flag string using mapping
+                flag_str = ""
+                for flag_name in flags:
+                    if flag_name in TCP_FLAG_MAP:
+                        flag_str += TCP_FLAG_MAP[flag_name]
+                if not flag_str:
+                    flag_str = "S"  # Default to SYN
+                
+                trace.append(f"Building TCP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
+                trace.append(f"TCP Flags: {flag_str} ({', '.join(flags) if flags else 'SYN'})")
+                
+                # Build IP layer
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
+                else:
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                # Build TCP layer
+                tcp_layer = TCP(sport=source_port, dport=dest_port, flags=flag_str)
+                
+                # Apply TCP header options
+                if tcp_seq:
+                    tcp_layer.seq = tcp_seq
+                    trace.append(f"TCP Seq: {tcp_seq}")
+                if tcp_ack:
+                    tcp_layer.ack = tcp_ack
+                    trace.append(f"TCP Ack: {tcp_ack}")
+                if tcp_window:
+                    tcp_layer.window = tcp_window
+                    trace.append(f"TCP Window: {tcp_window}")
+                
+                packet = ip_layer / tcp_layer
+                    
+            elif protocol == "UDP":
+                if not source_port or not dest_port:
+                    return {
+                        "success": False,
+                        "error": "Source and destination ports are required for UDP"
+                    }
+                
+                trace.append(f"Building UDP packet: {source_ip or 'auto'}:{source_port} -> {dest_ip}:{dest_port}")
+                
+                # Build IP layer
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
+                else:
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                packet = ip_layer / UDP(sport=source_port, dport=dest_port)
+                    
+            elif protocol == "ICMP":
+                trace.append(f"Building ICMP packet: {source_ip or 'auto'} -> {dest_ip}")
+                
+                # Build IP layer
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
+                else:
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                # Build ICMP layer with custom type/code if provided
+                icmp_layer = ICMP()
+                if icmp_type is not None:
+                    icmp_layer.type = icmp_type
+                    trace.append(f"ICMP Type: {icmp_type}")
+                if icmp_code is not None:
+                    icmp_layer.code = icmp_code
+                    trace.append(f"ICMP Code: {icmp_code}")
+                
+                packet = ip_layer / icmp_layer
+                    
+            elif protocol == "ARP":
+                trace.append(f"Building ARP packet for {dest_ip}")
+                packet = ARP(pdst=dest_ip)
+                
+            elif protocol == "IP":
+                trace.append(f"Building raw IP packet: {source_ip or 'auto'} -> {dest_ip}")
+                
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip)
+                else:
+                    ip_layer = IP(dst=dest_ip)
+                
+                # Apply IP header options
+                if ttl:
+                    ip_layer.ttl = ttl
+                    trace.append(f"IP TTL: {ttl}")
+                if ip_id:
+                    ip_layer.id = ip_id
+                    trace.append(f"IP ID: {ip_id}")
+                if tos:
+                    ip_layer.tos = tos
+                    trace.append(f"IP TOS: {tos}")
+                
+                packet = ip_layer
+            
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unsupported protocol: {protocol}"
+                }
+            
+            # Add payload if provided
+            if payload and packet:
+                # Process payload based on format
+                if payload_format == "hex":
+                    # Remove spaces and convert hex to bytes
+                    hex_str = payload.replace(" ", "").replace("\n", "")
+                    try:
+                        payload_bytes = bytes.fromhex(hex_str)
+                        trace.append(f"Adding hex payload: {len(payload_bytes)} bytes")
+                        packet = packet / payload_bytes
+                    except ValueError as e:
+                        trace.append(f"Invalid hex payload: {str(e)}")
+                        return {
+                            "success": False,
+                            "error": f"Invalid hex payload format: {str(e)}",
+                            "trace": trace
+                        }
+                else:
+                    # ASCII format
+                    trace.append(f"Adding ASCII payload: {len(payload)} characters")
+                    if isinstance(payload, str):
+                        packet = packet / payload.encode()
+                    else:
+                        packet = packet / payload
+            
+            # Send the packet(s)
+            trace.append("Sending packet...")
+            start_time = time.time()
+            
+            # For continuous or multi-packet sending
+            if packet_count == 0 or packet_count > 1:
+                sent_count = 0
+                delay = 1.0 / pps if pps > 0 else 0
+                
+                # For demo purposes, limit continuous to 100 packets per request
+                max_packets = 100 if packet_count == 0 else packet_count
+                
+                trace.append(f"Multi-packet mode: sending up to {max_packets} packets")
+                
+                for i in range(max_packets):
+                    try:
+                        send(packet, verbose=0)
+                        sent_count += 1
+                        if delay > 0 and i < max_packets - 1:
+                            time.sleep(delay)
+                        
+                        # Break for continuous mode after 100 (safety limit)
+                        if packet_count == 0 and sent_count >= 100:
+                            trace.append(f"Safety limit reached: sent {sent_count} packets")
+                            break
+                    except Exception as e:
+                        trace.append(f"Error sending packet {i+1}: {str(e)}")
+                        break
+                
+                elapsed = time.time() - start_time
+                trace.append(f"Sent {sent_count} packets in {elapsed:.3f} seconds ({sent_count/elapsed:.1f} pps)")
+                
+                return {
+                    "success": True,
+                    "sent_packet": {
+                        "protocol": protocol,
+                        "source": packet[IP].src if IP in packet else "N/A",
+                        "destination": packet[IP].dst if IP in packet else dest_ip,
+                        "summary": packet.summary(),
+                        "length": len(packet),
+                        "count": sent_count
+                    },
+                    "response": None,
+                    "trace": trace
+                }
+            
+            # Single packet mode - wait for response
+            try:
+                # sr1 sends packet and receives first response
+                response = sr1(packet, timeout=self.PACKET_SEND_TIMEOUT, verbose=0)
+                elapsed = time.time() - start_time
+                
+                if response:
+                    trace.append(f"Response received in {elapsed:.3f} seconds")
+                    trace.append(f"Response summary: {response.summary()}")
+                    
+                    # Parse response details
+                    response_data = {
+                        "summary": response.summary(),
+                        "protocol": None,
+                        "source": None,
+                        "destination": None,
+                        "length": len(response),
+                        "raw_hex": response.build().hex()[:self.RESPONSE_HEX_MAX_LENGTH]
+                    }
+                    
+                    if IP in response:
+                        response_data["source"] = response[IP].src
+                        response_data["destination"] = response[IP].dst
+                        
+                        if TCP in response:
+                            response_data["protocol"] = "TCP"
+                            response_data["tcp_flags"] = str(response[TCP].flags)
+                            response_data["sport"] = response[TCP].sport
+                            response_data["dport"] = response[TCP].dport
+                        elif UDP in response:
+                            response_data["protocol"] = "UDP"
+                            response_data["sport"] = response[UDP].sport
+                            response_data["dport"] = response[UDP].dport
+                        elif ICMP in response:
+                            response_data["protocol"] = "ICMP"
+                            response_data["icmp_type"] = response[ICMP].type
+                            response_data["icmp_code"] = response[ICMP].code
+                    
+                    return {
+                        "success": True,
+                        "sent_packet": {
+                            "protocol": protocol,
+                            "source": packet[IP].src if IP in packet else "N/A",
+                            "destination": packet[IP].dst if IP in packet else dest_ip,
+                            "summary": packet.summary(),
+                            "length": len(packet)
+                        },
+                        "response": response_data,
+                        "trace": trace
+                    }
+                else:
+                    trace.append(f"No response received (timeout: {self.PACKET_SEND_TIMEOUT}s)")
+                    return {
+                        "success": True,
+                        "sent_packet": {
+                            "protocol": protocol,
+                            "source": packet[IP].src if IP in packet else "N/A",
+                            "destination": packet[IP].dst if IP in packet else dest_ip,
+                            "summary": packet.summary(),
+                            "length": len(packet)
+                        },
+                        "response": None,
+                        "trace": trace
+                    }
+                    
+            except Exception as send_err:
+                trace.append(f"Error during send: {str(send_err)}")
+                return {
+                    "success": False,
+                    "error": f"Failed to send packet: {str(send_err)}",
+                    "trace": trace
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Packet crafting error: {str(e)}"
+            }
 
 sniffer_service = SnifferService()
