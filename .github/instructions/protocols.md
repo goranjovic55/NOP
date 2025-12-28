@@ -2,180 +2,70 @@
 applyTo: '**'
 ---
 
-# Multi-Agent Protocols
+# Protocols
 
-Structured communication for orchestrator-specialist collaboration.
-
----
-
-## Session Protocol
-
-### Session Start (Orchestrator)
+## Session
 ```
-[SESSION: role=Lead | task=<description> | phase=CONTEXT]
+[SESSION: role=Lead|Architect|Developer|Reviewer|Researcher | task=<desc> | phase=CONTEXT]
 ```
 
-### Session Start (Specialist - Direct)
+## Delegation
 ```
-[SESSION: role=<Architect|Developer|Reviewer|Researcher> | task=<description>]
+[DELEGATE: agent=<specialist> | task=<desc>]
+Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
+
+[RETURN: to=_DevTeam | status=complete|partial|blocked | result=<summary>]
+Artifacts: [files] | Learnings: [patterns]
 ```
-
----
-
-## Delegation Protocol
-
-### Orchestrator → Specialist
-```
-[DELEGATE: agent=<specialist> | task=<description>]
-Context: {problem, constraints, files, expected_output}
-```
-
-### Specialist → Orchestrator
-```
-[RETURN: to=DevTeam | status=<complete|partial|blocked> | result=<summary>]
-Artifacts: [files]
-Learnings: [patterns]
-```
-
----
-
-## Context Handoff
-
-### Full Context (Complex Tasks)
-```json
-{
-  "task": "specific task description",
-  "context": {
-    "problem": "what needs solving",
-    "constraints": ["list of constraints"],
-    "existing_patterns": "from knowledge",
-    "files_involved": ["file1.py"],
-    "expected_output": "deliverable"
-  },
-  "knowledge_snapshot": {
-    "relevant_entities": ["Entity.A"],
-    "relevant_codegraph": ["Component.X"],
-    "recent_decisions": ["decision1"]
-  }
-}
-```
-
-### Minimal Context (Simple Tasks)
-```json
-{
-  "task": "brief description",
-  "files": ["file.py"],
-  "expected": "what to return"
-}
-```
-
----
 
 ## Return Contract
-
-### Complete
 ```json
-{
-  "status": "complete",
-  "result": "what was done",
-  "artifacts": ["files modified"],
-  "learnings": ["patterns found"],
-  "codegraph_updates": ["nodes to add"]
-}
+{"status":"complete", "result":"...", "artifacts":[], "learnings":[], "blockers":[]}
 ```
 
-### Partial
-```json
-{
-  "status": "partial",
-  "result": "what was done",
-  "remaining": "what's left",
-  "blockers": ["why stopped"]
-}
+## Nesting
+```
+# Simple:
+[NEST: parent=<main> | child=<sub> | reason=<why>]
+[RETURN: to=<main> | result=<findings>]
+
+# Multi-level stack:
+[STACK: push | task=<sub> | depth=N | parent=<main>]
+[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
 
-### Blocked
-```json
-{
-  "status": "blocked",
-  "blocker": "what's blocking",
-  "need": "what's required",
-  "recommendations": ["alternatives"]
-}
+## Phases (Horizontal)
+```
+[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
 ```
 
----
-
-## Nesting Protocol
-
-### Enter Nested Task
+## Knowledge
 ```
-[NEST: parent=<main_task> | child=<sub_task> | reason=<why>]
+[KNOWLEDGE: added=N | updated=M | type=project|global]
 ```
-
-### Exit Nested Task
-```
-[RETURN: to=<main_task> | result=<findings>]
-```
-
----
-
-## Knowledge Protocol
-
-### Knowledge Update
-```
-[KNOWLEDGE: added=<N> | updated=<M> | type=<project|global>]
-```
-
-### Learning Categories
 | Type | Target | Examples |
 |------|--------|----------|
-| entity | project_knowledge.json | Domain concepts, config |
-| codegraph | project_knowledge.json | Code structure, deps |
-| relation | project_knowledge.json | Connections between entities |
-| pattern | global_knowledge.json | Universal reusable patterns |
+| entity | project_knowledge.json | Domain concepts |
+| codegraph | project_knowledge.json | Code structure |
+| relation | project_knowledge.json | Connections |
+| pattern | global_knowledge.json | Universal patterns |
 
----
-
-## Completion Protocol
-
-### Task Complete
+## Completion
 ```
-[COMPLETE: task=<description> | result=<summary> | learnings=<N>]
+[COMPLETE: task=<desc> | result=<summary> | learnings=N]
+[SESSION: end | knowledge_updated=bool]
 ```
 
-### Session End
+## Workflow Log (Significant Work)
 ```
-[SESSION: end | knowledge_updated=<bool> | duration=<time>]
-```
-
----
-
-## Phase Transitions
-
-### Orchestrator Phases
-```
-CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
+[WORKFLOW_LOG: task=<desc>]
+## Summary | Agent Interactions | Files | Quality Gates | Learnings
+[/WORKFLOW_LOG]
 ```
 
-### Phase Announcement
-```
-[PHASE: <phase_name> | progress=<X/Y> | next=<next_phase>]
-```
-
----
-
-## Error Protocol
-
-### Error Encountered
-```
-[ERROR: type=<error_type> | context=<where> | action=<recovery>]
-```
-
-### Recovery Actions
+## Error Recovery
 | Error | Action |
 |-------|--------|
 | Knowledge corrupt | Backup, create fresh |
 | Specialist blocked | Escalate to orchestrator |
-| Context lost | Re-emit SESSION tag |
-| Validation failed | Delegate to Reviewer |
+| Context lost | Re-emit SESSION |
