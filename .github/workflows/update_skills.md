@@ -43,15 +43,17 @@
 
 ## Commands
 ```bash
-# Detect stack
-find . -name "*.py" -type f | head -1 && echo "Python"
-find . -name "*.ts" -type f | head -1 && echo "TypeScript"
-ls Dockerfile docker-compose.yml 2>/dev/null
-ls .github/workflows/*.yml 2>/dev/null
+# Detect stack (with explicit output)
+[ -n "$(find . -name '*.py' -type f | head -1)" ] && echo "Python detected"
+[ -n "$(find . -name '*.ts' -type f | head -1)" ] && echo "TypeScript detected"
+[ -n "$(find . -name '*.go' -type f | head -1)" ] && echo "Go detected"
+[ -f "Dockerfile" ] && echo "Docker detected"
+[ -f "docker-compose.yml" ] && echo "Compose detected"
+[ -d ".github/workflows" ] && echo "CI/CD detected"
 
 # Scan patterns
-grep -rn "class.*Service" --include="*.py" | head -3
-grep -rn "interface.*Props" --include="*.ts" | head -3
+grep -rn "class.*Service" --include="*.py" 2>/dev/null | head -3
+grep -rn "interface.*Props" --include="*.ts" 2>/dev/null | head -3
 ```
 
 ## Outputs

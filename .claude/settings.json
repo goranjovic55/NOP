@@ -4,13 +4,16 @@
   "autoLoad": [".claude/skills.md", ".claude/context.md", "project_knowledge.json"],
   "skills": {
     "core": [1,2,3,4,5,6,7,8,9],
-    "detected": "auto"
+    "stackSpecific": [10,11,12],
+    "detected": "auto",
+    "notes": "Skills 10-12 enabled based on detected stack (Python→10, TS/React→11, Docker→12)"
   },
   "detection": {
     "python": ["*.py", "requirements.txt"],
     "typescript": ["*.ts", "tsconfig.json"],
     "docker": ["Dockerfile", "docker-compose.yml"],
-    "ci": [".github/workflows/*.yml"]
+    "ci": [".github/workflows/*.yml"],
+    "knowledge": ["project_knowledge.json", ".github/global_knowledge.json"]
   },
   "permissions": {
     "allow": [

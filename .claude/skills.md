@@ -134,11 +134,11 @@ project_knowledge.json     → Project entities, codegraph, relations
 .github/global_knowledge.json → Universal patterns (cross-project)
 ```
 
-**JSONL Format**:
+**JSONL Format** (matches actual project_knowledge.json):
 ```json
-{"type":"entity","name":"Module.Component","entityType":"Service","observations":["desc"]}
-{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
-{"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
+{"type":"entity","name":"Project.Module.Component","entityType":"Service","observations":["description","upd:YYYY-MM-DD,refs:N"]}
+{"type":"codegraph","name":"Component.tsx","nodeType":"component","dependencies":["Store","Service"],"dependents":["Layout"]}
+{"type":"relation","from":"Component","to":"Feature","relationType":"IMPLEMENTS|USES|CONSUMES|DEPENDS_ON"}
 ```
 
 **Protocol**:
@@ -307,14 +307,18 @@ services:
 
 ## Auto-Detection
 
-```
-*.py                    → Skills 1,2,3,4,10
-*.ts, package.json      → Skills 1,2,3,4,11
-Dockerfile              → Skill 12
-docker-compose.yml      → Skill 12
-.github/workflows/      → Skill 5,12
-project_knowledge.json  → Skills 6,7,8
-```
+**Core Skills (1-9)**: Always active
+**Stack Skills (10-12)**: Enabled based on detected files
+
+| Detection | Files | Skills Enabled |
+|-----------|-------|----------------|
+| Python | `*.py`, `requirements.txt` | 10 (API Patterns) |
+| TypeScript/React | `*.ts`, `package.json` | 11 (UI Patterns) |
+| Docker | `Dockerfile`, `docker-compose.yml` | 12 (Infrastructure) |
+| CI/CD | `.github/workflows/` | 5, 12 |
+| Knowledge | `project_knowledge.json` | 6,7,8 (always active, enhanced) |
+
+**Note**: Skills 6,7,8 (Knowledge, Orchestration, Handover) are always active as core skills. When `project_knowledge.json` exists, they use the actual knowledge; otherwise, they operate in template mode.
 
 ---
 
