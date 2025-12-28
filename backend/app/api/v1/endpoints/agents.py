@@ -108,12 +108,9 @@ async def generate_agent(
     if agent.agent_type == AgentType.PYTHON:
         content = AgentService.generate_python_agent(agent)
         filename = f"nop_agent_{agent.name.replace(' ', '_')}.py"
-    elif agent.agent_type == AgentType.C_BINARY:
-        content = AgentService.generate_c_agent(agent)
-        filename = f"nop_agent_{agent.name.replace(' ', '_')}.c"
-    elif agent.agent_type == AgentType.ASM_BINARY:
-        content = AgentService.generate_asm_agent(agent)
-        filename = f"nop_agent_{agent.name.replace(' ', '_')}.asm"
+    elif agent.agent_type == AgentType.GO:
+        content = AgentService.generate_go_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_')}.go"
     else:
         raise HTTPException(status_code=400, detail="Unknown agent type")
     

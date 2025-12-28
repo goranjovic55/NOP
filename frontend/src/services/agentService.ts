@@ -8,14 +8,14 @@ export interface Agent {
   id: string;
   name: string;
   description?: string;
-  agent_type: 'python' | 'c' | 'asm';
+  agent_type: 'python' | 'go';
   status: 'online' | 'offline' | 'disconnected' | 'error';
   connection_url: string;
   auth_token: string;
   capabilities: {
-    assets?: boolean;
+    asset?: boolean;
     traffic?: boolean;
-    scans?: boolean;
+    host?: boolean;
     access?: boolean;
   };
   metadata?: Record<string, any>;
@@ -28,12 +28,12 @@ export interface Agent {
 export interface AgentCreate {
   name: string;
   description?: string;
-  agent_type: 'python' | 'c' | 'asm';
+  agent_type: 'python' | 'go';
   connection_url: string;
   capabilities: {
-    assets?: boolean;
+    asset?: boolean;
     traffic?: boolean;
-    scans?: boolean;
+    host?: boolean;
     access?: boolean;
   };
   metadata?: Record<string, any>;
@@ -44,9 +44,9 @@ export interface AgentUpdate {
   description?: string;
   connection_url?: string;
   capabilities?: {
-    assets?: boolean;
+    asset?: boolean;
     traffic?: boolean;
-    scans?: boolean;
+    host?: boolean;
     access?: boolean;
   };
   metadata?: Record<string, any>;

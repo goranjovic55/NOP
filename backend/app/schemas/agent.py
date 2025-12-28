@@ -16,9 +16,9 @@ class AgentCreate(BaseModel):
     agent_type: AgentType = AgentType.PYTHON
     connection_url: str = Field(..., min_length=1, max_length=255)
     capabilities: Dict[str, bool] = Field(default_factory=lambda: {
-        "assets": True,
+        "asset": True,
         "traffic": True,
-        "scans": True,
+        "host": True,
         "access": False
     })
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)

@@ -14,9 +14,9 @@ const Agents: React.FC = () => {
     agent_type: 'python',
     connection_url: 'ws://localhost:12001/api/v1/agents/{agent_id}/connect',
     capabilities: {
-      assets: true,
+      asset: true,
       traffic: true,
-      scans: true,
+      host: true,
       access: false,
     },
   });
@@ -51,9 +51,9 @@ const Agents: React.FC = () => {
         agent_type: 'python',
         connection_url: 'ws://localhost:12001/api/v1/agents/{agent_id}/connect',
         capabilities: {
-          assets: true,
+          asset: true,
           traffic: true,
-          scans: true,
+          host: true,
           access: false,
         },
       });
@@ -119,8 +119,7 @@ const Agents: React.FC = () => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'python': return '🐍';
-      case 'c': return '⚙';
-      case 'asm': return '⚡';
+      case 'go': return '🔷';
       default: return '◈';
     }
   };
@@ -226,11 +225,11 @@ const Agents: React.FC = () => {
 
               {/* Capabilities */}
               <div className="border-t border-cyber-gray pt-3">
-                <span className="text-cyber-gray-light text-xs uppercase">Capabilities:</span>
+                <span className="text-cyber-gray-light text-xs uppercase">Modules:</span>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {agent.capabilities.assets && (
+                  {agent.capabilities.asset && (
                     <span className="px-2 py-1 bg-cyber-blue/20 border border-cyber-blue text-cyber-blue text-xs uppercase">
-                      Assets
+                      Asset
                     </span>
                   )}
                   {agent.capabilities.traffic && (
@@ -238,9 +237,9 @@ const Agents: React.FC = () => {
                       Traffic
                     </span>
                   )}
-                  {agent.capabilities.scans && (
+                  {agent.capabilities.host && (
                     <span className="px-2 py-1 bg-cyber-green/20 border border-cyber-green text-cyber-green text-xs uppercase">
-                      Scans
+                      Host
                     </span>
                   )}
                   {agent.capabilities.access && (
@@ -348,10 +347,10 @@ const Agents: React.FC = () => {
               {/* Agent Type */}
               <div>
                 <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                  Agent Type *
+                  Agent Type * (Python for ease, Go for cross-platform)
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['python', 'c', 'asm'].map((type) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {['python', 'go'].map((type) => (
                     <button
                       key={type}
                       onClick={() => setNewAgent({ ...newAgent, agent_type: type as any })}
@@ -385,14 +384,14 @@ const Agents: React.FC = () => {
               {/* Capabilities */}
               <div>
                 <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                  Capabilities
+                  Modules (Agent relays data to C2 server)
                 </label>
                 <div className="space-y-2">
                   {[
-                    { key: 'assets', label: 'Asset Discovery', color: 'cyber-blue' },
-                    { key: 'traffic', label: 'Traffic Monitoring', color: 'cyber-purple' },
-                    { key: 'scans', label: 'Security Scanning', color: 'cyber-green' },
-                    { key: 'access', label: 'Remote Access', color: 'cyber-yellow' },
+                    { key: 'asset', label: 'Asset Module', color: 'cyber-blue', desc: 'Network asset discovery' },
+                    { key: 'traffic', label: 'Traffic Module', color: 'cyber-purple', desc: 'Traffic monitoring' },
+                    { key: 'host', label: 'Host Module', color: 'cyber-green', desc: 'System information' },
+                    { key: 'access', label: 'Access Module', color: 'cyber-yellow', desc: 'Remote command execution' },
                   ].map((cap) => (
                     <label
                       key={cap.key}
@@ -412,9 +411,12 @@ const Agents: React.FC = () => {
                         }
                         className="w-4 h-4"
                       />
-                      <span className={`text-${cap.color} uppercase text-sm font-bold`}>
-                        {cap.label}
-                      </span>
+                      <div className="flex-1">
+                        <span className={`text-${cap.color} uppercase text-sm font-bold block`}>
+                          {cap.label}
+                        </span>
+                        <span className="text-cyber-gray-light text-xs">{cap.desc}</span>
+                      </div>
                     </label>
                   ))}
                 </div>

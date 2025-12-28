@@ -12,10 +12,9 @@ from app.core.database import Base
 
 
 class AgentType(str, enum.Enum):
-    """Agent types"""
+    """Agent types - Python for flexibility, Go for cross-platform compilation"""
     PYTHON = "python"
-    C_BINARY = "c"
-    ASM_BINARY = "asm"
+    GO = "go"
 
 
 class AgentStatus(str, enum.Enum):
@@ -42,8 +41,9 @@ class Agent(Base):
     connection_url = Column(String(255), nullable=False)  # Where agent connects to
     auth_token = Column(String(255), nullable=False, unique=True)  # Pre-shared token
     
-    # Capabilities - JSON field with feature flags
-    # Example: {"assets": true, "traffic": true, "scans": true, "access": false}
+    # Capabilities - JSON field with module flags
+    # Modules: asset, traffic, host, access - agent acts as proxy relaying data to C2
+    # Example: {"asset": true, "traffic": true, "host": true, "access": false}
     capabilities = Column(JSON, nullable=False, default=dict)
     
     # Agent metadata - flexible JSON storage

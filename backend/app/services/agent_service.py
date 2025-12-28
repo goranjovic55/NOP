@@ -110,12 +110,16 @@ class AgentService:
     
     @staticmethod
     def generate_python_agent(agent: Agent) -> str:
-        """Generate Python agent script"""
+        """Generate Python agent script with all modules (Asset, Traffic, Host, Access)"""
         template = f'''#!/usr/bin/env python3
 """
 NOP Agent - {agent.name}
 Generated: {datetime.utcnow().isoformat()}
-Type: Python
+Type: Python Proxy Agent
+
+This agent acts as a proxy, relaying all data from the remote network
+back to the NOP C2 server. All modules run here but data is processed
+on the main NOP instance.
 """
 
 import asyncio
@@ -124,7 +128,10 @@ import json
 import platform
 import socket
 import subprocess
+import psutil
+import scapy.all as scapy
 from datetime import datetime
+from typing import Dict, List, Any
 
 # Agent Configuration
 AGENT_ID = "{agent.id}"
@@ -134,6 +141,8 @@ SERVER_URL = "{agent.connection_url}"
 CAPABILITIES = {json.dumps(agent.capabilities, indent=4)}
 
 class NOPAgent:
+    """NOP Proxy Agent - Relays data from remote network to C2 server"""
+    
     def __init__(self):
         self.agent_id = AGENT_ID
         self.agent_name = AGENT_NAME
@@ -141,32 +150,41 @@ class NOPAgent:
         self.server_url = SERVER_URL
         self.capabilities = CAPABILITIES
         self.ws = None
+        self.running = True
         
     async def connect(self):
-        """Connect to NOP server"""
+        """Connect to NOP C2 server"""
         try:
-            print(f"[{{datetime.now()}}] Connecting to {{self.server_url}}...")
+            print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
             async with websockets.connect(
                 self.server_url,
                 extra_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
             ) as websocket:
                 self.ws = websocket
-                print(f"[{{datetime.now()}}] Connected successfully!")
+                print(f"[{{datetime.now()}}] Connected to C2 server!")
                 
-                # Send registration
+                # Register with C2
                 await self.register()
                 
-                # Start heartbeat and message handler
+                # Start modules and message handler
                 await asyncio.gather(
                     self.heartbeat(),
-                    self.message_handler()
+                    self.message_handler(),
+                    self.asset_module() if self.capabilities.get("asset") else self.noop(),
+                    self.traffic_module() if self.capabilities.get("traffic") else self.noop(),
+                    self.host_module() if self.capabilities.get("host") else self.noop(),
+                    self.access_module() if self.capabilities.get("access") else self.noop()
                 )
         except Exception as e:
             print(f"[{{datetime.now()}}] Connection error: {{e}}")
             await asyncio.sleep(5)
             
+    async def noop(self):
+        """No-op for disabled modules"""
+        pass
+        
     async def register(self):
-        """Register with server"""
+        """Register agent with C2 server"""
         registration = {{
             "type": "register",
             "agent_id": self.agent_id,
@@ -175,15 +193,16 @@ class NOPAgent:
             "system_info": {{
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
-                "version": platform.version()
+                "version": platform.version(),
+                "ip_address": socket.gethostbyname(socket.gethostname())
             }}
         }}
         await self.ws.send(json.dumps(registration))
-        print(f"[{{datetime.now()}}] Registered with server")
+        print(f"[{{datetime.now()}}] Registered with C2 server")
         
     async def heartbeat(self):
-        """Send periodic heartbeat"""
-        while True:
+        """Send periodic heartbeat to C2"""
+        while self.running:
             try:
                 await asyncio.sleep(30)
                 heartbeat = {{
@@ -197,7 +216,7 @@ class NOPAgent:
                 break
                 
     async def message_handler(self):
-        """Handle incoming messages"""
+        """Handle incoming commands from C2"""
         async for message in self.ws:
             try:
                 data = json.loads(message)
@@ -211,41 +230,153 @@ class NOPAgent:
                 print(f"[{{datetime.now()}}] Message handling error: {{e}}")
                 
     async def handle_command(self, data):
-        """Execute command based on capabilities"""
+        """Execute command from C2 based on module capabilities"""
         command = data.get("command")
+        print(f"[{{datetime.now()}}] Received command: {{command}}")
         
-        if command == "discover_assets" and self.capabilities.get("assets"):
-            await self.discover_assets()
-        elif command == "capture_traffic" and self.capabilities.get("traffic"):
-            await self.capture_traffic()
-        elif command == "run_scan" and self.capabilities.get("scans"):
-            await self.run_scan(data.get("target"))
-        else:
-            print(f"[{{datetime.now()}}] Command not supported: {{command}}")
+        # Commands are handled by respective modules
+        # This is just a placeholder for custom C2 commands
+        
+    # ============================================================================
+    # ASSET MODULE - Network asset discovery and monitoring
+    # ============================================================================
+    async def asset_module(self):
+        """Asset Discovery Module - Discovers devices on network"""
+        print(f"[{{datetime.now()}}] Asset module started")
+        while self.running:
+            try:
+                await asyncio.sleep(300)  # Run every 5 minutes
+                assets = await self.discover_assets()
+                await self.relay_to_c2({{
+                    "type": "asset_data",
+                    "agent_id": self.agent_id,
+                    "assets": assets,
+                    "timestamp": datetime.utcnow().isoformat()
+                }})
+            except Exception as e:
+                print(f"[{{datetime.now()}}] Asset module error: {{e}}")
+                
+    async def discover_assets(self) -> List[Dict]:
+        """Discover network assets via ARP scan"""
+        try:
+            # Get local network
+            local_ip = socket.gethostbyname(socket.gethostname())
+            network = '.'.join(local_ip.split('.')[:3]) + '.0/24'
             
-    async def discover_assets(self):
-        """Discover network assets"""
-        # Placeholder - implement actual discovery
-        result = {{
-            "type": "assets_discovered",
-            "agent_id": self.agent_id,
-            "assets": [],
-            "timestamp": datetime.utcnow().isoformat()
-        }}
-        await self.ws.send(json.dumps(result))
+            # ARP scan
+            arp_request = scapy.ARP(pdst=network)
+            broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
+            arp_request_broadcast = broadcast/arp_request
+            answered_list = scapy.srp(arp_request_broadcast, timeout=1, verbose=False)[0]
+            
+            assets = []
+            for element in answered_list:
+                asset = {{
+                    "ip": element[1].psrc,
+                    "mac": element[1].hwsrc,
+                    "status": "online",
+                    "discovered_at": datetime.utcnow().isoformat()
+                }}
+                assets.append(asset)
+                
+            print(f"[{{datetime.now()}}] Discovered {{len(assets)}} assets")
+            return assets
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Asset discovery error: {{e}}")
+            return []
+    
+    # ============================================================================
+    # TRAFFIC MODULE - Network traffic monitoring and analysis
+    # ============================================================================
+    async def traffic_module(self):
+        """Traffic Monitoring Module - Captures and analyzes network traffic"""
+        print(f"[{{datetime.now()}}] Traffic module started")
+        while self.running:
+            try:
+                await asyncio.sleep(60)  # Send stats every minute
+                traffic_stats = await self.capture_traffic_stats()
+                await self.relay_to_c2({{
+                    "type": "traffic_data",
+                    "agent_id": self.agent_id,
+                    "traffic": traffic_stats,
+                    "timestamp": datetime.utcnow().isoformat()
+                }})
+            except Exception as e:
+                print(f"[{{datetime.now()}}] Traffic module error: {{e}}")
+                
+    async def capture_traffic_stats(self) -> Dict:
+        """Capture network traffic statistics"""
+        try:
+            net_io = psutil.net_io_counters()
+            return {{
+                "bytes_sent": net_io.bytes_sent,
+                "bytes_recv": net_io.bytes_recv,
+                "packets_sent": net_io.packets_sent,
+                "packets_recv": net_io.packets_recv,
+                "errors_in": net_io.errin,
+                "errors_out": net_io.errout
+            }}
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Traffic capture error: {{e}}")
+            return {{}}
+    
+    # ============================================================================
+    # HOST MODULE - Host system information and monitoring
+    # ============================================================================
+    async def host_module(self):
+        """Host Monitoring Module - Monitors local system resources"""
+        print(f"[{{datetime.now()}}] Host module started")
+        while self.running:
+            try:
+                await asyncio.sleep(120)  # Send stats every 2 minutes
+                host_info = await self.collect_host_info()
+                await self.relay_to_c2({{
+                    "type": "host_data",
+                    "agent_id": self.agent_id,
+                    "host": host_info,
+                    "timestamp": datetime.utcnow().isoformat()
+                }})
+            except Exception as e:
+                print(f"[{{datetime.now()}}] Host module error: {{e}}")
+                
+    async def collect_host_info(self) -> Dict:
+        """Collect host system information"""
+        try:
+            return {{
+                "hostname": socket.gethostname(),
+                "platform": platform.system(),
+                "platform_release": platform.release(),
+                "platform_version": platform.version(),
+                "architecture": platform.machine(),
+                "processor": platform.processor(),
+                "cpu_percent": psutil.cpu_percent(interval=1),
+                "memory_percent": psutil.virtual_memory().percent,
+                "disk_percent": psutil.disk_usage('/').percent,
+                "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat()
+            }}
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Host info collection error: {{e}}")
+            return {{}}
+    
+    # ============================================================================
+    # ACCESS MODULE - Remote access and command execution
+    # ============================================================================
+    async def access_module(self):
+        """Access Module - Provides remote access capabilities"""
+        print(f"[{{datetime.now()}}] Access module started (listen-only mode)")
+        # Access module only responds to C2 commands for security
+        # No autonomous actions
         
-    async def capture_traffic(self):
-        """Capture network traffic"""
-        # Placeholder - implement actual capture
-        pass
-        
-    async def run_scan(self, target):
-        """Run security scan"""
-        # Placeholder - implement actual scan
-        pass
-        
+    async def relay_to_c2(self, data: Dict):
+        """Relay data to C2 server"""
+        try:
+            if self.ws:
+                await self.ws.send(json.dumps(data))
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Relay error: {{e}}")
+            
     async def send_pong(self):
-        """Respond to ping"""
+        """Respond to ping from C2"""
         pong = {{
             "type": "pong",
             "agent_id": self.agent_id,
@@ -255,11 +386,15 @@ class NOPAgent:
         
     async def run(self):
         """Main run loop"""
-        while True:
+        print(f"[{{datetime.now()}}] NOP Agent '{{self.agent_name}}' starting...")
+        print(f"[{{datetime.now()}}] Enabled modules: {{', '.join([k for k, v in self.capabilities.items() if v])}}")
+        
+        while self.running:
             try:
                 await self.connect()
             except KeyboardInterrupt:
                 print(f"[{{datetime.now()}}] Agent stopped by user")
+                self.running = False
                 break
             except Exception as e:
                 print(f"[{{datetime.now()}}] Error: {{e}}")
@@ -272,63 +407,272 @@ if __name__ == "__main__":
         return template
     
     @staticmethod
-    def generate_c_agent(agent: Agent) -> str:
-        """Generate C agent stub"""
-        return f'''/*
- * NOP Agent - {agent.name}
- * Generated: {datetime.utcnow().isoformat()}
- * Type: C Binary
- * 
- * Compile: gcc -o agent agent.c -lwebsockets -ljson-c
- */
+    def generate_go_agent(agent: Agent) -> str:
+        """Generate Go agent for cross-platform compilation"""
+        capabilities_json = json.dumps(agent.capabilities)
+        return f'''package main
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/*
+NOP Agent - {agent.name}
+Generated: {datetime.utcnow().isoformat()}
+Type: Go (cross-platform)
 
-#define AGENT_ID "{agent.id}"
-#define AGENT_NAME "{agent.name}"
-#define AUTH_TOKEN "{agent.auth_token}"
-#define SERVER_URL "{agent.connection_url}"
+Build commands:
+  Linux:   GOOS=linux GOARCH=amd64 go build -o nop-agent-linux
+  Windows: GOOS=windows GOARCH=amd64 go build -o nop-agent.exe
+  macOS:   GOOS=darwin GOARCH=amd64 go build -o nop-agent-macos
+  ARM:     GOOS=linux GOARCH=arm64 go build -o nop-agent-arm
+*/
 
-int main() {{
-    printf("NOP Agent - %s\\n", AGENT_NAME);
-    printf("Agent ID: %s\\n", AGENT_ID);
-    printf("Server: %s\\n", SERVER_URL);
-    printf("\\nC agent stub - implement WebSocket client\\n");
-    return 0;
+import (
+\t"encoding/json"
+\t"fmt"
+\t"log"
+\t"net/url"
+\t"os"
+\t"os/signal"
+\t"runtime"
+\t"syscall"
+\t"time"
+
+\t"github.com/gorilla/websocket"
+)
+
+const (
+\tAgentID    = "{agent.id}"
+\tAgentName  = "{agent.name}"
+\tAuthToken  = "{agent.auth_token}"
+\tServerURL  = "{agent.connection_url}"
+)
+
+var Capabilities = map[string]bool{capabilities_json}
+
+type NOPAgent struct {{
+\tconn         *websocket.Conn
+\tagentID      string
+\tagentName    string
+\tauthToken    string
+\tserverURL    string
+\tcapabilities map[string]bool
+\trunning      bool
 }}
-'''
-    
-    @staticmethod
-    def generate_asm_agent(agent: Agent) -> str:
-        """Generate ASM agent stub"""
-        return f'''; NOP Agent - {agent.name}
-; Generated: {datetime.utcnow().isoformat()}
-; Type: ASM Binary
-; 
-; Assemble: nasm -f elf64 agent.asm && ld -o agent agent.o
 
-section .data
-    agent_name db "{agent.name}", 0
-    agent_id db "{agent.id}", 0
-    auth_token db "{agent.auth_token}", 0
-    server_url db "{agent.connection_url}", 0
-    msg db "NOP ASM Agent stub - implement connection logic", 10, 0
+type Message struct {{
+\tType      string                 `json:"type"`
+\tAgentID   string                 `json:"agent_id,omitempty"`
+\tAgentName string                 `json:"agent_name,omitempty"`
+\tData      map[string]interface{{}} `json:"data,omitempty"`
+\tTimestamp string                 `json:"timestamp"`
+}}
 
-section .text
-    global _start
+func NewNOPAgent() *NOPAgent {{
+\treturn &NOPAgent{{
+\t\tagentID:      AgentID,
+\t\tagentName:    AgentName,
+\t\tauthToken:    AuthToken,
+\t\tserverURL:    ServerURL,
+\t\tcapabilities: Capabilities,
+\t\trunning:      true,
+\t}}
+}}
 
-_start:
-    ; Write message
-    mov rax, 1          ; sys_write
-    mov rdi, 1          ; stdout
-    mov rsi, msg
-    mov rdx, 50
-    syscall
-    
-    ; Exit
-    mov rax, 60         ; sys_exit
-    xor rdi, rdi
-    syscall
+func (a *NOPAgent) Connect() error {{
+\tlog.Printf("[%s] Connecting to C2 server: %s", time.Now().Format(time.RFC3339), a.serverURL)
+\t
+\tu, err := url.Parse(a.serverURL)
+\tif err != nil {{
+\t\treturn fmt.Errorf("invalid server URL: %v", err)
+\t}}
+
+\theader := make(map[string][]string)
+\theader["Authorization"] = []string{{fmt.Sprintf("Bearer %s", a.authToken)}}
+
+\tconn, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+\tif err != nil {{
+\t\treturn fmt.Errorf("connection failed: %v", err)
+\t}}
+
+\ta.conn = conn
+\tlog.Printf("[%s] Connected to C2 server!", time.Now().Format(time.RFC3339))
+
+\treturn nil
+}}
+
+func (a *NOPAgent) Register() error {{
+\treg := Message{{
+\t\tType:      "register",
+\t\tAgentID:   a.agentID,
+\t\tAgentName: a.agentName,
+\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t\tData: map[string]interface{{}}{{
+\t\t\t"capabilities": a.capabilities,
+\t\t\t"system_info": map[string]string{{
+\t\t\t\t"os":      runtime.GOOS,
+\t\t\t\t"arch":    runtime.GOARCH,
+\t\t\t\t"version": runtime.Version(),
+\t\t\t}},
+\t\t}},
+\t}}
+
+\terr := a.conn.WriteJSON(reg)
+\tif err != nil {{
+\t\treturn fmt.Errorf("registration failed: %v", err)
+\t}}
+
+\tlog.Printf("[%s] Registered with C2 server", time.Now().Format(time.RFC3339))
+\treturn nil
+}}
+
+func (a *NOPAgent) Heartbeat() {{
+\tticker := time.NewTicker(30 * time.Second)
+\tdefer ticker.Stop()
+
+\tfor a.running {{
+\t\tselect {{
+\t\tcase <-ticker.C:
+\t\t\thb := Message{{
+\t\t\t\tType:      "heartbeat",
+\t\t\t\tAgentID:   a.agentID,
+\t\t\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t\t\t}}
+\t\t\tif err := a.conn.WriteJSON(hb); err != nil {{
+\t\t\t\tlog.Printf("[%s] Heartbeat error: %v", time.Now().Format(time.RFC3339), err)
+\t\t\t\treturn
+\t\t\t}}
+\t\t}}
+\t}}
+}}
+
+func (a *NOPAgent) MessageHandler() {{
+\tfor a.running {{
+\t\tvar msg Message
+\t\terr := a.conn.ReadJSON(&msg)
+\t\tif err != nil {{
+\t\t\tlog.Printf("[%s] Read error: %v", time.Now().Format(time.RFC3339), err)
+\t\t\treturn
+\t\t}}
+
+\t\tswitch msg.Type {{
+\t\tcase "command":
+\t\t\ta.handleCommand(msg)
+\t\tcase "ping":
+\t\t\ta.sendPong()
+\t\t}}
+\t}}
+}}
+
+func (a *NOPAgent) handleCommand(msg Message) {{
+\tlog.Printf("[%s] Received command: %v", time.Now().Format(time.RFC3339), msg.Data)
+\t// Implement command handling based on modules
+}}
+
+func (a *NOPAgent) sendPong() {{
+\tpong := Message{{
+\t\tType:      "pong",
+\t\tAgentID:   a.agentID,
+\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t}}
+\ta.conn.WriteJSON(pong)
+}}
+
+// Module: Asset Discovery
+func (a *NOPAgent) AssetModule() {{
+\tif !a.capabilities["asset"] {{
+\t\treturn
+\t}}
+\tlog.Printf("[%s] Asset module started", time.Now().Format(time.RFC3339))
+\t// Implement asset discovery
+}}
+
+// Module: Traffic Monitoring
+func (a *NOPAgent) TrafficModule() {{
+\tif !a.capabilities["traffic"] {{
+\t\treturn
+\t}}
+\tlog.Printf("[%s] Traffic module started", time.Now().Format(time.RFC3339))
+\t// Implement traffic monitoring
+}}
+
+// Module: Host Monitoring
+func (a *NOPAgent) HostModule() {{
+\tif !a.capabilities["host"] {{
+\t\treturn
+\t}}
+\tlog.Printf("[%s] Host module started", time.Now().Format(time.RFC3339))
+\t// Implement host monitoring
+}}
+
+// Module: Remote Access
+func (a *NOPAgent) AccessModule() {{
+\tif !a.capabilities["access"] {{
+\t\treturn
+\t}}
+\tlog.Printf("[%s] Access module started", time.Now().Format(time.RFC3339))
+\t// Implement remote access (command execution)
+}}
+
+func (a *NOPAgent) Run() {{
+\tlog.Printf("[%s] NOP Agent '%s' starting...", time.Now().Format(time.RFC3339), a.agentName)
+\t
+\tenabled := []string{{}}
+\tfor module, enabled := range a.capabilities {{
+\t\tif enabled {{
+\t\t\tenabled = append(enabled, module)
+\t\t}}
+\t}}
+\tlog.Printf("[%s] Enabled modules: %v", time.Now().Format(time.RFC3339), enabled)
+
+\tfor a.running {{
+\t\tif err := a.Connect(); err != nil {{
+\t\t\tlog.Printf("[%s] Connection error: %v", time.Now().Format(time.RFC3339), err)
+\t\t\ttime.Sleep(5 * time.Second)
+\t\t\tcontinue
+\t\t}}
+
+\t\tif err := a.Register(); err != nil {{
+\t\t\tlog.Printf("[%s] Registration error: %v", time.Now().Format(time.RFC3339), err)
+\t\t\ttime.Sleep(5 * time.Second)
+\t\t\tcontinue
+\t\t}}
+
+\t\t// Start modules
+\t\tgo a.Heartbeat()
+\t\tgo a.AssetModule()
+\t\tgo a.TrafficModule()
+\t\tgo a.HostModule()
+\t\tgo a.AccessModule()
+
+\t\t// Handle messages
+\t\ta.MessageHandler()
+
+\t\tif a.conn != nil {{
+\t\t\ta.conn.Close()
+\t\t}}
+
+\t\tif a.running {{
+\t\t\tlog.Printf("[%s] Reconnecting in 5 seconds...", time.Now().Format(time.RFC3339))
+\t\t\ttime.Sleep(5 * time.Second)
+\t\t}}
+\t}}
+}}
+
+func main() {{
+\tagent := NewNOPAgent()
+
+\t// Handle graceful shutdown
+\tsigChan := make(chan os.Signal, 1)
+\tsignal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+\tgo func() {{
+\t\t<-sigChan
+\t\tlog.Printf("[%s] Agent stopped by user", time.Now().Format(time.RFC3339))
+\t\tagent.running = false
+\t\tif agent.conn != nil {{
+\t\t\tagent.conn.Close()
+\t\t}}
+\t\tos.Exit(0)
+\t}}()
+
+\tagent.Run()
+}}
 '''
