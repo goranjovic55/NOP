@@ -28,9 +28,7 @@ Users see transparent communication between agents:
 | Tag | Purpose | Example |
 |-----|---------|---------|
 | `[SESSION:]` | Session start | `[SESSION: role=Lead \| task=add_auth]` |
-| `[DELEGATE:]` | Invoke specialist | `[DELEGATE: agent=Architect \| task=design_auth]` |
-| `[INTEGRATE:]` | Receive result | `[INTEGRATE: from=Architect \| status=complete]` |
-| `[RETURN:]` | Specialist returns | `[RETURN: to=_DevTeam \| status=complete]` |
+| `#runSubagent` | Invoke specialist | `#runSubagent Architect` |
 | `[TASK:]` | Progress tracking | Nested task list with checkboxes |
 | `[KNOWLEDGE:]` | Knowledge update | `[KNOWLEDGE: added=3 \| updated=1]` |
 | `[COMPLETE:]` | Task finished | `[COMPLETE: task=add_auth \| learnings=2]` |
@@ -45,14 +43,14 @@ Users see transparent communication between agents:
 
 ### _DevTeam (Orchestrator)
 **File**: `_DevTeam.agent.md`  
-**Purpose**: Coordinates specialist agents using runSubagent tool
+**Purpose**: Coordinates specialist agents using `#runSubagent` tool
 
 **Capabilities**:
 - Emits `[SESSION:]` at start, `[COMPLETE:]` at end
-- Uses `runSubagent` tool to invoke specialists with `[DELEGATE:]`
-- Receives results with `[INTEGRATE:]`
+- Uses `#runSubagent` to invoke specialists (Architect, Developer, Reviewer, Researcher)
 - Tracks progress with `[TASK:]` nested lists
 - Updates knowledge with `[KNOWLEDGE:]`
+- Supports both sequential and parallel delegation patterns
 
 **When to use**: Multi-step tasks requiring design, implementation, and validation
 
