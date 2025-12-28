@@ -2,16 +2,16 @@
 
 > **✅ Official Format**: These agents use GitHub's official custom agent format and can be selected in GitHub Copilot when merged to the default branch.
 
-This directory contains **GitHub Custom Agents** - optimized, action-oriented AI assistants for development tasks.
+This directory contains **GitHub Custom Agents** - a multi-agent orchestration system for development tasks.
 
 ## Agent Design Philosophy
 
 These agents are designed for **real-world effectiveness**:
-- ✅ **Short & Focused** (80-120 lines each) - fits in context window
+- ✅ **Protocol Emissions** - transparent communication with [DELEGATE:], [RETURN:] tags
 - ✅ **Action-Oriented** - clear "what to do" not "what you are"
-- ✅ **Concrete Examples** - real code, actual commands
-- ✅ **Standalone** - each agent is self-contained
-- ✅ **Obedient** - simple instructions that will be followed
+- ✅ **Structured Handoffs** - JSON context passed between agents
+- ✅ **Multi-Agent Orchestration** - DevTeam coordinates specialists
+- ✅ **Knowledge Integration** - Updates project_knowledge.json
 
 ## Official GitHub Agent Format
 
@@ -21,74 +21,94 @@ These agents follow the official GitHub custom agent specification:
 - **Documentation**: https://gh.io/customagents/config
 - **CLI Testing**: https://gh.io/customagents/cli
 
+## Protocol Emissions
+
+Users see transparent communication between agents:
+
+| Tag | Purpose | Example |
+|-----|---------|---------|
+| `[SESSION:]` | Session start | `[SESSION: role=Lead \| task=add_auth]` |
+| `[DELEGATE:]` | Invoke specialist | `[DELEGATE: agent=Architect \| task=design_auth]` |
+| `[INTEGRATE:]` | Receive result | `[INTEGRATE: from=Architect \| status=complete]` |
+| `[RETURN:]` | Specialist returns | `[RETURN: to=DevTeam \| status=complete]` |
+| `[TASK:]` | Progress tracking | Nested task list with checkboxes |
+| `[KNOWLEDGE:]` | Knowledge update | `[KNOWLEDGE: added=3 \| updated=1]` |
+| `[COMPLETE:]` | Task finished | `[COMPLETE: task=add_auth \| learnings=2]` |
+
+### Specialist Phase Tags
+- `[ARCHITECT: phase=ANALYZE|DESIGN|DECIDE|DOCUMENT]`
+- `[DEVELOPER: phase=PLAN|IMPLEMENT|TEST|COMPLETE]`
+- `[REVIEWER: phase=UNDERSTAND|REVIEW|TEST|REPORT]`
+- `[RESEARCHER: phase=SCOPE|EXPLORE|ANALYZE|MAP|REPORT]`
+
 ## Agents
 
-### DevTeam (Orchestrator) - 104 lines
+### DevTeam (Orchestrator)
 **File**: `DevTeam.agent.md`  
-**Purpose**: Coordinates specialist agents using #runSubagent tool
+**Purpose**: Coordinates specialist agents using runSubagent tool
 
 **Capabilities**:
-- Breaks down requests into steps
-- Uses `#runSubagent` tool to invoke specialists
-- Supports sequential and parallel subagent execution
-- Integrates results from multiple subagents
-- Manages workflow between agents
+- Emits `[SESSION:]` at start, `[COMPLETE:]` at end
+- Uses `runSubagent` tool to invoke specialists with `[DELEGATE:]`
+- Receives results with `[INTEGRATE:]`
+- Tracks progress with `[TASK:]` nested lists
+- Updates knowledge with `[KNOWLEDGE:]`
 
 **When to use**: Multi-step tasks requiring design, implementation, and validation
 
 ---
 
-### Architect - 85 lines
+### Architect
 **File**: `Architect.agent.md`  
 **Purpose**: System design and architecture decisions
 
 **Capabilities**:
-- Designs system architecture
-- Evaluates technology trade-offs
-- Defines component structure
-- Documents design decisions
+- Emits `[ARCHITECT: phase=...]` during work
+- Returns `[RETURN: to=DevTeam | status=complete]`
+- Evaluates alternatives with trade-off matrix
+- Documents decisions with rationale
 
 **When to use**: Need architectural guidance, technology choices, or system design
 
 ---
 
-### Developer - 99 lines
+### Developer
 **File**: `Developer.agent.md`  
 **Purpose**: Code implementation and bug fixes
 
 **Capabilities**:
+- Emits `[DEVELOPER: phase=...]` during work
+- Returns `[RETURN: to=DevTeam | status=complete]`
 - Writes clean, tested code
-- Implements features following patterns
-- Fixes bugs with regression tests
-- Refactors code
+- Follows existing patterns
 
 **When to use**: Need code written, bugs fixed, or features implemented
 
 ---
 
-### Reviewer - 97 lines
+### Reviewer
 **File**: `Reviewer.agent.md`  
 **Purpose**: Code review and quality validation
 
 **Capabilities**:
-- Reviews code quality
+- Emits `[REVIEWER: phase=...]` during work
+- Returns `[RETURN: to=DevTeam | verdict=APPROVED|CHANGES|REJECTED]`
 - Runs tests and checks coverage
 - Validates security
-- Ensures standards compliance
 
 **When to use**: Need code reviewed, tested, or validated
 
 ---
 
-### Researcher - 114 lines
+### Researcher
 **File**: `Researcher.agent.md`  
 **Purpose**: Codebase investigation and analysis
 
 **Capabilities**:
+- Emits `[RESEARCHER: phase=...]` during work
+- Returns `[RETURN: to=DevTeam | result=findings]`
 - Explores codebase structure
-- Finds patterns and conventions
-- Investigates issues
-- Documents findings
+- Identifies entities for knowledge graph
 
 **When to use**: Need to understand existing code or investigate problems
 
@@ -103,72 +123,99 @@ These agents follow the official GitHub custom agent specification:
 
 ```
 @DevTeam add JWT authentication to the API
-→ DevTeam uses #runSubagent to coordinate Architect, Developer, and Reviewer
+→ [SESSION: role=Lead | task=add_JWT_auth]
+→ [DELEGATE: agent=Architect | task=design_auth]
+→ [INTEGRATE: from=Architect | status=complete]
+→ [DELEGATE: agent=Developer | task=implement_auth]
+→ [INTEGRATE: from=Developer | status=complete]
+→ [COMPLETE: task=add_JWT_auth | learnings=3]
 
 @Architect design a caching strategy for our API
-→ Architect will evaluate options and recommend approach
+→ [SESSION: role=Architect | task=caching_strategy]
+→ [ARCHITECT: phase=ANALYZE]
+→ [ARCHITECT: phase=DESIGN]
+→ Decision documented with alternatives and rationale
 
 @Developer implement the authentication endpoints
-→ Developer will write code with tests
+→ [SESSION: role=Developer | task=auth_endpoints]
+→ [DEVELOPER: phase=IMPLEMENT]
+→ Code written with tests
 
 @Reviewer check the auth implementation for security issues
-→ Reviewer will validate and test
+→ [SESSION: role=Reviewer | task=security_review]
+→ [REVIEWER: phase=REVIEW]
+→ [REVIEWER: verdict=CHANGES | issues=2]
 
 @Researcher how does our current auth system work?
-→ Researcher will investigate and document findings
+→ [SESSION: role=Researcher | task=auth_investigation]
+→ [RESEARCHER: phase=EXPLORE]
+→ Findings documented with patterns and entities
 ```
 
-### Sub-Agent Delegation with #runSubagent
+### Sub-Agent Delegation with runSubagent
 
-DevTeam orchestrates using the `#runSubagent` tool to invoke specialists:
+DevTeam orchestrates using the `runSubagent` tool to invoke specialists:
 
 ```
 User: "@DevTeam add user authentication"
 
-DevTeam:
-Breaking down into sequential steps:
+DevTeam Output:
+[SESSION: role=Lead | task=add_user_auth | phase=CONTEXT]
+Loading project context...
 
-Step 1: Design
-#runSubagent Architect
-Design JWT auth system with access/refresh tokens
+[TASK: Add User Authentication]
+├── [ ] CONTEXT: Load project state
+├── [ ] PLAN: Identify specialist tasks
+├── [ ] DELEGATE→Architect: Design auth
+├── [ ] DELEGATE→Developer: Implement auth
+├── [ ] DELEGATE→Reviewer: Validate
+└── [ ] COMPLETE: Summarize
 
-[Architect completes and returns design]
+[DELEGATE: agent=Architect | task="Design JWT auth with access/refresh tokens"]
+Context passed:
+{
+  "task": "Design authentication system",
+  "context": {
+    "problem": "Need user login/logout",
+    "constraints": ["JWT tokens", "refresh tokens"],
+    "expected_output": "Architecture decision with rationale"
+  }
+}
 
-Step 2: Implementation
-#runSubagent Developer
-Implement auth based on Architect's design
+--- Architect works and returns ---
+[INTEGRATE: from=Architect | status=complete | result="JWT design with 15min access, 7d refresh"]
 
-[Developer completes and returns code]
+[DELEGATE: agent=Developer | task="Implement auth based on design"]
+--- Developer works and returns ---
+[INTEGRATE: from=Developer | status=complete | result="auth_service.py created with tests"]
 
-Step 3: Validation
-#runSubagent Reviewer
-Validate implementation and security
+[DELEGATE: agent=Reviewer | task="Validate security"]
+--- Reviewer works and returns ---
+[INTEGRATE: from=Reviewer | status=complete | verdict=APPROVED]
 
-[Reviewer completes and returns validation]
-
-Final: [DevTeam integrates all subagent outputs]
+[KNOWLEDGE: added=4 | updated=2 | type=project]
+[COMPLETE: task=add_user_auth | result=Auth system implemented | learnings=4]
 ```
 
 **Parallel Execution** for independent tasks:
 ```
-#runSubagent Developer --task "Create API endpoints"
-#runSubagent Developer --task "Create database models"
-#runSubagent Developer --task "Write tests"
+[DELEGATE: agent=Developer | task="Create API endpoints"]
+[DELEGATE: agent=Developer | task="Create database models"]
+--- Both run in parallel ---
+[INTEGRATE: from=Developer | status=complete | result="endpoints created"]
+[INTEGRATE: from=Developer | status=complete | result="models created"]
 ```
 
 ## Optimization Notes
 
-**Previous version**: 2,863 lines (too verbose, won't fit in context)  
-**Current version**: 478 lines (80% reduction)
+**Design principles**:
+- Protocol emissions let users see agent communication
+- JSON context handoffs preserve information between agents
+- Structured return contracts ensure consistent responses
+- Phase tags show what each specialist is doing
+- Knowledge updates capture learnings for future sessions
 
-**Changes**:
-- Removed complex protocols and JSON handoffs
-- Removed abstract workflow phases
-- Added concrete examples and templates
-- Focused on actionable instructions
-- Made each agent standalone
-
-**Result**: Agents are now effective in real-world use with GitHub Copilot.
+**Result**: Multi-agent orchestration is transparent and debuggable.
 
 ## Integration with Repository
 
