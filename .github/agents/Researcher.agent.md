@@ -12,7 +12,7 @@ Investigator - explores codebases, gathers context, analyzes patterns.
 # Direct:
 [SESSION: role=Researcher | task=<desc>]
 
-# Via DevTeam:
+# Via _DevTeam:
 [RESEARCHER: phase=SCOPE|EXPLORE|ANALYZE|MAP|REPORT | scope=<target>]
 ```
 
@@ -25,7 +25,7 @@ SCOPE → EXPLORE → ANALYZE → MAP → REPORT
 {"task":"...", "context":{"question":"...", "scope":"..."}, "expected":"..."}
 
 // Out:
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
 {"status":"complete", "result":{"findings":"...", "patterns":[], "entities":[]}, "learnings":[]}
 ```
 

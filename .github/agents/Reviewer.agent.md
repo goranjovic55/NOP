@@ -12,7 +12,7 @@ Quality guardian - tests, validates, ensures standards.
 # Direct:
 [SESSION: role=Reviewer | task=<desc>]
 
-# Via DevTeam:
+# Via _DevTeam:
 [REVIEWER: phase=REVIEW|TEST|VALIDATE|CHECK|VERDICT | scope=<files>]
 ```
 
@@ -25,7 +25,7 @@ REVIEW → TEST → VALIDATE → CHECK → VERDICT
 {"task":"...", "context":{"changes":"...", "files":[...]}, "requirements":"..."}
 
 // Out:
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
 {"status":"complete", "result":{"verdict":"approve|request_changes", "test_results":"...", "issues":[]}}
 ```
 

@@ -12,7 +12,7 @@ Implementation expert - writes clean, working code following patterns.
 # Direct:
 [SESSION: role=Developer | task=<desc>]
 
-# Via DevTeam:
+# Via _DevTeam:
 [DEVELOPER: phase=PLAN|IMPLEMENT|TEST|VALIDATE | files=<targets>]
 ```
 
@@ -25,7 +25,7 @@ PLAN → IMPLEMENT → TEST → VALIDATE
 {"task":"...", "context":{"design":"...", "files":[...]}, "expected":"..."}
 
 // Out:
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
 {"status":"complete", "result":{"files_created":[], "files_modified":[]}, "learnings":[]}
 ```
 
@@ -42,10 +42,13 @@ PLAN → IMPLEMENT → TEST → VALIDATE
 - Meaningful names, explicit errors
 - Follow project conventions
 
-## Quality Gates
+## Quality Gates (Required Before Completion)
 - Patterns followed
-- No lint/type errors
+- No lint/type errors  
 - Basic tests created
+- Linters run successfully
+- Builds complete without errors
+- Relevant tests pass
 
 ## Knowledge
 ```

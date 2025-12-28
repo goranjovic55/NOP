@@ -10,7 +10,7 @@ These agents are designed for **real-world effectiveness**:
 - ✅ **Protocol Emissions** - transparent communication with [DELEGATE:], [RETURN:] tags
 - ✅ **Action-Oriented** - clear "what to do" not "what you are"
 - ✅ **Structured Handoffs** - JSON context passed between agents
-- ✅ **Multi-Agent Orchestration** - DevTeam coordinates specialists
+- ✅ **Multi-Agent Orchestration** - _DevTeam coordinates specialists
 - ✅ **Knowledge Integration** - Updates project_knowledge.json
 
 ## Official GitHub Agent Format
@@ -27,13 +27,12 @@ Users see transparent communication between agents:
 
 | Tag | Purpose | Example |
 |-----|---------|---------|
-| `[SESSION:]` | Session start | `[SESSION: role=Lead \| task=add_auth]` |
-| `[DELEGATE:]` | Invoke specialist | `[DELEGATE: agent=Architect \| task=design_auth]` |
-| `[INTEGRATE:]` | Receive result | `[INTEGRATE: from=Architect \| status=complete]` |
-| `[RETURN:]` | Specialist returns | `[RETURN: to=DevTeam \| status=complete]` |
+| `[SESSION:]` | Session start (Required) | `[SESSION: role=Lead \| task=add_auth]` |
+| `#runSubagent` | Invoke specialist (Required) | `#runSubagent Architect` |
+| `[PHASE:]` | Progress tracking (Required) | `[PHASE: VERIFY \| progress=5/7]` |
 | `[TASK:]` | Progress tracking | Nested task list with checkboxes |
 | `[KNOWLEDGE:]` | Knowledge update | `[KNOWLEDGE: added=3 \| updated=1]` |
-| `[COMPLETE:]` | Task finished | `[COMPLETE: task=add_auth \| learnings=2]` |
+| `[COMPLETE:]` | Task finished (Required) | `[COMPLETE: task=add_auth \| learnings=2]` |
 
 ### Specialist Phase Tags
 - `[ARCHITECT: phase=ANALYZE|DESIGN|DECIDE|DOCUMENT]`
@@ -43,16 +42,16 @@ Users see transparent communication between agents:
 
 ## Agents
 
-### DevTeam (Orchestrator)
-**File**: `DevTeam.agent.md`  
-**Purpose**: Coordinates specialist agents using runSubagent tool
+### _DevTeam (Orchestrator)
+**File**: `_DevTeam.agent.md`  
+**Purpose**: Coordinates specialist agents using `#runSubagent` tool
 
 **Capabilities**:
 - Emits `[SESSION:]` at start, `[COMPLETE:]` at end
-- Uses `runSubagent` tool to invoke specialists with `[DELEGATE:]`
-- Receives results with `[INTEGRATE:]`
+- Uses `#runSubagent` to invoke specialists (Architect, Developer, Reviewer, Researcher)
 - Tracks progress with `[TASK:]` nested lists
 - Updates knowledge with `[KNOWLEDGE:]`
+- Supports both sequential and parallel delegation patterns
 
 **When to use**: Multi-step tasks requiring design, implementation, and validation
 
@@ -64,7 +63,7 @@ Users see transparent communication between agents:
 
 **Capabilities**:
 - Emits `[ARCHITECT: phase=...]` during work
-- Returns `[RETURN: to=DevTeam | status=complete]`
+- Returns `[RETURN: to=_DevTeam | status=complete]`
 - Evaluates alternatives with trade-off matrix
 - Documents decisions with rationale
 
@@ -78,7 +77,7 @@ Users see transparent communication between agents:
 
 **Capabilities**:
 - Emits `[DEVELOPER: phase=...]` during work
-- Returns `[RETURN: to=DevTeam | status=complete]`
+- Returns `[RETURN: to=_DevTeam | status=complete]`
 - Writes clean, tested code
 - Follows existing patterns
 
@@ -92,7 +91,7 @@ Users see transparent communication between agents:
 
 **Capabilities**:
 - Emits `[REVIEWER: phase=...]` during work
-- Returns `[RETURN: to=DevTeam | verdict=APPROVED|CHANGES|REJECTED]`
+- Returns `[RETURN: to=_DevTeam | verdict=APPROVED|CHANGES|REJECTED]`
 - Runs tests and checks coverage
 - Validates security
 
@@ -106,7 +105,7 @@ Users see transparent communication between agents:
 
 **Capabilities**:
 - Emits `[RESEARCHER: phase=...]` during work
-- Returns `[RETURN: to=DevTeam | result=findings]`
+- Returns `[RETURN: to=_DevTeam | result=findings]`
 - Explores codebase structure
 - Identifies entities for knowledge graph
 
@@ -122,7 +121,7 @@ Users see transparent communication between agents:
 ### Examples
 
 ```
-@DevTeam add JWT authentication to the API
+@_DevTeam add JWT authentication to the API
 → [SESSION: role=Lead | task=add_JWT_auth]
 → [DELEGATE: agent=Architect | task=design_auth]
 → [INTEGRATE: from=Architect | status=complete]
@@ -154,12 +153,12 @@ Users see transparent communication between agents:
 
 ### Sub-Agent Delegation with runSubagent
 
-DevTeam orchestrates using the `runSubagent` tool to invoke specialists:
+_DevTeam orchestrates using the `runSubagent` tool to invoke specialists:
 
 ```
-User: "@DevTeam add user authentication"
+User: "@_DevTeam add user authentication"
 
-DevTeam Output:
+_DevTeam Output:
 [SESSION: role=Lead | task=add_user_auth | phase=CONTEXT]
 Loading project context...
 
