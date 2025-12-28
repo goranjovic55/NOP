@@ -23,3 +23,9 @@
 {"type":"relation","from":"Global.Pattern.Testing.AAA","to":"Global.Pattern.Testing.UnitIsolation","relationType":"COMPLEMENTS"}
 {"type":"relation","from":"Global.Workflow.MultiAgent.Orchestrator","to":"Global.Workflow.MultiAgent.ContextHandoff","relationType":"USES"}
 {"type":"relation","from":"Global.Workflow.MultiAgent.Orchestrator","to":"Global.Workflow.MultiAgent.ResultIntegration","relationType":"USES"}
+{"type":"entity","name":"Global.Pattern.API.AsyncIO","entityType":"Pattern","observations":["Use async/await for I/O-bound operations","FastAPI with async database and network calls","Improves concurrency and throughput","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"Global.Pattern.API.WebSocketRealtime","entityType":"Pattern","observations":["WebSocket for bidirectional real-time data streaming","Use for terminal sessions, live monitoring, traffic capture","Event-driven push model for immediate updates","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"Global.Pattern.API.BackgroundTasks","entityType":"Pattern","observations":["Long-running operations in background tasks","FastAPI BackgroundTasks for async job processing","Return immediate response while processing continues","upd:2025-12-28,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Security.CredentialEncryption","entityType":"Pattern","observations":["Encrypt sensitive credentials at rest","AES-256-GCM for credential vault storage","Separate encryption key management","upd:2025-12-28,refs:1"]}
+{"type":"relation","from":"Global.Pattern.API.AsyncIO","to":"Global.Pattern.API.BackgroundTasks","relationType":"COMPLEMENTS"}
+{"type":"relation","from":"Global.Pattern.API.WebSocketRealtime","to":"Global.Pattern.API.AsyncIO","relationType":"USES"}
