@@ -73,9 +73,9 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             const sendMouseState = (state: Guacamole.Mouse.State) => {
               clientRef.current?.sendMouseState(state);
             };
-            mouse.onmousedown = sendMouseState;
-            mouse.onmouseup = sendMouseState;
-            mouse.onmousemove = sendMouseState;
+            (mouse as any).onmousedown = sendMouseState;
+            (mouse as any).onmouseup = sendMouseState;
+            (mouse as any).onmousemove = sendMouseState;
             
             console.log('[GUACAMOLE-CLIENT] Keyboard and mouse handlers attached');
           }

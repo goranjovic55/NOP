@@ -105,10 +105,9 @@ class DiscoveryService:
                 asset.open_ports = open_ports
                 asset.services = services
                 asset.asset_type = asset_type
-                # Update discovery method if it's more detailed than current
-                if not asset.discovery_method or asset.discovery_method in ["unknown", "passive", "arp", "ping"]:
-                    asset.discovery_method = discovery_method
-                logger.info(f"Updated asset: {ip_address}")
+                # Always update discovery method to show the last scan method used
+                asset.discovery_method = discovery_method
+                logger.info(f"Updated asset: {ip_address} (discovery: {discovery_method})")
                 
                 # Log event for asset update (optional, but good for visibility)
                 event = Event(

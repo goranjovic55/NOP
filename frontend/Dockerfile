@@ -4,6 +4,8 @@ WORKDIR /app
 
 # Set CI to false to prevent treating warnings as errors
 ENV CI=false
+# Increase Node.js memory limit for build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Install dependencies
 COPY package*.json ./

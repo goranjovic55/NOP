@@ -11,6 +11,68 @@ interface Packet {
   summary: string;
   info: string;
   raw: string;
+  // Dissected layers
+  layers?: {
+    ethernet?: {
+      src_mac: string;
+      dst_mac: string;
+      type: string;
+    };
+    ip?: {
+      version: number;
+      header_length: number;
+      tos: number;
+      total_length: number;
+      identification: number;
+      flags: string;
+      fragment_offset: number;
+      ttl: number;
+      protocol: number;
+      protocol_name: string;
+      checksum: string;
+      src: string;
+      dst: string;
+    };
+    tcp?: {
+      src_port: number;
+      dst_port: number;
+      seq: number;
+      ack: number;
+      data_offset: number;
+      flags: string;
+      window: number;
+      checksum: string;
+      urgent_pointer: number;
+      options?: string;
+    };
+    udp?: {
+      src_port: number;
+      dst_port: number;
+      length: number;
+      checksum: string;
+    };
+    icmp?: {
+      type: number;
+      type_name: string;
+      code: number;
+      checksum: string;
+      identifier?: number;
+      sequence?: number;
+    };
+    arp?: {
+      hardware_type: string;
+      protocol_type: string;
+      operation: string;
+      sender_mac: string;
+      sender_ip: string;
+      target_mac: string;
+      target_ip: string;
+    };
+    payload?: {
+      length: number;
+      preview: string;
+    };
+  };
 }
 
 interface Stream {
@@ -437,42 +499,10 @@ const Traffic: React.FC = () => {
         </button>
       </div>
 
-      {/* Main Content - Split View */}
-      <div className="flex-1 flex flex-col min-h-0 space-y-4">
-        {/* Upper Part: Streams */}
-        <div className="h-1/3 bg-cyber-dark border border-cyber-gray flex flex-col min-h-0">
-          <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Active Streams</span>
-            <span className="text-[10px] text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <table className="min-w-full text-[10px] font-mono">
-              <thead className="bg-cyber-darker sticky top-0">
-                <tr className="text-cyber-gray-light uppercase">
-                  <th className="px-4 py-2 text-left">Source</th>
-                  <th className="px-4 py-2 text-left">Destination</th>
-                  <th className="px-4 py-2 text-left">Protocol</th>
-                  <th className="px-4 py-2 text-right">Packets</th>
-                  <th className="px-4 py-2 text-right">Bytes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-cyber-gray/30">
-                {streams.map((stream) => (
-                  <tr key={stream.id} className="hover:bg-cyber-blue/10 transition-colors">
-                    <td className="px-4 py-1 text-cyber-blue">{stream.source}</td>
-                    <td className="px-4 py-1 text-cyber-red">{stream.destination}</td>
-                    <td className="px-4 py-1">{stream.protocol}</td>
-                    <td className="px-4 py-1 text-right">{stream.packetCount}</td>
-                    <td className="px-4 py-1 text-right">{(stream.byteCount / 1024).toFixed(2)} KB</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Lower Part: Live Traffic */}
-        <div className="flex-1 bg-black border border-cyber-gray flex flex-col min-h-0">
+      {/* Main Content - Vertical Split View */}
+      <div className="flex-1 flex flex-row min-h-0 gap-4">
+        {/* Left Part: Live Packet Capture */}
+        <div className={`${selectedPacket ? 'w-1/2' : 'w-2/3'} bg-black border border-cyber-gray flex flex-col min-h-0 transition-all`}>
           <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
             <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
             <span className="text-[10px] text-cyber-gray-light opacity-50">{packets.length} Packets in Buffer</span>
@@ -481,12 +511,12 @@ const Traffic: React.FC = () => {
             <table className="min-w-full">
               <thead className="bg-cyber-darker sticky top-0">
                 <tr className="text-cyber-gray-light uppercase">
-                  <th className="px-4 py-2 text-left w-24">Time</th>
-                  <th className="px-4 py-2 text-left w-32">Source</th>
-                  <th className="px-4 py-2 text-left w-32">Destination</th>
-                  <th className="px-4 py-2 text-left w-16">Proto</th>
-                  <th className="px-4 py-2 text-left w-16">Len</th>
-                  <th className="px-4 py-2 text-left">Info</th>
+                  <th className="px-2 py-2 text-left w-20">Time</th>
+                  <th className="px-2 py-2 text-left w-28">Source</th>
+                  <th className="px-2 py-2 text-left w-28">Destination</th>
+                  <th className="px-2 py-2 text-left w-14">Proto</th>
+                  <th className="px-2 py-2 text-left w-12">Len</th>
+                  <th className="px-2 py-2 text-left">Info</th>
                 </tr>
               </thead>
               <tbody>
@@ -494,17 +524,49 @@ const Traffic: React.FC = () => {
                   <tr
                     key={p.id || i}
                     onClick={() => setSelectedPacket(p)}
-                    className={`hover:bg-cyber-gray/20 cursor-pointer transition-colors ${selectedPacket === p ? 'bg-cyber-blue/20' : ''}`}
+                    className={`hover:bg-cyber-gray/20 cursor-pointer transition-colors ${selectedPacket === p ? 'bg-cyber-blue/20 border-l-2 border-cyber-blue' : ''}`}
                   >
-                    <td className="px-4 py-0.5 text-cyber-gray-light opacity-60">{new Date(p.timestamp * 1000).toLocaleTimeString()}</td>
-                    <td className="px-4 py-0.5 text-cyber-blue truncate max-w-[128px]">{p.source}</td>
-                    <td className="px-4 py-0.5 text-cyber-red truncate max-w-[128px]">{p.destination}</td>
-                    <td className={`px-4 py-0.5 font-bold ${getProtocolColor(p.protocol)}`}>{p.protocol}</td>
-                    <td className="px-4 py-0.5 text-cyber-gray-light">{p.length}</td>
-                    <td className="px-4 py-0.5 text-cyber-gray-light truncate">{p.info || p.summary}</td>
+                    <td className="px-2 py-0.5 text-cyber-gray-light opacity-60">{new Date(p.timestamp * 1000).toLocaleTimeString()}</td>
+                    <td className="px-2 py-0.5 text-cyber-blue truncate max-w-[112px]">{p.source}</td>
+                    <td className="px-2 py-0.5 text-cyber-red truncate max-w-[112px]">{p.destination}</td>
+                    <td className={`px-2 py-0.5 font-bold ${getProtocolColor(p.protocol)}`}>{p.protocol}</td>
+                    <td className="px-2 py-0.5 text-cyber-gray-light">{p.length}</td>
+                    <td className="px-2 py-0.5 text-cyber-gray-light truncate">{p.info || p.summary}</td>
                   </tr>
                 ))}
                 <div ref={packetListEndRef} />
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Part: Streams / Flow */}
+        <div className={`${selectedPacket ? 'w-1/2' : 'w-1/3'} bg-cyber-dark border border-cyber-gray flex flex-col min-h-0 transition-all`}>
+          <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
+            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
+            <span className="text-[10px] text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <table className="min-w-full text-[10px] font-mono">
+              <thead className="bg-cyber-darker sticky top-0">
+                <tr className="text-cyber-gray-light uppercase">
+                  <th className="px-2 py-2 text-left">Source</th>
+                  <th className="px-2 py-2 text-left">Destination</th>
+                  <th className="px-2 py-2 text-left">Proto</th>
+                  <th className="px-2 py-2 text-right">Pkts</th>
+                  <th className="px-2 py-2 text-right">Bytes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-cyber-gray/30">
+                {streams.map((stream) => (
+                  <tr key={stream.id} className="hover:bg-cyber-blue/10 transition-colors">
+                    <td className="px-2 py-1 text-cyber-blue truncate max-w-[100px]">{stream.source}</td>
+                    <td className="px-2 py-1 text-cyber-red truncate max-w-[100px]">{stream.destination}</td>
+                    <td className="px-2 py-1">{stream.protocol}</td>
+                    <td className="px-2 py-1 text-right">{stream.packetCount}</td>
+                    <td className="px-2 py-1 text-right">{(stream.byteCount / 1024).toFixed(1)}K</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -515,16 +577,16 @@ const Traffic: React.FC = () => {
 
       {/* Ping Tab Content */}
       {activeTab === 'ping' && (
-        <div className="flex-1 flex flex-col min-h-0 space-y-4">
-          {/* Upper Part: Advanced Ping Configuration */}
-          <div className="h-1/2 bg-cyber-dark border border-cyber-gray flex flex-col min-h-0">
+        <div className="flex-1 flex flex-row min-h-0 gap-4">
+          {/* Left Part: Advanced Ping Configuration */}
+          <div className="w-1/2 bg-cyber-dark border border-cyber-gray flex flex-col min-h-0">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
               <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Advanced Ping Configuration</span>
             </div>
-            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-              <div className="flex gap-6">
-                {/* Left Side: Configuration */}
-                <div className="flex-1 space-y-6">
+            <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+              <div className="flex flex-col gap-4">
+                {/* Configuration Section */}
+                <div className="space-y-4">
                   {/* Target Input */}
                   <div className="space-y-2">
                     <label className="text-xs text-cyber-blue font-bold uppercase">Target IP/Hostname</label>
@@ -602,14 +664,14 @@ const Traffic: React.FC = () => {
                   </div>
 
                   {/* Protocol Selection */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-cyber-blue font-bold uppercase">Protocol</label>
-                    <div className="grid grid-cols-5 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-cyber-blue font-bold uppercase">Protocol</label>
+                    <div className="grid grid-cols-5 gap-1">
                       {['icmp', 'tcp', 'udp', 'http', 'dns'].map((proto) => (
                         <button
                           key={proto}
                           onClick={() => setPingProtocol(proto)}
-                          className={`px-4 py-2 border-2 font-bold uppercase text-xs transition-all ${
+                          className={`py-1.5 border font-bold uppercase text-[10px] transition-all text-center ${
                             pingProtocol === proto
                               ? 'bg-cyber-green text-black border-cyber-green'
                               : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green'
@@ -650,20 +712,20 @@ const Traffic: React.FC = () => {
                   )}
 
                   {/* Advanced Options */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs text-cyber-blue font-bold uppercase">Count</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-cyber-blue font-bold uppercase">Count</label>
                       <input
                         type="number"
                         value={pingCount}
                         onChange={(e) => setPingCount(e.target.value)}
                         min="1"
                         max="100"
-                        className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                        className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-xs p-1.5 outline-none focus:border-cyber-green font-mono"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-cyber-blue font-bold uppercase">Timeout (s)</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-cyber-blue font-bold uppercase">Timeout (s)</label>
                       <input
                         type="number"
                         value={pingTimeout}
@@ -675,25 +737,25 @@ const Traffic: React.FC = () => {
                     </div>
                     {pingProtocol === 'icmp' && (
                       <div className="space-y-2">
-                        <label className="text-xs text-cyber-blue font-bold uppercase">Packet Size</label>
+                        <label className="text-[10px] text-cyber-blue font-bold uppercase">Packet Size</label>
                         <input
                           type="number"
                           value={pingPacketSize}
                           onChange={(e) => setPingPacketSize(e.target.value)}
                           min="1"
                           max="65500"
-                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-sm p-2 outline-none focus:border-cyber-green font-mono"
+                          className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green text-xs p-1.5 outline-none focus:border-cyber-green font-mono"
                         />
                       </div>
                     )}
                   </div>
 
                   {/* Execute Button */}
-                  <div className="pt-4">
+                  <div className="pt-2">
                     <button
                       onClick={handlePing}
                       disabled={pingInProgress}
-                      className={`px-8 py-3 border-2 font-bold uppercase tracking-widest text-sm transition-all ${
+                      className={`px-4 py-2 border font-bold uppercase tracking-wider text-xs transition-all ${
                         pingInProgress
                           ? 'border-cyber-gray text-cyber-gray opacity-50 cursor-not-allowed'
                           : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
@@ -702,59 +764,55 @@ const Traffic: React.FC = () => {
                       {pingInProgress ? 'Pinging...' : 'Execute Ping'}
                     </button>
                   </div>
-                </div>
 
-                {/* Right Side: Protocol Information */}
-                <div className="w-80 bg-cyber-darker border border-cyber-blue/30 p-4 h-fit">
-                  <h4 className="text-xs text-cyber-blue font-bold uppercase mb-2">Protocol Information</h4>
-                  <div className="text-[10px] text-cyber-gray-light space-y-1 font-mono">
-                    {pingProtocol === 'icmp' && (
-                      <>
-                        <p>• Standard ICMP echo request/reply</p>
-                        <p>• Commonly blocked by firewalls</p>
-                        <p>• Best for basic connectivity testing</p>
-                      </>
-                    )}
-                    {pingProtocol === 'tcp' && (
-                      <>
-                        <p>• TCP SYN packets via hping3</p>
-                        <p>• Can bypass ICMP filters</p>
-                        <p>• Shows detailed packet information</p>
-                        <p>• Useful for testing specific services</p>
-                      </>
-                    )}
-                    {pingProtocol === 'udp' && (
-                      <>
-                        <p>• UDP packets via hping3</p>
-                        <p>• Connectionless protocol</p>
-                        <p>• Shows routing information</p>
-                        <p>• No acknowledgment expected</p>
-                      </>
-                    )}
-                    {pingProtocol === 'http' && (
-                      <>
-                        <p>• HTTP/HTTPS request to web server</p>
-                        <p>• Tests web service availability</p>
-                        <p>• Returns HTTP status codes</p>
-                        <p>• Use HTTPS toggle for port 443</p>
-                      </>
-                    )}
-                    {pingProtocol === 'dns' && (
-                      <>
-                        <p>• DNS server query testing</p>
-                        <p>• Tests DNS responsiveness</p>
-                        <p>• Default port 53 (UDP)</p>
-                        <p>• Uses dig for queries</p>
-                      </>
-                    )}
+                  {/* Protocol Information */}
+                  <div className="mt-3 p-3 bg-cyber-darker border border-cyber-blue/30">
+                    <h4 className="text-[10px] text-cyber-blue font-bold uppercase mb-2">Protocol Information</h4>
+                    <div className="text-[10px] text-cyber-gray-light space-y-2">
+                      {pingProtocol === 'icmp' && (
+                        <div className="space-y-1">
+                          <p className="text-cyber-green font-bold">ICMP Echo Request/Reply</p>
+                          <p>Standard ping protocol using ICMP packets. Sends echo requests and waits for echo replies to measure round-trip time.</p>
+                          <p className="text-cyber-purple mt-1">⚠ May be blocked by firewalls or disabled on target hosts.</p>
+                        </div>
+                      )}
+                      {pingProtocol === 'tcp' && (
+                        <div className="space-y-1">
+                          <p className="text-cyber-green font-bold">TCP SYN Probe (hping3)</p>
+                          <p>Sends TCP SYN packets to specified port. Useful for testing connectivity when ICMP is blocked. Measures response time based on SYN-ACK or RST replies.</p>
+                          <p className="text-cyber-purple mt-1">✓ Bypasses ICMP filters. Requires port specification.</p>
+                        </div>
+                      )}
+                      {pingProtocol === 'udp' && (
+                        <div className="space-y-1">
+                          <p className="text-cyber-green font-bold">UDP Probe (hping3)</p>
+                          <p>Sends UDP packets to specified port. Connectionless protocol - measures time until ICMP "port unreachable" or response is received.</p>
+                          <p className="text-cyber-purple mt-1">⚠ May show packet loss if port is open (no response expected).</p>
+                        </div>
+                      )}
+                      {pingProtocol === 'http' && (
+                        <div className="space-y-1">
+                          <p className="text-cyber-green font-bold">HTTP/HTTPS Request</p>
+                          <p>Performs HTTP GET request to the target. Measures full request-response cycle including TLS handshake for HTTPS. Returns HTTP status code.</p>
+                          <p className="text-cyber-purple mt-1">✓ Tests application-layer connectivity and web server availability.</p>
+                        </div>
+                      )}
+                      {pingProtocol === 'dns' && (
+                        <div className="space-y-1">
+                          <p className="text-cyber-green font-bold">DNS Query (dig)</p>
+                          <p>Sends DNS A record query using dig command. Measures DNS resolution time. Target should be a DNS server address.</p>
+                          <p className="text-cyber-purple mt-1">✓ Default port 53. Tests DNS server responsiveness.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Lower Part: Ping Response */}
-          <div className="flex-1 bg-black border border-cyber-gray flex flex-col min-h-0">
+          {/* Right Part: Ping Response */}
+          <div className="w-1/2 bg-black border border-cyber-gray flex flex-col min-h-0">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
               <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Ping Response</span>
               {pingResults && !pingResults.error && (
@@ -921,48 +979,197 @@ const Traffic: React.FC = () => {
         </div>
       )}
 
-      {/* Packet Inspector Sidebar - Only show in capture tab */}
+      {/* Packet Inspector Sidebar - Slides in from right */}
       {activeTab === 'capture' && selectedPacket && (
-        <div className="fixed right-0 top-0 h-full w-1/3 bg-cyber-darker border-l border-cyber-red shadow-[-10px_0_30px_rgba(255,10,84,0.2)] z-50 flex flex-col animate-slideInRight">
-          <div className="p-4 border-b border-cyber-gray flex justify-between items-center bg-cyber-dark">
-            <h3 className="text-cyber-red font-bold uppercase tracking-widest">Packet Inspector</h3>
+        <div className="fixed right-0 top-0 h-full w-[450px] bg-cyber-darker border-l border-cyber-red shadow-[-10px_0_30px_rgba(255,10,84,0.2)] z-50 flex flex-col animate-slideInRight">
+          <div className="p-3 border-b border-cyber-gray flex justify-between items-center bg-cyber-dark">
+            <h3 className="text-cyber-red font-bold uppercase tracking-widest text-sm">Packet Inspector</h3>
             <button onClick={() => setSelectedPacket(null)} className="text-cyber-gray-light hover:text-cyber-red text-xl">&times;</button>
           </div>
-          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6">
+          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
+            {/* Frame Info */}
             <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">General Information</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+              <h4 className="text-[10px] text-cyber-green font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <span className="mr-2">▸</span> Frame
+              </h4>
+              <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
                 <span className="text-cyber-gray-light">Timestamp:</span>
                 <span className="text-cyber-blue">{new Date(selectedPacket.timestamp * 1000).toISOString()}</span>
-                <span className="text-cyber-gray-light">Length:</span>
+                <span className="text-cyber-gray-light">Frame Length:</span>
                 <span className="text-cyber-blue">{selectedPacket.length} bytes</span>
-                <span className="text-cyber-gray-light">Protocol:</span>
-                <span className={`font-bold ${getProtocolColor(selectedPacket.protocol)}`}>{selectedPacket.protocol}</span>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">Network Layer</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <span className="text-cyber-gray-light">Source:</span>
-                <span className="text-cyber-blue">{selectedPacket.source}</span>
-                <span className="text-cyber-gray-light">Destination:</span>
-                <span className="text-cyber-red">{selectedPacket.destination}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">Summary</h4>
-              <div className="p-3 bg-black border border-cyber-gray text-cyber-green text-xs font-mono break-words">
-                {selectedPacket.summary}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">Raw Data</h4>
-                <div className="p-3 bg-black border border-cyber-gray text-cyber-blue text-[10px] font-mono leading-tight whitespace-pre overflow-x-auto">
-                  {formatHex(selectedPacket.raw)}
+            {/* Ethernet Layer */}
+            {selectedPacket.layers?.ethernet && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Ethernet II
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Source MAC:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ethernet.src_mac}</span>
+                  <span className="text-cyber-gray-light">Destination MAC:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.ethernet.dst_mac}</span>
+                  <span className="text-cyber-gray-light">Type:</span>
+                  <span className="text-cyber-green">{selectedPacket.layers.ethernet.type}</span>
                 </div>
+              </div>
+            )}
+
+            {/* ARP Layer */}
+            {selectedPacket.layers?.arp && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-orange-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> ARP (Address Resolution Protocol)
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Hardware Type:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.arp.hardware_type}</span>
+                  <span className="text-cyber-gray-light">Protocol Type:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.arp.protocol_type}</span>
+                  <span className="text-cyber-gray-light">Operation:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.arp.operation}</span>
+                  <span className="text-cyber-gray-light">Sender MAC:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.arp.sender_mac}</span>
+                  <span className="text-cyber-gray-light">Sender IP:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.arp.sender_ip}</span>
+                  <span className="text-cyber-gray-light">Target MAC:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.arp.target_mac}</span>
+                  <span className="text-cyber-gray-light">Target IP:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.arp.target_ip}</span>
+                </div>
+              </div>
+            )}
+
+            {/* IP Layer */}
+            {selectedPacket.layers?.ip && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-cyan-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Internet Protocol Version {selectedPacket.layers.ip.version}
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Source:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.src}</span>
+                  <span className="text-cyber-gray-light">Destination:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.ip.dst}</span>
+                  <span className="text-cyber-gray-light">Header Length:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.header_length} bytes</span>
+                  <span className="text-cyber-gray-light">Total Length:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.total_length} bytes</span>
+                  <span className="text-cyber-gray-light">TTL:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.ttl}</span>
+                  <span className="text-cyber-gray-light">Protocol:</span>
+                  <span className="text-cyber-green">{selectedPacket.layers.ip.protocol_name} ({selectedPacket.layers.ip.protocol})</span>
+                  <span className="text-cyber-gray-light">Identification:</span>
+                  <span className="text-cyber-blue">0x{selectedPacket.layers.ip.identification?.toString(16).padStart(4, '0')}</span>
+                  <span className="text-cyber-gray-light">Flags:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.flags}</span>
+                  <span className="text-cyber-gray-light">Fragment Offset:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.fragment_offset}</span>
+                  <span className="text-cyber-gray-light">Header Checksum:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.ip.checksum}</span>
+                </div>
+              </div>
+            )}
+
+            {/* TCP Layer */}
+            {selectedPacket.layers?.tcp && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-yellow-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Transmission Control Protocol
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Source Port:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.src_port}</span>
+                  <span className="text-cyber-gray-light">Destination Port:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.tcp.dst_port}</span>
+                  <span className="text-cyber-gray-light">Sequence Number:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.seq}</span>
+                  <span className="text-cyber-gray-light">Acknowledgment:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.ack}</span>
+                  <span className="text-cyber-gray-light">Header Length:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.data_offset} bytes</span>
+                  <span className="text-cyber-gray-light">Flags:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.tcp.flags}</span>
+                  <span className="text-cyber-gray-light">Window Size:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.window}</span>
+                  <span className="text-cyber-gray-light">Checksum:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.checksum}</span>
+                  <span className="text-cyber-gray-light">Urgent Pointer:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tcp.urgent_pointer}</span>
+                </div>
+              </div>
+            )}
+
+            {/* UDP Layer */}
+            {selectedPacket.layers?.udp && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-pink-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> User Datagram Protocol
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Source Port:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.udp.src_port}</span>
+                  <span className="text-cyber-gray-light">Destination Port:</span>
+                  <span className="text-cyber-red">{selectedPacket.layers.udp.dst_port}</span>
+                  <span className="text-cyber-gray-light">Length:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.udp.length} bytes</span>
+                  <span className="text-cyber-gray-light">Checksum:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.udp.checksum}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ICMP Layer */}
+            {selectedPacket.layers?.icmp && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-lime-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Internet Control Message Protocol
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                  <span className="text-cyber-gray-light">Type:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.icmp.type_name} ({selectedPacket.layers.icmp.type})</span>
+                  <span className="text-cyber-gray-light">Code:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.icmp.code}</span>
+                  <span className="text-cyber-gray-light">Checksum:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.icmp.checksum}</span>
+                  {selectedPacket.layers.icmp.identifier !== undefined && (
+                    <>
+                      <span className="text-cyber-gray-light">Identifier:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.icmp.identifier}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.icmp.sequence !== undefined && (
+                    <>
+                      <span className="text-cyber-gray-light">Sequence:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.icmp.sequence}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Payload */}
+            {selectedPacket.layers?.payload && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Payload ({selectedPacket.layers.payload.length} bytes)
+                </h4>
+                <div className="pl-4 p-2 bg-black border border-cyber-gray text-cyber-blue text-[10px] font-mono break-all">
+                  {selectedPacket.layers.payload.preview}
+                </div>
+              </div>
+            )}
+
+            {/* Raw Hex Dump */}
+            <div className="space-y-2">
+              <h4 className="text-[10px] text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <span className="mr-2">▸</span> Raw Data (Hex Dump)
+              </h4>
+              <div className="p-2 bg-black border border-cyber-gray text-cyber-blue text-[9px] font-mono leading-tight whitespace-pre overflow-x-auto max-h-[200px]">
+                {formatHex(selectedPacket.raw)}
+              </div>
             </div>
           </div>
         </div>

@@ -28,7 +28,7 @@ class GuacamoleTunnel:
         self.read_lock = threading.Lock()
         self.write_lock = threading.Lock()
         self.bytes_sent = 0
-        self.recv_buffer = b""  # Buffer for incomplete instructions from guacd (as bytes)
+        self.recv_buffer = ""  # Buffer for incomplete instructions from guacd (as string)
         self.bytes_received = 0
 
     def _sanitize_args_for_log(self, args: dict) -> dict:
