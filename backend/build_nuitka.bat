@@ -64,6 +64,8 @@ python -m nuitka ^
     --nofollow-import-to=pytest ^
     --nofollow-import-to=black ^
     --nofollow-import-to=IPython ^
+    --nofollow-import-to=celery ^
+    --nofollow-import-to=docker ^
     --windows-icon-from-ico=..\assets\icon.ico ^
     --windows-company-name="NOP" ^
     --windows-product-name="Network Observatory Platform" ^

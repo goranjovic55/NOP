@@ -123,20 +123,22 @@ chmod +x nop-portable
 
 ### Docker Only
 
-✅ Remote access via Guacamole (SSH, RDP, VNC)  
-✅ PostgreSQL database (better for high load)  
-✅ Redis caching (faster queries)  
+✅ Remote desktop via Guacamole (SSH, RDP, VNC)  
+✅ PostgreSQL database (better concurrency)  
+✅ Redis caching (persistent, faster queries)  
+✅ Celery background tasks (distributed)  
 ✅ Horizontal scaling  
 ✅ Container orchestration  
-✅ Advanced C2 features  
+✅ Docker container management
 
 ### Portable Only
 
 ✅ No installation required  
 ✅ Run from removable media  
-✅ Native code performance  
-✅ Smaller footprint  
-✅ Faster startup time  
+✅ Native code performance (2-5x faster)  
+✅ Smaller footprint (80-100MB vs 2-3GB)  
+✅ Faster startup time (5-10s vs 30-60s)  
+✅ No Docker daemon required  
 
 ## Performance Comparison
 

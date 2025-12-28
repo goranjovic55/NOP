@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
 Portable executable main entry point
-This is the main script for the PyInstaller-built portable executable
+This is the main script for the Nuitka-built portable executable
+
+NOTE: Portable mode limitations:
+- Uses SQLite instead of PostgreSQL
+- In-memory cache instead of Redis  
+- Guacamole remote access features unavailable (requires separate guacd daemon)
+- Docker management features disabled
+- Background tasks use asyncio instead of Celery
 """
 
 import sys

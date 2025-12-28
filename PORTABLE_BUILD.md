@@ -313,10 +313,22 @@ nop-portable --daemon
 
 Compared to the full Docker deployment, the portable executable has these limitations:
 
-1. **No Guacamole Integration**: Remote access features require separate Guacamole setup
-2. **Limited Concurrent Connections**: SQLite vs PostgreSQL performance difference
-3. **Single Instance**: Cannot easily scale horizontally
-4. **Network Privileges**: Packet sniffing requires root/admin on some systems
+1. **No Guacamole Integration**: Remote desktop (RDP/VNC/SSH) features require separate guacd daemon
+2. **No Docker Management**: Container management features disabled
+3. **No Celery/Redis**: Background tasks use asyncio, cache is in-memory
+4. **Limited Concurrent Connections**: SQLite vs PostgreSQL performance (50-100 vs 500+ users)
+5. **Single Instance**: Cannot easily scale horizontally
+6. **Network Privileges**: Packet sniffing requires elevated permissions
+
+**Features Available in Portable:**
+- ✅ Network discovery and monitoring
+- ✅ Traffic analysis and packet capture  
+- ✅ Asset inventory management
+- ✅ Vulnerability scanning (nmap)
+- ✅ SSH testing (paramiko)
+- ✅ Web-based interface
+- ❌ Remote desktop access (Guacamole)
+- ❌ Container orchestration
 
 ### Running with Required Privileges
 

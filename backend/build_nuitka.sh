@@ -186,6 +186,8 @@ NUITKA_OPTS+=(
     --nofollow-import-to=mypy
     --nofollow-import-to=IPython
     --nofollow-import-to=jupyter
+    --nofollow-import-to=celery
+    --nofollow-import-to=docker
 )
 
 # Build type specific options
