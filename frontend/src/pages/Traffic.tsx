@@ -198,7 +198,7 @@ const Traffic: React.FC = () => {
       const offset = (i / 2).toString(16).padStart(4, '0');
       let hexPart = '';
       let asciiPart = '';
-      for (let j = 0; j < chunk.length; j += 2) {assets={assets} 
+      for (let j = 0; j < chunk.length; j += 2) {
         const byte = chunk.substring(j, j + 2);
         hexPart += byte + ' ';
         const charCode = parseInt(byte, 16);
@@ -212,7 +212,7 @@ const Traffic: React.FC = () => {
   return (
     <>
       {showCrafting ? (
-        <PacketCrafting onBack={() => setShowCrafting(false)} />
+        <PacketCrafting onBack={() => setShowCrafting(false)} assets={assets} />
       ) : (
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
       {/* Toolbar */}
