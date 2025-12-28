@@ -42,10 +42,13 @@ PLAN → IMPLEMENT → TEST → VALIDATE
 - Meaningful names, explicit errors
 - Follow project conventions
 
-## Quality Gates
+## Quality Gates (Required Before Completion)
 - Patterns followed
-- No lint/type errors
+- No lint/type errors  
 - Basic tests created
+- Linters run successfully
+- Builds complete without errors
+- Relevant tests pass
 
 ## Knowledge
 ```

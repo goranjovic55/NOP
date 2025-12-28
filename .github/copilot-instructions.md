@@ -12,12 +12,16 @@ _DevTeam (Orchestrator)
 ```
 
 ## Session Start
+
+**Always emit at beginning of task**:
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 ```
 Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect type
 
 ## Phase Flow
+
+**Track progress throughout session**:
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
 ```
@@ -30,12 +34,13 @@ Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"...
 [INTEGRATE: from=<agent> | status=complete|partial|blocked | result=<summary>]
 ```
 
+**Use #runSubagent for all specialist work**:
 | Situation | Agent |
 |-----------|-------|
-| Design decision | Architect |
-| Code implementation | Developer |
-| Testing/validation | Reviewer |
-| Investigation | Researcher |
+| Design decision | #runSubagent Architect |
+| Code implementation | #runSubagent Developer |
+| Testing/validation | #runSubagent Reviewer |
+| Investigation | #runSubagent Researcher |
 
 **Don't delegate**: Simple edits, clarifications, knowledge updates
 
@@ -79,8 +84,13 @@ Summary | Agent Interactions | Files | Quality Gates | Learnings
 |------|-------|-------|
 | Context | Orchestrator | Knowledge loaded |
 | Design | Architect | Alternatives considered |
-| Code | Developer | Tests pass |
+| Code | Developer | Tests pass, linters pass, builds succeed |
 | Quality | Reviewer | Standards met |
+
+**Phase 5 (VERIFY) Requirements**:
+- All linters pass
+- All builds succeed
+- All relevant tests pass
 
 ## Workflows
 | Workflow | Purpose | Agents |
@@ -107,11 +117,27 @@ Copy `.github/` to any project. Create empty `project_knowledge.json` in root.
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: CONTEXT | progress=1/7 | next=PLAN]
-[DELEGATE: agent=Architect | task="Design"]
+#runSubagent Architect --task "Design"
 [INTEGRATE: from=Architect | result="Design complete"]
+#runSubagent Developer --task "Implement"]
+[INTEGRATE: from=Developer | result="Implementation complete"]
+#runSubagent Reviewer --task "Validate"]
+[INTEGRATE: from=Reviewer | result="Validation complete"]
 [NEST: parent=main | child=sub | reason=why]
 [STACK: push | task=sub | depth=1 | parent=main]
 [KNOWLEDGE: added=3 | updated=1 | type=project]
 [COMPLETE: task=<desc> | result=<summary> | learnings=3]
 [WORKFLOW_LOG: task=<desc>]...[/WORKFLOW_LOG]
 ```
+
+## Session Tracking Checklist
+
+When starting a task with _DevTeam orchestrator:
+- [ ] Emit `[SESSION:]` at start
+- [ ] Emit `[PHASE: CONTEXT | progress=1/7]`
+- [ ] Emit `[PHASE: PLAN | progress=2/7]`
+- [ ] Use `#runSubagent` for all specialist delegation
+- [ ] Emit `[PHASE: INTEGRATE | progress=4/7]`
+- [ ] Emit `[PHASE: VERIFY | progress=5/7]` with validation
+- [ ] Emit `[KNOWLEDGE:]` for learnings captured
+- [ ] Emit `[COMPLETE:]` with workflow log
