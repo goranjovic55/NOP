@@ -2,11 +2,12 @@ version: '3.8'
 
 services:
   # Test Environment Services
+  # Port forwards removed - services accessible via Docker network only
+  # This reduces port conflicts and resource usage
+  
   custom-web-server:
     build: ./test-environment/web-server
     container_name: nop-custom-web
-    ports:
-      - "8090:80"
     networks:
       test-network:
         ipv4_address: 172.21.0.42
@@ -15,8 +16,6 @@ services:
   custom-ssh-server:
     build: ./test-environment/ssh-server
     container_name: nop-custom-ssh
-    ports:
-      - "2224:22"
     networks:
       test-network:
         ipv4_address: 172.21.0.69
@@ -25,8 +24,6 @@ services:
   custom-db-server:
     build: ./test-environment/database-server
     container_name: nop-custom-db
-    ports:
-      - "3307:3306"
     networks:
       test-network:
         ipv4_address: 172.21.0.123
@@ -35,9 +32,6 @@ services:
   custom-file-server:
     build: ./test-environment/file-server
     container_name: nop-custom-file
-    ports:
-      - "445:445"
-      - "139:139"
     networks:
       test-network:
         ipv4_address: 172.21.0.200
@@ -46,8 +40,6 @@ services:
   custom-rdp-server:
     build: ./test-environment/rdp-server
     container_name: nop-custom-rdp
-    ports:
-      - "3389:3389"
     networks:
       test-network:
         ipv4_address: 172.21.0.50
@@ -56,8 +48,6 @@ services:
   custom-vnc-server:
     build: ./test-environment/vnc-server
     container_name: nop-custom-vnc
-    ports:
-      - "5900:5900"
     networks:
       test-network:
         ipv4_address: 172.21.0.51
@@ -66,9 +56,6 @@ services:
   custom-ftp-server:
     build: ./test-environment/ftp-server
     container_name: nop-custom-ftp
-    ports:
-      - "21:21"
-      - "21100-21110:21100-21110"
     networks:
       test-network:
         ipv4_address: 172.21.0.52

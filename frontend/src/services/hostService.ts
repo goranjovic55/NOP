@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
+// Use relative URL to go through the React dev server proxy
+const API_URL = '/api/v1/host';
 
 export interface SystemInfo {
   hostname: string;
@@ -93,21 +94,27 @@ export interface FileContent {
 
 export const hostService = {
   getSystemInfo: async (token: string): Promise<SystemInfo> => {
-    const response = await axios.get(`${API_URL}/api/v1/host/system/info`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
+    const url = `${API_URL}/system/info`;
+    try {
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('[hostService.getSystemInfo] Error:', error.response?.status, error.message);
+      throw error;
+    }
   },
 
   getSystemMetrics: async (token: string): Promise<SystemMetrics> => {
-    const response = await axios.get(`${API_URL}/api/v1/host/system/metrics`, {
+    const response = await axios.get(`${API_URL}/system/metrics`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   },
 
   getProcesses: async (token: string, limit: number = 50): Promise<Process[]> => {
-    const response = await axios.get(`${API_URL}/api/v1/host/system/processes`, {
+    const response = await axios.get(`${API_URL}/system/processes`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { limit },
     });
@@ -115,7 +122,7 @@ export const hostService = {
   },
 
   browseFileSystem: async (token: string, path: string = '/'): Promise<FileSystemBrowse> => {
-    const response = await axios.get(`${API_URL}/api/v1/host/filesystem/browse`, {
+    const response = await axios.get(`${API_URL}/filesystem/browse`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { path },
     });
@@ -123,7 +130,7 @@ export const hostService = {
   },
 
   readFile: async (token: string, path: string): Promise<FileContent> => {
-    const response = await axios.get(`${API_URL}/api/v1/host/filesystem/read`, {
+    const response = await axios.get(`${API_URL}/filesystem/read`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { path },
     });
@@ -132,7 +139,7 @@ export const hostService = {
 
   writeFile: async (token: string, path: string, content: string): Promise<{ status: string; path: string; message: string }> => {
     const response = await axios.post(
-      `${API_URL}/api/v1/host/filesystem/write`,
+      `${API_URL}/filesystem/write`,
       { path, content },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -142,7 +149,7 @@ export const hostService = {
   },
 
   deletePath: async (token: string, path: string): Promise<{ status: string; message: string }> => {
-    const response = await axios.delete(`${API_URL}/api/v1/host/filesystem/delete`, {
+    const response = await axios.delete(`${API_URL}/filesystem/delete`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { path },
     });
@@ -150,7 +157,8 @@ export const hostService = {
   },
 
   createTerminalConnection: (token: string): WebSocket => {
-    const wsUrl = `${API_URL.replace('http', 'ws')}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
     return ws;
   },

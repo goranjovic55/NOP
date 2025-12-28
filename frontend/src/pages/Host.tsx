@@ -12,8 +12,6 @@ const Host: React.FC = () => {
   const { addTab } = useAccessStore();
   const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
   const [desktopProtocol, setDesktopProtocol] = useState<Protocol>('vnc');
-  const [desktopHost, setDesktopHost] = useState('localhost');
-  const [desktopPort, setDesktopPort] = useState('5900');
   const [desktopConnectionTab, setDesktopConnectionTab] = useState<any>(null);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
@@ -178,7 +176,10 @@ const Host: React.FC = () => {
   }, [token, activeTab, currentPath]);
 
   const fetchSystemInfo = async () => {
-    if (!token) return;
+    if (!token) {
+      setError('No authentication token available');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -191,7 +192,8 @@ const Host: React.FC = () => {
       if (error?.response?.status === 401) {
         setError('Session expired. Please log out and log back in.');
       } else {
-        setError('Failed to fetch system info');
+        const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error';
+        setError(`Failed to fetch system info: ${errorMessage}`);
       }
     }
   };
@@ -476,7 +478,7 @@ const Host: React.FC = () => {
         if (directoryHandle.current) {
           try {
             const fileHandle = await directoryHandle.current.getFileHandle(data.filename, { create: true });
-            const writable = await fileHandle.createWritable();
+            const writable = await (fileHandle as any).createWritable();
             await writable.write(bytes);
             await writable.close();
             setTransferStatus(`✓ Saved ${data.filename} to local directory`);
@@ -554,12 +556,20 @@ const Host: React.FC = () => {
             <span className="text-cyber-red text-xl">⚠</span>
             <span className="text-cyber-red">{error}</span>
           </div>
-          <button
-            onClick={() => { logout(); window.location.href = '/login'; }}
-            className="px-4 py-2 bg-cyber-red text-white uppercase text-sm font-bold hover:bg-red-600 transition-colors"
-          >
-            Log Out
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => { setError(null); fetchSystemInfo(); }}
+              className="px-4 py-2 bg-cyber-gray text-white uppercase text-sm font-bold hover:bg-cyber-gray-light transition-colors"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => { logout(); window.location.href = '/login'; }}
+              className="px-4 py-2 bg-cyber-red text-white uppercase text-sm font-bold hover:bg-red-600 transition-colors"
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       )}
 
@@ -1141,57 +1151,58 @@ const Host: React.FC = () => {
         <div className="bg-cyber-dark border border-cyber-gray p-4">
           <div className="mb-4">
             <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-              <span className="mr-2">⬡</span> Remote Desktop (VNC/RDP)
+              <span className="mr-2">⬡</span> Remote Desktop Access
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Protocol</label>
-                <select
-                  value={desktopProtocol}
-                  onChange={(e) => setDesktopProtocol(e.target.value as Protocol)}
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2"
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setDesktopProtocol('vnc');
+                  setDesktopConnectionTab({
+                    id: `desktop-vnc-${Date.now()}`,
+                    protocol: 'vnc' as Protocol,
+                    ip: 'localhost',
+                    port: 5900,
+                    status: 'disconnected' as const,
+                    credentials: null,
+                  });
+                }}
+                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                  desktopProtocol === 'vnc' && desktopConnectionTab
+                    ? 'bg-cyber-green text-black'
+                    : 'bg-cyber-darker border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
+                }`}
+              >
+                ◉ VNC
+              </button>
+              <button
+                onClick={() => {
+                  setDesktopProtocol('rdp');
+                  setDesktopConnectionTab({
+                    id: `desktop-rdp-${Date.now()}`,
+                    protocol: 'rdp' as Protocol,
+                    ip: 'localhost',
+                    port: 3389,
+                    status: 'disconnected' as const,
+                    credentials: null,
+                  });
+                }}
+                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                  desktopProtocol === 'rdp' && desktopConnectionTab
+                    ? 'bg-cyber-blue text-black'
+                    : 'bg-cyber-darker border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black'
+                }`}
+              >
+                ◉ RDP
+              </button>
+              {desktopConnectionTab && (
+                <button
+                  onClick={() => setDesktopConnectionTab(null)}
+                  className="px-6 py-3 uppercase text-sm font-bold bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-all"
                 >
-                  <option value="vnc">VNC</option>
-                  <option value="rdp">RDP</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Host</label>
-                <input
-                  type="text"
-                  value={desktopHost}
-                  onChange={(e) => setDesktopHost(e.target.value)}
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2 font-mono"
-                  placeholder="localhost"
-                />
-              </div>
-              <div>
-                <label className="block text-cyber-gray-light text-xs uppercase mb-2">Port</label>
-                <input
-                  type="text"
-                  value={desktopPort}
-                  onChange={(e) => setDesktopPort(e.target.value)}
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-green p-2 font-mono"
-                  placeholder="5900"
-                />
-              </div>
+                  ✕ Disconnect
+                </button>
+              )}
             </div>
-            <button
-              onClick={() => {
-                const newTab = {
-                  id: `desktop-${Date.now()}`,
-                  protocol: desktopProtocol,
-                  ip: desktopHost,
-                  port: parseInt(desktopPort) || (desktopProtocol === 'vnc' ? 5900 : 3389),
-                  status: 'disconnected' as const,
-                  credentials: null,
-                };
-                setDesktopConnectionTab(newTab);
-              }}
-              className="px-4 py-2 bg-cyber-green text-black uppercase text-sm font-bold hover:bg-opacity-80"
-            >
-              Connect
-            </button>
           </div>
           
           {desktopConnectionTab ? (
@@ -1202,12 +1213,9 @@ const Host: React.FC = () => {
             <div className="border border-cyber-gray bg-cyber-black min-h-[600px] flex items-center justify-center">
               <div className="text-center text-cyber-gray-light">
                 <div className="text-6xl mb-4">◉</div>
-                <div className="text-lg uppercase mb-2">No Connection</div>
+                <div className="text-lg uppercase mb-2">Host Desktop Access</div>
                 <div className="text-sm">
-                  Configure connection settings above and click Connect
-                </div>
-                <div className="text-xs mt-4 text-cyber-purple">
-                  Default VNC port: 5900 | Default RDP port: 3389
+                  Click VNC or RDP above to connect to the host
                 </div>
               </div>
             </div>

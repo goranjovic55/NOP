@@ -326,16 +326,40 @@ async def guacamole_tunnel(
     password: str = None,
     width: int = 1024,
     height: int = 768,
-    dpi: int = 96
+    dpi: int = 96,
+    token: Optional[str] = None
 ):
     import logging
     logger = logging.getLogger(__name__)
     
+    # Basic token validation
+    if not token:
+        logger.warning(f"[ACCESS-TUNNEL] Connection rejected: No token provided")
+        await websocket.close(code=1008, reason="Authentication required")
+        return
+
     logger.info(f"[ACCESS-TUNNEL] WebSocket connection request received")
     logger.info(f"[ACCESS-TUNNEL] Protocol: {protocol}, Host: {host}, Port: {port}, User: {username}")
     logger.info(f"[ACCESS-TUNNEL] Screen: {width}x{height}@{dpi}")
     
-    await websocket.accept()
+    # Handle localhost/127.0.0.1 by remapping to configured container names
+    import os
+    if host in ("localhost", "127.0.0.1"):
+        if protocol == "vnc":
+            host = os.environ.get("VNC_HOST", "nop-custom-vnc")
+            logger.info(f"[ACCESS-TUNNEL] Remapped localhost to {host} for VNC")
+        elif protocol == "rdp":
+            host = os.environ.get("RDP_HOST", "nop-custom-rdp")
+            logger.info(f"[ACCESS-TUNNEL] Remapped localhost to {host} for RDP")
+    
+    # Handle Guacamole subprotocol if requested
+    subprotocol = None
+    requested_protocols = websocket.headers.get("sec-websocket-protocol", "")
+    if "guacamole" in requested_protocols:
+        subprotocol = "guacamole"
+        logger.debug(f"[ACCESS-TUNNEL] Accepting with subprotocol: {subprotocol}")
+    
+    await websocket.accept(subprotocol=subprotocol)
     logger.debug(f"[ACCESS-TUNNEL] WebSocket accepted")
     
     # guacd hostname is the service name in docker-compose

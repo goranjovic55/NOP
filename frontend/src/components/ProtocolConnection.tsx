@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { ConnectionTab, useAccessStore } from '../store/accessStore';
 import { accessService, Credential } from '../services/accessService';
 import { useAuthStore } from '../store/authStore';
@@ -15,6 +15,9 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   const [password, setPassword] = useState(tab.credentials?.password || '');
   const [remember, setRemember] = useState(tab.credentials?.remember || false);
   const [savedCredentials, setSavedCredentials] = useState<Credential[]>([]);
+  
+  // Internal connection status (since tab.status from props may not update)
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'failed'>(tab.status || 'disconnected');
 
   // Terminal state
   const [command, setCommand] = useState('');
@@ -24,6 +27,64 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   // Guacamole state
   const displayRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<Guacamole.Client | null>(null);
+  const [displayAttached, setDisplayAttached] = useState(false);
+
+  // Use useLayoutEffect to attach display immediately after DOM update
+  useLayoutEffect(() => {
+    console.log('[GUACAMOLE-CLIENT] useLayoutEffect triggered, connectionStatus:', connectionStatus);
+    if (connectionStatus === 'connected' && (tab.protocol === 'rdp' || tab.protocol === 'vnc')) {
+      console.log('[GUACAMOLE-CLIENT] useLayoutEffect: checking for display attachment');
+      console.log('[GUACAMOLE-CLIENT] displayRef.current:', !!displayRef.current);
+      console.log('[GUACAMOLE-CLIENT] clientRef.current:', !!clientRef.current);
+      console.log('[GUACAMOLE-CLIENT] displayAttached:', displayAttached);
+      
+      if (displayRef.current && clientRef.current && !displayAttached) {
+        console.log('[GUACAMOLE-CLIENT] Attaching display...');
+        try {
+          const display = clientRef.current.getDisplay();
+          const displayElement = display.getElement();
+          
+          if (displayElement) {
+            displayRef.current.innerHTML = '';
+            displayRef.current.appendChild(displayElement);
+            setDisplayAttached(true);
+            console.log('[GUACAMOLE-CLIENT] ✓ Display element attached to DOM successfully');
+            
+            // Scale the display to fit the container
+            const containerWidth = displayRef.current.clientWidth || 1024;
+            const containerHeight = displayRef.current.clientHeight || 768;
+            const displayWidth = display.getWidth() || 1024;
+            const displayHeight = display.getHeight() || 768;
+            const scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight, 1);
+            display.scale(scale);
+            console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale);
+            
+            // Set up keyboard input
+            const keyboard = new Guacamole.Keyboard(document);
+            keyboard.onkeydown = (keysym: number) => {
+              clientRef.current?.sendKeyEvent(1, keysym);
+            };
+            keyboard.onkeyup = (keysym: number) => {
+              clientRef.current?.sendKeyEvent(0, keysym);
+            };
+            
+            // Set up mouse input
+            const mouse = new Guacamole.Mouse(displayElement);
+            const sendMouseState = (state: Guacamole.Mouse.State) => {
+              clientRef.current?.sendMouseState(state);
+            };
+            mouse.onmousedown = sendMouseState;
+            mouse.onmouseup = sendMouseState;
+            mouse.onmousemove = sendMouseState;
+            
+            console.log('[GUACAMOLE-CLIENT] Keyboard and mouse handlers attached');
+          }
+        } catch (e) {
+          console.error('[GUACAMOLE-CLIENT] Error attaching display:', e);
+        }
+      }
+    }
+  }, [connectionStatus, tab.protocol, displayAttached]);
 
 
     // FTP state
@@ -53,6 +114,13 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       outputEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [output]);
+
+  // Reset displayAttached when disconnected
+  useEffect(() => {
+    if (connectionStatus === 'disconnected') {
+      setDisplayAttached(false);
+    }
+  }, [connectionStatus]);
 
 
     const fetchFtpFiles = async (path: string) => {
@@ -253,11 +321,13 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       };
       
       updateTabStatus(tab.id, 'connected');
+      setConnectionStatus('connected');
       console.log('[HTTP-TUNNEL] ✓ Connection established');
       
     } catch (error) {
       console.error('[HTTP-TUNNEL] Connection failed:', error);
       updateTabStatus(tab.id, 'failed');
+      setConnectionStatus('failed');
       if (displayRef.current) {
         displayRef.current.innerHTML = `
           <div style="color: #ff3366; padding: 20px; font-family: monospace; background: #000;">
@@ -284,24 +354,48 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       password: password,
       width: (displayRef.current?.clientWidth || 1024).toString(),
       height: (displayRef.current?.clientHeight || 768).toString(),
-      dpi: '96'
+      dpi: '96',
+      token: token || ''
     });
 
-    // Use WebSocket tunnel - it should work through nginx proxy
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
+    // Use WebSocket tunnel - construct URL based on environment
+    // In Codespaces, we need to use the forwarded port URL directly
+    let wsUrl: string;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    
+    // Check if we're in Codespaces (GitHub dev URL pattern)
+    if (window.location.host.includes('.app.github.dev')) {
+      // Replace frontend port (12000) with backend port (12001) in the URL
+      const backendHost = window.location.host.replace('-12000.', '-12001.');
+      wsUrl = `${wsProtocol}//${backendHost}/api/v1/access/tunnel?${params.toString()}`;
+    } else {
+      // Local development - use same host
+      wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
+    }
     
     console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/password=[^&]*/, 'password=***'));
     console.log('[GUACAMOLE-CLIENT] Display dimensions:', displayRef.current?.clientWidth, 'x', displayRef.current?.clientHeight);
 
+    // Create tunnel with explicit subprotocol if needed, but Guacamole.WebSocketTunnel usually handles it
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
     
     // Add tunnel event handlers for debugging
     (tunnel as any).onerror = (status: any) => {
       console.error('[GUACAMOLE-CLIENT] Tunnel error:', status);
       // Fallback to HTTP tunnel if WebSocket fails
-      console.log('[GUACAMOLE-CLIENT] WebSocket failed, falling back to HTTP tunnel...');
-      setupHTTPTunnel();
+      // console.log('[GUACAMOLE-CLIENT] WebSocket failed, falling back to HTTP tunnel...');
+      // setupHTTPTunnel();
+      
+      // Show error directly instead of falling back to incomplete HTTP tunnel
+      if (displayRef.current) {
+        displayRef.current.innerHTML = `
+          <div style="color: #ff3366; padding: 20px; font-family: monospace; background: #000; border: 1px solid #ff3366;">
+            <h3 style="margin-bottom: 15px;">⚠️ Tunnel Connection Failed</h3>
+            <p><strong>Status:</strong> ${JSON.stringify(status)}</p>
+            <p>WebSocket connection to backend failed.</p>
+          </div>
+        `;
+      }
     };
     
     (tunnel as any).onstatechange = (state: number) => {
@@ -355,9 +449,11 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       if (state === 3) { // CONNECTED
         console.log('[GUACAMOLE-CLIENT] ✓ Successfully connected to remote host');
         updateTabStatus(tab.id, 'connected');
+        setConnectionStatus('connected');
       } else if (state === 5) { // DISCONNECTED
         console.log('[GUACAMOLE-CLIENT] Disconnected from remote host');
         updateTabStatus(tab.id, 'disconnected');
+        setConnectionStatus('disconnected');
       }
     };
 
@@ -384,6 +480,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     updateTabStatus(tab.id, 'connecting');
+    setConnectionStatus('connecting');
     updateTabCredentials(tab.id, { username, password, remember });
 
     if (remember && token) {
@@ -397,6 +494,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     if (tab.protocol === 'exploit') {
       updateTabStatus(tab.id, 'connected');
+      setConnectionStatus('connected');
       setOutput(['[!] EXPLOIT MODULE LOADED', '[*] Target: ' + tab.ip, '[*] Status: Ready for deployment', '[!] WARNING: This module is for educational purposes only.']);
       return;
     }
@@ -408,11 +506,13 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     if (tab.protocol === 'web') {
       updateTabStatus(tab.id, 'connected');
+      setConnectionStatus('connected');
       return;
     }
 
     if (tab.protocol === 'ftp') {
       updateTabStatus(tab.id, 'connected');
+      setConnectionStatus('connected');
       return;
     }
 
@@ -443,13 +543,16 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
       if (result.success) {
         updateTabStatus(tab.id, 'connected');
+        setConnectionStatus('connected');
         setOutput([`Connected to ${tab.ip} via ${tab.protocol.toUpperCase()}`, `Welcome to ${tab.hostname || tab.ip}`, `Last login: ${new Date().toLocaleString()}`]);
       } else {
         updateTabStatus(tab.id, 'failed');
+        setConnectionStatus('failed');
         alert(`Connection failed: ${result.error || 'Unknown error'}`);
       }
     } catch (error: any) {
       updateTabStatus(tab.id, 'failed');
+      setConnectionStatus('failed');
       alert(`Error: ${error.message}`);
     }
   };
@@ -514,7 +617,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     if (cred.password) setPassword(cred.password);
   };
 
-  if (tab.status === 'connected') {
+  if (connectionStatus === 'connected') {
     if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
       return (
         <div className="h-full flex flex-col bg-black rounded border border-cyber-gray shadow-2xl overflow-hidden">
@@ -522,7 +625,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             <span>Connected to {tab.ip} ({tab.protocol.toUpperCase()})</span>
             <span>{username}</span>
           </div>
-          <div ref={displayRef} className="flex-1 flex items-center justify-center overflow-auto bg-black" />
+          <div ref={displayRef} className="flex-1 flex items-center justify-center overflow-auto bg-black" style={{minHeight: '500px'}} />
         </div>
       );
     }
@@ -739,17 +842,17 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           <div className="flex space-x-2">
             <button
               type="submit"
-              disabled={tab.status === 'connecting'}
+              disabled={connectionStatus === 'connecting'}
               className={`flex-1 btn-cyber py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black font-bold uppercase tracking-widest transition-all ${
-                tab.status === 'connecting' ? 'opacity-50 cursor-not-allowed' : ''
+                connectionStatus === 'connecting' ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {tab.status === 'connecting' ? 'Establishing Connection...' : 'Connect'}
+              {connectionStatus === 'connecting' ? 'Establishing Connection...' : 'Connect'}
             </button>
-            {tab.status === 'connecting' && (
+            {connectionStatus === 'connecting' && (
               <button
                 type="button"
-                onClick={() => updateTabStatus(tab.id, 'disconnected')}
+                onClick={() => { updateTabStatus(tab.id, 'disconnected'); setConnectionStatus('disconnected'); }}
                 className="btn-cyber px-4 py-3 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white font-bold uppercase tracking-widest transition-all"
               >
                 Cancel

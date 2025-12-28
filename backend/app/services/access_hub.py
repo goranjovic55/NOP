@@ -252,8 +252,20 @@ class AccessHub:
         try:
             asset_uuid = uuid.UUID(asset_id)
         except ValueError:
-            # If not a UUID, try to find asset by IP
-            query = select(Asset).where(Asset.ip_address == cast(text(f"'{asset_id}'"), INET))
+            # If not a UUID, try to find asset by IP or Hostname
+            import ipaddress
+            is_ip = False
+            try:
+                ipaddress.ip_address(asset_id)
+                is_ip = True
+            except ValueError:
+                pass
+            
+            if is_ip:
+                query = select(Asset).where(Asset.ip_address == cast(text(f"'{asset_id}'"), INET))
+            else:
+                query = select(Asset).where(Asset.hostname == asset_id)
+                
             result = await db.execute(query)
             asset = result.scalars().first()
             if asset:
