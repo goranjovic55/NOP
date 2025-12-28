@@ -195,20 +195,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-cyber-darker p-4 border border-cyber-gray">
-        <div className="flex items-center space-x-4">
-          <button onClick={onBack} className="px-4 py-2 border border-cyber-blue text-cyber-blue text-xs uppercase hover:bg-cyber-blue hover:text-black transition-all">
-            Back to Traffic
-          </button>
-          <h2 className="text-cyber-purple font-bold uppercase tracking-widest text-lg">Packet Crafting</h2>
-        </div>
-        <button onClick={() => setShowStructurePanel(true)} className="px-4 py-2 border border-cyber-purple text-cyber-purple text-xs uppercase hover:bg-cyber-purple hover:text-white transition-all">
-          Edit Packet Structure
-        </button>
-      </div>
-
+    <div className="flex flex-col h-full">
       {/* Main Split */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Basic Packet Definition - NO PAYLOAD HERE */}
@@ -354,6 +341,12 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
                     <input type="number" value={pps} onChange={(e) => setPps(e.target.value)} className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono" />
                   </div>
                 </div>
+                <button onClick={() => setShowStructurePanel(true)} className="px-6 py-3 border-2 border-cyber-purple text-cyber-purple font-bold uppercase text-sm hover:bg-cyber-purple hover:text-white transition-all">
+                  Edit Structure
+                </button>
+                <button onClick={() => setShowStructurePanel(true)} className="px-6 py-3 border-2 border-cyber-purple text-cyber-purple font-bold uppercase text-sm hover:bg-cyber-purple hover:text-white transition-all">
+                  Edit Structure
+                </button>
                 <button onClick={handleSendPacket} disabled={isSending || !sourceIp || !destIp} className="px-8 py-3 border-2 border-cyber-green text-cyber-green font-bold uppercase text-sm hover:bg-cyber-green hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   {isSending ? 'Sending...' : 'Send Packet'}
                 </button>
