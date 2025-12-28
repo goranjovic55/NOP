@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "template": true,
+  "autoLoad": [".claude/skills.md", ".claude/context.md", "project_knowledge.json"],
+  "skills": {
+    "core": [1,2,3,4,5,6,7,8,9],
+    "detected": "auto"
+  },
+  "detection": {
+    "python": ["*.py", "requirements.txt"],
+    "typescript": ["*.ts", "tsconfig.json"],
+    "docker": ["Dockerfile", "docker-compose.yml"],
+    "ci": [".github/workflows/*.yml"]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(echo|cat|head|tail|ls|pwd|find|tree|grep|rg|wc:*)",
+      "Bash(git status|diff|log|branch|show:*)",
+      "Bash(npm|npx|node:*)",
+      "Bash(python|pip|pytest:*)",
+      "Bash(docker|docker-compose:*)"
+    ],
+    "deny": [
+      "Read(.env*|*secret*|*.pem|*.key)",
+      "Bash(rm -rf /|dd if=*)"
+    ]
+  },
+  "ecosystem": {
+    "agents": ".github/agents/",
+    "workflows": ".github/workflows/",
+    "knowledge": {
+      "project": "project_knowledge.json",
+      "global": ".github/global_knowledge.json"
+    }
+  }
+}
