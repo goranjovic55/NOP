@@ -27,11 +27,12 @@ Users see transparent communication between agents:
 
 | Tag | Purpose | Example |
 |-----|---------|---------|
-| `[SESSION:]` | Session start | `[SESSION: role=Lead \| task=add_auth]` |
-| `#runSubagent` | Invoke specialist | `#runSubagent Architect` |
+| `[SESSION:]` | Session start (Required) | `[SESSION: role=Lead \| task=add_auth]` |
+| `#runSubagent` | Invoke specialist (Required) | `#runSubagent Architect` |
+| `[PHASE:]` | Progress tracking (Required) | `[PHASE: VERIFY \| progress=5/7]` |
 | `[TASK:]` | Progress tracking | Nested task list with checkboxes |
 | `[KNOWLEDGE:]` | Knowledge update | `[KNOWLEDGE: added=3 \| updated=1]` |
-| `[COMPLETE:]` | Task finished | `[COMPLETE: task=add_auth \| learnings=2]` |
+| `[COMPLETE:]` | Task finished (Required) | `[COMPLETE: task=add_auth \| learnings=2]` |
 
 ### Specialist Phase Tags
 - `[ARCHITECT: phase=ANALYZE|DESIGN|DECIDE|DOCUMENT]`

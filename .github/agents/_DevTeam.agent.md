@@ -34,6 +34,8 @@ Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect pr
 
 ## Delegation
 
+**CRITICAL**: Always use `#runSubagent` for specialist work. Do NOT implement code directly.
+
 Use `#runSubagent` to invoke specialist agents:
 ```
 #runSubagent Architect
