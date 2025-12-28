@@ -16,6 +16,7 @@ export interface Asset {
   os_name?: string;
   open_ports?: number[];
   discovery_method?: string;
+  services?: Record<string, { service: string; version?: string }>;
 }
 
 export const assetService = {
