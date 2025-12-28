@@ -33,21 +33,47 @@ Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect pr
 | Bug | CONTEXT→COORDINATE→INTEGRATE→VERIFY→COMPLETE |
 
 ## Delegation
-```
-[DELEGATE: agent=<Architect|Developer|Reviewer|Researcher> | task=<desc>]
-Context: {"task":"...", "context":{"problem":"...", "files":[...]}, "expected":"..."}
 
-[INTEGRATE: from=<agent> | status=complete|partial|blocked | result=<summary>]
+**CRITICAL**: Always use `#runSubagent` for specialist work. Do NOT implement code directly.
+
+Use `#runSubagent` to invoke specialist agents:
+```
+#runSubagent Architect
+Task: Design JWT authentication approach with refresh tokens for FastAPI backend
+
+#runSubagent Developer
+Task: Implement the auth system based on Architect's design
+
+#runSubagent Reviewer
+Task: Validate the authentication implementation
 ```
 
 | Situation | Agent |
 |-----------|-------|
-| Design | Architect |
-| Code | Developer |
-| Test | Reviewer |
-| Research | Researcher |
+| Design | `#runSubagent Architect` |
+| Code | `#runSubagent Developer` |
+| Test | `#runSubagent Reviewer` |
+| Research | `#runSubagent Researcher` |
 
 **Don't delegate**: Simple edits, clarifications, knowledge updates
+
+## Delegation Patterns
+
+**For new features** (Sequential):
+1. `#runSubagent Architect` → design
+2. `#runSubagent Developer` → implement  
+3. `#runSubagent Reviewer` → validate
+
+**For bugs** (Sequential):
+1. `#runSubagent Researcher` → investigate
+2. `#runSubagent Developer` → fix
+3. `#runSubagent Reviewer` → verify
+
+**Parallel execution** when tasks are independent:
+```
+#runSubagent Developer --task "Create API endpoints"
+#runSubagent Developer --task "Create database models"
+```
 
 ## Task Tracking
 ```
