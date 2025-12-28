@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
+import { useAgentStore } from '../store/agentStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,9 +17,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
+  const { activeAgent, connectedCount } = useAgentStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
-  const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
+  const connectedAccessCount = accessTabs.filter(tab => tab.status === 'connected').length;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -27,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'Access Hub', href: '/access', icon: '⬡', symbol: '◉' },
+    { name: 'Agents', href: '/agents', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
   ];
@@ -87,8 +90,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
-                  {item.name === 'Access Hub' && connectedCount > 0 && (
+                  {item.name === 'Access Hub' && connectedAccessCount > 0 && (
                     <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {connectedAccessCount}
+                    </div>
+                  )}
+                  {item.name === 'Agents' && connectedCount > 0 && (
+                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-purple text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
                       {connectedCount}
                     </div>
                   )}
@@ -134,9 +142,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <header className="bg-cyber-dark border-b border-cyber-gray px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-cyber-red text-xl font-bold tracking-wider uppercase cyber-glow-red">
-              {navigation.find(item => isActive(item.href))?.name || 'Network Observatory Platform'}
+              {activeAgent ? (
+                <>
+                  NOP - <span className="text-cyber-purple">{activeAgent.name}</span>
+                </>
+              ) : (
+                navigation.find(item => isActive(item.href))?.name || 'Network Observatory Platform'
+              )}
             </h1>
             <div className="flex items-center space-x-6">
+              {activeAgent && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse"></div>
+                  <span className="text-cyber-purple text-sm font-medium tracking-wide uppercase">
+                    Agent POV Active
+                  </span>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-cyber-green rounded-full cyber-pulse"></div>
                 <span className="text-cyber-green text-sm font-medium tracking-wide uppercase">

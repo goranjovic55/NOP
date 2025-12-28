@@ -10,6 +10,7 @@ import Scans from './pages/Scans';
 import AccessHub from './pages/AccessHub';
 import Host from './pages/Host';
 import Settings from './pages/Settings';
+import Agents from './pages/Agents';
 import Login from './pages/Login';
 import { useAuthStore } from './store/authStore';
 
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/scans" element={<Scans />} />
                 <Route path="/access" element={<AccessHub />} />
                 <Route path="/host" element={<Host />} />
+                <Route path="/agents" element={<Agents />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/login" element={<Navigate to="/dashboard" replace />} />
               </Routes>

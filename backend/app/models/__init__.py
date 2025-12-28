@@ -11,6 +11,7 @@ from .event import Event
 from .vulnerability import Vulnerability
 from .topology import TopologyEdge
 from .settings import Settings
+from .agent import Agent
 
 __all__ = [
     "User",
@@ -22,5 +23,6 @@ __all__ = [
     "Event",
     "Vulnerability",
     "TopologyEdge",
-    "Settings"
+    "Settings",
+    "Agent"
 ]
