@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import PacketCrafting from '../components/PacketCrafting';
-import { Asset, assetService } from '../services/assetService';
 
 interface Packet {
   id: string;
@@ -135,8 +134,8 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping'>(() => {
-    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping') || 'capture';
+  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft'>(() => {
+    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft') || 'capture';
   });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
@@ -160,8 +159,6 @@ const Traffic: React.FC = () => {
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
   const [pingError, setPingError] = useState<string>('');
-  const [showPacketCrafting, setShowPacketCrafting] = useState(false);
-  const [craftingAssets, setCraftingAssets] = useState<Asset[]>([]);
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
   const assetDropdownRef = useRef<HTMLDivElement>(null);
@@ -243,18 +240,6 @@ const Traffic: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch online assets:', err);
     }
-  };
-
-  const openPacketCrafting = async () => {
-    try {
-      if (token) {
-        const assets = await assetService.getAssets(token);
-        setCraftingAssets(assets);
-      }
-    } catch (err) {
-      console.error('Failed to fetch assets for packet crafting:', err);
-    }
-    setShowPacketCrafting(true);
   };
 
   const toggleSniffing = () => {
@@ -440,8 +425,12 @@ const Traffic: React.FC = () => {
           Advanced Ping
         </button>
         <button
-          onClick={openPacketCrafting}
-          className="px-6 py-2 font-bold uppercase text-xs transition-all border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple"
+          onClick={() => setActiveTab('craft')}
+          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
+            activeTab === 'craft'
+              ? 'bg-cyber-purple text-white border-2 border-cyber-purple'
+              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple'
+          }`}
         >
           Craft Packet
         </button>
@@ -1001,6 +990,13 @@ const Traffic: React.FC = () => {
         </div>
       )}
 
+      {/* Craft Packet Tab Content */}
+      {activeTab === 'craft' && (
+        <div className="flex-1 overflow-hidden">
+          <PacketCrafting />
+        </div>
+      )}
+
       {/* Packet Inspector Sidebar - Slides in from right */}
       {activeTab === 'capture' && selectedPacket && (
         <div className="fixed right-0 top-0 h-full w-[450px] bg-cyber-darker border-l border-cyber-red shadow-[-10px_0_30px_rgba(255,10,84,0.2)] z-50 flex flex-col animate-slideInRight">
@@ -1195,11 +1191,6 @@ const Traffic: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Packet Crafting Modal */}
-      {showPacketCrafting && (
-        <PacketCrafting onBack={() => setShowPacketCrafting(false)} assets={craftingAssets} />
       )}
     </div>
   );

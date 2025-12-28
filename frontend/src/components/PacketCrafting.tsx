@@ -3,8 +3,8 @@ import { useAuthStore } from '../store/authStore';
 import { Asset } from '../services/assetService';
 
 interface PacketCraftingProps {
-  onBack: () => void;
-  assets: Asset[];
+  onBack?: () => void;
+  assets?: Asset[];
 }
 
 interface PacketResponse {
@@ -32,7 +32,7 @@ const COMMON_PORTS = [
   { port: 8080, name: 'HTTP-Alt' },
 ];
 
-const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets }) => {
+const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) => {
   const { token } = useAuthStore();
   const [protocol, setProtocol] = useState('TCP');
   const [sourceIp, setSourceIp] = useState('');
