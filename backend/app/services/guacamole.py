@@ -28,6 +28,7 @@ class GuacamoleTunnel:
         self.read_lock = threading.Lock()
         self.write_lock = threading.Lock()
         self.bytes_sent = 0
+        self.recv_buffer = b""  # Buffer for incomplete instructions from guacd (as bytes)
         self.bytes_received = 0
 
     def _sanitize_args_for_log(self, args: dict) -> dict:
@@ -220,10 +221,25 @@ class GuacamoleTunnel:
                                 logger.info("[GUACAMOLE] Socket connection closed by guacd")
                                 self.connected = False
                                 break
-                            # Forward to websocket
+                            # Buffer the data and only forward complete instructions
                             text_data = data.decode('utf-8', errors='ignore')
-                            await self.websocket.send_text(text_data)
+                            self.recv_buffer += text_data
                             self.bytes_received += len(data)
+                            
+                            # Find the last complete instruction (ends with ;)
+                            last_semicolon = self.recv_buffer.rfind(';')
+                            if last_semicolon >= 0:
+                                # Send complete instructions up to and including the semicolon
+                                complete_data = self.recv_buffer[:last_semicolon + 1]
+                                self.recv_buffer = self.recv_buffer[last_semicolon + 1:]
+                                if len(self.recv_buffer) > 0:
+                                    logger.debug(f"[GUACAMOLE] Buffering incomplete data: {len(self.recv_buffer)} bytes")
+                                # Log first few bytes for debugging
+                                if len(complete_data) < 200:
+                                    logger.debug(f"[GUACAMOLE] Sending to WS: {repr(complete_data[:100])}")
+                                await self.websocket.send_text(complete_data)
+                            else:
+                                logger.debug(f"[GUACAMOLE] Buffering {len(self.recv_buffer)} bytes (no complete instruction yet)")
                         except Exception as e:
                             logger.error(f"[GUACAMOLE] Error relaying data from socket: {e}")
                             self.connected = False

@@ -27,6 +27,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
+      - VNC_HOST=nop-custom-vnc
+      - RDP_HOST=nop-custom-rdp
     depends_on:
       - postgres
       - redis
@@ -68,6 +70,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   redis:
     image: redis:7-alpine

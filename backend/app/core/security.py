@@ -7,10 +7,15 @@ from typing import Any, Union, Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 import secrets
 import base64
 
 from app.core.config import settings
+
+# OAuth2 scheme for token extraction
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -84,3 +89,38 @@ def decode_token(token: str) -> dict:
 def generate_api_key() -> str:
     """Generate a secure API key"""
     return secrets.token_urlsafe(32)
+
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme)
+):
+    """
+    Dependency function to get current user from JWT token
+    
+    Returns a simplified user dict for dependency injection.
+    For full user object with database access, use the auth endpoint.
+    """
+    from app.schemas.auth import TokenData
+    
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = decode_token(token)
+        user_id: str = payload.get("sub")
+        username: str = payload.get("username")
+        
+        if user_id is None:
+            raise credentials_exception
+        
+        # Return a simple dict representing the authenticated user
+        # This is sufficient for most endpoints that just need to verify authentication
+        return {
+            "id": user_id,
+            "username": username or "unknown"
+        }
+    except (JWTError, ValueError):
+        raise credentials_exception
