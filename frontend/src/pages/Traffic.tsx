@@ -159,6 +159,7 @@ const Traffic: React.FC = () => {
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
   const [pingError, setPingError] = useState<string>('');
+  const [selectedFlow, setSelectedFlow] = useState<Stream | null>(null);
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
   const assetDropdownRef = useRef<HTMLDivElement>(null);
@@ -314,6 +315,24 @@ const Traffic: React.FC = () => {
     });
     return Object.values(streamMap).sort((a, b) => b.lastSeen - a.lastSeen);
   }, [packets]);
+
+  // Filter packets by selected flow
+  const displayedPackets = useMemo(() => {
+    if (!selectedFlow) return packets;
+    return packets.filter(p => {
+      const matchForward = p.source === selectedFlow.source && p.destination === selectedFlow.destination && p.protocol === selectedFlow.protocol;
+      const matchReverse = p.source === selectedFlow.destination && p.destination === selectedFlow.source && p.protocol === selectedFlow.protocol;
+      return matchForward || matchReverse;
+    });
+  }, [packets, selectedFlow]);
+
+  const handleFlowClick = (stream: Stream) => {
+    if (selectedFlow?.id === stream.id) {
+      setSelectedFlow(null); // Deselect if clicking the same flow
+    } else {
+      setSelectedFlow(stream);
+    }
+  };
 
   const getProtocolColor = (proto: string) => {
     switch (proto) {
@@ -515,10 +534,22 @@ const Traffic: React.FC = () => {
         {/* Left Part: Live Packet Capture */}
         <div className={`${selectedPacket ? 'w-1/2' : 'w-2/3'} bg-black border border-cyber-gray flex flex-col min-h-0 transition-all`}>
           <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
-            <span className="text-[10px] text-cyber-gray-light opacity-50">{packets.length} Packets in Buffer</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
+              {selectedFlow && (
+                <button
+                  onClick={() => setSelectedFlow(null)}
+                  className="text-[10px] text-cyber-red border border-cyber-red px-2 py-0.5 hover:bg-cyber-red hover:text-white transition-all"
+                >
+                  ✕ Clear Filter
+                </button>
+              )}
+            </div>
+            <span className="text-xs text-cyber-gray-light opacity-50">
+              {selectedFlow ? `${displayedPackets.length} / ${packets.length}` : packets.length} Packets
+            </span>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[10px]">
+          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-xs">
             <table className="min-w-full">
               <thead className="bg-cyber-darker sticky top-0">
                 <tr className="text-cyber-gray-light uppercase">
@@ -531,7 +562,7 @@ const Traffic: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {packets.map((p, i) => (
+                {displayedPackets.map((p, i) => (
                   <tr
                     key={p.id || i}
                     onClick={() => setSelectedPacket(p)}
@@ -554,11 +585,11 @@ const Traffic: React.FC = () => {
         {/* Right Part: Streams / Flow */}
         <div className={`${selectedPacket ? 'w-1/2' : 'w-1/3'} bg-cyber-dark border border-cyber-gray flex flex-col min-h-0 transition-all`}>
           <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
-            <span className="text-[10px] text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
+            <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
+            <span className="text-xs text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <table className="min-w-full text-[10px] font-mono">
+            <table className="min-w-full text-xs font-mono">
               <thead className="bg-cyber-darker sticky top-0">
                 <tr className="text-cyber-gray-light uppercase">
                   <th className="px-2 py-2 text-left">Source</th>
@@ -570,7 +601,13 @@ const Traffic: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-cyber-gray/30">
                 {streams.map((stream) => (
-                  <tr key={stream.id} className="hover:bg-cyber-blue/10 transition-colors">
+                  <tr
+                    key={stream.id}
+                    onClick={() => handleFlowClick(stream)}
+                    className={`hover:bg-cyber-blue/10 cursor-pointer transition-colors ${
+                      selectedFlow?.id === stream.id ? 'bg-cyber-purple/20 border-l-2 border-cyber-purple' : ''
+                    }`}
+                  >
                     <td className="px-2 py-1 text-cyber-blue truncate max-w-[100px]">{stream.source}</td>
                     <td className="px-2 py-1 text-cyber-red truncate max-w-[100px]">{stream.destination}</td>
                     <td className="px-2 py-1">{stream.protocol}</td>
