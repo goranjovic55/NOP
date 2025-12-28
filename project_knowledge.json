@@ -189,3 +189,32 @@
 {"type":"codegraph","name":"Event.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL"],"dependents":["EventsEndpoint","DiscoveryService"]}
 {"type":"codegraph","name":"TopologyEdge.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL","Asset.Model"],"dependents":[]}
 {"type":"codegraph","name":"Vulnerability.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL","Asset.Model"],"dependents":[]}
+{"type":"entity","name":"NOP.Backend.Core.Config","entityType":"module","observations":["Application settings using Pydantic BaseSettings","Environment variable configuration","Database and Redis connection strings","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Core.Database","entityType":"module","observations":["SQLAlchemy async database engine and session factory","Connection pooling configuration","Async context manager for database sessions","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Core.Redis","entityType":"module","observations":["Redis async client configuration","Connection management for caching and pub/sub","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Core.InitDB","entityType":"module","observations":["Database initialization and seeding","Default admin user creation","Schema creation and migrations","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Utils.Diagnostic","entityType":"utility","observations":["System diagnostic tool for troubleshooting","Database connectivity verification","Admin user and password validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Utils.ResetAdmin","entityType":"utility","observations":["Admin password reset utility","Database admin user password update","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.UserCreate","entityType":"schema","observations":["User creation validation schema","Username, email, password, role validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.UserResponse","entityType":"schema","observations":["User API response format","Excludes sensitive password data","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.ScanCreate","entityType":"schema","observations":["Scan job creation validation","Target, scan type, options validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.ScanResponse","entityType":"schema","observations":["Scan job response format","Includes status and results","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.ScanResultResponse","entityType":"schema","observations":["Individual scan result response","Finding details and metadata","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.CredentialResponse","entityType":"schema","observations":["Credential API response format","Encrypted credential data","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.PingResponse","entityType":"schema","observations":["Ping operation result schema","Latency, packet loss, hop count data","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.SettingsUpdateRequest","entityType":"schema","observations":["Settings update validation","Category-based configuration updates","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.WebSocketRouter","entityType":"endpoint","observations":["WebSocket routing infrastructure","Terminal and traffic stream management","upd:2025-12-28"]}
+{"type":"codegraph","name":"Config.py","nodeType":"module","dependencies":["Pydantic","os"],"dependents":["main.py","all services"]}
+{"type":"codegraph","name":"Database.py","nodeType":"module","dependencies":["SQLAlchemy","asyncpg"],"dependents":["all endpoints","all services"]}
+{"type":"codegraph","name":"Redis.py","nodeType":"module","dependencies":["redis-async"],"dependents":["main.py","caching"]}
+{"type":"codegraph","name":"InitDB.py","nodeType":"module","dependencies":["Database.py","User.Model","Security.py"],"dependents":["main.py"]}
+{"type":"codegraph","name":"WebSocketRouter","nodeType":"router","dependencies":["FastAPI","WebSocket"],"dependents":["main.py"]}
+{"type":"relation","from":"NOP.Backend.Core.Database","to":"NOP.Backend.Models","relationType":"PROVIDES_SESSION"}
+{"type":"relation","from":"NOP.Backend.Core.InitDB","to":"NOP.Backend.Core.Database","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.Core.InitDB","to":"NOP.Backend.Core.Security","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.WebSocketRouter","to":"Backend.Features.TerminalWebSocket","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"NOP.Backend.API.WebSocketRouter","to":"Backend.Features.WebSocketTraffic","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"NOP.Backend.Utils.Diagnostic","to":"NOP.Backend.Core.Database","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.Utils.Diagnostic","to":"NOP.Backend.Core.Security","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.Utils.ResetAdmin","to":"NOP.Backend.Core.Database","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.Utils.ResetAdmin","to":"NOP.Backend.Core.Security","relationType":"USES"}
