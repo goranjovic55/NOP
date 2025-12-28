@@ -14,7 +14,7 @@ applyTo: '**'
 [DELEGATE: agent=<specialist> | task=<desc>]
 Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
 
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=_DevTeam | status=complete|partial|blocked | result=<summary>]
 Artifacts: [files] | Learnings: [patterns]
 ```
 

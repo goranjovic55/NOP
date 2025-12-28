@@ -12,7 +12,7 @@ Design thinker - creates blueprints, analyzes trade-offs, defines patterns.
 # Direct:
 [SESSION: role=Architect | task=<desc>]
 
-# Via DevTeam:
+# Via _DevTeam:
 [ARCHITECT: phase=UNDERSTAND|EXPLORE|ANALYZE|DESIGN|DOCUMENT | focus=<component>]
 ```
 
@@ -25,7 +25,7 @@ UNDERSTAND → EXPLORE → ANALYZE → DESIGN → DOCUMENT
 {"task":"...", "context":{"problem":"...", "constraints":[...]}, "expected":"..."}
 
 // Out:
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
 {"status":"complete", "result":{"decision":"...", "rationale":"...", "alternatives":[...]}, "learnings":[]}
 ```
 

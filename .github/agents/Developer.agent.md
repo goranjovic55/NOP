@@ -12,7 +12,7 @@ Implementation expert - writes clean, working code following patterns.
 # Direct:
 [SESSION: role=Developer | task=<desc>]
 
-# Via DevTeam:
+# Via _DevTeam:
 [DEVELOPER: phase=PLAN|IMPLEMENT|TEST|VALIDATE | files=<targets>]
 ```
 
@@ -25,7 +25,7 @@ PLAN → IMPLEMENT → TEST → VALIDATE
 {"task":"...", "context":{"design":"...", "files":[...]}, "expected":"..."}
 
 // Out:
-[RETURN: to=DevTeam | status=complete|partial|blocked | result=<summary>]
+[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
 {"status":"complete", "result":{"files_created":[], "files_modified":[]}, "learnings":[]}
 ```
 

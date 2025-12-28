@@ -28,7 +28,7 @@ project/
 ```
 .github/
 ├── agents/
-│   ├── DevTeam.agent.md    # Orchestrator
+│   ├── _DevTeam.agent.md    # Orchestrator
 │   ├── Architect.agent.md
 │   ├── Developer.agent.md
 │   ├── Reviewer.agent.md

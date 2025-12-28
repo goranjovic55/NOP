@@ -4,7 +4,7 @@
 
 ## Hierarchy
 ```
-DevTeam (Orchestrator)
+_DevTeam (Orchestrator)
 ├── Architect  → Design, patterns
 ├── Developer  → Code, debug
 ├── Reviewer   → Test, validate
