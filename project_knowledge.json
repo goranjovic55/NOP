@@ -28,4 +28,164 @@
 {"type":"relation","from":"PacketInspector","to":"SnifferService.Dissector","relationType":"CONSUMES"}
 {"type":"relation","from":"Backend.FastAPI","to":"Backend.Services","relationType":"DEPENDS_ON"}
 {"type":"relation","from":"Frontend.React","to":"Backend.FastAPI","relationType":"CONSUMES"}
-
+{"type":"entity","name":"NOP.Backend.Models.Flow","entityType":"model","observations":["Network traffic flow tracking with QoS metrics, DPI, threat scoring","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Event","entityType":"model","observations":["Audit logging with event types (login, scan, alert) and severity levels","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Vulnerability","entityType":"model","observations":["Security findings with CVE/CWE tracking, CVSS scoring","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.TopologyEdge","entityType":"model","observations":["Network topology connections with edge types (direct, routed, VPN, inferred)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Scan","entityType":"model","observations":["Scan jobs with types (discovery, port, service, vuln) and status tracking","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.ScanResult","entityType":"model","observations":["Individual scan findings storage","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Credential","entityType":"model","observations":["Encrypted credential storage with AES-256-GCM encryption","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Asset","entityType":"model","observations":["Network asset with classification, confidence scoring, vendor detection","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.User","entityType":"model","observations":["Authentication with role-based access (admin, operator, analyst, viewer)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Models.Settings","entityType":"model","observations":["System configuration storage by category","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.AuthEndpoint","entityType":"endpoint","observations":["JWT authentication with login/logout/token refresh","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.AssetsEndpoint","entityType":"endpoint","observations":["Asset CRUD operations, stats, online/offline filtering","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.DiscoveryEndpoint","entityType":"endpoint","observations":["Network scanning with background tasks, scan status tracking","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.TrafficEndpoint","entityType":"endpoint","observations":["WebSocket traffic streaming, packet crafting, PCAP export","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.ScansEndpoint","entityType":"endpoint","observations":["Scan management (placeholder implementation)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.CredentialsEndpoint","entityType":"endpoint","observations":["Credential management (placeholder implementation)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.SettingsEndpoint","entityType":"endpoint","observations":["System settings CRUD by category with defaults","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.ReportsEndpoint","entityType":"endpoint","observations":["Reporting functionality","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.HealthEndpoint","entityType":"endpoint","observations":["Service health checks","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.AccessEndpoint","entityType":"endpoint","observations":["Remote access testing (SSH, TCP, RDP, FTP operations)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.EventsEndpoint","entityType":"endpoint","observations":["Event retrieval with pagination","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.API.HostEndpoint","entityType":"endpoint","observations":["Host system monitoring, terminal WebSocket, filesystem operations","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.SnifferService","entityType":"service","observations":["Real-time packet capture, protocol dissection (30+ protocols), packet crafting","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.PingService","entityType":"service","observations":["Advanced ping with ICMP/TCP/UDP support (hping3-like)","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.NetworkScanner","entityType":"service","observations":["NMAP integration for discovery, port scanning, service/OS detection","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.DiscoveryService","entityType":"service","observations":["Scan result processing, asset database updates","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.AccessHubService","entityType":"service","observations":["SSH/TCP/FTP testing, credential management, system info gathering","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.UserService","entityType":"service","observations":["User management operations","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.AssetService","entityType":"service","observations":["Asset management and tracking","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Services.GuacamoleService","entityType":"service","observations":["Remote desktop protocol handling","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Dashboard","entityType":"page","observations":["Statistics, traffic graphs, event feed, asset type distribution","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Login","entityType":"page","observations":["Authentication form with JWT token handling","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Assets","entityType":"page","observations":["Asset grid view with filtering, inline actions","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Scans","entityType":"page","observations":["Tab-based scanning interface with WebSocket updates","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.AccessHub","entityType":"page","observations":["Multi-protocol remote access with vault feature","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Topology","entityType":"page","observations":["Force-directed graph with layout modes, traffic visualization, subnet filtering","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Traffic","entityType":"page","observations":["Packet capture, flow filtering, packet crafting, packet inspector","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Settings","entityType":"page","observations":["System configuration by category","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Pages.Host","entityType":"page","observations":["System metrics, terminal, filesystem browser, desktop access tabs","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.Layout","entityType":"component","observations":["Sidebar navigation with scan/connection indicators, cyber-themed design","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.AssetDetailsSidebar","entityType":"component","observations":["Asset details with quick scan/connect actions","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.ProtocolConnection","entityType":"component","observations":["Multi-protocol connection handler (SSH, RDP, VNC, FTP) with Guacamole","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.ScanSettingsModal","entityType":"component","observations":["Scan configuration dialog","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.PacketCrafting","entityType":"component","observations":["Packet crafting UI","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Components.PacketCrafting_new","entityType":"component","observations":["Alternative packet crafting implementation","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Store.AuthStore","entityType":"store","observations":["User authentication state, JWT token management","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Store.ScanStore","entityType":"store","observations":["Scan tab management, multi-host support, scan options","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Store.AccessStore","entityType":"store","observations":["Connection tab management, protocol tracking, status updates","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Store.DiscoveryStore","entityType":"store","observations":["Discovery state tracking","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Services.AssetService","entityType":"service","observations":["Asset API client with scan operations","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Services.DashboardService","entityType":"service","observations":["Dashboard statistics and events API client","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Services.AccessService","entityType":"service","observations":["Credential management API client","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Services.AuthService","entityType":"service","observations":["Authentication API client","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Services.HostService","entityType":"service","observations":["Host monitoring and filesystem API client","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.AssetCreate","entityType":"schema","observations":["Asset creation validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.AssetUpdate","entityType":"schema","observations":["Asset update validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.AssetResponse","entityType":"schema","observations":["Asset API response format","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.SettingsCategory","entityType":"schema","observations":["Settings category validation","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.TrafficStats","entityType":"schema","observations":["Traffic statistics response","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.FlowResponse","entityType":"schema","observations":["Network flow response format","upd:2025-12-28"]}
+{"type":"entity","name":"NOP.Backend.Schemas.CredentialCreate","entityType":"schema","observations":["Credential creation validation","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.WebSocketTraffic","entityType":"feature","observations":["Real-time traffic streaming with configurable filters","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.PacketDissection","entityType":"feature","observations":["Multi-layer protocol dissection (Ethernet→ARP/IP→TCP/UDP/ICMP→App)","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.PacketCrafting","entityType":"feature","observations":["Custom packet construction and sending","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.BackgroundScanning","entityType":"feature","observations":["Async network discovery with task queue","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.HostMonitoring","entityType":"feature","observations":["System metrics (CPU, memory, disk, network, processes)","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.TerminalWebSocket","entityType":"feature","observations":["Interactive terminal via WebSocket","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.FileSystemBrowser","entityType":"feature","observations":["Remote file operations (read, write, browse)","upd:2025-12-28"]}
+{"type":"entity","name":"Backend.Features.EventAuditing","entityType":"feature","observations":["Comprehensive event logging with severity levels","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.MultiHostScanning","entityType":"feature","observations":["Scan multiple IPs simultaneously","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.ScanTabManagement","entityType":"feature","observations":["Persistent scan sessions with log streaming","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.TopologyVisualization","entityType":"feature","observations":["Force-directed graph with 3 layout modes","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.TopologyTrafficOverlay","entityType":"feature","observations":["Traffic volume visualization on edges","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.TopologySubnetFiltering","entityType":"feature","observations":["Filter topology by network range","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.GuacamoleIntegration","entityType":"feature","observations":["Apache Guacamole for RDP/VNC/SSH","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.FTPFileManager","entityType":"feature","observations":["FTP file browser with upload/download","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.CredentialVault","entityType":"feature","observations":["Encrypted credential storage","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.SystemMetricsMonitoring","entityType":"feature","observations":["Real-time CPU/memory/disk graphs","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.ProcessManagement","entityType":"feature","observations":["System process viewer","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.FileTransfer","entityType":"feature","observations":["Resumable file upload/download with progress tracking","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.DesktopAccess","entityType":"feature","observations":["Embedded VNC/RDP desktop viewer","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.ScanProfileManagement","entityType":"feature","observations":["Predefined scan configurations","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.AssetStatistics","entityType":"feature","observations":["Aggregate metrics by type/vendor/status","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.EventFeed","entityType":"feature","observations":["Real-time system events display","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.InterfaceActivityMonitor","entityType":"feature","observations":["Per-interface traffic history graphs","upd:2025-12-28"]}
+{"type":"entity","name":"Frontend.Features.ConnectionHistory","entityType":"feature","observations":["Access hub connection tracking","upd:2025-12-28"]}
+{"type":"relation","from":"NOP.Backend.API.DiscoveryEndpoint","to":"NOP.Backend.Services.NetworkScanner","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.DiscoveryEndpoint","to":"NOP.Backend.Services.DiscoveryService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.TrafficEndpoint","to":"NOP.Backend.Services.SnifferService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.AccessEndpoint","to":"NOP.Backend.Services.AccessHubService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.AccessEndpoint","to":"NOP.Backend.Services.GuacamoleService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.HostEndpoint","to":"NOP.Backend.Services.PingService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.AssetsEndpoint","to":"NOP.Backend.Services.AssetService","relationType":"USES"}
+{"type":"relation","from":"NOP.Backend.API.EventsEndpoint","to":"NOP.Backend.Models.Event","relationType":"CONSUMES"}
+{"type":"relation","from":"NOP.Backend.Services.DiscoveryService","to":"NOP.Backend.Models.Asset","relationType":"MODIFIES"}
+{"type":"relation","from":"NOP.Backend.Services.DiscoveryService","to":"NOP.Backend.Models.Event","relationType":"CREATES"}
+{"type":"relation","from":"NOP.Backend.Services.AccessHubService","to":"NOP.Backend.Models.Credential","relationType":"CONSUMES"}
+{"type":"relation","from":"NOP.Backend.Services.NetworkScanner","to":"NOP.Backend.Models.Asset","relationType":"READS"}
+{"type":"relation","from":"NOP.Backend.Services.SnifferService","to":"NOP.Backend.Models.Flow","relationType":"CREATES"}
+{"type":"relation","from":"Frontend.Pages.Dashboard","to":"Frontend.Services.DashboardService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Dashboard","to":"Frontend.Services.AssetService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Assets","to":"Frontend.Services.AssetService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Scans","to":"Frontend.Store.ScanStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.AccessHub","to":"Frontend.Store.AccessStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.AccessHub","to":"Frontend.Services.AccessService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Topology","to":"Frontend.Services.AssetService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Topology","to":"Frontend.Services.DashboardService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Traffic","to":"NOP.Backend.Services.SnifferService","relationType":"CONSUMES_VIA_WS"}
+{"type":"relation","from":"Frontend.Pages.Host","to":"Frontend.Services.HostService","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Settings","to":"NOP.Backend.API.SettingsEndpoint","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.Layout","to":"Frontend.Store.AuthStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.Layout","to":"Frontend.Store.ScanStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.Layout","to":"Frontend.Store.AccessStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.Layout","to":"Frontend.Store.DiscoveryStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.AssetDetailsSidebar","to":"Frontend.Store.ScanStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.AssetDetailsSidebar","to":"Frontend.Store.AccessStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.ProtocolConnection","to":"Frontend.Store.AccessStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Components.ProtocolConnection","to":"Frontend.Store.AuthStore","relationType":"USES"}
+{"type":"relation","from":"Frontend.Pages.Topology","to":"Frontend.Features.TopologyVisualization","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Frontend.Pages.Host","to":"Backend.Features.HostMonitoring","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Frontend.Pages.Host","to":"Backend.Features.TerminalWebSocket","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Frontend.Pages.Host","to":"Backend.Features.FileSystemBrowser","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Frontend.Components.ProtocolConnection","to":"Frontend.Features.GuacamoleIntegration","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Frontend.Components.ProtocolConnection","to":"Frontend.Features.FTPFileManager","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"NOP.Backend.Services.SnifferService","to":"Backend.Features.PacketDissection","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"NOP.Backend.Services.SnifferService","to":"Backend.Features.PacketCrafting","relationType":"IMPLEMENTS"}
+{"type":"codegraph","name":"SnifferService.py","nodeType":"service","dependencies":["Scapy","Threading","AsyncIO"],"dependents":["TrafficEndpoint"]}
+{"type":"codegraph","name":"PingService.py","nodeType":"service","dependencies":["AsyncIO","Subprocess"],"dependents":["HostEndpoint"]}
+{"type":"codegraph","name":"NetworkScanner.py","nodeType":"service","dependencies":["NMAP","AsyncIO"],"dependents":["DiscoveryEndpoint","DiscoveryService"]}
+{"type":"codegraph","name":"DiscoveryService.py","nodeType":"service","dependencies":["Database","NetworkScanner","Asset.Model"],"dependents":["DiscoveryEndpoint"]}
+{"type":"codegraph","name":"AccessHubService.py","nodeType":"service","dependencies":["SSH","FTP","AsyncIO","Credential.Model"],"dependents":["AccessEndpoint"]}
+{"type":"codegraph","name":"UserService.py","nodeType":"service","dependencies":["Database","User.Model"],"dependents":["AuthEndpoint"]}
+{"type":"codegraph","name":"TrafficEndpoint","nodeType":"endpoint","dependencies":["SnifferService","WebSocket"],"dependents":[]}
+{"type":"codegraph","name":"DiscoveryEndpoint","nodeType":"endpoint","dependencies":["NetworkScanner","DiscoveryService","BackgroundTasks"],"dependents":[]}
+{"type":"codegraph","name":"AccessEndpoint","nodeType":"endpoint","dependencies":["AccessHubService","GuacamoleService"],"dependents":[]}
+{"type":"codegraph","name":"HostEndpoint","nodeType":"endpoint","dependencies":["PingService","WebSocket","psutil"],"dependents":[]}
+{"type":"codegraph","name":"EventsEndpoint","nodeType":"endpoint","dependencies":["Event.Model","Database"],"dependents":[]}
+{"type":"codegraph","name":"SettingsEndpoint","nodeType":"endpoint","dependencies":["Settings.Model","Database"],"dependents":[]}
+{"type":"codegraph","name":"Dashboard.tsx","nodeType":"page","dependencies":["DashboardService","AssetService","AuthStore"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Topology.tsx","nodeType":"page","dependencies":["AssetService","DashboardService","ForceGraph2D"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Host.tsx","nodeType":"page","dependencies":["HostService","AuthStore","AccessStore","xterm"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Assets.tsx","nodeType":"page","dependencies":["AssetService","AuthStore"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Scans.tsx","nodeType":"page","dependencies":["ScanStore","AuthStore"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Login.tsx","nodeType":"page","dependencies":["AuthStore","axios"],"dependents":["Layout"]}
+{"type":"codegraph","name":"Layout.tsx","nodeType":"component","dependencies":["AuthStore","ScanStore","AccessStore","DiscoveryStore"],"dependents":["App"]}
+{"type":"codegraph","name":"AssetDetailsSidebar.tsx","nodeType":"component","dependencies":["ScanStore","AccessStore"],"dependents":["Assets","Topology"]}
+{"type":"codegraph","name":"ProtocolConnection.tsx","nodeType":"component","dependencies":["AccessStore","AccessService","Guacamole"],"dependents":["AccessHub","Host"]}
+{"type":"codegraph","name":"ScanSettingsModal.tsx","nodeType":"component","dependencies":["ScanStore"],"dependents":["Scans"]}
+{"type":"codegraph","name":"authStore.ts","nodeType":"store","dependencies":["zustand"],"dependents":["All pages","Layout"]}
+{"type":"codegraph","name":"scanStore.ts","nodeType":"store","dependencies":["zustand"],"dependents":["Scans","AssetDetailsSidebar","Layout"]}
+{"type":"codegraph","name":"accessStore.ts","nodeType":"store","dependencies":["zustand"],"dependents":["AccessHub","ProtocolConnection","Layout","Host"]}
+{"type":"codegraph","name":"discoveryStore.ts","nodeType":"store","dependencies":["zustand"],"dependents":["Layout","Assets"]}
+{"type":"codegraph","name":"assetService.ts","nodeType":"service","dependencies":["axios"],"dependents":["Dashboard","Assets","Topology"]}
+{"type":"codegraph","name":"dashboardService.ts","nodeType":"service","dependencies":["axios"],"dependents":["Dashboard","Topology"]}
+{"type":"codegraph","name":"accessService.ts","nodeType":"service","dependencies":["axios"],"dependents":["ProtocolConnection","AccessHub"]}
+{"type":"codegraph","name":"authService.ts","nodeType":"service","dependencies":["axios"],"dependents":["Login","AuthStore"]}
+{"type":"codegraph","name":"hostService.ts","nodeType":"service","dependencies":["axios"],"dependents":["Host"]}
+{"type":"codegraph","name":"Flow.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL"],"dependents":["SnifferService"]}
+{"type":"codegraph","name":"Event.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL"],"dependents":["EventsEndpoint","DiscoveryService"]}
+{"type":"codegraph","name":"TopologyEdge.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL","Asset.Model"],"dependents":[]}
+{"type":"codegraph","name":"Vulnerability.Model","nodeType":"model","dependencies":["SQLAlchemy","PostgreSQL","Asset.Model"],"dependents":[]}
