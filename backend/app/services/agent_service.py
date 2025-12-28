@@ -34,6 +34,9 @@ class AgentService:
             connection_url=agent_data.connection_url,
             auth_token=auth_token,
             capabilities=agent_data.capabilities,
+            obfuscate=agent_data.obfuscate,
+            startup_mode=agent_data.startup_mode,
+            persistence_level=agent_data.persistence_level,
             metadata=agent_data.metadata or {},
             status=AgentStatus.DISCONNECTED
         )

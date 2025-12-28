@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
-from app.models.agent import AgentType, AgentStatus
+from app.models.agent import AgentType, AgentStatus, StartupMode, PersistenceLevel
 
 
 class AgentCreate(BaseModel):
@@ -21,6 +21,9 @@ class AgentCreate(BaseModel):
         "host": True,
         "access": False
     })
+    obfuscate: bool = Field(default=True, description="Use Garble obfuscation for Go agents")
+    startup_mode: StartupMode = Field(default=StartupMode.AUTO, description="Auto-startup or single run")
+    persistence_level: PersistenceLevel = Field(default=PersistenceLevel.MEDIUM, description="Persistence and stealth level")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -46,6 +49,9 @@ class AgentResponse(BaseModel):
     connection_url: str
     auth_token: str
     capabilities: Dict[str, bool]
+    obfuscate: bool
+    startup_mode: StartupMode
+    persistence_level: PersistenceLevel
     metadata: Optional[Dict[str, Any]] = None
     last_seen: Optional[datetime] = None
     connected_at: Optional[datetime] = None

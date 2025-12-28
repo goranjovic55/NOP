@@ -19,6 +19,9 @@ const Agents: React.FC = () => {
       host: true,
       access: false,
     },
+    obfuscate: true,
+    startup_mode: 'auto',
+    persistence_level: 'medium',
   });
 
   useEffect(() => {
@@ -56,6 +59,9 @@ const Agents: React.FC = () => {
           host: true,
           access: false,
         },
+        obfuscate: true,
+        startup_mode: 'auto',
+        persistence_level: 'medium',
       });
     } catch (error) {
       console.error('Failed to create agent:', error);

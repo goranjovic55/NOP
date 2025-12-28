@@ -25,6 +25,19 @@ class AgentStatus(str, enum.Enum):
     ERROR = "error"
 
 
+class StartupMode(str, enum.Enum):
+    """Agent startup mode"""
+    AUTO = "auto"  # Install and start on boot
+    SINGLE = "single"  # Run once and exit
+
+
+class PersistenceLevel(str, enum.Enum):
+    """Agent persistence level"""
+    LOW = "low"  # No persistence, runs once
+    MEDIUM = "medium"  # Restarts on failure, removable
+    HIGH = "high"  # Multiple persistence mechanisms, hidden
+
+
 class Agent(Base):
     """Agent model for C2"""
     __tablename__ = "agents"
@@ -45,6 +58,11 @@ class Agent(Base):
     # Modules: asset, traffic, host, access - agent acts as proxy relaying data to C2
     # Example: {"asset": true, "traffic": true, "host": true, "access": false}
     capabilities = Column(JSON, nullable=False, default=dict)
+    
+    # Build configuration
+    obfuscate = Column(Boolean, default=True, nullable=False)  # Use Garble obfuscation for Go
+    startup_mode = Column(Enum(StartupMode), default=StartupMode.AUTO, nullable=False)
+    persistence_level = Column(Enum(PersistenceLevel), default=PersistenceLevel.MEDIUM, nullable=False)
     
     # Agent metadata - flexible JSON storage
     # Example: {"subnet": "192.168.1.0/24", "location": "Remote Office", "tags": ["production"]}

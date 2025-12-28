@@ -18,6 +18,9 @@ export interface Agent {
     host?: boolean;
     access?: boolean;
   };
+  obfuscate: boolean;
+  startup_mode: 'auto' | 'single';
+  persistence_level: 'low' | 'medium' | 'high';
   metadata?: Record<string, any>;
   last_seen?: string;
   connected_at?: string;
@@ -36,6 +39,9 @@ export interface AgentCreate {
     host?: boolean;
     access?: boolean;
   };
+  obfuscate?: boolean;
+  startup_mode?: 'auto' | 'single';
+  persistence_level?: 'low' | 'medium' | 'high';
   metadata?: Record<string, any>;
 }
 
