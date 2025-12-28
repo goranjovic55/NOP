@@ -1,12 +1,15 @@
 # Universal Agent Framework - Multi-Agent Architecture
 
-**Version**: 2.0 | **Type**: Portable | **Scope**: Any project | **Architecture**: Orchestrator + Specialists
+> **📋 Framework Type**: GitHub Official Custom Agents  
+> **✅ Note**: These agents use GitHub's official custom agent format (https://gh.io/customagents/config) and are automatically available in GitHub Copilot when merged to the default branch.
+
+**Version**: 2.0 | **Type**: Official GitHub Custom Agents | **Scope**: Any project | **Architecture**: Orchestrator + Specialists
 
 ---
 
 ## Overview
 
-This framework implements a **multi-agent architecture** where:
+This framework implements a **documented multi-agent architecture** using GitHub's official custom agent format for organizing development workflows:
 - **DevTeam (Lead)** orchestrates and maintains task control
 - **Specialists** (Architect, Developer, Reviewer, Researcher) handle domain-specific work
 - **Structured handoffs** enable coherent collaboration
@@ -111,7 +114,7 @@ Loading project context...
 ### Specialist Phases (Abbreviated)
 - Receive task → Execute → Return results
 - Each specialist has domain-specific workflow
-- See individual chatmode files for details
+- See individual agent files in `.github/agents/` for details
 
 ---
 
@@ -251,14 +254,14 @@ Results integrated when both complete.
 
 1. **Copy `.github/` folder** to new project
 2. **Create `project_knowledge.json`** in project root (empty OK)
-3. **Select chatmode** based on work type
+3. **Select agent** based on work type (see `.github/agents/`)
 4. **Knowledge builds** organically through work
 
 ### What's Portable
-- All chatmodes (orchestrator + specialists)
-- Instruction modules
+- All agents (orchestrator + specialists in `.github/agents/`)
+- Instruction modules (`.github/instructions/`)
 - `global_knowledge.json` (universal patterns)
-- Workflow templates
+- Workflow templates (`.github/workflows/`)
 
 ### What's Project-Specific
 - `project_knowledge.json`
@@ -266,10 +269,12 @@ Results integrated when both complete.
 
 ---
 
-## 12. Chatmode Reference
+## 12. Agent Reference
 
-| Chatmode | Role | Use When |
-|----------|------|----------|
+See `.github/agents/README.md` for complete documentation.
+
+| Agent | Role | Use When |
+|-------|------|----------|
 | **DevTeam** | Orchestrator | Complex multi-step tasks, default |
 | **Architect** | Design | Pure design thinking, no implementation |
 | **Developer** | Implementation | Direct coding, no design needed |
@@ -277,7 +282,7 @@ Results integrated when both complete.
 | **Researcher** | Investigation | Exploration, documentation |
 
 ### Direct vs Orchestrated
-- **Direct**: User selects specific chatmode for focused work
+- **Direct**: User invokes specific agent for focused work
 - **Orchestrated**: DevTeam delegates to specialists as needed
 
 ---

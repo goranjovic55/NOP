@@ -7,7 +7,8 @@ A comprehensive network operations and security management platform with advance
 ```
 NOP/
 ├── .github/                    # GitHub configuration & agent framework
-│   ├── chatmodes/             # Multi-agent chatmode configurations
+│   ├── agents/                 # Multi-agent system (*.agent.md)
+│   ├── chatmodes/             # Legacy chatmodes (deprecated, use agents/)
 │   ├── instructions/          # Agent instruction modules
 │   ├── workflows/             # GitHub Actions workflows
 │   ├── scripts/               # Automation scripts
@@ -127,17 +128,23 @@ docker-compose -f docker-compose.test.yml up -d --build
 
 ## 🤖 Agent Framework
 
-This project uses a multi-agent architecture for development:
+> **✅ Official GitHub Custom Agents**: These agents use GitHub's official custom agent format and are automatically available in GitHub Copilot when merged to the default branch.
 
-### Agents
-- **DevTeam (Orchestrator)** - Coordinates tasks, integrates results
-- **Architect** - Design decisions, patterns, structure
+This project uses GitHub's official custom agent system for organizing development workflows. See `.github/agents/README.md` for complete documentation.
+
+### Agents (Official GitHub Custom Agents)
+- **DevTeam (Orchestrator)** - Coordinates tasks, delegates to specialists, integrates results
+- **Architect** - Design decisions, patterns, system architecture
 - **Developer** - Implementation, debugging, code
-- **Reviewer** - Testing, validation, quality
-- **Researcher** - Investigation, analysis, documentation
+- **Reviewer** - Testing, validation, quality assurance
+- **Researcher** - Investigation, codebase exploration, analysis
 
 ### Usage
-Agents automatically coordinate based on task complexity. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
+Select agents in GitHub Copilot using `@AgentName` or the agent picker. Agents can delegate to sub-agents for specialized tasks. Knowledge is preserved in `project_knowledge.json` and `.github/global_knowledge.json`.
+
+For detailed agent documentation, see `.github/agents/`.
+
+**Format**: https://gh.io/customagents/config | **CLI**: https://gh.io/customagents/cli
 
 ## 📦 Tech Stack
 
