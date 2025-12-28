@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { assetService, Asset } from '../services/assetService';
 import PacketCrafting from '../components/PacketCrafting';
 
 interface Packet {
@@ -48,6 +49,7 @@ const Traffic: React.FC = () => {
   const [selectedIface, setSelectedIface] = useState<string>('');
   const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [filter, setFilter] = useState('');
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -65,6 +67,20 @@ const Traffic: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (token) {
+        try {
+          const data = await assetService.getAssets(token);
+          setAssets(data);
+        } catch (err) {
+          console.error('Failed to fetch assets:', err);
+        }
+      }
+    };
+    fetchAssets();
+  }, [token]);
 
   useEffect(() => {
     if (packetListEndRef.current && !selectedPacket) {
@@ -182,7 +198,7 @@ const Traffic: React.FC = () => {
       const offset = (i / 2).toString(16).padStart(4, '0');
       let hexPart = '';
       let asciiPart = '';
-      for (let j = 0; j < chunk.length; j += 2) {
+      for (let j = 0; j < chunk.length; j += 2) {assets={assets} 
         const byte = chunk.substring(j, j + 2);
         hexPart += byte + ' ';
         const charCode = parseInt(byte, 16);

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { Asset } from '../services/assetService';
 
 interface PacketCraftingProps {
   onBack: () => void;
+  assets: Asset[];
 }
 
 interface PacketResponse {
@@ -13,11 +15,31 @@ interface PacketResponse {
   error?: string;
 }
 
-const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
+const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets }) => {
   const { token } = useAuthStore();
   const [protocol, setProtocol] = useState('TCP');
   const [sourceIp, setSourceIp] = useState('');
   const [destIp, setDestIp] = useState('');
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [showDestDropdown, setShowDestDropdown] = useState(false);
+  const sourceDropdownRef = useRef<HTMLDivElement>(null);
+  const destDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sourceDropdownRef.current && !sourceDropdownRef.current.contains(event.target as Node)) {
+        setShowSourceDropdown(false);
+      }
+      if (destDropdownRef.current && !destDropdownRef.current.contains(event.target as Node)) {
+        setShowDestDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const [sourcePort, setSourcePort] = useState('');
   const [destPort, setDestPort] = useState('');
   const [payload, setPayload] = useState('');
@@ -35,7 +57,8 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
   const [icmpType, setIcmpType] = useState('8');
   const [icmpCode, setIcmpCode] = useState('0');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [payloadFormat, setPayloadFormat] = useState<'ascii' | 'hex'>('ascii');
+  const [payloadFormat, setPayloadFormat] = useState<'ascii' | 'hex'>('hex');
+  const [hexBytes, setHexBytes] = useState<string[]>([]);
   
   // Packet sending controls
   const [packetCount, setPacketCount] = useState('1');
@@ -49,6 +72,41 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
     setFlags(prev => 
       prev.includes(flag) ? prev.filter(f => f !== flag) : [...prev, flag]
     );
+  };
+
+  // Hex editor helpers
+  const hexBytesToPayload = (bytes: string[]): string => {
+    return bytes.map(b => String.fromCharCode(parseInt(b, 16) || 0)).join('');
+  };
+
+  const handleHexByteChange = (index: number, value: string) => {
+    const cleaned = value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    if (cleaned.length <= 2) {
+      const newBytes = [...hexBytes];
+      newBytes[index] = cleaned.padEnd(2, '0');
+      setHexBytes(newBytes);
+      setPayload(hexBytesToPayload(newBytes));
+    }
+  };
+
+  const addHexByte = () => {
+    setHexBytes([...hexBytes, '00']);
+  };
+
+  const removeHexByte = (index: number) => {
+    const newBytes = hexBytes.filter((_, i) => i !== index);
+    setHexBytes(newBytes);
+    setPayload(hexBytesToPayload(newBytes));
+  };
+
+  const handleAssetSelect = (ip: string, isSource: boolean) => {
+    if (isSource) {
+      setSourceIp(ip);
+      setShowSourceDropdown(false);
+    } else {
+      setDestIp(ip);
+      setShowDestDropdown(false);
+    }
   };
 
   const handleSendPacket = async () => {
@@ -65,7 +123,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
         dest_ip: destIp,
         source_port: sourcePort ? parseInt(sourcePort) : undefined,
         dest_port: destPort ? parseInt(destPort) : undefined,
-        payload,
+        payload: payloadFormat === 'hex' ? hexBytes.join('') : payload,
         payload_format: payloadFormat,
         flags: protocol === 'TCP' ? flags : undefined,
         // Advanced header fields
@@ -105,7 +163,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="flex items-center justify-between bg-cyber-darker p-4 border border-cyber-gray">
         <div className="flex items-center space-x-4">
@@ -121,17 +179,17 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Main Content - Three Panel Layout */}
-      <div className="flex-1 flex gap-4 min-h-0">
-        {/* Left Panel - Packet Definition Form */}
-        <div className="w-1/2 flex flex-col gap-4">
-          <div className="flex-1 bg-cyber-dark border border-cyber-gray flex flex-col">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="p-4 space-y-4">
+          {/* Top Row - Packet Definition Form */}
+          <div className="bg-cyber-dark border border-cyber-gray">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
               <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">
                 Packet Definition
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div className="p-6">
               <div className="grid grid-cols-2 gap-6">
               {/* Protocol Selection */}
               <div className="space-y-2">
@@ -148,27 +206,81 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
               </div>
 
               {/* Source IP */}
-              <div className="space-y-2">
+              <div className="space-y-2 relative" ref={sourceDropdownRef}>
                 <label className="text-xs text-cyber-gray-light font-bold uppercase">Source IP</label>
-                <input
-                  type="text"
-                  value={sourceIp}
-                  onChange={(e) => setSourceIp(e.target.value)}
-                  placeholder="e.g., 192.168.1.100"
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={sourceIp}
+                    onChange={(e) => setSourceIp(e.target.value)}
+                    onFocus={() => setShowSourceDropdown(true)}
+                    placeholder="e.g., 192.168.1.100"
+                    className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 pr-8 outline-none focus:border-cyber-purple font-mono"
+                  />
+                  <button
+                    onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-cyber-purple hover:text-cyber-blue"
+                  >
+                    ▼
+                  </button>
+                </div>
+                {showSourceDropdown && assets.length > 0 && (
+                  <div className="absolute z-10 w-full bg-cyber-darker border border-cyber-purple max-h-60 overflow-y-auto shadow-lg">
+                    {assets.map(asset => (
+                      <div
+                        key={asset.id}
+                        onClick={() => handleAssetSelect(asset.ip_address, true)}
+                        className={`p-2 cursor-pointer hover:bg-cyber-gray transition-colors ${
+                          asset.status === 'online' ? 'text-green-400 font-semibold' : 'text-cyber-gray-light'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span>{asset.ip_address}</span>
+                          <span className="text-[10px]">{asset.hostname || 'Unknown'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Destination IP */}
-              <div className="space-y-2">
+              <div className="space-y-2 relative" ref={destDropdownRef}>
                 <label className="text-xs text-cyber-gray-light font-bold uppercase">Destination IP</label>
-                <input
-                  type="text"
-                  value={destIp}
-                  onChange={(e) => setDestIp(e.target.value)}
-                  placeholder="e.g., 192.168.1.1"
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={destIp}
+                    onChange={(e) => setDestIp(e.target.value)}
+                    onFocus={() => setShowDestDropdown(true)}
+                    placeholder="e.g., 192.168.1.1"
+                    className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 pr-8 outline-none focus:border-cyber-purple font-mono"
+                  />
+                  <button
+                    onClick={() => setShowDestDropdown(!showDestDropdown)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-cyber-purple hover:text-cyber-blue"
+                  >
+                    ▼
+                  </button>
+                </div>
+                {showDestDropdown && assets.length > 0 && (
+                  <div className="absolute z-10 w-full bg-cyber-darker border border-cyber-purple max-h-60 overflow-y-auto shadow-lg">
+                    {assets.map(asset => (
+                      <div
+                        key={asset.id}
+                        onClick={() => handleAssetSelect(asset.ip_address, false)}
+                        className={`p-2 cursor-pointer hover:bg-cyber-gray transition-colors ${
+                          asset.status === 'online' ? 'text-green-400 font-semibold' : 'text-cyber-gray-light'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span>{asset.ip_address}</span>
+                          <span className="text-[10px]">{asset.hostname || 'Unknown'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Source Port (TCP/UDP only) */}
@@ -223,7 +335,8 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
               <div className="col-span-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs text-cyber-gray-light font-bold uppercase">Payload / Data</label>
-                  <div className="flex space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] text-cyber-gray-light">{hexBytes.length} bytes</span>
                     <button
                       onClick={() => setPayloadFormat('ascii')}
                       className={`px-3 py-1 text-[10px] uppercase transition-all ${
@@ -246,24 +359,65 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
                     </button>
                   </div>
                 </div>
-                <textarea
-                  value={payload}
-                  onChange={(e) => setPayload(e.target.value)}
-                  placeholder={payloadFormat === 'hex' 
-                    ? "Enter hex bytes (e.g., 48656c6c6f or 48 65 6c 6c 6f)" 
-                    : "Enter ASCII text (e.g., Hello World)"}
-                  rows={4}
-                  className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono resize-none"
-                />
-                {payloadFormat === 'hex' && payload && (
-                  <div className="text-[10px] text-cyber-gray-light">
-                    {payload.replace(/\s/g, '').match(/.{1,2}/g)?.length || 0} bytes
+                
+                {payloadFormat === 'hex' ? (
+                  <div className="bg-cyber-darker border border-cyber-gray p-3">
+                    <div className="grid grid-cols-[1fr_1fr] gap-4">
+                      {/* Hex Bytes Column */}
+                      <div>
+                        <div className="text-[10px] text-cyber-purple font-bold mb-2 uppercase">Hex Bytes</div>
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          <div className="flex flex-wrap gap-1">
+                            {hexBytes.map((byte, i) => (
+                              <div key={i} className="relative group">
+                                <input
+                                  type="text"
+                                  value={byte}
+                                  onChange={(e) => handleHexByteChange(i, e.target.value)}
+                                  className="w-10 bg-black border border-cyber-gray text-cyber-blue text-xs text-center p-1 outline-none focus:border-cyber-purple font-mono"
+                                  maxLength={2}
+                                />
+                                <button
+                                  onClick={() => removeHexByte(i)}
+                                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[8px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={addHexByte}
+                              className="w-10 h-7 border border-dashed border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-black text-xs transition-all"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* ASCII Preview Column */}
+                      <div>
+                        <div className="text-[10px] text-cyber-purple font-bold mb-2 uppercase">ASCII Preview</div>
+                        <div className="bg-black border border-cyber-gray p-2 max-h-64 overflow-y-auto">
+                          <div className="text-cyber-blue text-xs font-mono break-all">
+                            {hexBytes.map((byte, i) => {
+                              const charCode = parseInt(byte, 16);
+                              const char = charCode >= 32 && charCode <= 126 ? String.fromCharCode(charCode) : '.';
+                              return <span key={i} className={charCode < 32 || charCode > 126 ? 'text-cyber-gray' : ''}>{char}</span>;
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-                {payloadFormat === 'ascii' && payload && (
-                  <div className="text-[10px] text-cyber-gray-light">
-                    {payload.length} characters ({new Blob([payload]).size} bytes)
-                  </div>
+                ) : (
+                  <textarea
+                    value={payload}
+                    onChange={(e) => setPayload(e.target.value)}
+                    placeholder="Enter ASCII text (e.g., Hello World)"
+                    rows={4}
+                    className="w-full bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-purple font-mono resize-none"
+                  />
                 )}
               </div>
 
@@ -466,93 +620,89 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
                   {isSending ? 'Sending...' : (isContinuous ? 'Start Continuous Send' : 'Send Packet')}
                 </button>
               </div>
+              </div>
             </div>
           </div>
-          
-          {/* Response and Trace - Bottom of Left Panel */}
-          <div className="h-1/3 bg-cyber-dark border border-cyber-gray flex flex-col">
+
+          {/* Response & Trace */}
+          {response && (
+            <div className="bg-cyber-dark border border-cyber-gray">
+              <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
+                <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">
+                  Response & Trace
+                </span>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
+                      Status
+                    </h4>
+                    <div className={`p-3 border ${response.success ? 'border-cyber-green text-cyber-green' : 'border-cyber-red text-cyber-red'} bg-black`}>
+                      {response.success ? '✓ Packet sent successfully' : `✗ Error: ${response.error}`}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Sent Packet Info */}
+                    {response.sent_packet && (
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
+                          Sent Packet
+                        </h4>
+                        <div className="p-3 bg-black border border-cyber-gray text-cyber-blue">
+                          <pre className="whitespace-pre-wrap break-words text-[10px]">
+                            {JSON.stringify(response.sent_packet, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Response */}
+                    {response.response && (
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
+                          Response Packet
+                        </h4>
+                        <div className="p-3 bg-black border border-cyber-gray text-cyber-green">
+                          <pre className="whitespace-pre-wrap break-words text-[10px]">
+                            {JSON.stringify(response.response, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trace */}
+                  {response.trace && response.trace.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
+                        Trace
+                      </h4>
+                      <div className="p-3 bg-black border border-cyber-gray text-cyber-gray-light space-y-1">
+                        {response.trace.map((line, idx) => (
+                          <div key={idx} className="text-[10px]">{line}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Packet Structure Visualization - Bottom */}
+          <div className="bg-cyber-dark border border-cyber-gray">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
               <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">
-                Response & Trace
+                Packet Structure (Editable)
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              {!response && (
-                <div className="flex items-center justify-center h-full text-cyber-gray-light text-sm">
-                  No response yet. Send a packet to see the results.
-                </div>
-              )}
-
-            {response && (
-              <div className="space-y-4 font-mono text-xs">
-                {/* Status */}
-                <div className="space-y-2">
-                  <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
-                    Status
-                  </h4>
-                  <div className={`p-3 border ${response.success ? 'border-cyber-green text-cyber-green' : 'border-cyber-red text-cyber-red'} bg-black`}>
-                    {response.success ? '✓ Packet sent successfully' : `✗ Error: ${response.error}`}
-                  </div>
-                </div>
-
-                {/* Sent Packet Info */}
-                {response.sent_packet && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
-                      Sent Packet
-                    </h4>
-                    <div className="p-3 bg-black border border-cyber-gray text-cyber-blue">
-                      <pre className="whitespace-pre-wrap break-words">
-                        {JSON.stringify(response.sent_packet, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {/* Response */}
-                {response.response && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
-                      Response Packet
-                    </h4>
-                    <div className="p-3 bg-black border border-cyber-gray text-cyber-green">
-                      <pre className="whitespace-pre-wrap break-words">
-                        {JSON.stringify(response.response, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {/* Trace */}
-                {response.trace && response.trace.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1">
-                      Trace
-                    </h4>
-                    <div className="p-3 bg-black border border-cyber-gray text-cyber-gray-light space-y-1">
-                      {response.trace.map((line, idx) => (
-                        <div key={idx}>{line}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        </div>
-
-        {/* Right Panel - Packet Structure Visualization */}
-        <div className="w-1/2 bg-cyber-dark border border-cyber-gray flex flex-col">
-          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">
-              Packet Structure (Editable)
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-            <div className="space-y-4 font-mono text-xs">
-              {/* Ethernet Header */}
-              <div className="border border-cyber-gray bg-black p-4">
+            <div className="p-6">
+              <div className="grid grid-cols-3 gap-4 font-mono text-xs">
+                {/* Ethernet Header */}
+                <div className="border border-cyber-gray bg-black p-4">
                 <h4 className="text-[10px] text-cyber-purple font-bold uppercase mb-3 border-b border-cyber-gray pb-1">
                   Ethernet II
                 </h4>
@@ -809,8 +959,8 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
               )}
 
               {/* Payload */}
-              {payload && (
-                <div className="border border-cyber-gray bg-black p-4">
+              {hexBytes.length > 0 && (
+                <div className="border border-cyber-gray bg-black p-4 col-span-3">
                   <h4 className="text-[10px] text-cyber-purple font-bold uppercase mb-3 border-b border-cyber-gray pb-1">
                     Payload Data
                   </h4>
@@ -821,22 +971,12 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack }) => {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="text-cyber-gray-light">Length:</div>
-                      <div className="text-cyber-blue">
-                        {payloadFormat === 'hex' 
-                          ? `${payload.replace(/\s/g, '').match(/.{1,2}/g)?.length || 0} bytes`
-                          : `${payload.length} chars (${new Blob([payload]).size} bytes)`
-                        }
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="text-cyber-gray-light mb-1">Preview:</div>
-                      <div className="text-cyber-blue break-all text-[10px] max-h-20 overflow-y-auto">
-                        {payload.substring(0, 100)}{payload.length > 100 ? '...' : ''}
-                      </div>
+                      <div className="text-cyber-blue">{hexBytes.length} bytes</div>
                     </div>
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
