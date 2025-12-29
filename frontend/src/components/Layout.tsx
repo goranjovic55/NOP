@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
+import { useExploitStore } from '../store/exploitStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,9 +17,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
+  const { getActiveSessionCount } = useExploitStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
+  const activeExploitCount = getActiveSessionCount();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -27,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'Access Hub', href: '/access', icon: '⬡', symbol: '◉' },
-    { name: 'Exploit', href: '/exploit', icon: '💀', symbol: '⚡' },
+    { name: 'Exploit', href: '/exploit', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
   ];
@@ -91,6 +94,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {item.name === 'Access Hub' && connectedCount > 0 && (
                     <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
                       {connectedCount}
+                    </div>
+                  )}
+                  {item.name === 'Exploit' && activeExploitCount > 0 && (
+                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-red text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {activeExploitCount}
                     </div>
                   )}
                 </Link>

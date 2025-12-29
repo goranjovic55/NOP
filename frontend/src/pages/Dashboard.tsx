@@ -232,28 +232,109 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="dashboard-card p-6">
-        <h3 className="text-lg font-semibold text-cyber-green mb-4 uppercase tracking-wider cyber-glow">
-          &gt; System Activity Log
-        </h3>
-        <div className="space-y-2">
-          {events.length > 0 ? events.map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors duration-300">
-              <div className={`w-2 h-2 ${
-                activity.severity === 'critical' || activity.severity === 'error' ? 'bg-cyber-red' :
-                activity.severity === 'warning' ? 'bg-facc15' :
-                'bg-cyber-blue'
-              } cyber-pulse`}></div>
-              <div className="flex-1 font-terminal">
-                <p className="text-cyber-gray-light text-sm">
-                  <span className="text-cyber-purple">[{new Date(activity.timestamp).toLocaleTimeString()}]</span> {activity.title}: {activity.description}
-                </p>
+      {/* Latest Exploited Hosts & System Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Latest Exploited Hosts */}
+        <div className="dashboard-card p-6">
+          <h3 className="text-lg font-semibold text-cyber-red mb-4 uppercase tracking-wider cyber-glow-red">
+            &gt; Latest Exploited Hosts
+          </h3>
+          <div className="space-y-3">
+            {/* Sample exploited host cards - will be populated from actual data */}
+            <div className="bg-cyber-darker border border-cyber-red rounded p-4 hover:border-cyber-purple transition-colors">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h4 className="text-cyber-blue font-bold font-mono text-sm">172.21.0.42</h4>
+                    <span className="px-2 py-0.5 text-xs border border-cyber-red text-cyber-red rounded">CRITICAL</span>
+                  </div>
+                  <p className="text-cyber-gray-light text-xs">ubuntu-server</p>
+                </div>
+                <div className="text-cyber-red text-xl">⚡</div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Exploit:</span>
+                  <span className="text-cyber-purple font-mono">SSH Brute Force</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">CVE:</span>
+                  <span className="text-cyber-blue font-mono">CVE-2024-1234</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Time:</span>
+                  <span className="text-cyber-green">{new Date().toLocaleTimeString()}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Status:</span>
+                  <span className="text-cyber-green flex items-center">
+                    <span className="w-2 h-2 bg-cyber-green rounded-full mr-1 animate-pulse"></span>
+                    Active Shell
+                  </span>
+                </div>
               </div>
             </div>
-          )) : (
-            <p className="text-cyber-gray-light font-terminal text-sm p-3">No recent activity</p>
-          )}
+            
+            <div className="bg-cyber-darker border border-cyber-gray rounded p-4 hover:border-cyber-purple transition-colors opacity-70">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h4 className="text-cyber-blue font-bold font-mono text-sm">172.21.0.35</h4>
+                    <span className="px-2 py-0.5 text-xs border border-facc15 text-facc15 rounded">HIGH</span>
+                  </div>
+                  <p className="text-cyber-gray-light text-xs">web-server</p>
+                </div>
+                <div className="text-cyber-gray text-xl">⚡</div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Exploit:</span>
+                  <span className="text-cyber-purple font-mono">Web Shell Upload</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">CVE:</span>
+                  <span className="text-cyber-blue font-mono">CVE-2024-5678</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Time:</span>
+                  <span className="text-cyber-gray">2 mins ago</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-cyber-gray-light">Status:</span>
+                  <span className="text-cyber-gray">Disconnected</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center pt-2">
+              <p className="text-cyber-gray-light text-xs">View all exploited hosts in Exploit page</p>
+            </div>
+          </div>
+        </div>
+
+        {/* System Activity Log */}
+        <div className="dashboard-card p-6">
+          <h3 className="text-lg font-semibold text-cyber-green mb-4 uppercase tracking-wider cyber-glow">
+            &gt; System Activity Log
+          </h3>
+          <div className="space-y-2">
+            {events.length > 0 ? events.map((activity, index) => (
+              <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors duration-300">
+                <div className={`w-2 h-2 ${
+                  activity.severity === 'critical' || activity.severity === 'error' ? 'bg-cyber-red' :
+                  activity.severity === 'warning' ? 'bg-facc15' :
+                  'bg-cyber-blue'
+                } cyber-pulse`}></div>
+                <div className="flex-1 font-terminal">
+                  <p className="text-cyber-gray-light text-sm">
+                    <span className="text-cyber-purple">[{new Date(activity.timestamp).toLocaleTimeString()}]</span> {activity.title}: {activity.description}
+                  </p>
+                </div>
+              </div>
+            )) : (
+              <p className="text-cyber-gray-light font-terminal text-sm p-3">No recent activity</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

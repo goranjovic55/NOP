@@ -414,10 +414,10 @@ const Scans: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-      {/* Manual IP Input Section - Always visible at top */}
-      <div className="bg-cyber-darker border border-cyber-gray p-4">
+      {/* Manual IP Input Section - Compact */}
+      <div className="bg-cyber-darker border border-cyber-gray p-3">
         <form onSubmit={handleManualSubmit} className="flex items-center space-x-2">
-          <label className="text-xs text-cyber-purple uppercase font-bold whitespace-nowrap">
+          <label className="text-[10px] text-cyber-purple uppercase font-bold whitespace-nowrap">
             Target IP:
           </label>
           <div className="flex-1 relative" ref={assetDropdownRef}>
@@ -430,7 +430,7 @@ const Scans: React.FC = () => {
               }}
               onFocus={() => setShowAssetDropdown(true)}
               placeholder="e.g. 192.168.1.1 or 192.168.1.0/24"
-              className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
+              className="w-full bg-cyber-dark border border-cyber-gray px-3 py-1.5 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
             />
             
             {/* Assets Dropdown with Filter */}
@@ -488,12 +488,12 @@ const Scans: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="btn-cyber border-cyber-red text-cyber-red px-4 py-2 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest text-sm"
+            className="btn-cyber border-cyber-red text-cyber-red px-4 py-2 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest text-xs"
           >
             Add Scan
           </button>
         </form>
-        <p className="text-cyber-gray-light text-xs mt-2">
+        <p className="text-cyber-gray-light text-[10px]">
           💡 Tip: You can enter CIDR notation (e.g., 192.168.1.0/24) to scan entire subnets
         </p>
       </div>

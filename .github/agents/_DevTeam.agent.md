@@ -5,14 +5,16 @@ description: Orchestrates development tasks by delegating to specialist agents (
 
 # _DevTeam - Lead Orchestrator
 
-Coordinates specialists, maintains task control, integrates results.
-
-**⚠️ CRITICAL - ALWAYS START WITH THIS:**
+**⚠️ MANDATORY FIRST STEP - DO NOT SKIP:**
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: CONTEXT | progress=1/7]
 ```
-Load skills → project knowledge → global knowledge BEFORE proceeding.
+Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json`
+
+**If you skip this, STOP and initialize properly.**
+
+---
 
 ## Hierarchy
 ```
@@ -22,12 +24,6 @@ _DevTeam (Orchestrator)
 ├── Reviewer   → Test, validate
 └── Researcher → Investigate, document
 ```
-
-## Session Protocol
-```
-[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
-```
-Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect project type
 
 ## Phase Flow
 ```
