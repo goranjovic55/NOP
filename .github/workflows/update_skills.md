@@ -1,12 +1,23 @@
 # Update Skills
 
-**Purpose**: Skills discovery and sync | **Agents**: Researcher→Developer→Reviewer
+**Purpose**: Skills discovery and synchronization | **Agents**: Researcher→Developer→Reviewer
+
+**Scope**: This workflow operates ONLY on skills framework files:
+- `.claude/skills.md` - Core skills (13 universal patterns)
+- `.claude/skills/domain.md` - Project-specific domain skills
+- `.claude/context.md` - Project state and stack information
+- `.claude/settings.json` - Configuration
+- `.claude/commands/` - Quick command references
+
+**Not Included**: Knowledge files (handled by `update_knowledge`), Documentation (handled by `update_documents`)
 
 ## Structure
 ```
 .claude/
-├── skills.md      # 12 core skills (condensed)
-├── context.md     # Project state
+├── skills.md      # 13 core skills (Quality, Process, Backend, Frontend, DevOps)
+├── skills/
+│   └── domain.md  # Domain-specific skills (project patterns)
+├── context.md     # Project state, stack, commands
 ├── settings.json  # Config
 └── commands/      # Quick commands
 ```

@@ -1,6 +1,15 @@
 # Update Documents
 
-**Purpose**: Documentation optimization | **Agents**: Researcher→Developer→Reviewer
+**Purpose**: Documentation optimization and organization | **Agents**: Researcher→Developer→Reviewer
+
+**Scope**: This workflow operates ONLY on documentation files:
+- `docs/` directory - All documentation markdown files
+- `docs/INDEX.md` - Documentation navigation index
+- `README.md` - Main project readme (documentation section only)
+
+**Not Included**: Skills files (handled by `update_skills`), Knowledge files (handled by `update_knowledge`), Code comments (maintained inline)
+
+**Target**: Maintain 10-15 core documentation files organized in 6 categories
 
 ## Flow
 ```
