@@ -108,8 +108,8 @@ const Storm: React.FC = () => {
     }
 
     const ppsValue = parseInt(pps);
-    if (isNaN(ppsValue) || ppsValue < 1 || ppsValue > 100000) {
-      alert('PPS must be between 1 and 100,000');
+    if (isNaN(ppsValue) || ppsValue < 1 || ppsValue > 10000000) {
+      alert('PPS must be between 1 and 10,000,000');
       return;
     }
 
@@ -330,7 +330,7 @@ const Storm: React.FC = () => {
               onChange={(e) => setPps(e.target.value)}
               disabled={isStormActive}
               min="1"
-              max="100000"
+              max="10000000"
               className="w-full bg-gray-800 border border-[#00f0ff]/30 rounded px-3 py-2 text-white focus:outline-none focus:border-[#00f0ff] disabled:opacity-50"
             />
           </div>

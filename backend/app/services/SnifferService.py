@@ -1038,10 +1038,10 @@ class SnifferService:
                 }
             
             # Validate PPS
-            if not isinstance(pps, int) or pps < 1 or pps > 100000:
+            if not isinstance(pps, int) or pps < 1 or pps > 10000000:
                 return {
                     "success": False,
-                    "error": "PPS must be between 1 and 100,000"
+                    "error": "PPS must be between 1 and 10,000,000"
                 }
             
             # Validate packet type

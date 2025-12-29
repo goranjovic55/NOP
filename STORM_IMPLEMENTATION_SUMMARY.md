@@ -68,7 +68,7 @@ Successfully implemented a comprehensive packet storm feature for testing networ
 - Destination IP (required)
 - Source port (optional, random if not set)
 - Destination port (required for TCP/UDP)
-- PPS rate (1-100,000)
+- PPS rate (1-10,000,000)
 - TTL (1-255)
 - TCP flags (SYN, ACK, FIN, RST, PSH, URG)
 - Payload (optional)

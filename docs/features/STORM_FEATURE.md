@@ -32,7 +32,7 @@ Choose from five packet types:
 - **TCP Flags**: Select one or more flags (SYN, ACK, FIN, RST, PSH, URG)
 
 #### Rate Control
-- **PPS (Packets Per Second)**: Control traffic generation rate (1-100,000 PPS)
+- **PPS (Packets Per Second)**: Control traffic generation rate (1-10,000,000 PPS)
 
 #### Payload
 - **Optional payload data**: Add custom payload to packets
