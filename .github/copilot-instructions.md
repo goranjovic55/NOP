@@ -94,9 +94,17 @@ Add to `.claude/skills.md` or `.claude/skills/domain.md`
 [COMPLETE: task=<desc> | result=<summary> | learnings=N]
 
 [WORKFLOW_LOG: task=<desc>]
-Summary | Agent Interactions | Files | Quality Gates | Learnings
+Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
 ```
+
+**Checklist Before Emitting [COMPLETE]**:
+- [ ] All quality gates passed
+- [ ] Knowledge updated (project_knowledge.json)
+- [ ] Workflow log created with Decision Diagram
+- [ ] Decision Diagram shows all decisions, attempts, delegations
+- [ ] All rejected alternatives documented
+- [ ] Changes committed (if applicable)
 
 **Workflow Log Persistence**:
 - Write workflow log to `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
@@ -104,6 +112,19 @@ Summary | Agent Interactions | Files | Quality Gates | Learnings
 - Slug: lowercase, hyphens, max 50 chars
 - Example: `log/workflow/2025-12-28_143022_ui-improvements-scans-exploit.md`
 - Include full workflow log content in markdown format
+- **CRITICAL**: MUST include Decision Diagram (see Skill #13)
+
+**Decision Diagram Requirements**:
+```
+Required elements in diagram:
+- [DECISION: ?] for all decision points
+- [ATTEMPT #N] for all implementation attempts
+- [SUBAGENT: Name] for all delegations
+- ✓/✗ markers for success/failure
+- Rejected alternatives with reasons
+```
+- Rejected alternatives with reasons
+```
 
 ## Quality Gates
 | Gate | Owner | Check |

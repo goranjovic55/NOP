@@ -310,6 +310,8 @@ services:
 
 **Trigger**: Session completion (significant work)
 
+**CRITICAL**: Workflow logs MUST include a Decision Diagram showing all decisions, attempts, and outcomes.
+
 **Pattern**:
 ```bash
 timestamp=$(date '+%Y-%m-%d_%H%M%S')
@@ -329,19 +331,28 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 ## Summary
 <Brief overview>
 
+## Decision Diagram
+
+```
+[SESSION START: <Task>]
+    |
+    └─[DECISION: <question>?] 
+        ├─ Option A: <desc> → Rejected (<reason>)
+        ├─ Option B: <desc> → Rejected (<reason>)
+        └─ ✓ Option C: <desc> → CHOSEN (<rationale>)
+            |
+            ├─[SUBAGENT: Name] <task>
+            |   ├─[ATTEMPT #1] <action> → ✓/✗ result
+            |   └─[SKILL: #N Name] <action> → result
+            |
+            ├─[DECISION: <nested question>?]
+            |   └─ ✓ <answer> → <action taken>
+            |
+            └─[COMPLETE] <final result>
+```
+
 ## Decision & Execution Flow
-START: <Task> [@Agent]
-├─[PHASE: CONTEXT | 1/7]
-│  └─[SKILL: #N Name] <action> → <result>
-├─[?] <Decision question>
-│  ├─[✓] <Chosen path> → <rationale>
-│  └─[✗] <Rejected path> → REJECTED (<reason>)
-├─[PHASE: COORDINATE | 3/7]
-│  ├─[SUBAGENT: Name] <task>
-│  │  ├─[SKILL: #N Name] <action>
-│  │  └─[ATTEMPT #N] <action> → ✓/✗ <result>
-│  └─[LOOP: <desc>] → <outcome>
-└─[✓] COMPLETE [@Agent] <result>
+<Narrative describing the diagram above>
 
 ## Agent Interactions
 <Delegation patterns, specialist involvement>
@@ -354,15 +365,21 @@ START: <Task> [@Agent]
 
 ## Learnings
 <New knowledge captured>
-
-## Technical Notes
-<Implementation details>
 ```
+
+**Checklist Before COMPLETE Phase**:
+- [ ] Decision Diagram created with all decision points
+- [ ] All [ATTEMPT #N] emissions included
+- [ ] All [SUBAGENT: Name] delegations shown
+- [ ] All [DECISION: ?] questions documented
+- [ ] Rejected alternatives explained
+- [ ] Final outcome marked [COMPLETE]
 
 **Rules**:
 - ✅ Write at session completion
 - ✅ Timestamp from session start
 - ✅ Descriptive slug (lowercase-hyphens)
+- ✅ **MUST include Decision Diagram**
 - ✅ All sections completed
 - ✅ Technical details included
 
