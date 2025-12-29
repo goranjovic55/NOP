@@ -114,8 +114,17 @@ Query before work, update after:
 [COMPLETE: task=<desc> | result=<summary> | learnings=N]
 
 [WORKFLOW_LOG: task=<desc>]
-Summary | Agent Interactions | Files | Quality Gates | Learnings
+Summary | Decision & Execution Flow | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
+```
+
+## Emissions (for Decision Tree)
+```
+[DECISION: question] → chosen_path
+[SKILL: #N Name] → result
+[SUBAGENT: Name] task
+[ATTEMPT #N] action → ✓/✗ result
+[LOOP: desc] → outcome
 ```
 
 **Write workflow log to file**:

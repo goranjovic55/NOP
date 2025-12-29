@@ -244,10 +244,25 @@ For detailed agent documentation, see `.github/agents/`.
 
 ## 📚 Documentation
 
-For detailed documentation, see:
-- **Architecture**: `docs/architecture/ARCH_system_v1.md` - Complete system architecture
-- **API Reference**: `docs/technical/API_rest_v1.md` - REST API specification
-- **Configuration**: `docs/guides/CONFIGURATION.md` - Configuration reference
-- **Deployment**: `docs/guides/DEPLOYMENT.md` - Deployment guide
-- **Features**: `docs/features/` - Implemented and proposed features
-- **Roadmap**: `docs/development/ROADMAP.md` - Development roadmap
+**[📖 Complete Documentation Index](docs/INDEX.md)** - Navigate all documentation
+
+### Quick Links
+- **[Quick Start](docs/guides/QUICK_START.md)** - Get started in 5 minutes
+- **[Architecture](docs/architecture/ARCH_system_v1.md)** - System design and components
+- **[API Reference](docs/technical/API_rest_v1.md)** - REST API specification
+- **[Deployment](docs/guides/DEPLOYMENT.md)** - Production deployment guide
+- **[Contributing](docs/development/CONTRIBUTING.md)** - How to contribute
+
+### Documentation Structure
+- **Architecture** - System design and technical architecture
+- **Technical** - API references and specifications
+- **Guides** - Quick start, configuration, deployment
+- **Development** - Contributing, testing, roadmap
+- **Design** - UI/UX specifications
+- **Features** - Implemented and proposed features
+
+### Agent Framework Documentation
+- **Skills**: `.claude/skills.md` - 13 core coding patterns
+- **Domain Skills**: `.claude/skills/domain.md` - NOP-specific patterns
+- **Knowledge Graph**: `project_knowledge.json` - Entity-relation model
+- **Workflows**: `.github/workflows/` - Agent workflow definitions
