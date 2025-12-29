@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import PacketCrafting from '../components/PacketCrafting';
+import Storm from './Storm';
 
 interface Packet {
   id: string;
@@ -165,8 +166,8 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft'>(() => {
-    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft') || 'capture';
+  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
+    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
   });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
@@ -515,6 +516,16 @@ const Traffic: React.FC = () => {
           }`}
         >
           Craft Packet
+        </button>
+        <button
+          onClick={() => setActiveTab('storm')}
+          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
+            activeTab === 'storm'
+              ? 'bg-red-600 text-white border-2 border-red-600'
+              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-red-600 hover:text-red-500'
+          }`}
+        >
+          ⚡ Storm
         </button>
       </div>
 
@@ -1104,6 +1115,13 @@ const Traffic: React.FC = () => {
       {activeTab === 'craft' && (
         <div className="flex-1 overflow-hidden">
           <PacketCrafting />
+        </div>
+      )}
+
+      {/* Storm Tab Content */}
+      {activeTab === 'storm' && (
+        <div className="flex-1 overflow-hidden">
+          <Storm />
         </div>
       )}
 

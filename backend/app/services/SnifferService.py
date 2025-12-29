@@ -40,6 +40,20 @@ class SnifferService:
         self.filter_unicast = False  # Don't filter unicast by default (allows passive listener detection)
         self.filter_multicast = True  # Filter multicast by default
         self.filter_broadcast = True  # Filter broadcast by default
+        
+        # Storm-related attributes
+        self.is_storming = False
+        self.storm_thread: Optional[threading.Thread] = None
+        self.storm_config: Dict[str, Any] = {}
+        self.storm_metrics = {
+            "packets_sent": 0,
+            "bytes_sent": 0,
+            "start_time": None,
+            "duration_seconds": 0,
+            "current_pps": 0,
+            "target_pps": 0
+        }
+        
         self.start_background_sniffing()
 
     def start_background_sniffing(self):
@@ -998,5 +1012,223 @@ class SnifferService:
                 "success": False,
                 "error": f"Packet crafting error: {str(e)}"
             }
+    
+    def start_storm(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Start a packet storm based on configuration
+        """
+        if self.is_storming:
+            return {
+                "success": False,
+                "error": "Storm already in progress"
+            }
+        
+        try:
+            # Validate configuration
+            packet_type = config.get("packet_type", "tcp")
+            dest_ip = config.get("dest_ip")
+            pps = config.get("pps", 100)
+            interface = config.get("interface", "eth0")
+            
+            if not dest_ip:
+                return {
+                    "success": False,
+                    "error": "Destination IP is required"
+                }
+            
+            # Store config
+            self.storm_config = config
+            self.storm_metrics = {
+                "packets_sent": 0,
+                "bytes_sent": 0,
+                "start_time": time.time(),
+                "duration_seconds": 0,
+                "current_pps": 0,
+                "target_pps": pps
+            }
+            
+            # Start storm thread
+            self.is_storming = True
+            self.storm_thread = threading.Thread(target=self._run_storm, daemon=True)
+            self.storm_thread.start()
+            
+            return {
+                "success": True,
+                "message": f"Storm started on {interface} targeting {dest_ip} at {pps} PPS"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to start storm: {str(e)}"
+            }
+    
+    def _run_storm(self):
+        """
+        Run the packet storm in a background thread
+        """
+        try:
+            config = self.storm_config
+            packet_type = config.get("packet_type", "tcp")
+            source_ip = config.get("source_ip")
+            dest_ip = config.get("dest_ip")
+            source_port = config.get("source_port")
+            dest_port = config.get("dest_port", 80)
+            pps = config.get("pps", 100)
+            payload = config.get("payload", "")
+            ttl = config.get("ttl", 64)
+            tcp_flags = config.get("tcp_flags", ["SYN"])
+            
+            # Calculate sleep time between packets
+            sleep_time = 1.0 / pps if pps > 0 else 0
+            
+            # Build packet template
+            packet = None
+            
+            if packet_type == "broadcast":
+                # Broadcast UDP packet
+                packet = Ether(dst="ff:ff:ff:ff:ff:ff") / IP(dst="255.255.255.255") / UDP(dport=dest_port)
+            
+            elif packet_type == "multicast":
+                # Multicast UDP packet
+                packet = IP(dst="224.0.0.1") / UDP(dport=dest_port)
+            
+            elif packet_type == "tcp":
+                # TCP packet
+                flag_str = "".join([{"SYN": "S", "ACK": "A", "FIN": "F", "RST": "R", "PSH": "P", "URG": "U"}.get(f, "") for f in tcp_flags])
+                if not flag_str:
+                    flag_str = "S"
+                
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip, ttl=ttl)
+                else:
+                    ip_layer = IP(dst=dest_ip, ttl=ttl)
+                
+                tcp_layer = TCP(dport=dest_port, flags=flag_str)
+                if source_port:
+                    tcp_layer.sport = source_port
+                
+                packet = ip_layer / tcp_layer
+            
+            elif packet_type == "udp":
+                # UDP packet
+                if source_ip:
+                    ip_layer = IP(src=source_ip, dst=dest_ip, ttl=ttl)
+                else:
+                    ip_layer = IP(dst=dest_ip, ttl=ttl)
+                
+                udp_layer = UDP(dport=dest_port)
+                if source_port:
+                    udp_layer.sport = source_port
+                
+                packet = ip_layer / udp_layer
+            
+            elif packet_type == "raw_ip":
+                # Raw IP packet
+                if source_ip:
+                    packet = IP(src=source_ip, dst=dest_ip, ttl=ttl)
+                else:
+                    packet = IP(dst=dest_ip, ttl=ttl)
+            
+            if not packet:
+                logger.error(f"Failed to build packet for type: {packet_type}")
+                self.is_storming = False
+                return
+            
+            # Add payload if provided
+            if payload:
+                packet = packet / payload
+            
+            # Storm loop
+            packet_count = 0
+            bytes_count = 0
+            last_pps_calc = time.time()
+            packets_in_last_second = 0
+            
+            logger.info(f"Starting storm: {packet_type} to {dest_ip} at {pps} PPS")
+            
+            while self.is_storming:
+                try:
+                    # Send packet
+                    send(packet, verbose=False)
+                    packet_count += 1
+                    bytes_count += len(packet)
+                    packets_in_last_second += 1
+                    
+                    # Update metrics
+                    current_time = time.time()
+                    self.storm_metrics["packets_sent"] = packet_count
+                    self.storm_metrics["bytes_sent"] = bytes_count
+                    self.storm_metrics["duration_seconds"] = int(current_time - self.storm_metrics["start_time"])
+                    
+                    # Calculate current PPS
+                    if current_time - last_pps_calc >= 1.0:
+                        self.storm_metrics["current_pps"] = packets_in_last_second
+                        packets_in_last_second = 0
+                        last_pps_calc = current_time
+                    
+                    # Sleep to maintain PPS rate
+                    if sleep_time > 0:
+                        time.sleep(sleep_time)
+                        
+                except Exception as e:
+                    logger.error(f"Error sending storm packet: {e}")
+                    time.sleep(0.1)
+            
+            logger.info(f"Storm stopped: Sent {packet_count} packets ({bytes_count} bytes)")
+            
+        except Exception as e:
+            logger.error(f"Storm thread error: {e}")
+            self.is_storming = False
+    
+    def stop_storm(self) -> Dict[str, Any]:
+        """
+        Stop the current packet storm
+        """
+        if not self.is_storming:
+            return {
+                "success": False,
+                "error": "No storm in progress"
+            }
+        
+        self.is_storming = False
+        
+        if self.storm_thread:
+            self.storm_thread.join(timeout=2.0)
+        
+        return {
+            "success": True,
+            "message": "Storm stopped",
+            "final_metrics": self.storm_metrics.copy()
+        }
+    
+    def get_storm_metrics(self) -> Dict[str, Any]:
+        """
+        Get current storm metrics
+        """
+        if not self.is_storming and self.storm_metrics["start_time"] is None:
+            return {
+                "active": False,
+                "packets_sent": 0,
+                "bytes_sent": 0,
+                "duration_seconds": 0,
+                "current_pps": 0,
+                "target_pps": 0,
+                "start_time": ""
+            }
+        
+        # Update duration if storm is active
+        if self.is_storming and self.storm_metrics["start_time"]:
+            self.storm_metrics["duration_seconds"] = int(time.time() - self.storm_metrics["start_time"])
+        
+        return {
+            "active": self.is_storming,
+            "packets_sent": self.storm_metrics["packets_sent"],
+            "bytes_sent": self.storm_metrics["bytes_sent"],
+            "duration_seconds": self.storm_metrics["duration_seconds"],
+            "current_pps": self.storm_metrics["current_pps"],
+            "target_pps": self.storm_metrics["target_pps"],
+            "start_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.storm_metrics["start_time"])) if self.storm_metrics["start_time"] else ""
+        }
 
 sniffer_service = SnifferService()

@@ -83,3 +83,30 @@ async def craft_packet(packet_config: Dict):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/start")
+async def start_storm(storm_config: Dict):
+    """Start packet storm"""
+    try:
+        result = sniffer_service.start_storm(storm_config)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/stop")
+async def stop_storm():
+    """Stop packet storm"""
+    try:
+        result = sniffer_service.stop_storm()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/storm/metrics")
+async def get_storm_metrics():
+    """Get current storm metrics"""
+    try:
+        return sniffer_service.get_storm_metrics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
