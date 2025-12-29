@@ -7,6 +7,13 @@ description: Orchestrates development tasks by delegating to specialist agents (
 
 Coordinates specialists, maintains task control, integrates results.
 
+**⚠️ CRITICAL - ALWAYS START WITH THIS:**
+```
+[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+[PHASE: CONTEXT | progress=1/7]
+```
+Load skills → project knowledge → global knowledge BEFORE proceeding.
+
 ## Hierarchy
 ```
 _DevTeam (Orchestrator)
@@ -28,9 +35,11 @@ Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect pr
 ```
 | Task | Phases |
 |------|--------|
-| Quick fix | CONTEXT→COORDINATE→COMPLETE |
-| Feature | CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE |
-| Bug | CONTEXT→COORDINATE→INTEGRATE→VERIFY→COMPLETE |
+| Quick fix | CONTEXT→COORDINATE→VERIFY→[USER CONFIRM]→COMPLETE |
+| Feature | CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→[USER CONFIRM]→LEARN→COMPLETE |
+| Bug | CONTEXT→COORDINATE→INTEGRATE→VERIFY→[USER CONFIRM]→COMPLETE |
+
+**User Confirmation**: After VERIFY, emit `[VERIFY: complete | awaiting user confirmation]` and wait for user to confirm testing passed before LEARN/COMPLETE.
 
 ## Delegation
 
@@ -108,3 +117,10 @@ Query before work, update after:
 Summary | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
 ```
+
+**Write workflow log to file**:
+- Create file: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
+- Timestamp from session start (format: 2025-12-28_143022)
+- Task slug: lowercase, hyphens, max 50 chars, descriptive
+- Content: Full markdown workflow log with all sections
+- This creates persistent session history for future agent reference

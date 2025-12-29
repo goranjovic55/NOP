@@ -1,11 +1,11 @@
 # Claude Skills
 
-**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.0.0  
+**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.1.0  
 **Usage**: Copy `.claude/` to any project, run `update_skills` workflow
 
 ---
 
-## Skill Index (12 Core Skills)
+## Skill Index (13 Core Skills)
 
 | # | Skill | Category | Trigger |
 |---|-------|----------|---------|
@@ -21,6 +21,7 @@
 | 10 | [API Patterns](#10-api-patterns) | Backend | Endpoints |
 | 11 | [UI Patterns](#11-ui-patterns) | Frontend | Components |
 | 12 | [Infrastructure](#12-infrastructure) | DevOps | Docker, CI/CD |
+| 13 | [Workflow Logs](#13-workflow-logs) | Process | Session complete |
 
 ---
 
@@ -305,9 +306,59 @@ services:
 
 ---
 
+## 13. Workflow Logs
+
+**Trigger**: Session completion (significant work)
+
+**Pattern**:
+```bash
+timestamp=$(date '+%Y-%m-%d_%H%M%S')
+task_slug="implement-feature-name"  # lowercase, hyphens, max 50 chars
+log_file="log/workflow/${timestamp}_${task_slug}.md"
+```
+
+**Template**:
+```markdown
+# Workflow Log: <Task Description>
+
+**Session**: YYYY-MM-DD_HHMMSS
+**Task**: <description>
+**Agent**: _DevTeam | Architect | Developer | Reviewer | Researcher
+**Status**: Completed | In Progress | Blocked
+
+## Summary
+<Brief overview>
+
+## Agent Interactions
+<Delegation patterns, specialist involvement>
+
+## Files Modified
+<path/file.ext>: <changes>
+
+## Quality Gates
+✅ Context | Design | Code | Quality
+
+## Learnings
+<New knowledge captured>
+
+## Technical Notes
+<Implementation details>
+```
+
+**Rules**:
+- ✅ Write at session completion
+- ✅ Timestamp from session start
+- ✅ Descriptive slug (lowercase-hyphens)
+- ✅ All sections completed
+- ✅ Technical details included
+
+**Storage**: `log/workflow/` (gitignored, README preserved)
+
+---
+
 ## Auto-Detection
 
-**Core Skills (1-9)**: Always active
+**Core Skills (1-9, 13)**: Always active
 **Stack Skills (10-12)**: Enabled based on detected files
 
 | Detection | Files | Skills Enabled |

@@ -15,6 +15,9 @@ global_knowledge.json (.github/)
 
 ## Flow
 ```
+[DELEGATE: agent=Researcher | task="Extract from workflow logs"]
+→ Learnings, entities, relations from log/workflow/*.md
+
 [DELEGATE: agent=Researcher | task="Assess knowledge state"]
 → Gaps, outdated, bloat
 
@@ -22,7 +25,7 @@ global_knowledge.json (.github/)
 → Entity list, codegraph
 
 [DELEGATE: agent=Developer | task="Update project knowledge"]
-→ Optimized entities
+→ Integrate findings, optimize entities
 
 [DELEGATE: agent=Researcher | task="Identify universal patterns"]
 → Global candidates
@@ -41,5 +44,11 @@ global_knowledge.json (.github/)
 | Duplicates >80% | Merge |
 | Obsolete 90+ days | Remove |
 | Verbose >500 chars | Condense to 60-80 |
+
+## Commands
+```bash
+# Extract from logs: entities, patterns, relations
+grep -h "Learnings\|Pattern:\|relation" log/workflow/*.md 2>/dev/null | head -5
+```
 
 ## Size Target: <100KB, Entity:Cluster ratio ≥6:1

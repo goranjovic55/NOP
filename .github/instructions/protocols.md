@@ -50,6 +50,20 @@ Artifacts: [files] | Learnings: [patterns]
 | relation | project_knowledge.json | Connections |
 | pattern | global_knowledge.json | Universal patterns |
 
+## Learn Phase
+```
+[PHASE: LEARN | progress=6/7]
+```
+
+**Skill Suggestion**: If session revealed a reusable pattern:
+```
+[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
+Trigger: <when to apply>
+Pattern: <code or rule>
+Rules: <checklist>
+[/SKILL_SUGGESTION]
+```
+
 ## Completion
 ```
 [COMPLETE: task=<desc> | result=<summary> | learnings=N]
@@ -62,6 +76,13 @@ Artifacts: [files] | Learnings: [patterns]
 ## Summary | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
 ```
+
+**Persist to File**:
+- Write to: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
+- Timestamp: From session start (e.g., 2025-12-28_143022)
+- Task slug: lowercase-with-hyphens, max 50 chars
+- Format: Full markdown with all workflow sections
+- Purpose: Future agents can reference session history
 
 ## Error Recovery
 | Error | Action |
