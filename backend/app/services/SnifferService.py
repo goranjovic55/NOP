@@ -1,11 +1,14 @@
 import asyncio
 import json
+import logging
 import threading
 from typing import Dict, List, Optional, Callable, Any
 from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sr1, ICMP
 import psutil
 import time
 import os
+
+logger = logging.getLogger(__name__)
 
 class SnifferService:
     # Constants for packet crafting
@@ -32,6 +35,11 @@ class SnifferService:
         self.interface_history = {} # Store history for each interface
         self.last_bytes_check = 0
         self.last_if_stats = {}
+        self.discovered_hosts = {}  # Format: {ip_address: {"first_seen": timestamp, "last_seen": timestamp, "mac_address": mac}}
+        self.track_source_only = True  # Default to safer mode (source IPs only)
+        self.filter_unicast = False  # Don't filter unicast by default (allows passive listener detection)
+        self.filter_multicast = True  # Filter multicast by default
+        self.filter_broadcast = True  # Filter broadcast by default
         self.start_background_sniffing()
 
     def start_background_sniffing(self):
@@ -99,6 +107,98 @@ class SnifferService:
                 "activity": history
             })
         return interfaces
+    
+    def get_discovered_hosts(self) -> List[Dict[str, Any]]:
+        """Return list of discovered hosts from passive discovery"""
+        hosts = []
+        for ip, info in self.discovered_hosts.items():
+            hosts.append({
+                "ip_address": ip,
+                "mac_address": info.get("mac_address", "Unknown"),
+                "first_seen": info.get("first_seen"),
+                "last_seen": info.get("last_seen")
+            })
+        return hosts
+    
+    def set_track_source_only(self, enabled: bool):
+        """Update the track_source_only setting for passive discovery"""
+        self.track_source_only = enabled
+    
+    def set_filter_unicast(self, enabled: bool):
+        """Enable or disable unicast filtering"""
+        self.filter_unicast = enabled
+        logger.info(f"Passive discovery filter_unicast set to: {enabled}")
+    
+    def set_filter_multicast(self, enabled: bool):
+        """Enable or disable multicast filtering"""
+        self.filter_multicast = enabled
+        logger.info(f"Passive discovery filter_multicast set to: {enabled}")
+    
+    def set_filter_broadcast(self, enabled: bool):
+        """Enable or disable broadcast filtering"""
+        self.filter_broadcast = enabled
+        logger.info(f"Passive discovery filter_broadcast set to: {enabled}")
+    
+    def _is_broadcast_mac(self, mac: str) -> bool:
+        """Check if MAC address is broadcast"""
+        return mac.upper() == "FF:FF:FF:FF:FF:FF"
+    
+    def _is_broadcast_ip(self, ip: str) -> bool:
+        """Check if IP is broadcast (ends with .255) or 255.255.255.255"""
+        return ip.endswith(".255") or ip == "255.255.255.255"
+    
+    def _is_multicast_ip(self, ip: str) -> bool:
+        """Check if IP is multicast (224.0.0.0 - 239.255.255.255)"""
+        try:
+            first_octet = int(ip.split('.')[0])
+            return 224 <= first_octet <= 239
+        except:
+            return False
+    
+    def _is_link_local_ip(self, ip: str) -> bool:
+        """Check if IP is link-local (169.254.x.x)"""
+        return ip.startswith("169.254.")
+    
+    def _is_valid_source_ip(self, ip: str) -> bool:
+        """Check if IP is a valid source address (not broadcast, not 0.0.0.0, not link-local)"""
+        if not ip:
+            return False
+        # 0.0.0.0 is not a valid source
+        if ip == "0.0.0.0":
+            return False
+        # Broadcast addresses can't be sources
+        if self._is_broadcast_ip(ip):
+            return False
+        # Link-local should be filtered
+        if self._is_link_local_ip(ip):
+            return False
+        # Multicast can't be a source
+        if self._is_multicast_ip(ip):
+            return False
+        return True
+    
+    def _should_track_ip(self, ip: str) -> bool:
+        """Check if IP should be tracked based on filtering rules"""
+        # Always filter link-local addresses
+        if self._is_link_local_ip(ip):
+            return False
+        
+        # Check broadcast filtering (if enabled)
+        if self.filter_broadcast and self._is_broadcast_ip(ip):
+            return False
+        
+        # Check multicast filtering (if enabled)
+        if self.filter_multicast and self._is_multicast_ip(ip):
+            return False
+        
+        # Check unicast filtering (if enabled)
+        # Unicast = not broadcast, not multicast, not link-local
+        if self.filter_unicast:
+            is_unicast = not self._is_broadcast_ip(ip) and not self._is_multicast_ip(ip)
+            if is_unicast:
+                return False
+        
+        return True
 
     def _dissect_packet(self, packet) -> Dict[str, Any]:
         """Full protocol dissection for packet inspector"""
@@ -406,6 +506,49 @@ class SnifferService:
             src = packet[IP].src
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
+            
+            # Track discovered hosts from IP packets
+            # Strategy depends on track_source_only setting
+            current_time = time.time()
+            src_mac = packet[Ether].src if Ether in packet else "Unknown"
+            dst_mac = packet[Ether].dst if Ether in packet else "Unknown"
+            
+            if self.track_source_only:
+                # SAFE MODE: Only track source IPs
+                # Source IP = host exists and is sending traffic (100% reliable)
+                # But still filter out invalid source IPs (broadcast, link-local, 0.0.0.0)
+                if self._is_valid_source_ip(src) and src not in self.discovered_hosts:
+                    self.discovered_hosts[src] = {
+                        "first_seen": current_time,
+                        "last_seen": current_time,
+                        "mac_address": src_mac
+                    }
+                elif src in self.discovered_hosts:
+                    self.discovered_hosts[src]["last_seen"] = current_time
+            else:
+                # FULL MODE: Track both source AND destination with filtering
+                # This may catch passive listeners (UDP servers that don't respond)
+                # but requires filtering to avoid false positives
+                
+                # Track source IP (with basic validation)
+                if self._is_valid_source_ip(src) and src not in self.discovered_hosts:
+                    self.discovered_hosts[src] = {
+                        "first_seen": current_time,
+                        "last_seen": current_time,
+                        "mac_address": src_mac
+                    }
+                elif src in self.discovered_hosts:
+                    self.discovered_hosts[src]["last_seen"] = current_time
+                
+                # Track destination IP only if it passes filters
+                if self._should_track_ip(dst) and dst not in self.discovered_hosts:
+                    self.discovered_hosts[dst] = {
+                        "first_seen": current_time,
+                        "last_seen": current_time,
+                        "mac_address": dst_mac
+                    }
+                elif dst in self.discovered_hosts:
+                    self.discovered_hosts[dst]["last_seen"] = current_time
             
             # Determine protocol
             protocol = "OTHER"

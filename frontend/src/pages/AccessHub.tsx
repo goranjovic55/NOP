@@ -244,7 +244,7 @@ const AccessHub: React.FC = () => {
       <div className={`flex-1 flex flex-col ${isFullscreen ? '' : 'space-y-4'}`}>
         {!isFullscreen && (
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Access Hub</h2>
+            <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">ACCESS</h2>
             <div className="flex space-x-2">
               <button 
                 onClick={toggleVault}

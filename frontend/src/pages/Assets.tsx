@@ -323,7 +323,14 @@ const Assets: React.FC = () => {
         </div>
       </div>
 
-      <div className={`space-y-6 transition-all duration-300 ${selectedAsset ? 'mr-96' : ''}`}>
+      <div 
+        className={`space-y-6 transition-all duration-300 ${selectedAsset ? 'mr-96' : ''}`}
+        onClick={(e) => {
+          if (selectedAsset && e.target === e.currentTarget) {
+            setSelectedAsset(null);
+          }
+        }}
+      >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Assets</h2>
 
@@ -439,7 +446,7 @@ const Assets: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-cyber-blue font-mono flex items-center space-x-2">
                         <span>{asset.ip_address}</span>
                         {isScanningThis && (
-                          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Detailed Scan Underway"></span>
+                          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Scan Underway"></span>
                         )}
                         {isConnectedThis && (
                           <span className="w-2 h-2 bg-cyber-green rounded-full animate-pulse shadow-[0_0_5px_#00ff41]" title="Active Connection"></span>

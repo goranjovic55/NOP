@@ -14,6 +14,7 @@ from app.schemas.settings import (
     AccessSettingsConfig,
     SystemSettingsConfig
 )
+from app.services.SnifferService import sniffer_service
 from typing import Dict, Any
 
 router = APIRouter()
@@ -21,10 +22,10 @@ router = APIRouter()
 
 # Default settings
 DEFAULT_SETTINGS = {
-    "scan": ScanSettingsConfig().dict(),
-    "discovery": DiscoverySettingsConfig().dict(),
-    "access": AccessSettingsConfig().dict(),
-    "system": SystemSettingsConfig().dict()
+    "scan": ScanSettingsConfig().model_dump(),
+    "discovery": DiscoverySettingsConfig().model_dump(),
+    "access": AccessSettingsConfig().model_dump(),
+    "system": SystemSettingsConfig().model_dump()
 }
 
 # Schema mapping for validation
@@ -100,9 +101,22 @@ async def update_settings(
     try:
         # Validate the config against the appropriate schema
         schema_class = SCHEMA_MAP[category]
-        validated_config = schema_class(**request).dict()
+        validated_config = schema_class(**request).model_dump()
         
         await upsert_settings(db, category, validated_config)
+        
+        # Apply discovery settings to sniffer service
+        if category == "discovery":
+            track_source_only = validated_config.get("track_source_only", True)
+            sniffer_service.set_track_source_only(track_source_only)
+            
+            # Apply granular filtering settings
+            filter_unicast = validated_config.get("filter_unicast", False)
+            filter_multicast = validated_config.get("filter_multicast", True)
+            filter_broadcast = validated_config.get("filter_broadcast", True)
+            sniffer_service.set_filter_unicast(filter_unicast)
+            sniffer_service.set_filter_multicast(filter_multicast)
+            sniffer_service.set_filter_broadcast(filter_broadcast)
         
         return {
             "message": f"{category.capitalize()} settings updated successfully",
@@ -133,6 +147,7 @@ async def reset_category_settings(category: str, db: AsyncSession = Depends(get_
     
     try:
         await upsert_settings(db, category, DEFAULT_SETTINGS[category])
+        
         return {
             "message": f"{category.capitalize()} settings reset to defaults",
             "category": category,

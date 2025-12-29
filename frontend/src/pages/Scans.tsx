@@ -14,7 +14,7 @@ const Scans: React.FC = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
-  const [showDashboard, setShowDashboard] = useState(true);
+  const [showDashboard, setShowDashboard] = useState(tabs.length === 0); // Show dashboard when no tabs
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>(() => {
@@ -248,18 +248,84 @@ const Scans: React.FC = () => {
 
   // Dashboard view component
   const DashboardView = () => (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-3">
+      {/* Manual IP Entry - Same layer as dashboard */}
+      <div className="bg-cyber-darker border border-cyber-gray p-3">
+        <h3 className="text-cyber-blue font-bold uppercase tracking-widest text-xs mb-2">Manual IP Scan</h3>
+        <form onSubmit={handleManualSubmit} className="flex gap-2">
+          <div className="flex-1 relative" ref={assetDropdownRef}>
+            <input
+              type="text"
+              value={manualIp}
+              onChange={(e) => {
+                setManualIp(e.target.value);
+                setShowAssetDropdown(e.target.value.length > 0);
+              }}
+              onFocus={() => setShowAssetDropdown(manualIp.length > 0)}
+              placeholder="Enter IP or select from assets..."
+              className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-xs outline-none focus:border-cyber-red transition-colors font-mono"
+            />
+            {showAssetDropdown && onlineAssets.length > 0 && (() => {
+              const filtered = onlineAssets.filter(a => 
+                a.ip_address.toLowerCase().includes(manualIp.toLowerCase()) ||
+                a.hostname.toLowerCase().includes(manualIp.toLowerCase())
+              );
+              return filtered.length > 0 ? (
+                <div className="absolute z-10 w-full mt-1 bg-cyber-dark border border-cyber-gray max-h-48 overflow-y-auto custom-scrollbar">
+                  {filtered.slice(0, 10).map((asset) => {
+                    const isOnline = asset.status === 'online';
+                    return (
+                      <div
+                        key={asset.ip_address}
+                        onClick={() => {
+                          setManualIp(asset.ip_address);
+                          setShowAssetDropdown(false);
+                        }}
+                        className="flex justify-between items-center p-2 hover:bg-cyber-darker cursor-pointer border-b border-cyber-gray last:border-0"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-cyber-blue text-xs font-mono">
+                            {asset.ip_address}
+                          </span>
+                          {asset.hostname !== asset.ip_address && (
+                            <span className="text-cyber-gray-light text-[10px]">{asset.hostname}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-bold uppercase ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>
+                            {isOnline ? '● ONLINE' : '○ OFFLINE'}
+                          </span>
+                          <span className={`text-[10px] ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>▸</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null;
+            })()}
+          </div>
+          <button
+            type="submit"
+            className="btn-cyber border-cyber-red text-cyber-red px-3 py-2 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-wider text-[10px]"
+          >
+            Add Scan
+          </button>
+        </form>
+        <p className="text-cyber-gray-light text-[9px] mt-1">
+          💡 Tip: You can enter CIDR notation (e.g., 192.168.1.0/24) to scan entire subnets
+        </p>
+      </div>
+
       {/* Filters Section */}
-      <div className="bg-cyber-darker border border-cyber-gray p-4 space-y-3">
-        <h3 className="text-cyber-blue font-bold uppercase tracking-widest text-sm">Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-cyber-darker border border-cyber-gray p-2">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Status Filter */}
-          <div className="space-y-2">
-            <label className="text-xs text-cyber-purple uppercase font-bold">Status</label>
-            <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-cyber-purple uppercase font-bold">Status:</label>
+            <div className="flex gap-1">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`flex-1 py-2 px-3 text-xs uppercase font-bold tracking-widest border transition-all ${
+                className={`py-1 px-2 text-[10px] uppercase font-bold tracking-wider border transition-all ${
                   statusFilter === 'all'
                     ? 'bg-cyber-blue text-white border-cyber-blue'
                     : 'bg-cyber-dark text-cyber-gray-light border-cyber-gray hover:border-cyber-blue'
@@ -269,7 +335,7 @@ const Scans: React.FC = () => {
               </button>
               <button
                 onClick={() => setStatusFilter('online')}
-                className={`flex-1 py-2 px-3 text-xs uppercase font-bold tracking-widest border transition-all ${
+                className={`py-1 px-2 text-[10px] uppercase font-bold tracking-wider border transition-all ${
                   statusFilter === 'online'
                     ? 'bg-cyber-green text-white border-cyber-green'
                     : 'bg-cyber-dark text-cyber-gray-light border-cyber-gray hover:border-cyber-green'
@@ -279,7 +345,7 @@ const Scans: React.FC = () => {
               </button>
               <button
                 onClick={() => setStatusFilter('offline')}
-                className={`flex-1 py-2 px-3 text-xs uppercase font-bold tracking-widest border transition-all ${
+                className={`py-1 px-2 text-[10px] uppercase font-bold tracking-wider border transition-all ${
                   statusFilter === 'offline'
                     ? 'bg-cyber-gray text-white border-cyber-gray'
                     : 'bg-cyber-dark text-cyber-gray-light border-cyber-gray hover:border-cyber-gray'
@@ -290,14 +356,14 @@ const Scans: React.FC = () => {
             </div>
           </div>
           {/* IP Address Filter */}
-          <div className="space-y-2">
-            <label className="text-xs text-cyber-purple uppercase font-bold">Search IP / Hostname</label>
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <label className="text-[10px] text-cyber-purple uppercase font-bold whitespace-nowrap">Search:</label>
             <input
               type="text"
               value={ipFilter}
               onChange={(e) => setIpFilter(e.target.value)}
-              placeholder="Filter by IP or hostname..."
-              className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
+              placeholder="IP or hostname..."
+              className="flex-1 bg-cyber-dark border border-cyber-gray p-1.5 text-cyber-blue text-[10px] outline-none focus:border-cyber-red transition-colors font-mono"
             />
           </div>
         </div>
@@ -414,157 +480,59 @@ const Scans: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-      {/* Manual IP Input Section - Compact */}
-      <div className="bg-cyber-darker border border-cyber-gray p-3">
-        <form onSubmit={handleManualSubmit} className="flex items-center space-x-2">
-          <label className="text-[10px] text-cyber-purple uppercase font-bold whitespace-nowrap">
-            Target IP:
-          </label>
-          <div className="flex-1 relative" ref={assetDropdownRef}>
-            <input
-              type="text"
-              value={manualIp}
-              onChange={(e) => {
-                setManualIp(e.target.value);
-                setShowAssetDropdown(true);
-              }}
-              onFocus={() => setShowAssetDropdown(true)}
-              placeholder="e.g. 192.168.1.1 or 192.168.1.0/24"
-              className="w-full bg-cyber-dark border border-cyber-gray px-3 py-1.5 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
-            />
-            
-            {/* Assets Dropdown with Filter */}
-            {showAssetDropdown && (() => {
-              const filtered = onlineAssets.filter(asset => 
-                asset.ip_address.toLowerCase().includes(manualIp.toLowerCase()) ||
-                asset.hostname.toLowerCase().includes(manualIp.toLowerCase())
-              );
-              const onlineCount = filtered.filter(a => a.status === 'online').length;
-              const offlineCount = filtered.filter(a => a.status === 'offline').length;
-              
-              return filtered.length > 0 ? (
-                <div className="absolute top-full left-0 mt-1 w-full bg-cyber-darker border border-cyber-blue z-50 shadow-xl max-h-[250px] overflow-y-auto custom-scrollbar">
-                  <div className="p-2 bg-cyber-darker border-b border-cyber-gray flex justify-between items-center">
-                    <span className="text-[10px] text-cyber-purple font-bold uppercase">Assets ({filtered.length})</span>
-                    <span className="text-[9px] text-cyber-gray-light">
-                      <span className="text-cyber-green">{onlineCount} online</span> / <span className="text-cyber-gray">{offlineCount} offline</span>
-                    </span>
-                  </div>
-                  {filtered.map((asset, idx) => {
-                    const isOnline = asset.status === 'online';
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          setManualIp(asset.ip_address);
-                          setShowAssetDropdown(false);
-                        }}
-                        className={`p-2 cursor-pointer border-b border-cyber-gray/30 flex items-center justify-between ${
-                          isOnline 
-                            ? 'hover:bg-cyber-green/10' 
-                            : 'hover:bg-cyber-gray/10 opacity-60'
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span className={`font-mono text-xs ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>
-                            {asset.ip_address}
-                          </span>
-                          {asset.hostname !== asset.ip_address && (
-                            <span className="text-cyber-gray-light text-[10px]">{asset.hostname}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-bold uppercase ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>
-                            {isOnline ? '● ONLINE' : '○ OFFLINE'}
-                          </span>
-                          <span className={`text-[10px] ${isOnline ? 'text-cyber-green' : 'text-cyber-gray'}`}>▸</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null;
-            })()}
-          </div>
-          <button
-            type="submit"
-            className="btn-cyber border-cyber-red text-cyber-red px-4 py-2 hover:bg-cyber-red hover:text-white uppercase font-bold tracking-widest text-xs"
-          >
-            Add Scan
-          </button>
-        </form>
-        <p className="text-cyber-gray-light text-[10px]">
-          💡 Tip: You can enter CIDR notation (e.g., 192.168.1.0/24) to scan entire subnets
-        </p>
-      </div>
-
-      {/* Tab Bar */}
-      <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar">
-        {/* Dashboard Tab - Always present */}
-        <div
-          onClick={() => setShowDashboard(true)}
-          className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
-            showDashboard
-              ? 'bg-cyber-darker border-cyber-purple text-cyber-purple'
-              : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
-          }`}
-        >
-          <div className="flex-1">
-            <div className="text-xs font-bold uppercase">⌂ Scan Dashboard</div>
-            <div className="text-[10px] opacity-60">{unscannedAssets.length} unscanned</div>
-          </div>
-        </div>
-
-        {/* Active Scan Tabs */}
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setShowDashboard(false);
-            }}
-            className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
-              activeTabId === tab.id && !showDashboard
-                ? 'bg-cyber-darker border-cyber-red text-cyber-red'
-                : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
-            }`}
-          >
-            <div className="flex-1 truncate">
-              <div className="text-xs font-bold uppercase">
-                {tab.ips ? `Multi-host (${tab.ips.length})` : tab.ip}
-              </div>
-              <div className="text-[10px] opacity-60">
-                {tab.ips ? tab.ips.slice(0, 2).join(', ') + (tab.ips.length > 2 ? '...' : '') : (tab.hostname || 'Manual Target')}
-              </div>
-            </div>
-            {tab.status === 'running' && (
-              <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping"></div>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                removeTab(tab.id);
-              }}
-              className="hover:text-cyber-red ml-2"
-            >
-              &times;
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={() => {
-            const ip = prompt('Enter IP Address:');
-            if (ip) {
-              addTab(ip);
-              setShowDashboard(false);
+      {/* Tab Bar - Only show when there are active scans */}
+      {tabs.length > 0 && (
+        <div 
+          className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar"
+          onClick={(e) => {
+            // If clicked on the tab bar background (not on a tab), show dashboard
+            if (e.target === e.currentTarget) {
+              setShowDashboard(true);
             }
           }}
-          className="px-4 py-2 text-cyber-blue hover:text-cyber-red transition-colors text-xl"
-          title="Add Manual Scan"
         >
-          +
-        </button>
-      </div>
+          {/* Active Scan Tabs */}
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setShowDashboard(false);
+              }}
+              className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
+                activeTabId === tab.id && !showDashboard
+                  ? 'bg-cyber-darker border-cyber-red text-cyber-red'
+                  : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
+              }`}
+            >
+              <div className="flex-1 truncate">
+                <div className="text-xs font-bold uppercase">
+                  {tab.ips ? `Multi-host (${tab.ips.length})` : tab.ip}
+                </div>
+                <div className="text-[10px] opacity-60">
+                  {tab.ips ? tab.ips.slice(0, 2).join(', ') + (tab.ips.length > 2 ? '...' : '') : (tab.hostname || 'Manual Target')}
+                </div>
+              </div>
+              {tab.status === 'running' && (
+                <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping"></div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTab(tab.id);
+                  // If removing last tab, show dashboard
+                  if (tabs.length === 1) {
+                    setShowDashboard(true);
+                  }
+                }}
+                className="hover:text-cyber-red ml-2"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Content Area */}
       {showDashboard ? (

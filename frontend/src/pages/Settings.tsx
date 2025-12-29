@@ -42,6 +42,10 @@ interface DiscoverySettings {
   enable_os_detection: boolean;
   enable_service_detection: boolean;
   passive_discovery: boolean;
+  track_source_only: boolean;
+  filter_unicast: boolean;
+  filter_multicast: boolean;
+  filter_broadcast: boolean;
   fingerprint_os: boolean;
   detect_vpn: boolean;
   interface_name: string;
@@ -100,10 +104,23 @@ const Settings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [interfaces, setInterfaces] = useState<Array<{ name: string; ip: string; status: string }>>([]);
 
   useEffect(() => {
     fetchSettings();
+    fetchInterfaces();
+    const interval = setInterval(fetchInterfaces, 5000); // Poll interfaces every 5 seconds
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchInterfaces = async () => {
+    try {
+      const response = await axios.get('/api/v1/traffic/interfaces');
+      setInterfaces(response.data);
+    } catch (error) {
+      console.error('Error fetching interfaces:', error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -271,7 +288,7 @@ const Settings: React.FC = () => {
       {/* Content */}
       <div className="dashboard-card p-6">
         {activeTab === 'scan' && <ScanSettingsPanel settings={settings.scan} onChange={updateSetting} />}
-        {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} />}
+        {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} interfaces={interfaces} />}
         {activeTab === 'access' && <AccessSettingsPanel settings={settings.access} onChange={updateSetting} />}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
       </div>
@@ -527,7 +544,11 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
     </div>
   );
 };
-const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
+const DiscoverySettingsPanel: React.FC<{ 
+  settings: DiscoverySettings; 
+  onChange: (key: string, value: string | number | boolean) => void;
+  interfaces: Array<{ name: string; ip: string; status: string }>;
+}> = ({ settings, onChange, interfaces }) => {
   return (
     <div className="space-y-6">
       {/* Profile Configuration */}
@@ -646,7 +667,42 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
             label="Passive Discovery"
             value={settings.passive_discovery}
             onChange={(val) => onChange('passive_discovery', val)}
+            description="Discover hosts from network traffic"
           />
+          
+          <SettingsToggle
+            label="Source Only"
+            value={settings.track_source_only}
+            onChange={(val) => onChange('track_source_only', val)}
+            description="Safe mode: only track senders. Disable to track receivers with filters below"
+          />
+          
+          {!settings.track_source_only && (
+            <div className="ml-6 space-y-3 border-l-2 border-cyber-purple pl-4">
+              <p className="text-xs text-cyber-purple mb-1">Destination Filters:</p>
+              
+              <SettingsToggle
+                label="Unicast"
+                value={settings.filter_unicast}
+                onChange={(val) => onChange('filter_unicast', val)}
+                description="Filter point-to-point traffic"
+              />
+              
+              <SettingsToggle
+                label="Multicast"
+                value={settings.filter_multicast}
+                onChange={(val) => onChange('filter_multicast', val)}
+                description="Filter group traffic (224.0.0.0/4)"
+              />
+              
+              <SettingsToggle
+                label="Broadcast"
+                value={settings.filter_broadcast}
+                onChange={(val) => onChange('filter_broadcast', val)}
+                description="Filter network-wide traffic"
+              />
+            </div>
+          )}
           
           <SettingsToggle
             label="OS Fingerprinting"
@@ -664,12 +720,28 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
 
       {/* Network Interface */}
       <SettingsSection title="Network Interface">
-        <SettingsInput
-          label="Interface Name"
-          value={settings.interface_name}
-          onChange={(val) => onChange('interface_name', val)}
-          placeholder="eth0"
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-cyber-blue uppercase">
+            Interface Name
+          </label>
+          <select
+            value={settings.interface_name}
+            onChange={(e) => onChange('interface_name', e.target.value)}
+            className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
+          >
+            {interfaces.map((iface) => (
+              <option key={iface.name} value={iface.name} className="bg-cyber-darker text-cyber-blue">
+                {iface.name} - {iface.ip} ({iface.status})
+              </option>
+            ))}
+            {interfaces.length === 0 && (
+              <option value={settings.interface_name} className="bg-cyber-darker text-cyber-blue">
+                {settings.interface_name} (loading...)
+              </option>
+            )}
+          </select>
+          <p className="text-xs text-cyber-gray-light">Select network interface for passive discovery</p>
+        </div>
         
         <SettingsToggle
           label="Promiscuous Mode"

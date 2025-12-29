@@ -344,9 +344,6 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
                 <button onClick={() => setShowStructurePanel(true)} className="px-6 py-3 border-2 border-cyber-purple text-cyber-purple font-bold uppercase text-sm hover:bg-cyber-purple hover:text-white transition-all">
                   Edit Structure
                 </button>
-                <button onClick={() => setShowStructurePanel(true)} className="px-6 py-3 border-2 border-cyber-purple text-cyber-purple font-bold uppercase text-sm hover:bg-cyber-purple hover:text-white transition-all">
-                  Edit Structure
-                </button>
                 <button onClick={handleSendPacket} disabled={isSending || !sourceIp || !destIp} className="px-8 py-3 border-2 border-cyber-green text-cyber-green font-bold uppercase text-sm hover:bg-cyber-green hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   {isSending ? 'Sending...' : 'Send Packet'}
                 </button>

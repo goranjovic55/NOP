@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     # Redis settings
     REDIS_URL: str = "redis://redis:6379/0"
     
-    # Network settings
-    NETWORK_INTERFACE: str = "eth0"
+    # Network settings - eth1 is usually the internal network in multi-network Docker setup
+    NETWORK_INTERFACE: str = "eth1"
     MONITOR_SUBNETS: str = "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12"
     
     # Discovery settings

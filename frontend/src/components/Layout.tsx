@@ -29,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Topology', href: '/topology', icon: '◎', symbol: '⬟' },
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
-    { name: 'Access Hub', href: '/access', icon: '⬡', symbol: '◉' },
+    { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
     { name: 'Exploit', href: '/exploit', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
@@ -91,7 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
-                  {item.name === 'Access Hub' && connectedCount > 0 && (
+                  {item.name === 'ACCESS' && connectedCount > 0 && (
                     <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
                       {connectedCount}
                     </div>
