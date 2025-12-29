@@ -34,6 +34,15 @@ module.exports = {
         'mono': ['JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', 'monospace'],
         'terminal': ['Source Code Pro', 'JetBrains Mono', 'Fira Code', 'monospace'],
       },
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1.2' }],    /* 11.25px - labels */
+        'sm': ['0.875rem', { lineHeight: '1.4' }],   /* 13.125px - secondary text */
+        'base': ['1rem', { lineHeight: '1.5' }],     /* 15px - default */
+        'lg': ['1.125rem', { lineHeight: '1.5' }],   /* 16.875px - emphasis */
+        'xl': ['1.25rem', { lineHeight: '1.4' }],    /* 18.75px - headings */
+        '2xl': ['1.5rem', { lineHeight: '1.3' }],    /* 22.5px - large headings */
+        '3xl': ['1.875rem', { lineHeight: '1.25' }], /* 28.125px - page titles */
+      },
       borderRadius: {
         'none': '0',
         'sm': '2px',

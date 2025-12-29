@@ -78,6 +78,9 @@ class AssetStats(BaseModel):
     total_assets: int
     online_assets: int
     offline_assets: int
+    scanned_assets: int = 0
+    vulnerable_assets: int = 0
+    exploited_assets: int = 0
     active_scans: int
     active_connections: int
     by_type: Dict[str, int]

@@ -1,340 +1,476 @@
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import ForceGraph2D from 'react-force-graph-2d';
 import { dashboardService, SystemEvent } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
 
+// Time ago helper
+const formatTimeAgo = (timestamp: string): string => {
+  const now = new Date();
+  const past = new Date(timestamp);
+  const diffMs = now.getTime() - past.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays > 0) return `${diffDays}d ago`;
+  if (diffHours > 0) return `${diffHours}h ago`;
+  if (diffMins > 0) return `${diffMins}m ago`;
+  return 'just now';
+};
+
+// Combined Stat Card with dual values
+const CombinedStatCard: React.FC<{ 
+  title: string; 
+  value1: number;
+  value2: number;
+  icon: string; 
+  color1: string;
+  color2: string;
+  glowColor: string;
+  onClick?: () => void;
+}> = ({ title, value1, value2, icon, color1, color2, glowColor, onClick }) => (
+  <div 
+    className={`dashboard-card p-4 hover:border-opacity-100 transition-all duration-300 ${onClick ? 'cursor-pointer hover:scale-105' : ''}`}
+    onClick={onClick}
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-cyber-gray-light text-xs font-mono uppercase tracking-wider mb-1">{title}</p>
+        <p className="text-xl font-bold font-mono">
+          <span className={color1}>{value1}</span>
+          <span className="text-cyber-gray-light mx-1">/</span>
+          <span className={color2}>{value2}</span>
+        </p>
+      </div>
+      <div className={`w-10 h-10 border flex items-center justify-center ${glowColor}`}>
+        <span className="text-lg">{icon}</span>
+      </div>
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const { token } = useAuthStore();
+  const navigate = useNavigate();
+  const topologyRef = useRef<HTMLDivElement>(null);
+  
   const [stats, setStats] = useState({
     totalAssets: 0,
     onlineAssets: 0,
     activeScans: 0,
     activeConnections: 0,
-    trafficVolume: '0 MB/s',
+    scannedHosts: 0,
+    vulnerableHosts: 0,
+    exploitedHosts: 0,
+    trafficVolume: '0 MB',
   });
 
-  const [trafficData, setTrafficData] = useState([
-    { time: '00:00', value: 0 },
-    { time: '04:00', value: 0 },
-    { time: '08:00', value: 0 },
-    { time: '12:00', value: 0 },
-    { time: '16:00', value: 0 },
-    { time: '20:00', value: 0 },
-  ]);
-
-  const [assetTypes, setAssetTypes] = useState([
-    { name: 'Unknown', value: 1, color: '#8b5cf6' },
-  ]);
-
+  const [protocolData, setProtocolData] = useState<{name: string; value: number; color: string}[]>([]);
+  const [trafficHistory, setTrafficHistory] = useState<{time: string; value: number}[]>([]);
+  const [graphData, setGraphData] = useState<{nodes: any[]; links: any[]}>({ nodes: [], links: [] });
   const [events, setEvents] = useState<SystemEvent[]>([]);
+  const [recentAssets, setRecentAssets] = useState<{id: number; ip: string; timestamp: string}[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     if (!token) return;
 
     try {
-      const [assetStats, trafficStats, , recentEvents] = await Promise.all([
+      const [assetStats, trafficStats, recentEvents] = await Promise.all([
         dashboardService.getAssetStats(token),
         dashboardService.getTrafficStats(token),
-        dashboardService.getAccessStatus(token),
         dashboardService.getEvents(token, 5)
       ]);
 
       setStats({
-        totalAssets: assetStats.total_assets,
-        onlineAssets: assetStats.online_assets,
-        activeScans: assetStats.active_scans,
-        activeConnections: assetStats.active_connections,
-        trafficVolume: `${(trafficStats.total_bytes / 1024 / 1024).toFixed(2)} MB`,
+        totalAssets: assetStats.total_assets || 0,
+        onlineAssets: assetStats.online_assets || 0,
+        activeScans: assetStats.active_scans || 0,
+        activeConnections: assetStats.active_connections || 0,
+        scannedHosts: assetStats.scanned_assets || 0,
+        vulnerableHosts: assetStats.vulnerable_assets || 0,
+        exploitedHosts: assetStats.exploited_assets || 0,
+        trafficVolume: `${((trafficStats.total_bytes || 0) / 1024 / 1024).toFixed(2)} MB`,
       });
 
-      if (assetStats.by_type && Object.keys(assetStats.by_type).length > 0) {
-        const colors = ['#ff0040', '#8b5cf6', '#00ff88', '#00d4ff', '#facc15'];
-        const types = Object.entries(assetStats.by_type).map(([name, value], index) => ({
-          name,
-          value,
-          color: colors[index % colors.length]
+      // Protocol breakdown for bar chart
+      if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
+        const protocolColors: Record<string, string> = {
+          'TCP': '#00ff88',
+          'UDP': '#00d4ff', 
+          'ICMP': '#facc15',
+          'ARP': '#8b5cf6',
+          'OTHER': '#ff0040'
+        };
+        const protocols = Object.entries(trafficStats.protocols).map(([name, value]) => ({
+          name: name.toUpperCase(),
+          value: value as number,
+          color: protocolColors[name.toUpperCase()] || '#ff0040'
         }));
-        setAssetTypes(types);
+        setProtocolData(protocols);
       }
 
-      setEvents(recentEvents);
-
-      // Update traffic data if history is available
+      // Traffic history for trend line
       if (trafficStats.traffic_history && trafficStats.traffic_history.length > 0) {
-        setTrafficData(trafficStats.traffic_history);
-      } else if (trafficStats.protocols && Object.keys(trafficStats.protocols).length > 0) {
-        // Fallback to protocols if no history (should not happen with new backend)
-        const mockTraffic = Object.entries(trafficStats.protocols).map(([name, value]) => ({
-          time: name,
-          value: value as number
+        setTrafficHistory(trafficStats.traffic_history.slice(-12)); // Last 12 data points
+      }
+
+      // Build force-directed graph data from connections
+      if (trafficStats.connections && trafficStats.connections.length > 0) {
+        const connections = trafficStats.connections.slice(0, 20);
+        
+        // Build unique nodes with colors
+        const nodeMap = new Map<string, {id: string; color: string; val: number}>();
+        const links: {source: string; target: string; color: string}[] = [];
+        
+        connections.forEach(conn => {
+          if (!nodeMap.has(conn.source)) {
+            nodeMap.set(conn.source, { id: conn.source, color: '#00ff88', val: 3 });
+          }
+          if (!nodeMap.has(conn.target)) {
+            nodeMap.set(conn.target, { id: conn.target, color: '#00d4ff', val: 2 });
+          }
+          
+          const protocol = conn.protocols?.[0] || 'TCP';
+          const linkColor = protocol === 'TCP' ? '#00ff88' : protocol === 'UDP' ? '#00d4ff' : protocol === 'ICMP' ? '#facc15' : '#ff0040';
+          links.push({
+            source: conn.source,
+            target: conn.target,
+            color: linkColor
+          });
+        });
+
+        setGraphData({
+          nodes: Array.from(nodeMap.values()),
+          links: links
+        });
+      }
+
+      setEvents(recentEvents || []);
+
+      // Get recent assets from connections data
+      if (trafficStats.connections && trafficStats.connections.length > 0) {
+        const recent = trafficStats.connections.slice(0, 5).map((conn: { source?: string; target?: string }, idx: number) => ({
+          id: idx,
+          ip: conn.source || conn.target || 'unknown',
+          timestamp: new Date().toISOString()
         }));
-        if (mockTraffic.length > 0) setTrafficData(mockTraffic);
+        setRecentAssets(recent);
       }
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: string; glowColor: string }> = 
-    ({ title, value, icon, color, glowColor }) => (
-    <div className="dashboard-card p-6 hover:shadow-cyber">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-cyber-gray-light text-sm font-medium uppercase tracking-wider">{title}</p>
-          <p className={`text-2xl font-bold mt-1 font-terminal ${color}`}>{value}</p>
-        </div>
-        <div className={`w-12 h-12 border flex items-center justify-center ${glowColor}`}>
-          <span className="text-2xl">{icon}</span>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-cyber-green font-mono text-sm animate-pulse">&gt; Loading dashboard...</div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Assets"
-          value={stats.totalAssets}
+      {/* TOP ROW: 3 Combined Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CombinedStatCard
+          title="Discovered / Online"
+          value1={stats.totalAssets}
+          value2={stats.onlineAssets}
           icon="⬢"
-          color="text-cyber-blue cyber-glow"
+          color1="text-cyber-blue"
+          color2="text-cyber-green"
           glowColor="border-cyber-blue"
+          onClick={() => navigate('/assets')}
         />
-        <StatCard
-          title="Online Assets"
-          value={stats.onlineAssets}
-          icon="◉"
-          color="text-cyber-green cyber-glow"
-          glowColor="border-cyber-green"
-        />
-        <StatCard
-          title="Active Scans"
-          value={stats.activeScans}
+        <CombinedStatCard
+          title="Scanned / Accessed"
+          value1={stats.scannedHosts}
+          value2={stats.activeConnections}
           icon="◈"
-          color="text-cyber-purple cyber-glow"
+          color1="text-cyber-purple"
+          color2="text-cyber-green"
           glowColor="border-cyber-purple"
+          onClick={() => navigate('/scans')}
         />
-        <StatCard
-          title="Active Connections"
-          value={stats.activeConnections}
-          icon="⇄"
-          color="text-cyber-red cyber-glow"
+        <CombinedStatCard
+          title="Vulnerable / Exploited"
+          value1={stats.vulnerableHosts}
+          value2={stats.exploitedHosts}
+          icon="⚠"
+          color1="text-yellow-400"
+          color2="text-cyber-red"
           glowColor="border-cyber-red"
+          onClick={() => navigate('/exploit')}
         />
       </div>
 
-      {/* Charts Row */}
+      {/* SECOND ROW: 2 Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Traffic Chart */}
-        <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-cyber-red mb-4 uppercase tracking-wider cyber-glow-red">
-            &gt; Network Traffic Analysis
+        {/* Traffic Activity + Protocol Breakdown */}
+        <div className="dashboard-card p-6 cursor-pointer hover:border-cyber-blue transition-colors" onClick={() => navigate('/traffic')}>
+          <h3 className="text-sm font-semibold text-cyber-red mb-4 uppercase tracking-wider font-mono">
+            &gt; Traffic Analysis
           </h3>
-          <div className="h-64">
+          <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trafficData}>
+              <AreaChart data={trafficHistory.length > 0 ? trafficHistory.map((h, i) => ({
+                time: h.time || `T-${trafficHistory.length - i}`,
+                value: h.value || 0
+              })) : [{time: 'Now', value: 0}]}>
+                <defs>
+                  <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="1 1" stroke="#2a2a2a" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#666666" 
-                  fontSize={12}
-                  fontFamily="JetBrains Mono"
-                />
-                <YAxis 
-                  stroke="#666666" 
-                  fontSize={12}
-                  fontFamily="JetBrains Mono"
-                />
+                <XAxis dataKey="time" stroke="#666666" fontSize={9} fontFamily="JetBrains Mono" />
+                <YAxis stroke="#666666" fontSize={9} fontFamily="JetBrains Mono" />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#111111', 
                     border: '1px solid #ff0040',
-                    borderRadius: '2px',
                     fontFamily: 'JetBrains Mono',
-                    fontSize: '12px'
+                    fontSize: '11px'
                   }}
+                  formatter={(value: number) => [`${value} flows`, 'Traffic']}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#ff0040" 
-                  strokeWidth={2}
-                  dot={{ fill: '#ff0040', strokeWidth: 2, r: 3 }}
-                  activeDot={{ r: 5, stroke: '#ff0040', strokeWidth: 2, fill: '#ff0040' }}
-                />
-              </LineChart>
+                <Area type="monotone" dataKey="value" stroke="#00d4ff" strokeWidth={2} fill="url(#trafficGradient)" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 flex items-center justify-between text-sm font-terminal">
-            <span className="text-cyber-gray-light">
-              &gt; Total Volume: <span className="text-cyber-green">{stats.trafficVolume}</span>
-            </span>
+          {/* Protocol Breakdown Bars */}
+          <div className="mt-3 space-y-1">
+            {protocolData.slice(0, 4).map((proto) => {
+              const maxVal = Math.max(...protocolData.map(p => p.value), 1);
+              const pct = (proto.value / maxVal) * 100;
+              return (
+                <div key={proto.name} className="flex items-center gap-2">
+                  <span className="text-xs font-mono w-12 text-cyber-gray-light">{proto.name}</span>
+                  <div className="flex-1 h-2 bg-cyber-dark rounded-sm overflow-hidden">
+                    <div 
+                      className="h-full rounded-sm transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: proto.color }}
+                    />
+                  </div>
+                  <span className="text-xs font-mono w-16 text-right" style={{ color: proto.color }}>
+                    {proto.value.toLocaleString()}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Asset Types Chart */}
-        <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-cyber-purple mb-4 uppercase tracking-wider cyber-glow-purple">
-            &gt; Asset Distribution
+        {/* Network Topology Snapshot - Force Directed */}
+        <div className="dashboard-card p-6 cursor-pointer hover:border-cyber-purple transition-colors" onClick={() => navigate('/topology')}>
+          <h3 className="text-sm font-semibold text-cyber-purple mb-4 uppercase tracking-wider font-mono">
+            &gt; Network Topology
           </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={assetTypes}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="#2a2a2a"
-                  strokeWidth={1}
-                >
-                  {assetTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#111111', 
-                    border: '1px solid #8b5cf6',
-                    borderRadius: '2px',
-                    fontFamily: 'JetBrains Mono',
-                    fontSize: '12px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {assetTypes.map((type, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3" 
-                  style={{ backgroundColor: type.color }}
-                ></div>
-                <span className="text-cyber-gray-light text-sm font-terminal uppercase tracking-wide">
-                  {type.name}
-                </span>
+          <div ref={topologyRef} className="h-48 relative overflow-hidden border border-cyber-gray rounded">
+            {graphData.nodes.length > 0 ? (
+              <ForceGraph2D
+                graphData={graphData}
+                width={topologyRef.current?.clientWidth || 400}
+                height={192}
+                backgroundColor="transparent"
+                nodeColor={(node: any) => node.color || '#00ff88'}
+                nodeVal={(node: any) => node.val || 2}
+                linkColor={(link: any) => link.color || '#00ff88'}
+                linkWidth={1.5}
+                nodeLabel={(node: any) => node.id}
+                enableNodeDrag={false}
+                enableZoomInteraction={false}
+                enablePanInteraction={false}
+                cooldownTicks={100}
+                d3AlphaDecay={0.02}
+                d3VelocityDecay={0.4}
+                nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D) => {
+                  const size = node.val || 2;
+                  // Outer glow
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);
+                  ctx.strokeStyle = node.color || '#00ff88';
+                  ctx.globalAlpha = 0.3;
+                  ctx.lineWidth = 1;
+                  ctx.stroke();
+                  ctx.globalAlpha = 1;
+                  // Main node
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
+                  ctx.fillStyle = '#111111';
+                  ctx.fill();
+                  ctx.strokeStyle = node.color || '#00ff88';
+                  ctx.lineWidth = 2;
+                  ctx.stroke();
+                  // Inner dot
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, size / 2, 0, 2 * Math.PI);
+                  ctx.fillStyle = node.color || '#00ff88';
+                  ctx.fill();
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <span className="text-cyber-gray-light text-xs font-mono">Waiting for network connections...</span>
               </div>
-            ))}
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 justify-center">
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 rounded-full bg-cyber-green"></div>
+              <span className="text-cyber-gray-light text-xs font-mono">TCP</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 rounded-full bg-cyber-blue"></div>
+              <span className="text-cyber-gray-light text-xs font-mono">UDP</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+              <span className="text-cyber-gray-light text-xs font-mono">ICMP</span>
+            </div>
+            <div className="flex items-center space-x-1 text-cyber-gray-light hover:text-cyber-purple">
+              <span className="text-xs font-mono">({graphData.nodes.length} nodes) →</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Latest Exploited Hosts & System Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Latest Exploited Hosts */}
-        <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-cyber-red mb-4 uppercase tracking-wider cyber-glow-red">
-            &gt; Latest Exploited Hosts
+      {/* THIRD ROW: 3 Activity Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Last Discovered Assets */}
+        <div className="dashboard-card p-4">
+          <h3 className="text-sm font-semibold text-cyber-green mb-3 uppercase tracking-wider font-mono">
+            &gt; Last Discovered Assets
           </h3>
-          <div className="space-y-3">
-            {/* Sample exploited host cards - will be populated from actual data */}
-            <div className="bg-cyber-darker border border-cyber-red rounded p-4 hover:border-cyber-purple transition-colors">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-cyber-blue font-bold font-mono text-sm">172.21.0.42</h4>
-                    <span className="px-2 py-0.5 text-xs border border-cyber-red text-cyber-red rounded">CRITICAL</span>
-                  </div>
-                  <p className="text-cyber-gray-light text-xs">ubuntu-server</p>
-                </div>
-                <div className="text-cyber-red text-xl">⚡</div>
-              </div>
-              <div className="space-y-1 text-xs">
+          <div className="space-y-2">
+            {recentAssets.slice(0, 3).length > 0 ? recentAssets.slice(0, 3).map((asset) => (
+              <div
+                key={asset.id}
+                className="p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-green transition-colors cursor-pointer"
+                onClick={() => navigate(`/assets`)}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Exploit:</span>
-                  <span className="text-cyber-purple font-mono">SSH Brute Force</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">CVE:</span>
-                  <span className="text-cyber-blue font-mono">CVE-2024-1234</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Time:</span>
-                  <span className="text-cyber-green">{new Date().toLocaleTimeString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Status:</span>
-                  <span className="text-cyber-green flex items-center">
-                    <span className="w-2 h-2 bg-cyber-green rounded-full mr-1 animate-pulse"></span>
-                    Active Shell
-                  </span>
+                  <span className="text-cyber-blue font-mono text-sm">{asset.ip}</span>
+                  <span className="text-cyber-gray-light text-xs font-mono">{formatTimeAgo(asset.timestamp)}</span>
                 </div>
               </div>
-            </div>
-            
-            <div className="bg-cyber-darker border border-cyber-gray rounded p-4 hover:border-cyber-purple transition-colors opacity-70">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-cyber-blue font-bold font-mono text-sm">172.21.0.35</h4>
-                    <span className="px-2 py-0.5 text-xs border border-facc15 text-facc15 rounded">HIGH</span>
-                  </div>
-                  <p className="text-cyber-gray-light text-xs">web-server</p>
-                </div>
-                <div className="text-cyber-gray text-xl">⚡</div>
-              </div>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Exploit:</span>
-                  <span className="text-cyber-purple font-mono">Web Shell Upload</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">CVE:</span>
-                  <span className="text-cyber-blue font-mono">CVE-2024-5678</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Time:</span>
-                  <span className="text-cyber-gray">2 mins ago</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-cyber-gray-light">Status:</span>
-                  <span className="text-cyber-gray">Disconnected</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center pt-2">
-              <p className="text-cyber-gray-light text-xs">View all exploited hosts in Exploit page</p>
+            )) : (
+              <p className="text-cyber-gray-light font-mono text-xs p-3">No recent discoveries</p>
+            )}
+            <div 
+              className="text-center pt-2 cursor-pointer hover:text-cyber-green text-cyber-gray-light text-xs font-mono"
+              onClick={() => navigate('/assets')}
+            >
+              View All →
             </div>
           </div>
         </div>
 
-        {/* System Activity Log */}
-        <div className="dashboard-card p-6">
-          <h3 className="text-lg font-semibold text-cyber-green mb-4 uppercase tracking-wider cyber-glow">
-            &gt; System Activity Log
+        {/* Last Scanned Services */}
+        <div className="dashboard-card p-4">
+          <h3 className="text-sm font-semibold text-cyber-purple mb-3 uppercase tracking-wider font-mono">
+            &gt; Last Scanned Services
           </h3>
           <div className="space-y-2">
-            {events.length > 0 ? events.map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors duration-300">
-                <div className={`w-2 h-2 ${
-                  activity.severity === 'critical' || activity.severity === 'error' ? 'bg-cyber-red' :
-                  activity.severity === 'warning' ? 'bg-facc15' :
-                  'bg-cyber-blue'
-                } cyber-pulse`}></div>
-                <div className="flex-1 font-terminal">
-                  <p className="text-cyber-gray-light text-sm">
-                    <span className="text-cyber-purple">[{new Date(activity.timestamp).toLocaleTimeString()}]</span> {activity.title}: {activity.description}
-                  </p>
+            {events.filter(e => e.event_type === 'scan_completed').slice(0, 3).map((event, idx) => (
+              <div
+                key={idx}
+                className="p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors cursor-pointer"
+                onClick={() => navigate('/scans')}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-cyber-blue font-mono text-sm">{event.title}</span>
+                  <span className="text-cyber-gray-light text-xs font-mono">{formatTimeAgo(event.timestamp)}</span>
                 </div>
+                {event.description && (
+                  <div className="text-cyber-gray-light text-xs font-mono truncate">{event.description}</div>
+                )}
               </div>
-            )) : (
-              <p className="text-cyber-gray-light font-terminal text-sm p-3">No recent activity</p>
+            ))}
+            {events.filter(e => e.event_type === 'scan_completed').length === 0 && (
+              <p className="text-cyber-gray-light font-mono text-xs p-3">No recent scans</p>
             )}
+            <div 
+              className="text-center pt-2 cursor-pointer hover:text-cyber-purple text-cyber-gray-light text-xs font-mono"
+              onClick={() => navigate('/scans')}
+            >
+              View All →
+            </div>
           </div>
+        </div>
+
+        {/* Last Accessed Assets */}
+        <div className="dashboard-card p-4">
+          <h3 className="text-sm font-semibold text-cyber-blue mb-3 uppercase tracking-wider font-mono">
+            &gt; Last Accessed Assets
+          </h3>
+          <div className="space-y-2">
+            {events.filter(e => e.event_type === 'connection' || e.event_type === 'access').slice(0, 3).map((event, idx) => (
+              <div
+                key={idx}
+                className="p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-blue transition-colors cursor-pointer"
+                onClick={() => navigate('/access')}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-cyber-green font-mono text-sm">{event.title}</span>
+                  <span className="text-cyber-gray-light text-xs font-mono">{formatTimeAgo(event.timestamp)}</span>
+                </div>
+                {event.description && (
+                  <div className="text-cyber-gray-light text-xs font-mono truncate">{event.description}</div>
+                )}
+              </div>
+            ))}
+            {events.filter(e => e.event_type === 'connection' || e.event_type === 'access').length === 0 && (
+              <p className="text-cyber-gray-light font-mono text-xs p-3">No recent accesses</p>
+            )}
+            <div 
+              className="text-center pt-2 cursor-pointer hover:text-cyber-blue text-cyber-gray-light text-xs font-mono"
+              onClick={() => navigate('/access')}
+            >
+              View All →
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* System Activity Log */}
+      <div className="dashboard-card p-6">
+        <h3 className="text-sm font-semibold text-cyber-green mb-4 uppercase tracking-wider font-mono">
+          &gt; System Activity Log
+        </h3>
+        <div className="space-y-2">
+          {events.length > 0 ? events.map((activity, index) => (
+            <div key={index} className="flex items-center space-x-3 p-3 bg-cyber-darker border border-cyber-gray hover:border-cyber-purple transition-colors">
+              <div className={`w-2 h-2 ${
+                activity.severity === 'critical' || activity.severity === 'error' ? 'bg-cyber-red' :
+                activity.severity === 'warning' ? 'bg-yellow-500' :
+                'bg-cyber-blue'
+              }`}></div>
+              <div className="flex-1 font-mono">
+                <p className="text-cyber-gray-light text-sm">
+                  <span className="text-cyber-purple">[{new Date(activity.timestamp).toLocaleTimeString()}]</span>{' '}
+                  {activity.title}
+                  {activity.description && <span className="text-cyber-gray">: {activity.description}</span>}
+                </p>
+              </div>
+            </div>
+          )) : (
+            <p className="text-cyber-gray-light font-mono text-sm p-3">No recent activity</p>
+          )}
         </div>
       </div>
     </div>

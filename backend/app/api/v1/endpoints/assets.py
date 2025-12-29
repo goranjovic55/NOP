@@ -4,12 +4,14 @@ Asset management endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from typing import List, Optional
 import uuid
 
 from app.core.database import get_db
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats
 from app.services.asset_service import AssetService
+from app.models.asset import Asset
 
 router = APIRouter()
 
@@ -59,6 +61,76 @@ async def get_online_assets(db: AsyncSession = Depends(get_db)):
         }
         for asset in result.assets
     ]
+
+
+@router.get("/classification")
+async def get_asset_classification(db: AsyncSession = Depends(get_db)):
+    """Get asset classification breakdown by OS type"""
+    try:
+        # Get all assets
+        query = select(Asset)
+        result = await db.execute(query)
+        assets = result.scalars().all()
+        
+        # Classification logic
+        classifications = {
+            "Linux Server": 0,
+            "Windows Server": 0,
+            "Windows Workstation": 0,
+            "Android": 0,
+            "Router": 0,
+            "Switch": 0,
+            "IoT": 0,
+            "Unknown": 0
+        }
+        
+        total = len(assets)
+        
+        for asset in assets:
+            os_name = asset.os_name.lower() if asset.os_name else ""
+            asset_type = asset.asset_type.lower() if asset.asset_type else ""
+            
+            # Classification rules
+            if "android" in os_name:
+                classifications["Android"] += 1
+            elif "linux" in os_name:
+                # Check if server (common server ports or type)
+                if asset.asset_type == "server" or (asset.open_ports and any(p in asset.open_ports for p in [22, 80, 443, 3306, 5432])):
+                    classifications["Linux Server"] += 1
+                else:
+                    classifications["Unknown"] += 1
+            elif "windows" in os_name:
+                # Differentiate server vs workstation
+                if "server" in os_name.lower() or asset.asset_type == "server":
+                    classifications["Windows Server"] += 1
+                else:
+                    classifications["Windows Workstation"] += 1
+            elif asset_type in ["router", "switch"]:
+                if asset_type == "router":
+                    classifications["Router"] += 1
+                else:
+                    classifications["Switch"] += 1
+            elif asset_type == "iot":
+                classifications["IoT"] += 1
+            else:
+                classifications["Unknown"] += 1
+        
+        # Calculate percentages
+        categories = []
+        for category, count in classifications.items():
+            percentage = (count / total * 100) if total > 0 else 0
+            categories.append({
+                "category": category,
+                "count": count,
+                "percentage": round(percentage, 1)
+            })
+        
+        return {
+            "total": total,
+            "categories": categories
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting asset classification: {str(e)}")
 
 
 @router.get("/{asset_id}", response_model=AssetResponse)

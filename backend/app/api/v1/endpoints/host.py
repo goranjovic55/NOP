@@ -153,6 +153,70 @@ async def get_processes(
         raise HTTPException(status_code=500, detail=f"Failed to get processes: {str(e)}")
 
 
+@router.get("/system/connections")
+async def get_network_connections(
+    current_user: Dict = Depends(get_current_user),
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """Get list of network connections (netstat-like)"""
+    try:
+        connections = []
+        for conn in psutil.net_connections(kind='inet'):
+            try:
+                local_addr = f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else "-"
+                remote_addr = f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else "-"
+                
+                # Get process name if available
+                proc_name = "-"
+                if conn.pid:
+                    try:
+                        proc = psutil.Process(conn.pid)
+                        proc_name = proc.name()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                
+                connections.append({
+                    "local_address": local_addr,
+                    "remote_address": remote_addr,
+                    "status": conn.status,
+                    "pid": conn.pid,
+                    "process": proc_name,
+                    "family": "IPv4" if conn.family.name == "AF_INET" else "IPv6",
+                    "type": "TCP" if conn.type.name == "SOCK_STREAM" else "UDP"
+                })
+            except (AttributeError, OSError):
+                continue
+        
+        # Sort by status (ESTABLISHED first, then LISTEN)
+        status_order = {"ESTABLISHED": 0, "LISTEN": 1, "TIME_WAIT": 2}
+        connections.sort(key=lambda x: status_order.get(x['status'], 99))
+        return connections[:limit]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get connections: {str(e)}")
+
+
+@router.get("/system/disk-io")
+async def get_disk_io(
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get disk I/O statistics"""
+    try:
+        disk_io = psutil.disk_io_counters(perdisk=True)
+        result = {}
+        for disk, counters in disk_io.items():
+            result[disk] = {
+                "read_count": counters.read_count,
+                "write_count": counters.write_count,
+                "read_bytes": counters.read_bytes,
+                "write_bytes": counters.write_bytes,
+                "read_time": counters.read_time,
+                "write_time": counters.write_time
+            }
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get disk I/O: {str(e)}")
+
+
 @router.get("/filesystem/browse")
 async def browse_filesystem(
     path: str = "/",

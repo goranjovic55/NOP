@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse
 from typing import List, Dict
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from datetime import datetime, timedelta
 from app.services.SnifferService import sniffer_service
+from app.core.database import get_db
+from app.models.flow import Flow
 import asyncio
 import json
 import os
@@ -83,3 +88,95 @@ async def craft_packet(packet_config: Dict):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/protocol-breakdown")
+async def get_protocol_breakdown(db: AsyncSession = Depends(get_db)):
+    """Get traffic protocol breakdown with time-series data (last 6 hours, hourly buckets)"""
+    try:
+        # Get flows from last 6 hours
+        six_hours_ago = datetime.utcnow() - timedelta(hours=6)
+        
+        # Query flows grouped by protocol
+        tcp_query = select(func.count(Flow.id)).where(
+            Flow.protocol == "TCP",
+            Flow.first_seen >= six_hours_ago
+        )
+        tcp_result = await db.execute(tcp_query)
+        tcp_count = tcp_result.scalar() or 0
+        
+        udp_query = select(func.count(Flow.id)).where(
+            Flow.protocol == "UDP",
+            Flow.first_seen >= six_hours_ago
+        )
+        udp_result = await db.execute(udp_query)
+        udp_count = udp_result.scalar() or 0
+        
+        icmp_query = select(func.count(Flow.id)).where(
+            Flow.protocol == "ICMP",
+            Flow.first_seen >= six_hours_ago
+        )
+        icmp_result = await db.execute(icmp_query)
+        icmp_count = icmp_result.scalar() or 0
+        
+        other_query = select(func.count(Flow.id)).where(
+            Flow.protocol.notin_(["TCP", "UDP", "ICMP"]),
+            Flow.first_seen >= six_hours_ago
+        )
+        other_result = await db.execute(other_query)
+        other_count = other_result.scalar() or 0
+        
+        # Build hourly time-series buckets
+        time_series = []
+        for i in range(6, 0, -1):
+            hour_start = datetime.utcnow() - timedelta(hours=i)
+            hour_end = hour_start + timedelta(hours=1)
+            
+            # Count flows per protocol in this hour
+            hour_tcp_query = select(func.count(Flow.id)).where(
+                Flow.protocol == "TCP",
+                Flow.first_seen >= hour_start,
+                Flow.first_seen < hour_end
+            )
+            hour_tcp = (await db.execute(hour_tcp_query)).scalar() or 0
+            
+            hour_udp_query = select(func.count(Flow.id)).where(
+                Flow.protocol == "UDP",
+                Flow.first_seen >= hour_start,
+                Flow.first_seen < hour_end
+            )
+            hour_udp = (await db.execute(hour_udp_query)).scalar() or 0
+            
+            hour_icmp_query = select(func.count(Flow.id)).where(
+                Flow.protocol == "ICMP",
+                Flow.first_seen >= hour_start,
+                Flow.first_seen < hour_end
+            )
+            hour_icmp = (await db.execute(hour_icmp_query)).scalar() or 0
+            
+            hour_other_query = select(func.count(Flow.id)).where(
+                Flow.protocol.notin_(["TCP", "UDP", "ICMP"]),
+                Flow.first_seen >= hour_start,
+                Flow.first_seen < hour_end
+            )
+            hour_other = (await db.execute(hour_other_query)).scalar() or 0
+            
+            time_series.append({
+                "timestamp": hour_start.isoformat(),
+                "tcp": hour_tcp,
+                "udp": hour_udp,
+                "icmp": hour_icmp,
+                "other": hour_other
+            })
+        
+        return {
+            "totals": {
+                "tcp": tcp_count,
+                "udp": udp_count,
+                "icmp": icmp_count,
+                "other": other_count
+            },
+            "time_series": time_series
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting protocol breakdown: {str(e)}")

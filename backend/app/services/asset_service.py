@@ -173,13 +173,29 @@ class AssetService:
         recent_result = await self.db.execute(recent_query)
         recently_discovered = recent_result.scalar() or 0
 
+        # Scanned assets (assets with open_ports set, indicating a port scan was performed)
+        scanned_query = select(func.count(Asset.id)).where(Asset.open_ports != None)
+        scanned_result = await self.db.execute(scanned_query)
+        scanned_assets = scanned_result.scalar() or 0
+
+        # Vulnerable assets - count assets with services that might indicate vulnerabilities
+        # For now, placeholder - could be enhanced with actual vulnerability scanning
+        vulnerable_assets = 0
+        
+        # Exploited assets - placeholder for assets that have been exploited
+        exploited_assets = 0
+
         return AssetStats(
             total_assets=total_assets,
             online_assets=online_assets,
             offline_assets=offline_assets,
+            scanned_assets=scanned_assets,
+            vulnerable_assets=vulnerable_assets,
+            exploited_assets=exploited_assets,
             active_scans=active_scans_count,
             active_connections=active_connections_count,
             by_type=by_type,
             by_vendor=by_vendor,
             recently_discovered=recently_discovered
         )
+
