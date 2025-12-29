@@ -81,6 +81,33 @@ services:
       - nop-internal
     restart: unless-stopped
 
+  # Vulnerable test host with known CVEs
+  vulnerable-web:
+    image: vulnerables/web-dvwa:latest
+    environment:
+      - MYSQL_HOST=vulnerable-db
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    ports:
+      - "8080:80"
+    depends_on:
+      - vulnerable-db
+    networks:
+      - test-network
+    restart: unless-stopped
+
+  vulnerable-db:
+    image: mariadb:10.1
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    networks:
+      - test-network
+    restart: unless-stopped
+
 networks:
   nop-internal:
     driver: bridge
