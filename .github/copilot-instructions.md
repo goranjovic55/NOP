@@ -17,7 +17,13 @@ _DevTeam (Orchestrator)
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 ```
-Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect type
+Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json` → detect type
+
+**Skills load order**:
+1. `.claude/skills.md` - Core patterns (12 skills)
+2. `.claude/skills/domain.md` - Project-specific patterns
+3. `project_knowledge.json` - Project entities/learnings
+4. `.github/global_knowledge.json` - Universal patterns
 
 ## Phase Flow
 
@@ -54,6 +60,19 @@ Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"...
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
 
+## Learn Phase
+```
+[PHASE: LEARN | progress=6/7]
+```
+
+**Skill Discovery**: If session revealed reusable pattern, suggest new skill:
+```
+[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
+Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
+[/SKILL_SUGGESTION]
+```
+Add to `.claude/skills.md` or `.claude/skills/domain.md`
+
 ## Knowledge
 ```
 [KNOWLEDGE: added=N | updated=M | type=project|global]
@@ -79,6 +98,13 @@ Summary | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
 ```
 
+**Workflow Log Persistence**:
+- Write workflow log to `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
+- Use timestamp from session start
+- Slug: lowercase, hyphens, max 50 chars
+- Example: `log/workflow/2025-12-28_143022_ui-improvements-scans-exploit.md`
+- Include full workflow log content in markdown format
+
 ## Quality Gates
 | Gate | Owner | Check |
 |------|-------|-------|
@@ -92,7 +118,25 @@ Summary | Agent Interactions | Files | Quality Gates | Learnings
 - All builds succeed
 - All relevant tests pass
 
-## Workflows
+**User Confirmation Gate**:
+```
+[VERIFY: complete | awaiting user confirmation]
+→ PAUSE: Confirm testing passed before proceeding to LEARN/COMPLETE
+```
+Only proceed to LEARN/COMPLETE phases after user confirms testing is successful.
+
+## Learn Phase
+```
+[PHASE: LEARN | progress=6/7]
+```
+
+**Skill Discovery**: If session revealed reusable pattern, suggest new skill:
+```
+[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
+Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
+[/SKILL_SUGGESTION]
+```
+Add to `.claude/skills.md` or `.claude/skills/domain.md`
 | Workflow | Purpose | Agents |
 |----------|---------|--------|
 | init_project | New project | Architect→Developer→Reviewer |
