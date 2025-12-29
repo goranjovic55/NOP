@@ -96,6 +96,23 @@ const Storm: React.FC = () => {
   };
 
   const startStorm = async () => {
+    // Validation
+    if (!destIp) {
+      alert('Destination IP is required');
+      return;
+    }
+
+    if ((packetType === 'tcp' || packetType === 'udp') && !destPort) {
+      alert('Destination port is required for TCP/UDP');
+      return;
+    }
+
+    const ppsValue = parseInt(pps);
+    if (isNaN(ppsValue) || ppsValue < 1 || ppsValue > 100000) {
+      alert('PPS must be between 1 and 100,000');
+      return;
+    }
+
     const config = {
       interface: selectedIface,
       packet_type: packetType,
@@ -103,7 +120,7 @@ const Storm: React.FC = () => {
       dest_ip: destIp,
       source_port: sourcePort ? parseInt(sourcePort) : null,
       dest_port: destPort ? parseInt(destPort) : null,
-      pps: parseInt(pps),
+      pps: ppsValue,
       payload: payload,
       ttl: parseInt(ttl),
       tcp_flags: tcpFlags
@@ -128,11 +145,11 @@ const Storm: React.FC = () => {
         metricsIntervalRef.current = window.setInterval(fetchMetrics, 1000);
       } else {
         const error = await response.json();
-        alert(`Failed to start storm: ${error.detail}`);
+        alert(`Failed to start storm: ${error.detail || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to start storm:', err);
-      alert('Failed to start storm');
+      alert('Failed to start storm: Network error');
     }
   };
 

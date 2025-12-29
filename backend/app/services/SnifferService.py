@@ -1020,7 +1020,7 @@ class SnifferService:
         if self.is_storming:
             return {
                 "success": False,
-                "error": "Storm already in progress"
+                "error": "Storm already in progress. Stop the current storm before starting a new one."
             }
         
         try:
@@ -1035,6 +1035,30 @@ class SnifferService:
                     "success": False,
                     "error": "Destination IP is required"
                 }
+            
+            # Validate PPS
+            if not isinstance(pps, int) or pps < 1 or pps > 100000:
+                return {
+                    "success": False,
+                    "error": "PPS must be between 1 and 100,000"
+                }
+            
+            # Validate packet type
+            valid_types = ["broadcast", "multicast", "tcp", "udp", "raw_ip"]
+            if packet_type not in valid_types:
+                return {
+                    "success": False,
+                    "error": f"Invalid packet type. Must be one of: {', '.join(valid_types)}"
+                }
+            
+            # Validate ports for TCP/UDP
+            if packet_type in ["tcp", "udp"]:
+                dest_port = config.get("dest_port")
+                if not dest_port:
+                    return {
+                        "success": False,
+                        "error": f"Destination port is required for {packet_type.upper()}"
+                    }
             
             # Store config
             self.storm_config = config
@@ -1052,12 +1076,15 @@ class SnifferService:
             self.storm_thread = threading.Thread(target=self._run_storm, daemon=True)
             self.storm_thread.start()
             
+            logger.info(f"Storm started: {packet_type} to {dest_ip} at {pps} PPS on {interface}")
+            
             return {
                 "success": True,
                 "message": f"Storm started on {interface} targeting {dest_ip} at {pps} PPS"
             }
             
         except Exception as e:
+            logger.error(f"Failed to start storm: {e}")
             return {
                 "success": False,
                 "error": f"Failed to start storm: {str(e)}"
