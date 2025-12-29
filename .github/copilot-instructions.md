@@ -32,6 +32,20 @@ Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowl
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
 ```
 
+**CRITICAL - Anti-Drift Protocol**:
+```
+BEFORE any implementation work:
+1. Emit [SESSION: ...] at task start
+2. Emit [PHASE: CONTEXT | progress=1/7] when loading knowledge
+3. Emit [PHASE: PLAN | progress=2/7] when designing solution
+4. Emit [DECISION: ?] for every choice made
+5. Emit [ATTEMPT #N] for every implementation try
+6. Emit [SUBAGENT: Name] for every delegation
+7. Track phase transitions: CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE
+
+VIOLATION CHECK: If you haven't emitted these markers, STOP and emit them now.
+```
+
 ## Delegation
 ```
 [DELEGATE: agent=<Architect|Developer|Reviewer|Researcher> | task=<desc>]
@@ -101,28 +115,14 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 **Checklist Before Emitting [COMPLETE]**:
 - [ ] All quality gates passed
 - [ ] Knowledge updated (project_knowledge.json)
-- [ ] Workflow log created with Decision Diagram
-- [ ] Decision Diagram shows all decisions, attempts, delegations
-- [ ] All rejected alternatives documented
+- [ ] **Workflow log with Decision Diagram**
+- [ ] All [DECISION:], [ATTEMPT:], [SUBAGENT:] documented
+- [ ] Rejected alternatives with reasons
 - [ ] Changes committed (if applicable)
 
-**Workflow Log Persistence**:
-- Write workflow log to `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
-- Use timestamp from session start
-- Slug: lowercase, hyphens, max 50 chars
-- Example: `log/workflow/2025-12-28_143022_ui-improvements-scans-exploit.md`
-- Include full workflow log content in markdown format
-- **CRITICAL**: MUST include Decision Diagram (see Skill #13)
-
-**Decision Diagram Requirements**:
-```
-Required elements in diagram:
-- [DECISION: ?] for all decision points
-- [ATTEMPT #N] for all implementation attempts
-- [SUBAGENT: Name] for all delegations
-- ✓/✗ markers for success/failure
-- Rejected alternatives with reasons
-```
+**Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
+- Timestamp from session start | Slug: lowercase-hyphens-max50
+- **MUST include Decision Diagram** showing: [DECISION: ?], [ATTEMPT #N], [SUBAGENT: Name], ✓/✗, rejected paths
 - Rejected alternatives with reasons
 ```
 
@@ -197,12 +197,22 @@ Copy `.github/` to any project. Create empty `project_knowledge.json` in root.
 
 ## Session Tracking Checklist
 
-When starting a task with _DevTeam orchestrator:
-- [ ] Emit `[SESSION:]` at start
-- [ ] Emit `[PHASE: CONTEXT | progress=1/7]`
-- [ ] Emit `[PHASE: PLAN | progress=2/7]`
-- [ ] Use `#runSubagent` for all specialist delegation
+**START OF EVERY TASK - Emit immediately**:
+```
+[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+[PHASE: CONTEXT | progress=1/7]
+```
+
+**During task execution**:
+- [ ] Emit `[SESSION:]` at start ← **FIRST ACTION**
+- [ ] Emit `[PHASE: CONTEXT | progress=1/7]` ← **SECOND ACTION**
+- [ ] Emit `[PHASE: PLAN | progress=2/7]` when designing
+- [ ] Emit `[DECISION: ?]` for every choice
+- [ ] Emit `[ATTEMPT #N]` for every implementation try
+- [ ] Use `#runSubagent` for specialist work → Emit `[SUBAGENT: Name]`
 - [ ] Emit `[PHASE: INTEGRATE | progress=4/7]`
 - [ ] Emit `[PHASE: VERIFY | progress=5/7]` with validation
 - [ ] Emit `[KNOWLEDGE:]` for learnings captured
-- [ ] Emit `[COMPLETE:]` with workflow log
+- [ ] Emit `[COMPLETE:]` with workflow log ← **Decision Diagram required**
+
+**STOP and check**: If implementing without emitting these, you're drifting.

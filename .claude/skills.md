@@ -310,7 +310,7 @@ services:
 
 **Trigger**: Session completion (significant work)
 
-**CRITICAL**: Workflow logs MUST include a Decision Diagram showing all decisions, attempts, and outcomes.
+**CRITICAL**: Workflow logs MUST include Decision Diagram with all [DECISION:], [ATTEMPT:], [SUBAGENT:] markers.
 
 **Pattern**:
 ```bash
@@ -319,69 +319,46 @@ task_slug="implement-feature-name"  # lowercase, hyphens, max 50 chars
 log_file="log/workflow/${timestamp}_${task_slug}.md"
 ```
 
-**Template**:
-```markdown
-# Workflow Log: <Task Description>
-
-**Session**: YYYY-MM-DD_HHMMSS
-**Task**: <description>
-**Agent**: _DevTeam | Architect | Developer | Reviewer | Researcher
-**Status**: Completed | In Progress | Blocked
-
-## Summary
-<Brief overview>
-
-## Decision Diagram
-
+**Decision Diagram** (required in every log):
 ```
 [SESSION START: <Task>]
     |
     └─[DECISION: <question>?] 
         ├─ Option A: <desc> → Rejected (<reason>)
-        ├─ Option B: <desc> → Rejected (<reason>)
         └─ ✓ Option C: <desc> → CHOSEN (<rationale>)
             |
             ├─[SUBAGENT: Name] <task>
-            |   ├─[ATTEMPT #1] <action> → ✓/✗ result
-            |   └─[SKILL: #N Name] <action> → result
+            |   ├─[ATTEMPT #1] <action> → ✗ failed
+            |   └─[ATTEMPT #2] <action> → ✓ success
             |
-            ├─[DECISION: <nested question>?]
-            |   └─ ✓ <answer> → <action taken>
-            |
-            └─[COMPLETE] <final result>
+            ├─[DECISION: <nested>?] → ✓ <answer>
+            └─[COMPLETE] <result>
 ```
+
+**Template**:
+```markdown
+# Workflow Log: <Task>
+
+**Session**: YYYY-MM-DD_HHMMSS | **Agent**: _DevTeam | **Status**: Complete
+
+## Summary
+<Brief overview>
+
+## Decision Diagram
+<Tree showing all decisions, attempts, delegations with ✓/✗>
 
 ## Decision & Execution Flow
-<Narrative describing the diagram above>
+<Narrative describing diagram>
 
-## Agent Interactions
-<Delegation patterns, specialist involvement>
-
-## Files Modified
-<path/file.ext>: <changes>
-
-## Quality Gates
-✅ Context | Design | Code | Quality
-
-## Learnings
-<New knowledge captured>
+## Agent Interactions | Files | Quality Gates | Learnings
+<Details>
 ```
 
-**Checklist Before COMPLETE Phase**:
-- [ ] Decision Diagram created with all decision points
-- [ ] All [ATTEMPT #N] emissions included
-- [ ] All [SUBAGENT: Name] delegations shown
-- [ ] All [DECISION: ?] questions documented
-- [ ] Rejected alternatives explained
-- [ ] Final outcome marked [COMPLETE]
-
-**Rules**:
-- ✅ Write at session completion
-- ✅ Timestamp from session start
-- ✅ Descriptive slug (lowercase-hyphens)
-- ✅ **MUST include Decision Diagram**
-- ✅ All sections completed
-- ✅ Technical details included
+**Checklist Before [COMPLETE]**:
+- [ ] Decision Diagram shows all [DECISION:], [ATTEMPT:], [SUBAGENT:]
+- [ ] Rejected alternatives documented
+- [ ] All ✓/✗ outcomes marked
+- [ ] Workflow log file created
 
 **Storage**: `log/workflow/` (gitignored, README preserved)
 
