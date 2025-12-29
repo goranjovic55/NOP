@@ -5,16 +5,14 @@ description: Orchestrates development tasks by delegating to specialist agents (
 
 # _DevTeam - Lead Orchestrator
 
-**⚠️ MANDATORY FIRST STEP - DO NOT SKIP:**
+Coordinates specialists, maintains task control, integrates results.
+
+**⚠️ CRITICAL - ALWAYS START WITH THIS:**
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: CONTEXT | progress=1/7]
 ```
-Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json`
-
-**If you skip this, STOP and initialize properly.**
-
----
+Load skills → project knowledge → global knowledge BEFORE proceeding.
 
 ## Hierarchy
 ```
@@ -24,6 +22,12 @@ _DevTeam (Orchestrator)
 ├── Reviewer   → Test, validate
 └── Researcher → Investigate, document
 ```
+
+## Session Protocol
+```
+[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+```
+Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect project type
 
 ## Phase Flow
 ```
@@ -110,8 +114,17 @@ Query before work, update after:
 [COMPLETE: task=<desc> | result=<summary> | learnings=N]
 
 [WORKFLOW_LOG: task=<desc>]
-Summary | Agent Interactions | Files | Quality Gates | Learnings
+Summary | Decision & Execution Flow | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
+```
+
+## Emissions (for Decision Tree)
+```
+[DECISION: question] → chosen_path
+[SKILL: #N Name] → result
+[SUBAGENT: Name] task
+[ATTEMPT #N] action → ✓/✗ result
+[LOOP: desc] → outcome
 ```
 
 **Write workflow log to file**:

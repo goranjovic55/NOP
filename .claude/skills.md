@@ -329,6 +329,20 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 ## Summary
 <Brief overview>
 
+## Decision & Execution Flow
+START: <Task> [@Agent]
+├─[PHASE: CONTEXT | 1/7]
+│  └─[SKILL: #N Name] <action> → <result>
+├─[?] <Decision question>
+│  ├─[✓] <Chosen path> → <rationale>
+│  └─[✗] <Rejected path> → REJECTED (<reason>)
+├─[PHASE: COORDINATE | 3/7]
+│  ├─[SUBAGENT: Name] <task>
+│  │  ├─[SKILL: #N Name] <action>
+│  │  └─[ATTEMPT #N] <action> → ✓/✗ <result>
+│  └─[LOOP: <desc>] → <outcome>
+└─[✓] COMPLETE [@Agent] <result>
+
 ## Agent Interactions
 <Delegation patterns, specialist involvement>
 

@@ -13,9 +13,6 @@
 
 ## Flow
 ```
-[DELEGATE: agent=Researcher | task="Analyze workflow logs"]
-→ Extract skill suggestions from log/workflow/*.md
-
 [DELEGATE: agent=Researcher | task="Detect stack"]
 → Languages, frameworks, tools
 
@@ -23,7 +20,7 @@
 → Project conventions
 
 [DELEGATE: agent=Developer | task="Update skills"]
-→ Apply suggestions, enable skills, add domain patterns
+→ Enable applicable skills, add domain patterns
 
 [DELEGATE: agent=Developer | task="Sync context"]
 → Update context.md, commands/
@@ -46,13 +43,13 @@
 
 ## Commands
 ```bash
-# Workflow logs: skill suggestions, patterns
-grep -h "SKILL_SUGGESTION\|Pattern:" log/workflow/*.md 2>/dev/null | head -5
-
-# Detect stack
+# Detect stack (with explicit output)
 [ -n "$(find . -name '*.py' -type f | head -1)" ] && echo "Python detected"
 [ -n "$(find . -name '*.ts' -type f | head -1)" ] && echo "TypeScript detected"
+[ -n "$(find . -name '*.go' -type f | head -1)" ] && echo "Go detected"
 [ -f "Dockerfile" ] && echo "Docker detected"
+[ -f "docker-compose.yml" ] && echo "Compose detected"
+[ -d ".github/workflows" ] && echo "CI/CD detected"
 
 # Scan patterns
 grep -rn "class.*Service" --include="*.py" 2>/dev/null | head -3
@@ -68,7 +65,6 @@ grep -rn "interface.*Props" --include="*.ts" 2>/dev/null | head -3
 ## Sync Points
 | Source | Target | Sync |
 |--------|--------|------|
-| `log/workflow/*.md` | Skills | Skill suggestions, patterns |
 | `project_knowledge.json` | Skill 6 | Entities, patterns |
 | `.github/agents/` | Skills 7,8 | Protocol format |
 | `.github/workflows/` | Skill 9 | Log format |

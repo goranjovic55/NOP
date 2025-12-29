@@ -1,6 +1,7 @@
 # Update Knowledge
 
-**Purpose**: Knowledge graph optimization | **Agents**: Researcher→Developer→Reviewer
+**Purpose**: Knowledge graph optimization | **Agents**: Researcher→Developer→Reviewer  
+**Note**: Update BOTH project_knowledge.json AND .github/global_knowledge.json (not memory files - deprecated)
 
 ## Structure
 ```

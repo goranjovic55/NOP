@@ -29,3 +29,14 @@
 {"type":"entity","name":"Global.Pattern.Security.CredentialEncryption","entityType":"Pattern","observations":["Encrypt sensitive credentials at rest","AES-256-GCM for credential vault storage","Separate encryption key management","upd:2025-12-28,refs:1"]}
 {"type":"relation","from":"Global.Pattern.API.AsyncIO","to":"Global.Pattern.API.BackgroundTasks","relationType":"COMPLEMENTS"}
 {"type":"relation","from":"Global.Pattern.API.WebSocketRealtime","to":"Global.Pattern.API.AsyncIO","relationType":"USES"}
+{"type":"entity","name":"Global.Pattern.Network.PacketDissection","entityType":"Pattern","observations":["Multi-layer protocol parsing from L2 to L7","Layer-by-layer extraction: Ethernet->IP->TCP/UDP->Application","Use libraries like Scapy for packet manipulation","upd:2025-12-29,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Network.ServiceDiscovery","entityType":"Pattern","observations":["Network scanning with NMAP for asset discovery","Port scanning, service detection, OS fingerprinting","Background async tasks for long-running scans","upd:2025-12-29,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Frontend.StateManagement","entityType":"Pattern","observations":["Zustand for lightweight React state management","Typed stores with clear state and action separation","Avoid prop drilling with centralized state","upd:2025-12-29,refs:1"]}
+{"type":"entity","name":"Global.Pattern.UI.CyberpunkTheme","entityType":"Pattern","observations":["Dark theme with neon accents (green/cyan primary)","Gray-800/900 backgrounds with translucent borders","Hover effects increase opacity for interactivity","upd:2025-12-29,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Knowledge.JSONL","entityType":"Pattern","observations":["JSON Lines format for knowledge graphs","One entity/relation/codegraph per line","Enables streaming and incremental updates","upd:2025-12-29,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Testing.DockerIsolation","entityType":"Pattern","observations":["Isolated test environments with Docker Compose","Real service containers for integration testing","Clean state with container recreation","upd:2025-12-29,refs:1"]}
+{"type":"relation","from":"Global.Pattern.Network.PacketDissection","to":"Global.Pattern.API.AsyncIO","relationType":"USES"}
+{"type":"relation","from":"Global.Pattern.Network.ServiceDiscovery","to":"Global.Pattern.API.BackgroundTasks","relationType":"USES"}
+{"type":"relation","from":"Global.Pattern.Frontend.StateManagement","to":"Global.Pattern.Code.SingleResponsibility","relationType":"FOLLOWS"}
+{"type":"relation","from":"Global.Pattern.Testing.DockerIsolation","to":"Global.Pattern.Testing.UnitIsolation","relationType":"ENABLES"]}
+
