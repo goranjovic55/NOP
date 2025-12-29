@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPExce
 from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
+from app.schemas.traffic import StormConfig
 import asyncio
 import json
 import os
@@ -85,10 +86,10 @@ async def craft_packet(packet_config: Dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/storm/start")
-async def start_storm(storm_config: Dict):
+async def start_storm(storm_config: StormConfig):
     """Start packet storm"""
     try:
-        result = sniffer_service.start_storm(storm_config)
+        result = sniffer_service.start_storm(storm_config.dict())
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

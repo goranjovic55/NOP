@@ -234,7 +234,7 @@ const Storm: React.FC = () => {
             <label className="block text-sm text-gray-400 mb-2">Packet Type</label>
             <select
               value={packetType}
-              onChange={(e) => setPacketType(e.target.value as any)}
+              onChange={(e) => setPacketType(e.target.value as 'broadcast' | 'multicast' | 'tcp' | 'udp' | 'raw_ip')}
               disabled={isStormActive}
               className="w-full bg-gray-800 border border-[#00f0ff]/30 rounded px-3 py-2 text-white focus:outline-none focus:border-[#00f0ff] disabled:opacity-50"
             >
@@ -483,7 +483,7 @@ const Storm: React.FC = () => {
                     <div>
                       <span className="text-gray-400">Peak PPS:</span>
                       <span className="ml-2 text-white font-mono">
-                        {Math.max(...metricsHistory.map(h => h.pps)).toLocaleString()}
+                        {metricsHistory.length > 0 ? Math.max(...metricsHistory.map(h => h.pps)).toLocaleString() : '0'}
                       </span>
                     </div>
                   </div>

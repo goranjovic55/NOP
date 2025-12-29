@@ -74,3 +74,28 @@ class PingResponse(BaseModel):
     timestamp: str
     error: Optional[str] = None
     note: Optional[str] = None
+
+
+class StormConfig(BaseModel):
+    """Storm configuration request model"""
+    interface: str = "eth0"
+    packet_type: str  # broadcast, multicast, tcp, udp, raw_ip
+    source_ip: Optional[str] = None
+    dest_ip: str
+    source_port: Optional[int] = None
+    dest_port: Optional[int] = None
+    pps: int = 100  # packets per second
+    payload: Optional[str] = None
+    ttl: int = 64
+    tcp_flags: Optional[List[str]] = None  # SYN, ACK, FIN, RST, PSH, URG
+
+
+class StormMetrics(BaseModel):
+    """Storm metrics response model"""
+    active: bool
+    packets_sent: int
+    bytes_sent: int
+    duration_seconds: int
+    current_pps: int
+    target_pps: int
+    start_time: str

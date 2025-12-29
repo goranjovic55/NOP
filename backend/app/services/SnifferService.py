@@ -14,6 +14,7 @@ class SnifferService:
     # Constants for packet crafting
     PACKET_SEND_TIMEOUT = 3  # seconds
     RESPONSE_HEX_MAX_LENGTH = 200  # characters
+    STORM_THREAD_STOP_TIMEOUT = 2.0  # seconds
     
     def __init__(self):
         self.is_sniffing = False
@@ -1114,11 +1115,17 @@ class SnifferService:
             
             if packet_type == "broadcast":
                 # Broadcast UDP packet
-                packet = Ether(dst="ff:ff:ff:ff:ff:ff") / IP(dst="255.255.255.255") / UDP(dport=dest_port)
+                udp_layer = UDP(dport=dest_port)
+                if source_port:
+                    udp_layer.sport = source_port
+                packet = Ether(dst="ff:ff:ff:ff:ff:ff") / IP(dst="255.255.255.255") / udp_layer
             
             elif packet_type == "multicast":
                 # Multicast UDP packet
-                packet = IP(dst="224.0.0.1") / UDP(dport=dest_port)
+                udp_layer = UDP(dport=dest_port)
+                if source_port:
+                    udp_layer.sport = source_port
+                packet = IP(dst="224.0.0.1") / udp_layer
             
             elif packet_type == "tcp":
                 # TCP packet
@@ -1221,7 +1228,7 @@ class SnifferService:
         self.is_storming = False
         
         if self.storm_thread:
-            self.storm_thread.join(timeout=2.0)
+            self.storm_thread.join(timeout=self.STORM_THREAD_STOP_TIMEOUT)
         
         return {
             "success": True,
