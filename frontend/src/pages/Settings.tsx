@@ -254,7 +254,7 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-widest cyber-glow-red">
@@ -286,7 +286,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="dashboard-card p-6">
+      <div className="dashboard-card p-3 md:p-4">
         {activeTab === 'scan' && <ScanSettingsPanel settings={settings.scan} onChange={updateSetting} />}
         {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} interfaces={interfaces} />}
         {activeTab === 'access' && <AccessSettingsPanel settings={settings.access} onChange={updateSetting} />}
@@ -317,7 +317,7 @@ const Settings: React.FC = () => {
 // Scan Settings Panel
 const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -339,7 +339,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
 
       {/* Port Scanning */}
       <SettingsSection title="Port Scanning">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Port Scanning"
           value={settings.port_scan_enabled}
           onChange={(val) => onChange('port_scan_enabled', val)}
@@ -377,21 +377,21 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
               onChange={(val) => onChange('port_scan_timeout', val)}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <SettingsToggle
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <NeonToggle
                 label="TCP Scan"
                 value={settings.tcp_scan_enabled}
                 onChange={(val) => onChange('tcp_scan_enabled', val)}
               />
               
-              <SettingsToggle
+              <NeonToggle
                 label="UDP Scan"
                 value={settings.udp_scan_enabled}
                 onChange={(val) => onChange('udp_scan_enabled', val)}
               />
             </div>
             
-            <SettingsToggle
+            <NeonToggle
               label="SYN Scan (Stealth)"
               value={settings.syn_scan}
               onChange={(val) => onChange('syn_scan', val)}
@@ -403,7 +403,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
 
       {/* Vulnerability Scanning */}
       <SettingsSection title="Vulnerability Scanning">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Vulnerability Scanning"
           value={settings.vuln_scan_enabled}
           onChange={(val) => onChange('vuln_scan_enabled', val)}
@@ -422,20 +422,20 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
               onChange={(val) => onChange('vuln_scan_depth', val)}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <SettingsToggle
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <NeonToggle
                 label="Safe Checks Only"
                 value={settings.safe_checks_only}
                 onChange={(val) => onChange('safe_checks_only', val)}
               />
               
-              <SettingsToggle
+              <NeonToggle
                 label="Check CVE Database"
                 value={settings.check_cve_database}
                 onChange={(val) => onChange('check_cve_database', val)}
               />
               
-              <SettingsToggle
+              <NeonToggle
                 label="Detect Versions"
                 value={settings.detect_versions}
                 onChange={(val) => onChange('detect_versions', val)}
@@ -482,7 +482,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
           description="Number of parallel scanning threads"
         />
         
-        <SettingsToggle
+        <NeonToggle
           label="Enable Auto Scan"
           value={settings.auto_scan_enabled}
           onChange={(val) => onChange('auto_scan_enabled', val)}
@@ -512,7 +512,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
 
       {/* Reporting */}
       <SettingsSection title="Reporting">
-        <SettingsToggle
+        <NeonToggle
           label="Generate Reports"
           value={settings.generate_reports}
           onChange={(val) => onChange('generate_reports', val)}
@@ -532,7 +532,7 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
               onChange={(val) => onChange('report_format', val)}
             />
             
-            <SettingsToggle
+            <NeonToggle
               label="Verbose Output"
               value={settings.verbose_output}
               onChange={(val) => onChange('verbose_output', val)}
@@ -550,7 +550,7 @@ const DiscoverySettingsPanel: React.FC<{
   interfaces: Array<{ name: string; ip: string; status: string }>;
 }> = ({ settings, onChange, interfaces }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -572,7 +572,7 @@ const DiscoverySettingsPanel: React.FC<{
 
       {/* Discovery Method */}
       <SettingsSection title="Discovery Method">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Network Discovery"
           value={settings.discovery_enabled}
           onChange={(val) => onChange('discovery_enabled', val)}
@@ -644,73 +644,75 @@ const DiscoverySettingsPanel: React.FC<{
 
       {/* Advanced Options */}
       <SettingsSection title="Advanced Options">
-        <div className="grid grid-cols-2 gap-4">
-          <SettingsToggle
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <NeonToggle
             label="DNS Resolution"
             value={settings.enable_dns_resolution}
             onChange={(val) => onChange('enable_dns_resolution', val)}
           />
           
-          <SettingsToggle
+          <NeonToggle
             label="OS Detection"
             value={settings.enable_os_detection}
             onChange={(val) => onChange('enable_os_detection', val)}
           />
           
-          <SettingsToggle
+          <NeonToggle
             label="Service Detection"
             value={settings.enable_service_detection}
             onChange={(val) => onChange('enable_service_detection', val)}
           />
           
-          <SettingsToggle
+          <NeonToggle
             label="Passive Discovery"
             value={settings.passive_discovery}
             onChange={(val) => onChange('passive_discovery', val)}
             description="Discover hosts from network traffic"
           />
-          
-          <SettingsToggle
-            label="Source Only"
-            value={settings.track_source_only}
-            onChange={(val) => onChange('track_source_only', val)}
-            description="Safe mode: only track senders. Disable to track receivers with filters below"
-          />
-          
-          {!settings.track_source_only && (
-            <div className="ml-6 space-y-3 border-l-2 border-cyber-purple pl-4">
-              <p className="text-xs text-cyber-purple mb-1">Destination Filters:</p>
-              
-              <SettingsToggle
-                label="Unicast"
-                value={settings.filter_unicast}
-                onChange={(val) => onChange('filter_unicast', val)}
-                description="Filter point-to-point traffic"
-              />
-              
-              <SettingsToggle
-                label="Multicast"
-                value={settings.filter_multicast}
-                onChange={(val) => onChange('filter_multicast', val)}
-                description="Filter group traffic (224.0.0.0/4)"
-              />
-              
-              <SettingsToggle
-                label="Broadcast"
-                value={settings.filter_broadcast}
-                onChange={(val) => onChange('filter_broadcast', val)}
-                description="Filter network-wide traffic"
-              />
-            </div>
-          )}
-          
-          <SettingsToggle
+        </div>
+        
+        <NeonToggle
+          label="Source Only"
+          value={settings.track_source_only}
+          onChange={(val) => onChange('track_source_only', val)}
+          description="Safe mode: only track senders. Disable to track receivers with filters below"
+        />
+        
+        {!settings.track_source_only && (
+          <div className="ml-6 space-y-3 border-l-2 border-cyber-purple pl-4">
+            <p className="text-xs text-cyber-purple mb-1">Destination Filters:</p>
+            
+            <NeonToggle
+              label="Unicast"
+              value={settings.filter_unicast}
+              onChange={(val) => onChange('filter_unicast', val)}
+              description="Filter point-to-point traffic"
+            />
+            
+            <NeonToggle
+              label="Multicast"
+              value={settings.filter_multicast}
+              onChange={(val) => onChange('filter_multicast', val)}
+              description="Filter group traffic (224.0.0.0/4)"
+            />
+            
+            <NeonToggle
+              label="Broadcast"
+              value={settings.filter_broadcast}
+              onChange={(val) => onChange('filter_broadcast', val)}
+              description="Filter network-wide traffic"
+            />
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <NeonToggle
             label="OS Fingerprinting"
             value={settings.fingerprint_os}
             onChange={(val) => onChange('fingerprint_os', val)}
           />
           
-          <SettingsToggle
+          <NeonToggle
             label="Detect VPN"
             value={settings.detect_vpn}
             onChange={(val) => onChange('detect_vpn', val)}
@@ -721,13 +723,13 @@ const DiscoverySettingsPanel: React.FC<{
       {/* Network Interface */}
       <SettingsSection title="Network Interface">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-cyber-blue uppercase">
+          <label className="text-xs font-bold text-cyber-blue uppercase tracking-wide">
             Interface Name
           </label>
           <select
             value={settings.interface_name}
             onChange={(e) => onChange('interface_name', e.target.value)}
-            className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
+            className="w-full bg-cyber-darker border border-cyber-gray p-2 text-sm text-cyber-blue focus:border-cyber-red focus:shadow-[0_0_10px_rgba(255,0,64,0.2)] outline-none transition-all"
           >
             {interfaces.map((iface) => (
               <option key={iface.name} value={iface.name} className="bg-cyber-darker text-cyber-blue">
@@ -740,10 +742,10 @@ const DiscoverySettingsPanel: React.FC<{
               </option>
             )}
           </select>
-          <p className="text-xs text-cyber-gray-light">Select network interface for passive discovery</p>
+          <p className="text-[10px] text-cyber-gray-light leading-tight">Select network interface for passive discovery</p>
         </div>
         
-        <SettingsToggle
+        <NeonToggle
           label="Promiscuous Mode"
           value={settings.promiscuous_mode}
           onChange={(val) => onChange('promiscuous_mode', val)}
@@ -796,7 +798,7 @@ const DiscoverySettingsPanel: React.FC<{
 // Access Settings Panel
 const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Authentication */}
       <SettingsSection title="Authentication">
         <SettingsSlider
@@ -828,7 +830,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 
       {/* Credential Vault */}
       <SettingsSection title="Credential Vault">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Credential Vault"
           value={settings.enable_credential_vault}
           onChange={(val) => onChange('enable_credential_vault', val)}
@@ -847,7 +849,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
               description="Automatically lock vault after inactivity"
             />
             
-            <SettingsToggle
+            <NeonToggle
               label="Require Password Re-entry"
               value={settings.require_password_for_vault}
               onChange={(val) => onChange('require_password_for_vault', val)}
@@ -859,7 +861,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 
       {/* API Access */}
       <SettingsSection title="API Access">
-        <SettingsToggle
+        <NeonToggle
           label="Enable API Access"
           value={settings.api_access_enabled}
           onChange={(val) => onChange('api_access_enabled', val)}
@@ -879,17 +881,19 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 
       {/* Audit Logging */}
       <SettingsSection title="Audit Logging">
-        <SettingsToggle
-          label="Log All Access"
-          value={settings.log_all_access}
-          onChange={(val) => onChange('log_all_access', val)}
-        />
-        
-        <SettingsToggle
-          label="Log Failed Attempts"
-          value={settings.log_failed_attempts}
-          onChange={(val) => onChange('log_failed_attempts', val)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <NeonToggle
+            label="Log All Access"
+            value={settings.log_all_access}
+            onChange={(val) => onChange('log_all_access', val)}
+          />
+          
+          <NeonToggle
+            label="Log Failed Attempts"
+            value={settings.log_failed_attempts}
+            onChange={(val) => onChange('log_failed_attempts', val)}
+          />
+        </div>
         
         <SettingsSlider
           label="Log Retention"
@@ -907,7 +911,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 // System Settings Panel
 const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* General */}
       <SettingsSection title="General">
         <SettingsInput
@@ -939,7 +943,7 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
 
       {/* Performance */}
       <SettingsSection title="Performance">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Caching"
           value={settings.enable_caching}
           onChange={(val) => onChange('enable_caching', val)}
@@ -977,18 +981,20 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
           onChange={(val) => onChange('data_retention_days', val)}
         />
         
-        <SettingsToggle
-          label="Auto Cleanup"
-          value={settings.auto_cleanup_enabled}
-          onChange={(val) => onChange('auto_cleanup_enabled', val)}
-          description="Automatically delete old data"
-        />
-        
-        <SettingsToggle
-          label="Enable Backups"
-          value={settings.backup_enabled}
-          onChange={(val) => onChange('backup_enabled', val)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <NeonToggle
+            label="Auto Cleanup"
+            value={settings.auto_cleanup_enabled}
+            onChange={(val) => onChange('auto_cleanup_enabled', val)}
+            description="Automatically delete old data"
+          />
+          
+          <NeonToggle
+            label="Enable Backups"
+            value={settings.backup_enabled}
+            onChange={(val) => onChange('backup_enabled', val)}
+          />
+        </div>
         
         {settings.backup_enabled && (
           <SettingsSlider
@@ -1004,7 +1010,7 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
 
       {/* Notifications */}
       <SettingsSection title="Notifications">
-        <SettingsToggle
+        <NeonToggle
           label="Enable Notifications"
           value={settings.enable_notifications}
           onChange={(val) => onChange('enable_notifications', val)}
@@ -1032,11 +1038,19 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
 
       {/* Monitoring */}
       <SettingsSection title="Monitoring">
-        <SettingsToggle
-          label="Enable Metrics"
-          value={settings.enable_metrics}
-          onChange={(val) => onChange('enable_metrics', val)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <NeonToggle
+            label="Enable Metrics"
+            value={settings.enable_metrics}
+            onChange={(val) => onChange('enable_metrics', val)}
+          />
+          
+          <NeonToggle
+            label="Enable Health Checks"
+            value={settings.enable_health_checks}
+            onChange={(val) => onChange('enable_health_checks', val)}
+          />
+        </div>
         
         {settings.enable_metrics && (
           <SettingsSlider
@@ -1048,12 +1062,6 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
             onChange={(val) => onChange('metrics_interval', val)}
           />
         )}
-        
-        <SettingsToggle
-          label="Enable Health Checks"
-          value={settings.enable_health_checks}
-          onChange={(val) => onChange('enable_health_checks', val)}
-        />
       </SettingsSection>
 
       {/* Database */}
@@ -1081,8 +1089,8 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
 // Reusable Components
 const SettingsSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   return (
-    <div className="border border-cyber-gray p-4 space-y-4">
-      <h3 className="text-lg font-bold text-cyber-purple uppercase tracking-wider border-b border-cyber-gray pb-2">
+    <div className="border border-cyber-gray p-3 space-y-4">
+      <h3 className="text-base font-bold text-cyber-purple uppercase tracking-wider border-b border-cyber-gray pb-1.5">
         {title}
       </h3>
       {children}
@@ -1090,24 +1098,55 @@ const SettingsSection: React.FC<{ title: string; children: React.ReactNode }> = 
   );
 };
 
-const SettingsToggle: React.FC<{ 
+const NeonToggle: React.FC<{ 
   label: string; 
   value: boolean; 
   onChange: (value: boolean) => void; 
   description?: string 
 }> = ({ label, value, onChange, description }) => {
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex items-start justify-between gap-3">
       <div className="flex-1">
-        <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
-        {description && <p className="text-xs text-cyber-gray-light mt-1">{description}</p>}
+        <label className="text-xs font-bold text-cyber-blue uppercase tracking-wide">
+          {label}
+        </label>
+        {description && (
+          <p className="text-[10px] text-cyber-gray-light mt-0.5 leading-tight">
+            {description}
+          </p>
+        )}
       </div>
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 accent-cyber-red mt-1"
-      />
+      
+      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+        <input 
+          type="checkbox" 
+          className="sr-only peer" 
+          checked={value} 
+          onChange={(e) => onChange(e.target.checked)} 
+        />
+        <div className="
+          w-11 h-6 
+          bg-cyber-darker 
+          border border-cyber-gray
+          peer-focus:outline-none 
+          peer-focus:border-cyber-red
+          peer-checked:border-cyber-red
+          peer-checked:shadow-[0_0_10px_rgba(255,0,64,0.5)]
+          transition-all duration-300
+          relative
+        ">
+          <div className="
+            absolute top-0.5 left-0.5
+            w-5 h-5 
+            rounded-full
+            bg-cyber-gray-light
+            peer-checked:bg-cyber-red
+            peer-checked:translate-x-5
+            peer-checked:shadow-[0_0_8px_rgba(255,0,64,0.8)]
+            transition-all duration-300
+          "></div>
+        </div>
+      </label>
     </div>
   );
 };
@@ -1124,8 +1163,8 @@ const SettingsSlider: React.FC<{
   return (
     <div className="space-y-2">
       <div className="flex justify-between">
-        <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
-        <span className="text-cyber-purple font-mono">{value} {unit || ''}</span>
+        <label className="text-xs font-bold text-cyber-blue uppercase tracking-wide">{label}</label>
+        <span className="text-xs text-cyber-purple font-mono">{value} {unit || ''}</span>
       </div>
       <input
         type="range"
@@ -1133,9 +1172,9 @@ const SettingsSlider: React.FC<{
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full accent-cyber-red"
+        className="w-full h-1.5 bg-gradient-to-r from-cyber-gray via-cyber-purple to-cyber-red accent-cyber-red cursor-pointer"
       />
-      {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
+      {description && <p className="text-[10px] text-cyber-gray-light leading-tight">{description}</p>}
     </div>
   );
 };
@@ -1149,17 +1188,17 @@ const SettingsSelect: React.FC<{
 }> = ({ label, value, options, onChange, description }) => {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
+      <label className="text-xs font-bold text-cyber-blue uppercase tracking-wide">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
+        className="w-full bg-cyber-darker border border-cyber-gray p-2 text-sm text-cyber-blue focus:border-cyber-red focus:shadow-[0_0_10px_rgba(255,0,64,0.2)] outline-none transition-all"
       >
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
+      {description && <p className="text-[10px] text-cyber-gray-light leading-tight">{description}</p>}
     </div>
   );
 };
@@ -1173,15 +1212,15 @@ const SettingsInput: React.FC<{
 }> = ({ label, value, onChange, placeholder, description }) => {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
+      <label className="text-xs font-bold text-cyber-blue uppercase tracking-wide">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue font-mono focus:border-cyber-red outline-none"
+        className="w-full bg-cyber-darker border border-cyber-gray p-2 text-sm text-cyber-blue font-mono focus:border-cyber-red focus:shadow-[0_0_10px_rgba(255,0,64,0.2)] outline-none transition-all"
       />
-      {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
+      {description && <p className="text-[10px] text-cyber-gray-light leading-tight">{description}</p>}
     </div>
   );
 };
