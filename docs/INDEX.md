@@ -2,7 +2,7 @@
 
 **Network Observatory Platform** - Comprehensive documentation for developers and operators.
 
-**Last Updated**: 2025-12-29
+**Last Updated**: 2025-12-30
 
 ---
 
@@ -153,6 +153,25 @@
 
 **Audience**: Product team, Contributors
 
+### [EXPLOIT_FRAMEWORK.md](features/EXPLOIT_FRAMEWORK.md)
+**Exploit Framework Design**
+- Vulnerability assessment integration
+- Exploit execution engine design
+- Post-exploitation tooling
+- Platform strategy and roadmap
+- **Status**: Planning phase (not yet implemented)
+
+**Audience**: Security researchers, Pentesters, Product team
+
+### [GRANULAR_TRAFFIC_FILTERING.md](features/GRANULAR_TRAFFIC_FILTERING.md)
+**Granular Traffic Filtering**
+- Passive discovery filtering
+- Source-only tracking mode
+- Packet type filtering (unicast/multicast/broadcast)
+- Interface selection
+
+**Audience**: Network operators, Users
+
 ---
 
 ## 🔍 Document Categories
@@ -175,11 +194,12 @@
 
 ## 📊 Documentation Statistics
 
-- **Total Documents**: 11 core documents
-- **Total Size**: ~176 KB
+- **Total Documents**: 14 core documents (5 archived)
+- **Total Size**: ~125 KB (active docs)
 - **Categories**: 6 (Architecture, Technical, Guides, Development, Design, Features)
-- **Coverage**: System architecture, API, deployment, development, design
-- **Duplication**: <5% (consolidated approach)
+- **Coverage**: System architecture, API, deployment, development, design, features
+- **Duplication**: <2% (consolidated 5 EXPLOIT docs into 1)
+- **Archive Rate**: 26% (5 of 19 original docs archived)
 
 ---
 
