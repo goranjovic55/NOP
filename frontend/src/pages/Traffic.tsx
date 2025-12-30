@@ -519,13 +519,13 @@ const Traffic: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('storm')}
-          className={`px-6 py-2 font-bold uppercase text-xs transition-all flex items-center gap-2 ${
+          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
             activeTab === 'storm'
               ? 'bg-red-600 text-white border-2 border-red-600'
               : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-red-600 hover:text-red-500'
           }`}
         >
-          <span className="text-base">⚡</span> Storm
+          Storm
         </button>
       </div>
 

@@ -280,9 +280,9 @@ const Storm: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] p-4 space-y-4">
+    <div className="flex flex-col h-full p-4 space-y-4 overflow-y-auto">
       {/* Header */}
-      <div className="bg-cyber-darker p-3 border border-cyber-gray">
+      <div className="bg-cyber-darker p-3 border border-cyber-gray flex-shrink-0">
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-sm font-bold text-cyber-blue uppercase tracking-widest">Packet Storm</h1>
@@ -291,47 +291,48 @@ const Storm: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Configuration Panel */}
         <div className="bg-cyber-darker border border-cyber-gray flex flex-col">
-          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
+          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex-shrink-0">
             <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Configuration</span>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-          <div className="space-y-3">
+          <div className="p-4">
+          <div className="space-y-2">
           
-          {/* Interface Selection */}
-          <div className="space-y-1">
-            <label className="text-[10px] text-cyber-blue font-bold uppercase">Interface</label>
-            <select
-              value={selectedIface}
-              onChange={(e) => setSelectedIface(e.target.value)}
-              disabled={isStormActive}
-              className="w-full bg-cyber-dark border border-cyber-gray px-2 py-1 text-cyber-blue text-xs font-mono focus:outline-none focus:border-cyber-blue disabled:opacity-50"
-            >
-              {interfaces.map(iface => (
-                <option key={iface.name} value={iface.name}>
-                  {iface.name} ({iface.ip})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Interface Selection and Packet Type */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] text-cyber-blue font-bold uppercase">Interface</label>
+              <select
+                value={selectedIface}
+                onChange={(e) => setSelectedIface(e.target.value)}
+                disabled={isStormActive}
+                className="w-full bg-cyber-dark border border-cyber-gray px-2 py-2 text-cyber-blue text-xs font-mono focus:outline-none focus:border-cyber-blue disabled:opacity-50"
+              >
+                {interfaces.map(iface => (
+                  <option key={iface.name} value={iface.name}>
+                    {iface.name} ({iface.ip})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Packet Type */}
-          <div className="space-y-1">
-            <label className="text-[10px] text-cyber-blue font-bold uppercase">Packet Type</label>
-            <select
-              value={packetType}
-              onChange={(e) => setPacketType(e.target.value as 'broadcast' | 'multicast' | 'tcp' | 'udp' | 'raw_ip')}
-              disabled={isStormActive}
-              className="w-full bg-cyber-dark border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-blue disabled:opacity-50"
-            >
-              <option value="broadcast">Broadcast</option>
-              <option value="multicast">Multicast</option>
-              <option value="tcp">TCP</option>
-              <option value="udp">UDP</option>
-              <option value="raw_ip">Raw IP</option>
-            </select>
+            <div className="space-y-1">
+              <label className="text-[10px] text-cyber-blue font-bold uppercase">Packet Type</label>
+              <select
+                value={packetType}
+                onChange={(e) => setPacketType(e.target.value as 'broadcast' | 'multicast' | 'tcp' | 'udp' | 'raw_ip')}
+                disabled={isStormActive}
+                className="w-full bg-cyber-dark border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-blue disabled:opacity-50"
+              >
+                <option value="broadcast">Broadcast</option>
+                <option value="multicast">Multicast</option>
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="raw_ip">Raw IP</option>
+              </select>
+            </div>
           </div>
 
           {/* Live Host Monitoring */}
@@ -345,8 +346,8 @@ const Storm: React.FC = () => {
                 onFocus={() => setShowAssetDropdown(true)}
                 onBlur={() => setTimeout(() => setShowAssetDropdown(false), 200)}
                 disabled={isStormActive || isPinging}
-                placeholder="Enter IP or click to select from assets"
-                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-purple text-xs font-mono focus:outline-none focus:border-cyber-purple disabled:opacity-50"
+                placeholder="Enter IP or select from assets"
+                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-purple text-xs font-mono focus:outline-none focus:border-cyber-purple disabled:opacity-50"
               />
               {showAssetDropdown && assets.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-cyber-darker border border-cyber-purple max-h-40 overflow-y-auto custom-scrollbar">
@@ -366,11 +367,11 @@ const Storm: React.FC = () => {
                 </div>
               )}
             </div>
-            <p className="text-[9px] text-cyber-gray-light">Optional: Will ping before/during storm (proceeds after 5s timeout)</p>
+            <p className="text-[9px] text-cyber-gray-light leading-tight">Will ping before/during storm (proceeds after 5s timeout)</p>
           </div>
 
           {/* IP Addresses */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] text-cyber-blue font-bold uppercase">Source IP (opt)</label>
               <input
@@ -379,7 +380,7 @@ const Storm: React.FC = () => {
                 onChange={(e) => setSourceIp(e.target.value)}
                 disabled={isStormActive}
                 placeholder="Auto"
-                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
               />
             </div>
             <div className="space-y-1">
@@ -389,14 +390,14 @@ const Storm: React.FC = () => {
                 value={destIp}
                 onChange={(e) => setDestIp(e.target.value)}
                 disabled={isStormActive}
-                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
               />
             </div>
           </div>
 
           {/* Ports (TCP/UDP only) */}
           {(packetType === 'tcp' || packetType === 'udp') && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <label className="text-[10px] text-cyber-blue font-bold uppercase">Source Port (opt)</label>
                 <input
@@ -405,7 +406,7 @@ const Storm: React.FC = () => {
                   onChange={(e) => setSourcePort(e.target.value)}
                   disabled={isStormActive}
                   placeholder="Random"
-                  className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                  className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
                 />
               </div>
               <div className="space-y-1">
@@ -415,7 +416,7 @@ const Storm: React.FC = () => {
                   value={destPort}
                   onChange={(e) => setDestPort(e.target.value)}
                   disabled={isStormActive}
-                  className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                  className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
                 />
               </div>
             </div>
@@ -445,7 +446,7 @@ const Storm: React.FC = () => {
           )}
 
           {/* PPS and TTL */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] text-cyber-blue font-bold uppercase">PPS</label>
               <input
@@ -455,7 +456,7 @@ const Storm: React.FC = () => {
                 disabled={isStormActive}
                 min="1"
                 max="10000000"
-                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
               />
             </div>
             <div className="space-y-1">
@@ -467,7 +468,7 @@ const Storm: React.FC = () => {
                 disabled={isStormActive}
                 min="1"
                 max="255"
-                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
+                className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green text-xs font-mono focus:outline-none focus:border-cyber-green disabled:opacity-50"
               />
             </div>
           </div>
@@ -480,7 +481,7 @@ const Storm: React.FC = () => {
               onChange={(e) => setPayload(e.target.value)}
               disabled={isStormActive}
               placeholder="Enter payload data..."
-              className="w-full bg-cyber-darker border border-cyber-gray px-2 py-1 text-cyber-green font-mono text-xs focus:outline-none focus:border-cyber-green disabled:opacity-50 resize-y min-h-[40px]"
+              className="w-full bg-cyber-darker border border-cyber-gray px-2 py-2 text-cyber-green font-mono text-xs focus:outline-none focus:border-cyber-green disabled:opacity-50 resize-y min-h-[60px]"
             />
           </div>
           </div>
@@ -488,7 +489,7 @@ const Storm: React.FC = () => {
           </div>
           
           {/* Control Buttons */}
-          <div className="p-4 border-t border-cyber-gray">
+          <div className="p-4 border-t border-cyber-gray bg-cyber-darker">
             {!isStormActive ? (
               <button
                 onClick={startStorm}
@@ -508,11 +509,11 @@ const Storm: React.FC = () => {
         </div>
 
         {/* Metrics Panel */}
-        <div className="bg-cyber-darker border border-cyber-gray flex flex-col min-h-0">
-          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
+        <div className="bg-cyber-darker border border-cyber-gray flex flex-col">
+          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex-shrink-0">
             <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Metrics</span>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+          <div className="p-4">
           
           {!isStormActive && !metrics && (
             <div className="text-center text-cyber-gray-light py-12">
@@ -521,9 +522,9 @@ const Storm: React.FC = () => {
           )}
 
           {metrics && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Status Indicator */}
-              <div className="flex items-center gap-2 pb-3 border-b border-cyber-gray">
+              <div className="flex items-center gap-2 pb-2 border-b border-cyber-gray">
                 <span className={`text-xs font-bold uppercase tracking-widest ${
                   isStormActive ? 'text-cyber-red' : 'text-cyber-gray-light'
                 }`}>
@@ -561,10 +562,10 @@ const Storm: React.FC = () => {
 
               {/* Chart */}
               {metricsHistory.length > 1 && (
-                <div className="mt-3">
-                  <div className="text-[9px] text-cyber-gray-light mb-2 uppercase tracking-widest">Packets per Second (Last 60s)</div>
-                  <div className="bg-cyber-dark/50 border border-cyber-gray p-3 relative">
-                    <div className="flex items-end h-[120px]">
+                <div className="mt-2">
+                  <div className="text-[9px] text-cyber-gray-light mb-1.5 uppercase tracking-widest">Packets per Second (Last 60s)</div>
+                  <div className="bg-cyber-dark/50 border border-cyber-gray p-2 relative">
+                    <div className="flex items-end h-[100px]">
                       {/* Y-axis labels */}
                       <div className="flex flex-col justify-between h-full text-[9px] text-cyber-gray-light font-mono pr-2 border-r border-cyber-gray/30">
                         <div>{metrics.target_pps}</div>
@@ -641,9 +642,9 @@ const Storm: React.FC = () => {
 
               {/* Live Host Ping Status */}
               {liveHost && (pingStatus || isPinging) && (
-                <div className="mt-3 pt-3 border-t border-cyber-gray">
-                  <div className="text-[9px] text-cyber-gray-light mb-2 uppercase tracking-widest">Live Host Status</div>
-                  <div className={`bg-cyber-dark/50 border p-3 ${
+                <div className="mt-2 pt-2 border-t border-cyber-gray">
+                  <div className="text-[9px] text-cyber-gray-light mb-1.5 uppercase tracking-widest">Live Host Status</div>
+                  <div className={`bg-cyber-dark/50 border p-2 ${
                     isPinging ? 'border-cyber-yellow' :
                     pingStatus?.reachable ? 'border-cyber-green' : 'border-cyber-red'
                   }`}>
@@ -724,19 +725,6 @@ const Storm: React.FC = () => {
               </div>
             </div>
           )}
-          </div>
-        </div>
-      </div>
-
-      {/* Warning */}
-      <div className="bg-cyber-dark border border-cyber-yellow p-3">
-        <div className="flex items-start gap-2">
-          <div>
-            <h3 className="text-cyber-yellow font-bold text-[10px] uppercase tracking-widest mb-1">⚠ Warning</h3>
-            <p className="text-[10px] text-cyber-gray-light leading-relaxed">
-              Packet storm testing generates high-volume traffic that may trigger network protection mechanisms 
-              or overwhelm network devices. Use responsibly and only in controlled test environments.
-            </p>
           </div>
         </div>
       </div>
