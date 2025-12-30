@@ -7,7 +7,11 @@ applyTo: '**'
 ## Session
 ```
 [SESSION: role=Lead|Architect|Developer|Reviewer|Researcher | task=<desc> | phase=CONTEXT]
+[SKILLS: loaded=N | available: #1,#2,#3...]
+[KNOWLEDGE: loaded | entities=N | sources=M]
 ```
+
+**CRITICAL**: Load and verify knowledge BEFORE proceeding with any work.
 
 ## Delegation
 ```
@@ -48,6 +52,13 @@ Artifacts: [files] | Learnings: [patterns]
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
 ```
+
+## Skill Usage
+```
+[SKILL: #N Name | applied] → action/context
+```
+**Purpose**: Transparency - shows which skills are being applied when.
+**Example**: `[SKILL: #3 Security | applied] → Validating input sanitization`
 
 ## Knowledge
 ```

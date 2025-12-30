@@ -146,7 +146,7 @@ project_knowledge.json     → Project entities, codegraph, relations
 **Protocol**:
 | Event | Action |
 |-------|--------|
-| Session start | Load knowledge, query relevant entities |
+| Session start | Load knowledge, **EMIT** [KNOWLEDGE: loaded \| entities=N \| sources=M] |
 | Decision made | Document rationale, alternatives |
 | Bug fixed | Add pattern to knowledge |
 | Session end | Update knowledge, create handover |
@@ -166,7 +166,10 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 **Emissions**:
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+[SKILLS: loaded=N | available: #1,#2,#3...]
+[KNOWLEDGE: loaded | entities=N | sources=M]
 [PHASE: PLAN | progress=2/7 | next=COORDINATE]
+[SKILL: #N Name | applied] → when using a skill
 [TASK: <desc>]
 ├── [x] CONTEXT
 ├── [ ] DELEGATE→Agent  ← current
@@ -311,7 +314,7 @@ services:
 
 **Trigger**: Session completion (significant work)
 
-**CRITICAL**: Workflow logs MUST include Decision Diagram with all [DECISION:], [ATTEMPT:], [SUBAGENT:] markers.
+**CRITICAL**: Workflow logs MUST include Decision Diagram with all [DECISION:], [ATTEMPT:], [SUBAGENT:], [SKILL:] markers.
 
 **Pattern**:
 ```bash
@@ -323,10 +326,14 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 **Decision Diagram** (required in every log):
 ```
 [SESSION START: <Task>]
+    ├─[SKILLS: loaded=N]
+    ├─[KNOWLEDGE: loaded | entities=N]
     |
     └─[DECISION: <question>?] 
         ├─ Option A: <desc> → Rejected (<reason>)
         └─ ✓ Option C: <desc> → CHOSEN (<rationale>)
+            |
+            ├─[SKILL: #N Name | applied] → <what/why>
             |
             ├─[SUBAGENT: Name] <task>
             |   ├─[ATTEMPT #1] <action> → ✗ failed
@@ -356,7 +363,8 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 ```
 
 **Checklist Before [COMPLETE]**:
-- [ ] Decision Diagram shows all [DECISION:], [ATTEMPT:], [SUBAGENT:]
+- [ ] Decision Diagram shows all [DECISION:], [ATTEMPT:], [SUBAGENT:], [SKILL:]
+- [ ] Skills/knowledge loading documented at start
 - [ ] Rejected alternatives documented
 - [ ] All ✓/✗ outcomes marked
 - [ ] Workflow log file created
