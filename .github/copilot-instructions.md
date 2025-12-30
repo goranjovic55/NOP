@@ -33,51 +33,29 @@ _DevTeam (Orchestrator)
 └── Researcher → Investigate, document
 ```
 
-## Session Start
-
-**Always emit at beginning of task**:
-```
-[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
-```
-Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json` → detect type
-
-**Skills load order**:
-1. `.claude/skills.md` - Core patterns (12 skills)
-2. `.claude/skills/domain.md` - Project-specific patterns
-3. `project_knowledge.json` - Project entities/learnings
-4. `.github/global_knowledge.json` - Universal patterns
-
 ## Phase Flow
 
-**Track progress throughout session**:
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
 ```
 
-**CRITICAL - Anti-Drift Protocol**:
-```
-REQUIRED emissions throughout session:
-1. [SESSION: ...] ← FIRST ACTION, before any tool use
-2. [PHASE: CONTEXT | progress=1/7] ← SECOND ACTION, immediately after SESSION
-3. [PHASE: PLAN | progress=2/7] when designing solution
-4. [DECISION: ?] for EVERY choice between alternatives
-5. [ATTEMPT #N] for EVERY implementation iteration
-6. [SUBAGENT: Name] for EVERY delegation (#runSubagent)
-7. Track ALL phase transitions: CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE
+**Required emissions throughout session**:
+1. `[SESSION: ...]` ← FIRST ACTION, before any tool use
+2. `[PHASE: CONTEXT | progress=1/7]` ← SECOND ACTION, immediately after SESSION
+3. `[PHASE: PLAN | progress=2/7]` when designing solution
+4. `[DECISION: ?]` for EVERY choice between alternatives
+5. `[ATTEMPT #N]` for EVERY implementation iteration
+6. `[SUBAGENT: Name]` for EVERY delegation (#runSubagent)
+7. Track ALL phase transitions
 
-ENFORCEMENT: These are REQUIRED, not optional. Protocol compliance is tracked in workflow logs.
-VIOLATION CHECK: Before any file edit, verify [SESSION:] and [PHASE: CONTEXT] were emitted.
-```
+**ENFORCEMENT**: These are REQUIRED, not optional. Protocol compliance tracked in workflow logs.
+**VIOLATION CHECK**: Before any file edit, verify [SESSION:] and [PHASE: CONTEXT] were emitted.
+
+Load order: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json`
 
 ## Delegation
-```
-[DELEGATE: agent=<Architect|Developer|Reviewer|Researcher> | task=<desc>]
-Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
 
-[INTEGRATE: from=<agent> | status=complete|partial|blocked | result=<summary>]
-```
-
-**Use #runSubagent for all specialist work**:
+**Use #runSubagent for specialist work**:
 | Situation | Agent |
 |-----------|-------|
 | Design decision | #runSubagent Architect |
@@ -92,7 +70,6 @@ Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"...
 [NEST: parent=<main> | child=<sub> | reason=<why>]
 [RETURN: to=<main> | result=<findings>]
 
-# Multi-level:
 [STACK: push | task=<sub> | depth=N | parent=<main>]
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
@@ -103,8 +80,6 @@ Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"...
 [NEST: parent=<current> | child=<new> | reason=user-interrupt]
 [RETURN: to=<current> | result=<summary>]
 [RESUME: task=<current> | phase=<phase>]
-
-[THREAD: active=<task> | paused=[<list>]]
 ```
 
 ## Learn Phase
@@ -124,17 +99,15 @@ Add to `.claude/skills.md` or `.claude/skills/domain.md`
 ```
 [KNOWLEDGE: added=N | updated=M | type=project|global]
 ```
-| File | Location | Contents |
-|------|----------|----------|
-| project_knowledge.json | Root | Entities + Codegraph + Relations |
-| global_knowledge.json | .github/ | Universal patterns |
 
-### Format (JSONL)
+**Format (JSONL)**:
 ```json
 {"type":"entity","name":"Project.Domain.Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD"]}
 {"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
 {"type":"relation","from":"A","to":"B","relationType":"USES"}
 ```
+
+**Files**: `project_knowledge.json` (root) | `global_knowledge.json` (.github/)
 
 ## Completion
 ```
@@ -145,7 +118,7 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 [/WORKFLOW_LOG]
 ```
 
-**Checklist Before Emitting [COMPLETE]**:
+**Checklist Before [COMPLETE]**:
 - [ ] All quality gates passed
 - [ ] Knowledge updated (project_knowledge.json)
 - [ ] **Workflow log with Decision Diagram**
@@ -154,12 +127,10 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 - [ ] Changes committed (if applicable)
 
 **Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
-- Timestamp from session start | Slug: lowercase-hyphens-max50
 - **MUST include Decision Diagram** showing: [DECISION: ?], [ATTEMPT #N], [SUBAGENT: Name], ✓/✗, rejected paths
-- Rejected alternatives with reasons
-```
 
 ## Quality Gates
+
 | Gate | Owner | Check |
 |------|-------|-------|
 | Context | Orchestrator | Knowledge loaded |
@@ -167,65 +138,10 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 | Code | Developer | Tests pass, linters pass, builds succeed |
 | Quality | Reviewer | Standards met |
 
-**Phase 5 (VERIFY) Requirements**:
-- All linters pass
-- All builds succeed
-- All relevant tests pass
-
 **User Confirmation Gate**:
 ```
 [VERIFY: complete | awaiting user confirmation]
 → PAUSE: Confirm testing passed before proceeding to LEARN/COMPLETE
-```
-Only proceed to LEARN/COMPLETE phases after user confirms testing is successful.
-
-## Learn Phase
-```
-[PHASE: LEARN | progress=6/7]
-```
-
-**Skill Discovery**: If session revealed reusable pattern, suggest new skill:
-```
-[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
-Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
-[/SKILL_SUGGESTION]
-```
-Add to `.claude/skills.md` or `.claude/skills/domain.md`
-| Workflow | Purpose | Agents |
-|----------|---------|--------|
-| init_project | New project | Architect→Developer→Reviewer |
-| import_project | Adopt existing | Researcher→Developer→Reviewer |
-| refactor_code | Improve quality | Researcher→Developer→Reviewer |
-| update_knowledge | Sync knowledge | Researcher→Developer |
-| update_documents | Sync docs | Researcher→Developer→Reviewer |
-| update_tests | Improve coverage | Researcher→Developer→Reviewer |
-
-## Project Detection
-| File | Type |
-|------|------|
-| package.json | Node/JS/TS |
-| requirements.txt | Python |
-| docker-compose.yml | Containerized |
-| tsconfig.json | TypeScript |
-
-## Portability
-Copy `.github/` to any project. Create empty `project_knowledge.json` in root.
-
-## Quick Reference
-```
-[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
-[PHASE: CONTEXT | progress=1/7 | next=PLAN]
-#runSubagent Architect --task "Design"
-[INTEGRATE: from=Architect | result="Design complete"]
-#runSubagent Developer --task "Implement"]
-[INTEGRATE: from=Developer | result="Implementation complete"]
-#runSubagent Reviewer --task "Validate"]
-[INTEGRATE: from=Reviewer | result="Validation complete"]
-[NEST: parent=main | child=sub | reason=why]
-[STACK: push | task=sub | depth=1 | parent=main]
-[KNOWLEDGE: added=3 | updated=1 | type=project]
-[COMPLETE: task=<desc> | result=<summary> | learnings=3]
-[WORKFLOW_LOG: task=<desc>]...[/WORKFLOW_LOG]
 ```
 
 ## Session Tracking Checklist
