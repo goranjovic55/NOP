@@ -8,11 +8,17 @@
 ```
 [SESSION: task_description] @mode
 ```
+Query `project_knowledge.json` for task keywords, surface relevant context.
+
+Query `.claude/skills.md` for applicable patterns (1-2 relevant skills).
 
 **Finish**:
 ```
 [COMPLETE] outcome | changed: files
 ```
+Write observations: what was worked on, what was learned (1-2 terse entries).
+
+If new pattern discovered, suggest skill addition.
 
 **User interrupt**:
 ```
@@ -95,15 +101,27 @@ Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
 Add to `.claude/skills.md` or `.claude/skills/domain.md`
 
 ## Knowledge
+
+**Purpose**: Terse map (codegraph + session learnings), not verbose docs
+
+**At [SESSION]**: grep task keywords in `project_knowledge.json`, surface relevant context
+
+**At [COMPLETE]**: Always write (even quick fixes):
+- What was worked on (components)
+- What was learned (patterns, gotchas)
+- Codegraph updates (dependencies)
+
+**Observations**: 30-50 chars, include `upd:YYYY-MM-DD`
+
 ```
-[KNOWLEDGE: added=N | updated=M | type=project|global]
+[KNOWLEDGE: added=N | updated=M]
 ```
 
 **Format (JSONL)**:
 ```json
-{"type":"entity","name":"Project.Domain.Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD"]}
+{"type":"entity","name":"Project.Domain.Name","entityType":"type","observations":["desc, upd:YYYY-MM-DD"]}
 {"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
-{"type":"relation","from":"A","to":"B","relationType":"USES"}
+{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|MODIFIES|VALIDATES|PROVIDES"}
 ```
 
 **Files**: `project_knowledge.json` (root) | `global_knowledge.json` (.github/)
@@ -113,7 +131,9 @@ Add to `.claude/skills.md` or `.claude/skills/domain.md`
 [COMPLETE: task=<desc> | result=<summary> | learnings=N]
 
 [WORKFLOW_LOG: task=<desc>]
-Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learnings
+Summary (2-3 sentences) | Key Decisions (bullet list) | Files Changed (paths) | 
+Tests (pass/fail/skip) | Skills Used (list) | Patterns Discovered (list) | 
+Duration (est) | Complexity (simple/medium/complex)
 [/WORKFLOW_LOG]
 ```
 
@@ -121,6 +141,8 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 - [ ] Task objective met
 - [ ] Files changed as expected
 - [ ] Tests pass (if code changes)
+- [ ] Knowledge updated (observations + codegraph)
+- [ ] Skills referenced (patterns used)
 - [ ] Workflow log created (significant work only)
 
 **Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
