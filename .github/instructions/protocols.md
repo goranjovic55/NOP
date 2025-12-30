@@ -35,9 +35,21 @@ Artifacts: [files] | Learnings: [patterns]
 ```
 **Max depth**: 3 levels (strict limit)
 
+## Session Limits & Checkpoints
+- Emission budget: 50 (warning at 25, critical at 50, split at 60)
+- Context switches: 5 optimal, 8 maximum before consolidation required
+- Main thread checkpoint: Every 20 emissions, must reference original goal
+- Stack operations: Must balance (each push needs matching pop)
+
 ## Phases (Horizontal)
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
+```
+
+## Main Thread Tracking
+```
+Every 20 emissions:
+[CHECKPOINT: main_goal="<original>" | current="<now>" | connection="<how this helps>" | progress="X%"]
 ```
 
 ## Conflict Resolution
@@ -45,6 +57,7 @@ Artifacts: [files] | Learnings: [patterns]
 - Knowledge merge: Auto-merge observations, last-write-wins on conflicts
 - File collision: Serialize concurrent edits to same file
 - Integration mismatch: Re-delegate with clarification or escalate
+- Stack overflow: Auto-flatten by merging related contexts
 
 ## Error Recovery  
 ```
