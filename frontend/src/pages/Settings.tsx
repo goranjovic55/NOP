@@ -317,7 +317,7 @@ const Settings: React.FC = () => {
 // Scan Settings Panel
 const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -550,7 +550,7 @@ const DiscoverySettingsPanel: React.FC<{
   interfaces: Array<{ name: string; ip: string; status: string }>;
 }> = ({ settings, onChange, interfaces }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -796,7 +796,7 @@ const DiscoverySettingsPanel: React.FC<{
 // Access Settings Panel
 const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Authentication */}
       <SettingsSection title="Authentication">
         <SettingsSlider
@@ -907,7 +907,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 // System Settings Panel
 const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* General */}
       <SettingsSection title="General">
         <SettingsInput
