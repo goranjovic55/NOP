@@ -42,18 +42,14 @@ NOP/ (Network Observatory Platform)
 docker-compose up -d                    # Start all services
 docker-compose -f docker-compose.test.yml up -d  # Test environment
 
-# Test
-python backend/tests/test_complete_platform.py   # Full platform test
-python backend/tests/test_advanced_features.py   # Advanced features test
-python backend/tests/test_access_hub.py          # Access hub test
-
-# Run Individual Services
-docker-compose up backend               # Backend only (port 12000)
-docker-compose up frontend              # Frontend only (port 12001)
-
 # Development
 cd frontend && npm run dev              # Frontend dev server
 cd backend && uvicorn app.main:app --reload  # Backend dev server
+
+# Testing
+# Note: Formal test infrastructure planned for future implementation
+# Current testing: Manual integration testing via Docker Compose
+# Test scripts available in scripts/ directory for specific features
 
 # Knowledge Management
 # Run update_knowledge and update_skills workflows via agent orchestration
@@ -70,23 +66,27 @@ cd backend && uvicorn app.main:app --reload  # Backend dev server
 - [x] Host monitoring and terminal access
 - [x] Docker-based deployment complete
 - [x] Test environment with 4 service containers
-- [x] Comprehensive test suites (100% passing)
-- [x] Documentation and deployment guides
+- [x] Manual integration testing via Docker Compose
+- [x] Documentation consolidated and optimized
 - [x] Knowledge graph system (project + global)
 - [x] Skills framework configured
+- [ ] Formal unit/integration test infrastructure (planned)
 
 ## Session Notes
-**Task**: Execute update workflows (knowledge, skills)
+**Task**: Execute update workflows (knowledge, skills, agents effectiveness)
 **Changes**: 
 - context.md: Updated with full project details
-- skills/domain.md: Added 8 NOP-specific domain skills
-- Removed legacy memory system (scripts/update_memory.py, .openhands/microagents/memory_manager.md)
+- skills/domain.md: 8 NOP-specific domain skills (network services, React patterns)
+- skills/devops.md: 7 DevOps/workflow effectiveness patterns (Docker, validation, etc.)
+- Removed legacy memory system (deprecated)
+- Agent files kept clean (cross-project, no bloat)
+- Project-specific patterns moved to skills/ directory
 **Decisions**: 
 - Memory system deprecated - using knowledge files only (project_knowledge.json, global_knowledge.json)
 - Knowledge graph maintains JSONL format for compatibility
-- Skills framework configured for Python + TypeScript + Docker stack
-- Domain skills capture NOP-specific patterns (network services, WebSocket streaming, protocol dissection)
-**Next**: Complete knowledge graph optimization and generate workflow log
+- Skills framework: 13 core + 8 domain + 7 devops patterns
+- Agent instructions stay cross-project, patterns in skills
+**Next**: Validate patterns through next 10 workflow sessions
 
 ## Handover
 **Branch**: copilot/update-all-3-workflows | **Uncommitted**: No | **Blockers**: None

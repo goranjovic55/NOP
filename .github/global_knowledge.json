@@ -38,5 +38,19 @@
 {"type":"relation","from":"Global.Pattern.Network.PacketDissection","to":"Global.Pattern.API.AsyncIO","relationType":"USES"}
 {"type":"relation","from":"Global.Pattern.Network.ServiceDiscovery","to":"Global.Pattern.API.BackgroundTasks","relationType":"USES"}
 {"type":"relation","from":"Global.Pattern.Frontend.StateManagement","to":"Global.Pattern.Code.SingleResponsibility","relationType":"FOLLOWS"}
-{"type":"relation","from":"Global.Pattern.Testing.DockerIsolation","to":"Global.Pattern.Testing.UnitIsolation","relationType":"ENABLES"]}
+{"type":"relation","from":"Global.Pattern.Testing.DockerIsolation","to":"Global.Pattern.Testing.UnitIsolation","relationType":"ENABLES"}
+{"type":"entity","name":"Global.Pattern.UI.ReusableComponents","entityType":"Pattern","observations":["Extract repeated UI patterns into reusable components","Reduces code duplication and ensures consistency","Example: NeonToggle replacing 34+ checkboxes","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.UI.ResponsiveGrid","entityType":"Pattern","observations":["Mobile-first responsive grid layouts","Use lg:grid-cols-N for desktop, single column mobile","Optimizes information density across devices","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Network.SourceIPValidation","entityType":"Pattern","observations":["Track only source IPs for passive network discovery","Prevents phantom hosts from destination tracking","Filter invalid IPs: 0.0.0.0, broadcast, multicast, link-local","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Documentation.DecisionTracking","entityType":"Pattern","observations":["Document all decisions with chosen and rejected alternatives","Include rationale for choices and reasons for rejections","Use decision diagrams for complex workflows","upd:2025-12-30,refs:1"]}
+{"type":"relation","from":"Global.Pattern.UI.ReusableComponents","to":"Global.Pattern.Code.DRY","relationType":"IMPLEMENTS"}
+{"type":"relation","from":"Global.Pattern.UI.ResponsiveGrid","to":"Global.Pattern.Code.KISS","relationType":"FOLLOWS"}
+{"type":"relation","from":"Global.Pattern.Network.SourceIPValidation","to":"Global.Pattern.Network.ServiceDiscovery","relationType":"ENHANCES"}
+{"type":"relation","from":"Global.Pattern.Documentation.DecisionTracking","to":"Global.Workflow.MultiAgent.Orchestrator","relationType":"SUPPORTS"}
+{"type":"entity","name":"Global.Pattern.DevOps.DockerCacheManagement","entityType":"Pattern","observations":["Nuclear cleanup protocol for persistent caching issues","docker-compose down -v && docker system prune -af --volumes","Apply after 2nd failed rebuild to prevent wasted attempts","Prevents code changes from being invisible in containers","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Development.IncrementalValidation","entityType":"Pattern","observations":["Build/test after each file change, not batch at end","Enables quick isolation of which change caused failure","Reduces debugging time from minutes to seconds","Apply especially in multi-file refactors","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Architecture.DecisionMinimalism","entityType":"Pattern","observations":["Document main choice + primary alternative only","Avoid enumerating 5+ rejected options","Reduces cognitive overhead and speeds workflow","Focus on actionable rationale, not exhaustive analysis","upd:2025-12-30,refs:1"]}
+{"type":"relation","from":"Global.Pattern.DevOps.DockerCacheManagement","to":"Global.Pattern.Infrastructure","relationType":"EXTENDS"}
+{"type":"relation","from":"Global.Pattern.Development.IncrementalValidation","to":"Global.Pattern.Testing.UnitIsolation","relationType":"COMPLEMENTS"}
+{"type":"relation","from":"Global.Pattern.Architecture.DecisionMinimalism","to":"Global.Workflow.MultiAgent.Orchestrator","relationType":"OPTIMIZES"}
 

@@ -29,6 +29,8 @@ _DevTeam (Orchestrator)
 ```
 Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect project type
 
+**Practical Patterns**: See `.claude/skills.md` → Skill #6 (Knowledge) for knowledge loading workflow.
+
 ## Phase Flow
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
@@ -108,6 +110,9 @@ Query before work, update after:
 ```
 [KNOWLEDGE: added=N | updated=M | type=project|global]
 ```
+
+**Practical Workflow**: See `.claude/skills.md` → Skill #6 (Knowledge)  
+**Protocol Details**: See `.github/instructions/protocols.md` → Knowledge
 
 ## Completion
 ```

@@ -1,11 +1,11 @@
 # Claude Skills
 
-**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.1.0  
+**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.2.0  
 **Usage**: Copy `.claude/` to any project, run `update_skills` workflow
 
 ---
 
-## Skill Index (13 Core Skills)
+## Skill Index (13 Core Skills + 7 DevOps/Workflow Skills)
 
 | # | Skill | Category | Trigger |
 |---|-------|----------|---------|
@@ -22,6 +22,10 @@
 | 11 | [UI Patterns](#11-ui-patterns) | Frontend | Components |
 | 12 | [Infrastructure](#12-infrastructure) | DevOps | Docker, CI/CD |
 | 13 | [Workflow Logs](#13-workflow-logs) | Process | Session complete |
+
+**Domain-Specific Skills**:
+- See `.claude/skills/domain.md` for 8 NOP-specific patterns (Network services, React, etc.)
+- See `.claude/skills/devops.md` for 7 DevOps/Workflow effectiveness patterns (Docker, validation, etc.)
 
 ---
 
@@ -142,7 +146,7 @@ project_knowledge.json     → Project entities, codegraph, relations
 {"type":"relation","from":"Component","to":"Feature","relationType":"IMPLEMENTS|USES|CONSUMES|DEPENDS_ON"}
 ```
 
-**Protocol**:
+**Protocol** (syncs with `.github/instructions/protocols.md`):
 | Event | Action |
 |-------|--------|
 | Session start | Load knowledge, query relevant entities |
@@ -150,19 +154,24 @@ project_knowledge.json     → Project entities, codegraph, relations
 | Bug fixed | Add pattern to knowledge |
 | Session end | Update knowledge, create handover |
 
+**Cross-References**:
+- Agent protocol: See `.github/agents/_DevTeam.agent.md` → Knowledge section
+- Detailed format: See `.github/instructions/protocols.md` → Knowledge section
+- Update workflow: See `.github/workflows/update_knowledge.md`
+
 ---
 
 ## 7. Orchestration
 
 **Trigger**: Multi-step tasks, complex operations
 
-**Phases** (syncs with _DevTeam):
+**Phases** (syncs with `.github/agents/_DevTeam.agent.md`):
 ```
 CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
    1        2         3           4          5        6        7
 ```
 
-**Emissions**:
+**Emissions** (detailed in `.github/instructions/protocols.md`):
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: PLAN | progress=2/7 | next=COORDINATE]
@@ -178,6 +187,11 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | Quick fix | CONTEXT→COORDINATE→COMPLETE |
 | Feature | Full 7-phase |
 | Bug | CONTEXT→COORDINATE→INTEGRATE→VERIFY→COMPLETE |
+
+**Cross-References**:
+- Agent workflow: See `.github/agents/_DevTeam.agent.md` → Phase Flow
+- Protocol details: See `.github/instructions/phases.md`
+- Examples: See `.github/instructions/examples.md`
 
 ---
 
