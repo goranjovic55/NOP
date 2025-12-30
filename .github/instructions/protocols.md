@@ -33,38 +33,10 @@ Artifacts: [files] | Learnings: [patterns]
 [STACK: push | task=<sub> | depth=N | parent=<main>]
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
-**Max depth**: 3 levels (strict limit)
-
-## Session Limits & Checkpoints
-- Emission budget: 50 (warning at 25, critical at 50, split at 60)
-- Context switches: 5 optimal, 8 maximum before consolidation required
-- Main thread checkpoint: Every 20 emissions, must reference original goal
-- Stack operations: Must balance (each push needs matching pop)
 
 ## Phases (Horizontal)
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
-```
-
-## Main Thread Tracking
-```
-Every 20 emissions:
-[CHECKPOINT: main_goal="<original>" | current="<now>" | connection="<how this helps>" | progress="X%"]
-```
-
-## Conflict Resolution
-- Design mismatch: Architect authoritative
-- Knowledge merge: Auto-merge observations, last-write-wins on conflicts
-- File collision: Serialize concurrent edits to same file
-- Integration mismatch: Re-delegate with clarification or escalate
-- Stack overflow: Auto-flatten by merging related contexts
-
-## Error Recovery  
-```
-[ERROR: type=<category> | attempt=N/MAX]
-→ Auto-fix if possible
-→ Retry up to MAX
-→ If MAX reached: [ESCALATE: ...]
 ```
 
 ## Knowledge
@@ -115,12 +87,6 @@ Rules: <checklist>
 ## Error Recovery
 | Error | Action |
 |-------|--------|
-| Knowledge corrupt | Restore backup, escalate |
-| Specialist blocked | Analyze blockers, resolve or escalate |
+| Knowledge corrupt | Backup, create fresh |
+| Specialist blocked | Escalate to orchestrator |
 | Context lost | Re-emit SESSION |
-
-## Escalation
-- Critical (immediate): Security, data loss, corruption
-- High (after retries): Build/test failures, blocked specialist
-- Medium (conditional): Trade-offs, ambiguous requirements
-- Low (auto-fix): Lint errors, formatting

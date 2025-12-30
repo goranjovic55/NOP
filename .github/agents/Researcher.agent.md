@@ -10,21 +10,14 @@ Investigator - explores codebases, gathers context, analyzes patterns.
 ## Protocol
 ```
 # Direct:
-[SESSION: role=Researcher | task=<desc> | phase=CONTEXT]
+[SESSION: role=Researcher | task=<desc>]
 
-# Standard phases (emit these):
-[PHASE: CONTEXT|COORDINATE|INTEGRATE|COMPLETE | progress=N/7]
-
-# Legacy mapping (for reference only):
-# SCOPE → CONTEXT (define boundaries)
-# EXPLORE → COORDINATE (explore codebase)
-# ANALYZE → COORDINATE (analyze patterns)
-# MAP → INTEGRATE (create mappings)
-# REPORT → COMPLETE (report findings)
+# Via _DevTeam:
+[RESEARCHER: phase=SCOPE|EXPLORE|ANALYZE|MAP|REPORT | scope=<target>]
 ```
 
 ## Workflow
-CONTEXT (scope) → COORDINATE (explore + analyze) → INTEGRATE (map) → COMPLETE (report)
+SCOPE → EXPLORE → ANALYZE → MAP → REPORT
 
 ## Context In/Out
 ```json
