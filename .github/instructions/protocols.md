@@ -33,10 +33,25 @@ Artifacts: [files] | Learnings: [patterns]
 [STACK: push | task=<sub> | depth=N | parent=<main>]
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
+**Max depth**: 3 levels (strict limit)
 
 ## Phases (Horizontal)
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
+```
+
+## Conflict Resolution
+- Design mismatch: Architect authoritative
+- Knowledge merge: Auto-merge observations, last-write-wins on conflicts
+- File collision: Serialize concurrent edits to same file
+- Integration mismatch: Re-delegate with clarification or escalate
+
+## Error Recovery  
+```
+[ERROR: type=<category> | attempt=N/MAX]
+→ Auto-fix if possible
+→ Retry up to MAX
+→ If MAX reached: [ESCALATE: ...]
 ```
 
 ## Knowledge
@@ -87,6 +102,12 @@ Rules: <checklist>
 ## Error Recovery
 | Error | Action |
 |-------|--------|
-| Knowledge corrupt | Backup, create fresh |
-| Specialist blocked | Escalate to orchestrator |
+| Knowledge corrupt | Restore backup, escalate |
+| Specialist blocked | Analyze blockers, resolve or escalate |
 | Context lost | Re-emit SESSION |
+
+## Escalation
+- Critical (immediate): Security, data loss, corruption
+- High (after retries): Build/test failures, blocked specialist
+- Medium (conditional): Trade-offs, ambiguous requirements
+- Low (auto-fix): Lint errors, formatting
