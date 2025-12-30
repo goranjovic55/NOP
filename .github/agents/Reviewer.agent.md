@@ -10,14 +10,19 @@ Quality guardian - tests, validates, ensures standards.
 ## Protocol
 ```
 # Direct:
-[SESSION: role=Reviewer | task=<desc>]
+[SESSION: role=Reviewer | task=<desc> | phase=CONTEXT]
 
-# Via _DevTeam:
-[REVIEWER: phase=REVIEW|TEST|VALIDATE|CHECK|VERDICT | scope=<files>]
+# Standard phases (emit these):
+[PHASE: CONTEXT|COORDINATE|VERIFY|COMPLETE | progress=N/7]
+
+# Legacy mapping (for reference):
+# REVIEW → COORDINATE (review code)
+# CHECK → VERIFY (run checks)
+# VERDICT → COMPLETE (provide result)
 ```
 
 ## Workflow
-REVIEW → TEST → VALIDATE → CHECK → VERDICT
+CONTEXT → COORDINATE (review) → VERIFY (check) → COMPLETE (verdict)
 
 ## Context In/Out
 ```json
