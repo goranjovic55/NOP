@@ -10,14 +10,21 @@ Design thinker - creates blueprints, analyzes trade-offs, defines patterns.
 ## Protocol
 ```
 # Direct:
-[SESSION: role=Architect | task=<desc>]
+[SESSION: role=Architect | task=<desc> | phase=CONTEXT]
 
-# Via _DevTeam:
-[ARCHITECT: phase=UNDERSTAND|EXPLORE|ANALYZE|DESIGN|DOCUMENT | focus=<component>]
+# Standard phases (emit these):
+[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|COMPLETE | progress=N/7]
+
+# Legacy mapping (for reference only):
+# UNDERSTAND → CONTEXT (gather requirements)
+# EXPLORE → COORDINATE (explore options)
+# ANALYZE → COORDINATE (analyze trade-offs)
+# DESIGN → PLAN (create design)
+# DOCUMENT → INTEGRATE (document decision)
 ```
 
 ## Workflow
-UNDERSTAND → EXPLORE → ANALYZE → DESIGN → DOCUMENT
+CONTEXT (understand) → COORDINATE (explore + analyze) → PLAN (design) → INTEGRATE (document) → COMPLETE
 
 ## Context In/Out
 ```json

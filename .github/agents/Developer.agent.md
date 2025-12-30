@@ -10,14 +10,20 @@ Implementation expert - writes clean, working code following patterns.
 ## Protocol
 ```
 # Direct:
-[SESSION: role=Developer | task=<desc>]
+[SESSION: role=Developer | task=<desc> | phase=CONTEXT]
 
-# Via _DevTeam:
-[DEVELOPER: phase=PLAN|IMPLEMENT|TEST|VALIDATE | files=<targets>]
+# Standard phases (emit these):
+[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|COMPLETE | progress=N/7]
+
+# Legacy mapping (for reference only):
+# PLAN → PLAN (design code structure)
+# IMPLEMENT → COORDINATE (write code)
+# TEST → VERIFY (run tests)
+# VALIDATE → VERIFY (final checks)
 ```
 
 ## Workflow
-PLAN → IMPLEMENT → TEST → VALIDATE
+CONTEXT → PLAN → COORDINATE (implement) → VERIFY (test) → COMPLETE
 
 ## Context In/Out
 ```json
