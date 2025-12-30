@@ -41,6 +41,9 @@ services:
       - test-network
     restart: unless-stopped
     privileged: true
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
 
   postgres:
     image: postgres:15-alpine

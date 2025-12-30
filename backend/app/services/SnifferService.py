@@ -2,11 +2,14 @@ import asyncio
 import json
 import logging
 import threading
+import multiprocessing
 from typing import Dict, List, Optional, Callable, Any
-from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sr1, ICMP
+from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sendp, sendpfast, sr1, ICMP, Raw
 import psutil
 import time
 import os
+import socket
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -1093,7 +1096,7 @@ class SnifferService:
     
     def _run_storm(self):
         """
-        Run the packet storm in a background thread
+        Run the packet storm in a background thread with ultra-high-performance sending
         """
         try:
             config = self.storm_config
@@ -1107,25 +1110,42 @@ class SnifferService:
             ttl = config.get("ttl", 64)
             tcp_flags = config.get("tcp_flags", ["SYN"])
             
-            # Calculate sleep time between packets
-            sleep_time = 1.0 / pps if pps > 0 else 0
-            
             # Build packet template
             packet = None
+            use_raw_socket = False
+            use_layer2 = False  # Track if we need Ethernet layer
             
             if packet_type == "broadcast":
-                # Broadcast UDP packet
-                udp_layer = UDP(dport=dest_port)
-                if source_port:
-                    udp_layer.sport = source_port
-                packet = Ether(dst="ff:ff:ff:ff:ff:ff") / IP(dst="255.255.255.255") / udp_layer
+                # Broadcast can use either Layer 2 (Ether) or Layer 3 (IP broadcast)
+                # For high PPS, use Layer 3 IP broadcast which supports raw sockets
+                if pps >= 1000:
+                    # High-rate IP broadcast (no Ether layer)
+                    udp_layer = UDP(dport=dest_port)
+                    if source_port:
+                        udp_layer.sport = source_port
+                    packet = IP(dst="255.255.255.255", ttl=ttl) / udp_layer
+                    if payload:
+                        packet = packet / Raw(load=payload)
+                    use_raw_socket = True
+                else:
+                    # Low-rate Layer 2 broadcast
+                    udp_layer = UDP(dport=dest_port)
+                    if source_port:
+                        udp_layer.sport = source_port
+                    packet = Ether(dst="ff:ff:ff:ff:ff:ff") / IP(dst="255.255.255.255", ttl=ttl) / udp_layer
+                    if payload:
+                        packet = packet / Raw(load=payload)
+                    use_layer2 = True
             
             elif packet_type == "multicast":
                 # Multicast UDP packet
                 udp_layer = UDP(dport=dest_port)
                 if source_port:
                     udp_layer.sport = source_port
-                packet = IP(dst="224.0.0.1") / udp_layer
+                packet = IP(dst="224.0.0.1", ttl=ttl) / udp_layer
+                if payload:
+                    packet = packet / Raw(load=payload)
+                use_raw_socket = pps >= 1000  # Use raw socket for high-rate IP packets
             
             elif packet_type == "tcp":
                 # TCP packet
@@ -1143,6 +1163,9 @@ class SnifferService:
                     tcp_layer.sport = source_port
                 
                 packet = ip_layer / tcp_layer
+                if payload:
+                    packet = packet / Raw(load=payload)
+                use_raw_socket = pps >= 1000
             
             elif packet_type == "udp":
                 # UDP packet
@@ -1156,6 +1179,9 @@ class SnifferService:
                     udp_layer.sport = source_port
                 
                 packet = ip_layer / udp_layer
+                if payload:
+                    packet = packet / Raw(load=payload)
+                use_raw_socket = pps >= 1000
             
             elif packet_type == "raw_ip":
                 # Raw IP packet
@@ -1163,51 +1189,222 @@ class SnifferService:
                     packet = IP(src=source_ip, dst=dest_ip, ttl=ttl)
                 else:
                     packet = IP(dst=dest_ip, ttl=ttl)
+                if payload:
+                    packet = packet / Raw(load=payload)
+                use_raw_socket = pps >= 1000
             
             if not packet:
                 logger.error(f"Failed to build packet for type: {packet_type}")
                 self.is_storming = False
                 return
             
-            # Add payload if provided
-            if payload:
-                packet = packet / payload
+            # Pre-build packet bytes for raw socket mode
+            packet_bytes = bytes(packet) if use_raw_socket else None
+            packet_size = len(packet)
             
-            # Storm loop
             packet_count = 0
             bytes_count = 0
-            last_pps_calc = time.time()
-            packets_in_last_second = 0
+            last_metrics_update = time.time()
             
-            logger.info(f"Starting storm: {packet_type} to {dest_ip} at {pps} PPS")
+            logger.info(f"Starting storm: {packet_type} to {dest_ip} at {pps} PPS (raw_socket={use_raw_socket}, packet_bytes={'present' if packet_bytes else 'none'})")
             
-            while self.is_storming:
+            if use_raw_socket and packet_bytes:
+                # Ultra-high-rate mode: Raw socket flooding with rate limiting
                 try:
-                    # Send packet
-                    send(packet, verbose=False)
-                    packet_count += 1
-                    bytes_count += len(packet)
-                    packets_in_last_second += 1
+                    is_broadcast = dest_ip == "255.255.255.255"
                     
-                    # Update metrics
-                    current_time = time.time()
-                    self.storm_metrics["packets_sent"] = packet_count
-                    self.storm_metrics["bytes_sent"] = bytes_count
-                    self.storm_metrics["duration_seconds"] = int(current_time - self.storm_metrics["start_time"])
-                    
-                    # Calculate current PPS
-                    if current_time - last_pps_calc >= 1.0:
-                        self.storm_metrics["current_pps"] = packets_in_last_second
-                        packets_in_last_second = 0
-                        last_pps_calc = current_time
-                    
-                    # Sleep to maintain PPS rate
-                    if sleep_time > 0:
-                        time.sleep(sleep_time)
+                    # For very high rates (>=50k PPS), use multi-threaded flooding
+                    if pps >= 50000:
+                        num_threads = min(4, max(2, pps // 25000))  # 2-4 threads based on target
+                        logger.info(f"Multi-threaded flood mode: target {pps} PPS with {num_threads} threads")
                         
+                        thread_packet_counts = [0] * num_threads
+                        
+                        def sender_thread(thread_id):
+                            # Each thread has its own socket
+                            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+                            sock.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
+                            if is_broadcast:
+                                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                            
+                            local_count = 0
+                            while self.is_storming:
+                                sock.sendto(packet_bytes, (dest_ip, 0))
+                                local_count += 1
+                                # Update shared counter periodically
+                                if local_count % 1000 == 0:
+                                    thread_packet_counts[thread_id] = local_count
+                            
+                            thread_packet_counts[thread_id] = local_count
+                            sock.close()
+                        
+                        # Start sender threads
+                        threads = []
+                        for i in range(num_threads):
+                            t = threading.Thread(target=sender_thread, args=(i,), daemon=True)
+                            t.start()
+                            threads.append(t)
+                        
+                        # Monitor and update metrics
+                        while self.is_storming:
+                            time.sleep(0.25)
+                            packet_count = sum(thread_packet_counts)
+                            bytes_count = packet_count * packet_size
+                            current_time = time.time()
+                            elapsed = current_time - self.storm_metrics["start_time"]
+                            self.storm_metrics["packets_sent"] = packet_count
+                            self.storm_metrics["bytes_sent"] = bytes_count
+                            self.storm_metrics["duration_seconds"] = int(elapsed)
+                            if elapsed > 0:
+                                self.storm_metrics["current_pps"] = int(packet_count / elapsed)
+                        
+                        # Wait for threads to stop
+                        for t in threads:
+                            t.join(timeout=1.0)
+                        
+                        packet_count = sum(thread_packet_counts)
+                        bytes_count = packet_count * packet_size
+                    
+                    # For high rates (10k-50k PPS), use single-thread flood mode
+                    elif pps >= 10000:
+                        # Create raw socket
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+                        sock.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
+                        if is_broadcast:
+                            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                        
+                        logger.info(f"Flood mode: target {pps} PPS")
+                        packets_per_check = max(100, pps // 10)  # Check every 1/10th second worth
+                        check_interval = packets_per_check / pps  # Time allowed for this burst
+                        
+                        while self.is_storming:
+                            burst_start = time.time()
+                            
+                            # Send burst as fast as possible
+                            for _ in range(packets_per_check):
+                                sock.sendto(packet_bytes, (dest_ip, 0))
+                                packet_count += 1
+                            
+                            bytes_count = packet_count * packet_size
+                            
+                            # Update metrics
+                            current_time = time.time()
+                            if current_time - last_metrics_update >= 0.25:
+                                elapsed = current_time - self.storm_metrics["start_time"]
+                                self.storm_metrics["packets_sent"] = packet_count
+                                self.storm_metrics["bytes_sent"] = bytes_count
+                                self.storm_metrics["duration_seconds"] = int(elapsed)
+                                if elapsed > 0:
+                                    self.storm_metrics["current_pps"] = int(packet_count / elapsed)
+                                last_metrics_update = current_time
+                            
+                            # Throttle to maintain target PPS
+                            elapsed_burst = time.time() - burst_start
+                            if elapsed_burst < check_interval:
+                                time.sleep(check_interval - elapsed_burst)
+                        
+                        sock.close()
+                    else:
+                        # Medium rate (1k-10k): Tighter burst control
+                        burst_size = max(10, int(pps / 100))
+                        burst_interval = burst_size / pps
+                        
+                        logger.info(f"Raw socket mode: burst_size={burst_size}, burst_interval={burst_interval:.6f}s")
+                        
+                        while self.is_storming:
+                            start_burst = time.time()
+                            
+                            # Send burst
+                            for _ in range(burst_size):
+                                sock.sendto(packet_bytes, (dest_ip, 0))
+                                packet_count += 1
+                            
+                            bytes_count = packet_count * packet_size
+                            
+                            # Update metrics periodically
+                            current_time = time.time()
+                            if current_time - last_metrics_update >= 0.5:
+                                elapsed = current_time - self.storm_metrics["start_time"]
+                                self.storm_metrics["packets_sent"] = packet_count
+                                self.storm_metrics["bytes_sent"] = bytes_count
+                                self.storm_metrics["duration_seconds"] = int(elapsed)
+                                if elapsed > 0:
+                                    self.storm_metrics["current_pps"] = int(packet_count / elapsed)
+                                last_metrics_update = current_time
+                            
+                            # Sleep for remaining burst interval
+                            elapsed_burst = time.time() - start_burst
+                            sleep_time = burst_interval - elapsed_burst
+                            if sleep_time > 0:
+                                time.sleep(sleep_time)
+                    
+                    sock.close()
+                    
                 except Exception as e:
-                    logger.error(f"Error sending storm packet: {e}")
-                    time.sleep(0.1)
+                    logger.error(f"Raw socket error: {e}")
+                    # Fallback to scapy
+                    use_raw_socket = False
+            
+            if not use_raw_socket:
+                # Standard mode for low-rate or Layer 2 packets
+                # If packet doesn't have Ether layer, add it for sendp()
+                if not use_layer2 and not packet.haslayer(Ether):
+                    packet = Ether() / packet
+                
+                if pps >= 1000:
+                    # Medium-rate: sendp with batching
+                    inter = 1.0 / pps
+                    batch_size = min(100, int(pps / 10))  # Smaller batches, faster iteration
+                    packet_batch = [packet] * batch_size
+                    
+                    logger.info(f"Batch mode: batch_size={batch_size}, inter={inter:.6f}s")
+                    
+                    while self.is_storming:
+                        try:
+                            sendp(packet_batch, inter=inter, verbose=False)
+                            packet_count += batch_size
+                            bytes_count += packet_size * batch_size
+                            
+                            current_time = time.time()
+                            if current_time - last_metrics_update >= 0.5:
+                                elapsed = current_time - self.storm_metrics["start_time"]
+                                self.storm_metrics["packets_sent"] = packet_count
+                                self.storm_metrics["bytes_sent"] = bytes_count
+                                self.storm_metrics["duration_seconds"] = int(elapsed)
+                                if elapsed > 0:
+                                    self.storm_metrics["current_pps"] = int(packet_count / elapsed)
+                                last_metrics_update = current_time
+                        except Exception as e:
+                            logger.error(f"Batch send error: {e}")
+                            time.sleep(0.1)
+                else:
+                    # Low-rate: Individual sends
+                    sleep_time = 1.0 / pps if pps > 0 else 0
+                    packets_in_last_second = 0
+                    last_pps_calc = time.time()
+                    
+                    while self.is_storming:
+                        try:
+                            send(packet, verbose=False)
+                            packet_count += 1
+                            bytes_count += packet_size
+                            packets_in_last_second += 1
+                            
+                            current_time = time.time()
+                            self.storm_metrics["packets_sent"] = packet_count
+                            self.storm_metrics["bytes_sent"] = bytes_count
+                            self.storm_metrics["duration_seconds"] = int(current_time - self.storm_metrics["start_time"])
+                            
+                            if current_time - last_pps_calc >= 1.0:
+                                self.storm_metrics["current_pps"] = packets_in_last_second
+                                packets_in_last_second = 0
+                                last_pps_calc = current_time
+                            
+                            if sleep_time > 0:
+                                time.sleep(sleep_time)
+                        except Exception as e:
+                            logger.error(f"Send error: {e}")
+                            time.sleep(0.1)
             
             logger.info(f"Storm stopped: Sent {packet_count} packets ({bytes_count} bytes)")
             

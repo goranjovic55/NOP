@@ -3,11 +3,17 @@ from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
 from app.schemas.traffic import StormConfig
+from pydantic import BaseModel
 import asyncio
 import json
 import os
+import subprocess
+import time
 
 router = APIRouter()
+
+class PingRequest(BaseModel):
+    host: str
 
 @router.get("/interfaces")
 async def get_interfaces():
@@ -111,3 +117,33 @@ async def get_storm_metrics():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/ping")
+async def ping_host(request: PingRequest):
+    """Ping a host to check reachability"""
+    try:
+        start_time = time.time()
+        result = subprocess.run(
+            ['ping', '-c', '1', '-W', '1', request.host],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        latency = (time.time() - start_time) * 1000  # Convert to ms
+        
+        reachable = result.returncode == 0
+        
+        return {
+            "host": request.host,
+            "reachable": reachable,
+            "latency": latency if reachable else None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "host": request.host,
+            "reachable": False,
+            "latency": None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
