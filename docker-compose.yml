@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   frontend:
     build:
@@ -13,14 +15,6 @@ services:
     networks:
       - nop-internal
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
 
   backend:
     build:
@@ -44,16 +38,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - nop-internal
+      - test-network
     restart: unless-stopped
     privileged: true
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
 
   postgres:
     image: postgres:15-alpine
@@ -66,14 +56,6 @@ services:
     networks:
       - nop-internal
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
 
   guacd:
     image: guacamole/guacd:latest
@@ -83,6 +65,7 @@ services:
     # platform: linux/amd64  # For x86_64 systems
     networks:
       - nop-internal
+      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
@@ -92,14 +75,6 @@ services:
       start_period: 10s
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
 
   redis:
     image: redis:7-alpine
@@ -108,18 +83,40 @@ services:
     networks:
       - nop-internal
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
+
+  # Vulnerable test host with known CVEs
+  vulnerable-web:
+    image: vulnerables/web-dvwa:latest
+    environment:
+      - MYSQL_HOST=vulnerable-db
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    ports:
+      - "8080:80"
+    depends_on:
+      - vulnerable-db
+    networks:
+      - test-network
+    restart: unless-stopped
+
+  vulnerable-db:
+    image: mariadb:10.1
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    networks:
+      - test-network
+    restart: unless-stopped
 
 networks:
   nop-internal:
     driver: bridge
+  test-network:
+    name: nop_test-network
+    external: true
 
 volumes:
   postgres_data:
