@@ -28,6 +28,5 @@ frontend/build/
 .DS_Store
 Thumbs.db
 
-# Logs (keep structure, ignore content)
-log/**/*.md
-!log/**/README.md
+# Logs - workflow logs are tracked in git for session history
+# log/**/*.md  # Removed - workflow logs should be committed
