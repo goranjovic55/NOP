@@ -29,40 +29,19 @@ Artifacts: [files] | Learnings: [patterns]
 [NEST: parent=<main> | child=<sub> | reason=<why>]
 [RETURN: to=<main> | result=<findings>]
 
-# Multi-level stack:
+# Multi-level:
 [STACK: push | task=<sub> | depth=N | parent=<main>]
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
 
-## Interrupts & Context Switches
-
-**When user changes topic mid-session:**
-
+## Interrupts
 ```
-# Save current state:
-[PAUSE: task=<current> | phase=<current-phase> | status=<state>]
-
-# Handle interrupt:
-[NEST: parent=<current> | child=<new-request> | reason=user-interrupt]
-[SESSION: role=Lead | task=<new-request> | phase=CONTEXT]
-... complete new task ...
+[PAUSE: task=<current> | phase=<phase>]
+[NEST: parent=<current> | child=<new> | reason=user-interrupt]
 [RETURN: to=<current> | result=<summary>]
+[RESUME: task=<current> | phase=<phase>]
 
-# Resume original:
-[RESUME: task=<current> | phase=<where-we-were>]
-```
-
-**When to NEST vs start fresh:**
-- NEST: Related to current work, will return to original
-- Fresh: Completely unrelated, won't resume original
-
-**Thread tracking:**
-```
-[THREAD: id=T1 | task=<original>] → active
-[THREAD: id=T1 | status=paused]
-[THREAD: id=T2 | task=<interrupt> | parent=T1] → active
-[THREAD: id=T2 | status=complete]
-[THREAD: id=T1 | status=resumed] → active
+[THREAD: active=<task> | paused=[<list>]]
 ```
 
 ## Phases (Horizontal)

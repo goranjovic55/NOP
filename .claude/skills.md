@@ -384,50 +384,22 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 
 ## 14. Context Switching
 
-**Trigger**: User interrupts current task with new request
+**Trigger**: User interrupts with new request mid-task
 
-**Pattern**:
 ```
-# Before interrupt:
-[PAUSE: task=build-app | phase=VERIFY | status=waiting-for-tests]
-[THREAD: id=T1 | status=paused]
-
-# Handle interrupt:
-[NEST: parent=build-app | child=fix-settings | reason=user-interrupt]
-[THREAD: id=T2 | task=fix-settings | parent=T1]
-[SESSION: role=Lead | task=fix-settings | phase=CONTEXT]
-... complete interrupt task ...
-[COMPLETE: task=fix-settings | result=...]
-[THREAD: id=T2 | status=complete]
-
-# Resume original:
-[RETURN: to=build-app | result=settings-fixed]
-[RESUME: task=build-app | phase=VERIFY]
-[THREAD: id=T1 | status=resumed]
+[PAUSE: task=<current> | phase=<phase>]
+[NEST: parent=<current> | child=<new> | reason=user-interrupt]
+[THREAD: id=T2 | parent=T1]
+... handle interrupt ...
+[RETURN: to=<current> | result=<summary>]
+[RESUME: task=<current> | phase=<phase>]
 ```
 
-**Checklist**:
-- [ ] Emit PAUSE with current phase
-- [ ] Emit NEST with user-interrupt reason
-- [ ] Track thread IDs (T1, T2, etc.)
-- [ ] Complete interrupt fully before resuming
-- [ ] Emit RETURN with summary
-- [ ] Emit RESUME to restore context
-- [ ] Update THREAD status throughout
-
-**When NOT to nest**:
-- Interrupt is completely unrelated and won't resume
-- User explicitly says "forget that, do this instead"
-- Session ending anyway
-
-**Example** (This session should have been):
-```
-T1: Build containers ✓
-├─ T2: Fix settings (interrupt) ✓
-├─ T3: Merge branch (interrupt) ✓
-│  └─ T4: Apply improvements (nested) ✓
-└─ T5: Meta-analysis (current)
-```
+**Rules**:
+- Emit PAUSE before switching
+- Track threads (T1, T2, etc.)
+- Complete interrupt fully
+- Emit RESUME to restore context
 
 ---
 
