@@ -122,6 +122,27 @@ Fixed network configuration issues to allow main docker-compose.yml to start ind
 
 ---
 
+## Protocol Compliance
+
+**Session Tracking**:
+- [ ] `[SESSION:]` emitted at start
+- [ ] `[PHASE: CONTEXT]` emitted immediately after
+- [ ] `[DECISION:]` for each choice between alternatives
+- [ ] `[ATTEMPT:]` for each implementation iteration
+- [ ] `[SUBAGENT:]` for specialist delegations
+- [ ] Phase transitions tracked throughout
+
+**Quality Gates**:
+- [ ] All linters passed
+- [ ] All builds succeeded
+- [ ] All relevant tests passed
+- [ ] Knowledge updated
+- [ ] User confirmation received (if required)
+
+**Notes**: Session completed without protocol emissions - identified as drift pattern for future prevention.
+
+---
+
 ## Learnings
 
 ### Technical Insights

@@ -2,6 +2,28 @@
 
 > **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
 
+## ⚠️ CRITICAL - Session Start Protocol
+
+**IF user message involves ANY action (not pure Q&A), IMMEDIATELY emit**:
+```
+[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+[PHASE: CONTEXT | progress=1/7]
+```
+
+**Action indicators** (not exhaustive):
+- Verbs: check, fix, add, create, update, refactor, investigate, implement, test, debug, optimize
+- Will involve: file edits, git commits, docker operations, code changes, testing, deployment
+- Multi-step work requiring coordination
+
+**Skip protocol ONLY for**:
+- Pure information queries ("what is X?", "explain Y")
+- Single-sentence clarifications
+- No files will be touched
+
+**When in doubt → EMIT the protocol markers**
+
+---
+
 ## Hierarchy
 ```
 _DevTeam (Orchestrator)
@@ -34,16 +56,17 @@ Load: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowl
 
 **CRITICAL - Anti-Drift Protocol**:
 ```
-BEFORE any implementation work:
-1. Emit [SESSION: ...] at task start
-2. Emit [PHASE: CONTEXT | progress=1/7] when loading knowledge
-3. Emit [PHASE: PLAN | progress=2/7] when designing solution
-4. Emit [DECISION: ?] for every choice made
-5. Emit [ATTEMPT #N] for every implementation try
-6. Emit [SUBAGENT: Name] for every delegation
-7. Track phase transitions: CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE
+REQUIRED emissions throughout session:
+1. [SESSION: ...] ← FIRST ACTION, before any tool use
+2. [PHASE: CONTEXT | progress=1/7] ← SECOND ACTION, immediately after SESSION
+3. [PHASE: PLAN | progress=2/7] when designing solution
+4. [DECISION: ?] for EVERY choice between alternatives
+5. [ATTEMPT #N] for EVERY implementation iteration
+6. [SUBAGENT: Name] for EVERY delegation (#runSubagent)
+7. Track ALL phase transitions: CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE
 
-VIOLATION CHECK: If you haven't emitted these markers, STOP and emit them now.
+ENFORCEMENT: These are REQUIRED, not optional. Protocol compliance is tracked in workflow logs.
+VIOLATION CHECK: Before any file edit, verify [SESSION:] and [PHASE: CONTEXT] were emitted.
 ```
 
 ## Delegation
