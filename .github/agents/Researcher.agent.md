@@ -15,7 +15,7 @@ Investigator - explores codebases, gathers context, analyzes patterns.
 # Standard phases (emit these):
 [PHASE: CONTEXT|COORDINATE|INTEGRATE|COMPLETE | progress=N/7]
 
-# Legacy mapping (for reference):
+# Legacy mapping (for reference only):
 # SCOPE → CONTEXT (define scope)
 # EXPLORE/ANALYZE → COORDINATE (search and analyze)
 # MAP → INTEGRATE (gather and synthesize)

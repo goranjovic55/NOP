@@ -15,7 +15,7 @@ Implementation expert - writes clean, working code following patterns.
 # Standard phases (emit these):
 [PHASE: CONTEXT|COORDINATE|VERIFY|COMPLETE | progress=N/7]
 
-# Legacy mapping (for reference):
+# Legacy mapping (for reference only):
 # IMPLEMENT → COORDINATE (write code)
 # TEST → VERIFY (run tests)
 # VALIDATE → VERIFY (check quality)

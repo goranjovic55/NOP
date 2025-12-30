@@ -15,7 +15,7 @@ Design thinker - creates blueprints, analyzes trade-offs, defines patterns.
 # Standard phases (emit these):
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|COMPLETE | progress=N/7]
 
-# Legacy mapping (for reference):
+# Legacy mapping (for reference only):
 # UNDERSTAND → CONTEXT (gather requirements)
 # EXPLORE → COORDINATE (explore options)
 # ANALYZE → COORDINATE (analyze trade-offs)

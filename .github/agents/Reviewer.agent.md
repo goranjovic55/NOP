@@ -15,7 +15,7 @@ Quality guardian - tests, validates, ensures standards.
 # Standard phases (emit these):
 [PHASE: CONTEXT|COORDINATE|VERIFY|COMPLETE | progress=N/7]
 
-# Legacy mapping (for reference):
+# Legacy mapping (for reference only):
 # REVIEW → COORDINATE (review code)
 # CHECK → VERIFY (run checks)
 # VERDICT → COMPLETE (provide result)
