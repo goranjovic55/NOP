@@ -34,6 +34,37 @@ Artifacts: [files] | Learnings: [patterns]
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
 
+## Interrupts & Context Switches
+
+**When user changes topic mid-session:**
+
+```
+# Save current state:
+[PAUSE: task=<current> | phase=<current-phase> | status=<state>]
+
+# Handle interrupt:
+[NEST: parent=<current> | child=<new-request> | reason=user-interrupt]
+[SESSION: role=Lead | task=<new-request> | phase=CONTEXT]
+... complete new task ...
+[RETURN: to=<current> | result=<summary>]
+
+# Resume original:
+[RESUME: task=<current> | phase=<where-we-were>]
+```
+
+**When to NEST vs start fresh:**
+- NEST: Related to current work, will return to original
+- Fresh: Completely unrelated, won't resume original
+
+**Thread tracking:**
+```
+[THREAD: id=T1 | task=<original>] → active
+[THREAD: id=T1 | status=paused]
+[THREAD: id=T2 | task=<interrupt> | parent=T1] → active
+[THREAD: id=T2 | status=complete]
+[THREAD: id=T1 | status=resumed] → active
+```
+
 ## Phases (Horizontal)
 ```
 [PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]

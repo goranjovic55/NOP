@@ -74,6 +74,22 @@ Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"...
 [STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 ```
 
+## Interrupts & Context Switches
+
+**User changes topic mid-task:**
+```
+[PAUSE: task=<current> | phase=<phase>]
+[NEST: parent=<current> | child=<new> | reason=user-interrupt]
+... handle interrupt ...
+[RETURN: to=<current> | result=<summary>]
+[RESUME: task=<current> | phase=<phase>]
+```
+
+**Track active thread:**
+```
+[THREAD: active=<task-name> | paused=[<list>]]
+```
+
 ## Learn Phase
 ```
 [PHASE: LEARN | progress=6/7]

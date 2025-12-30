@@ -5,7 +5,7 @@
 
 ---
 
-## Skill Index (13 Core Skills)
+## Skill Index (14 Core Skills)
 
 | # | Skill | Category | Trigger |
 |---|-------|----------|---------|
@@ -22,6 +22,7 @@
 | 11 | [UI Patterns](#11-ui-patterns) | Frontend | Components |
 | 12 | [Infrastructure](#12-infrastructure) | DevOps | Docker, CI/CD |
 | 13 | [Workflow Logs](#13-workflow-logs) | Process | Session complete |
+| 14 | [Context Switching](#14-context-switching) | Ecosystem | User interrupts |
 
 ---
 
@@ -381,6 +382,55 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 
 ---
 
+## 14. Context Switching
+
+**Trigger**: User interrupts current task with new request
+
+**Pattern**:
+```
+# Before interrupt:
+[PAUSE: task=build-app | phase=VERIFY | status=waiting-for-tests]
+[THREAD: id=T1 | status=paused]
+
+# Handle interrupt:
+[NEST: parent=build-app | child=fix-settings | reason=user-interrupt]
+[THREAD: id=T2 | task=fix-settings | parent=T1]
+[SESSION: role=Lead | task=fix-settings | phase=CONTEXT]
+... complete interrupt task ...
+[COMPLETE: task=fix-settings | result=...]
+[THREAD: id=T2 | status=complete]
+
+# Resume original:
+[RETURN: to=build-app | result=settings-fixed]
+[RESUME: task=build-app | phase=VERIFY]
+[THREAD: id=T1 | status=resumed]
+```
+
+**Checklist**:
+- [ ] Emit PAUSE with current phase
+- [ ] Emit NEST with user-interrupt reason
+- [ ] Track thread IDs (T1, T2, etc.)
+- [ ] Complete interrupt fully before resuming
+- [ ] Emit RETURN with summary
+- [ ] Emit RESUME to restore context
+- [ ] Update THREAD status throughout
+
+**When NOT to nest**:
+- Interrupt is completely unrelated and won't resume
+- User explicitly says "forget that, do this instead"
+- Session ending anyway
+
+**Example** (This session should have been):
+```
+T1: Build containers ✓
+├─ T2: Fix settings (interrupt) ✓
+├─ T3: Merge branch (interrupt) ✓
+│  └─ T4: Apply improvements (nested) ✓
+└─ T5: Meta-analysis (current)
+```
+
+---
+
 ## Integration
 
 | Component | Location | Synergy |
@@ -400,4 +450,4 @@ Run `update_skills` workflow to:
 3. Update context
 4. Sync with knowledge
 
-**Template Version**: 1.0.0
+**Template Version**: 1.1.0
