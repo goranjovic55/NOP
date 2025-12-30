@@ -1,10 +1,34 @@
-version: '3.8'
-
 services:
-  # Test Environment Services
-  # Port forwards removed - services accessible via Docker network only
-  # This reduces port conflicts and resource usage
-  
+  # Vulnerable test applications
+  vulnerable-web:
+    image: vulnerables/web-dvwa:latest
+    container_name: nop-vulnerable-web
+    environment:
+      - MYSQL_HOST=vulnerable-db
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    depends_on:
+      - vulnerable-db
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.10
+    restart: unless-stopped
+
+  vulnerable-db:
+    image: mariadb:10.1
+    container_name: nop-vulnerable-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.11
+    restart: unless-stopped
+
+  # Custom test environment services
   custom-web-server:
     build: ./test-environment/web-server
     container_name: nop-custom-web
@@ -63,5 +87,7 @@ services:
 
 networks:
   test-network:
-    name: nop_test-network
-    external: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
