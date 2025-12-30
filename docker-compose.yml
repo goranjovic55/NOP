@@ -38,7 +38,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - nop-internal
-      - test-network
     restart: unless-stopped
     privileged: true
     cap_add:
@@ -65,7 +64,6 @@ services:
     # platform: linux/amd64  # For x86_64 systems
     networks:
       - nop-internal
-      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
@@ -87,8 +85,6 @@ services:
 networks:
   nop-internal:
     driver: bridge
-  test-network:
-    external: true
 
 volumes:
   postgres_data:
