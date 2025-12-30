@@ -6,108 +6,63 @@ applyTo: '**'
 
 ## Session
 ```
-[SESSION: role=Lead|Architect|Developer|Reviewer|Researcher | task=<desc> | phase=CONTEXT]
-[SKILLS: loaded=N | available: #1,#2,#3...]
-[KNOWLEDGE: loaded | entities=N | sources=M]
+[SESSION: task] @mode
+[COMPLETE] result | changed: files
 ```
-
-**CRITICAL**: Load and verify knowledge BEFORE proceeding with any work.
 
 ## Delegation
 ```
-[DELEGATE: agent=<specialist> | task=<desc>]
-Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
-
-[RETURN: to=_DevTeam | status=complete|partial|blocked | result=<summary>]
-Artifacts: [files] | Learnings: [patterns]
+#runSubagent Agent
+Task: description
+Context: relevant info
 ```
 
-## Return Contract
-```json
-{"status":"complete", "result":"...", "artifacts":[], "learnings":[], "blockers":[]}
+**Return**:
 ```
-
-## Nesting
-```
-# Simple:
-[NEST: parent=<main> | child=<sub> | reason=<why>]
-[RETURN: to=<main> | result=<findings>]
-
-# Multi-level:
-[STACK: push | task=<sub> | depth=N | parent=<main>]
-[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
+[COMPLETE] result | artifacts: files
 ```
 
 ## Interrupts
 ```
-[PAUSE: task=<current> | phase=<phase>]
-[NEST: parent=<current> | child=<new> | reason=user-interrupt]
-[RETURN: to=<current> | result=<summary>]
-[RESUME: task=<current> | phase=<phase>]
-
-[THREAD: active=<task> | paused=[<list>]]
+[PAUSE: current]
+[RESUME: original]
 ```
 
-## Phases (Horizontal)
+## Examples
+
+**Feature**:
 ```
-[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
+[SESSION: Add JWT auth] @_DevTeam
+
+#runSubagent Architect
+Task: Design JWT auth with refresh tokens
+
+#runSubagent Developer  
+Task: Implement per design
+
+#runSubagent Reviewer
+Task: Validate implementation
+
+[COMPLETE] Auth implemented | changed: 3 files
 ```
 
-## Skill Usage
+**Bug Fix**:
 ```
-[SKILL: #N Name | applied] → action/context
-```
-**Purpose**: Transparency - shows which skills are being applied when.
-**Example**: `[SKILL: #3 Security | applied] → Validating input sanitization`
+[SESSION: Fix token expiry] @_DevTeam
 
-## Knowledge
-```
-[KNOWLEDGE: added=N | updated=M | type=project|global]
-```
-| Type | Target | Examples |
-|------|--------|----------|
-| entity | project_knowledge.json | Domain concepts |
-| codegraph | project_knowledge.json | Code structure |
-| relation | project_knowledge.json | Connections |
-| pattern | global_knowledge.json | Universal patterns |
+#runSubagent Researcher
+Task: Investigate expiry issue
+Result: Token set to 5min, too short
 
-## Learn Phase
-```
-[PHASE: LEARN | progress=6/7]
+#runSubagent Developer
+Task: Update to 30min
+
+[COMPLETE] Expiry fixed | changed: security.py
 ```
 
-**Skill Suggestion**: If session revealed a reusable pattern:
+**Direct Work**:
 ```
-[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
-Trigger: <when to apply>
-Pattern: <code or rule>
-Rules: <checklist>
-[/SKILL_SUGGESTION]
+[SESSION: Fix typo] @Developer
+[ATTEMPT #1] Correct spelling \u2192 \u2713
+[COMPLETE] Typo fixed | changed: README.md
 ```
-
-## Completion
-```
-[COMPLETE: task=<desc> | result=<summary> | learnings=N]
-[SESSION: end | knowledge_updated=bool]
-```
-
-## Workflow Log (Significant Work)
-```
-[WORKFLOW_LOG: task=<desc>]
-## Summary | Agent Interactions | Files | Quality Gates | Learnings
-[/WORKFLOW_LOG]
-```
-
-**Persist to File**:
-- Write to: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
-- Timestamp: From session start (e.g., 2025-12-28_143022)
-- Task slug: lowercase-with-hyphens, max 50 chars
-- Format: Full markdown with all workflow sections
-- Purpose: Future agents can reference session history
-
-## Error Recovery
-| Error | Action |
-|-------|--------|
-| Knowledge corrupt | Backup, create fresh |
-| Specialist blocked | Escalate to orchestrator |
-| Context lost | Re-emit SESSION |

@@ -1,5 +1,19 @@
 import { create } from 'zustand';
 
+export interface Vulnerability {
+  id: string;
+  cve_id: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  cvss_score: number;
+  affected_service: string;
+  affected_port: number;
+  exploit_available: boolean;
+  exploit_module?: string;
+  source_database: 'cve' | 'exploit_db' | 'metasploit' | 'vulners' | 'packetstorm';
+}
+
 export interface ScanTab {
   id: string;
   ip: string;
@@ -8,6 +22,10 @@ export interface ScanTab {
   status: 'idle' | 'running' | 'completed' | 'failed';
   logs: string[];
   options: ScanOptions;
+  // Vulnerability scan state
+  selectedDatabases: string[];
+  vulnerabilities: Vulnerability[];
+  vulnScanning: boolean;
 }
 
 export interface ScanOptions {
@@ -31,6 +49,10 @@ interface ScanState {
   setScanStatus: (id: string, status: ScanTab['status']) => void;
   onScanComplete?: (ip: string, data: any) => void;
   setOnScanComplete: (callback: (ip: string, data: any) => void) => void;
+  // Vulnerability scan methods
+  setSelectedDatabases: (id: string, databases: string[]) => void;
+  setVulnerabilities: (id: string, vulnerabilities: Vulnerability[]) => void;
+  setVulnScanning: (id: string, scanning: boolean) => void;
 }
 
 export const useScanStore = create<ScanState>((set) => ({
@@ -50,6 +72,11 @@ export const useScanStore = create<ScanState>((set) => ({
     }
     const newId = Math.random().toString(36).substring(7);
     const displayText = isSingleIp ? ip : `${ipOrIps.length} hosts`;
+    
+    // Load saved database preferences
+    const savedDatabases = localStorage.getItem('nop_scans_vuln_databases');
+    const defaultDatabases = savedDatabases ? JSON.parse(savedDatabases) : ['cve', 'exploit_db', 'metasploit'];
+    
     const newTab: ScanTab = {
       id: newId,
       ip,
@@ -64,7 +91,10 @@ export const useScanStore = create<ScanState>((set) => ({
         serviceDetection: true,
         osDetection: true,
         timing: '3'
-      }
+      },
+      selectedDatabases: defaultDatabases,
+      vulnerabilities: [],
+      vulnScanning: false
     };
     return {
       tabs: [...state.tabs, newTab],
@@ -91,5 +121,18 @@ export const useScanStore = create<ScanState>((set) => ({
   })),
   setScanStatus: (id, status) => set((state) => ({
     tabs: state.tabs.map(t => t.id === id ? { ...t, status } : t)
+  })),
+  setSelectedDatabases: (id, databases) => set((state) => {
+    // Persist to localStorage
+    localStorage.setItem('nop_scans_vuln_databases', JSON.stringify(databases));
+    return {
+      tabs: state.tabs.map(t => t.id === id ? { ...t, selectedDatabases: databases } : t)
+    };
+  }),
+  setVulnerabilities: (id, vulnerabilities) => set((state) => ({
+    tabs: state.tabs.map(t => t.id === id ? { ...t, vulnerabilities } : t)
+  })),
+  setVulnScanning: (id, scanning) => set((state) => ({
+    tabs: state.tabs.map(t => t.id === id ? { ...t, vulnScanning: scanning } : t)
   }))
 }));

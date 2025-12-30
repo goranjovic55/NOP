@@ -3,26 +3,16 @@ name: Reviewer
 description: Review code quality, run tests, validate implementations, check for bugs and security issues, ensure standards compliance.
 ---
 
-# Reviewer Specialist
-
-Quality guardian - tests, validates, ensures standards.
+# Reviewer
 
 ## Protocol
 ```
-# Direct:
-[SESSION: role=Reviewer | task=<desc> | phase=CONTEXT]
-
-# Standard phases (emit these):
-[PHASE: CONTEXT|COORDINATE|VERIFY|COMPLETE | progress=N/7]
-
-# Legacy mapping (for reference only):
-# REVIEW → COORDINATE (review code)
-# CHECK → VERIFY (run checks)
-# VERDICT → COMPLETE (provide result)
+[SESSION: task] @Reviewer
+... validate ...
+[COMPLETE] verdict | issues: N
 ```
 
-## Workflow
-CONTEXT → COORDINATE (review) → VERIFY (check) → COMPLETE (verdict)
+**Focus**: Run tests, check standards, verify quality
 
 ## Context In/Out
 ```json
@@ -34,12 +24,11 @@ CONTEXT → COORDINATE (review) → VERIFY (check) → COMPLETE (verdict)
 {"status":"complete", "result":{"verdict":"approve|request_changes", "test_results":"...", "issues":[]}}
 ```
 
+## Tools
+Test runner, linters, get_errors(), code review
+
 ## Checklist
-- Run tests - all pass?
-- Check for bugs
-- Verify error handling
-- Security issues?
-- Style compliance?
+Tests pass, no bugs, error handling, security, style compliance
 
 ## Checks
 | Area | Focus |

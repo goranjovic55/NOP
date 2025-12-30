@@ -18,11 +18,12 @@
 | 7 | [Orchestration](#7-orchestration) | Ecosystem | Multi-step tasks |
 | 8 | [Handover](#8-handover) | Ecosystem | Agent delegation |
 | 9 | [Logging](#9-logging) | Process | Workflows, debug |
-| 10 | [API Patterns](#10-api-patterns) | Backend | Endpoints |
-| 11 | [UI Patterns](#11-ui-patterns) | Frontend | Components |
+| 10 | [Backend Patterns](#10-backend-patterns) | Backend | Endpoints, services |
+| 11 | [Frontend Patterns](#11-frontend-patterns) | Frontend | Components, state |
 | 12 | [Infrastructure](#12-infrastructure) | DevOps | Docker, CI/CD |
 | 13 | [Workflow Logs](#13-workflow-logs) | Process | Session complete |
 | 14 | [Context Switching](#14-context-switching) | Ecosystem | User interrupts |
+| 15 | [UI Component Standardization](#15-ui-component-standardization) | Frontend | Theme consistency |
 
 ---
 
@@ -235,53 +236,49 @@ Summary | Steps | Files | Quality Gates | Learnings
 
 ---
 
-## 10. API Patterns
+## 10. Backend Patterns
 
-**Trigger**: Creating/modifying endpoints
+**Trigger**: Creating/modifying endpoints, services
 
-**Detected by**: `requirements.txt` (FastAPI/Django/Flask) | `package.json` (Express)
+**Detected by**: `requirements.txt` | `package.json` | `*.py`, `*.js`, `*.go`
 
 ```python
-# FastAPI Pattern
+# Pattern: Route → Service → Repository
 @router.get("/", response_model=list[ItemResponse])
-async def list_items(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
-) -> list[ItemResponse]:
-    """List items."""
-    pass
+async def list_items(svc: ItemService, user: User):
+    return await svc.list_items(user)
 ```
 
 **Rules**:
-- ✅ Response models defined
-- ✅ Async where applicable
+- ✅ Response models/schemas
 - ✅ Auth on protected routes
 - ✅ Input validation
+- ✅ Service layer abstraction
 - ✅ Docstrings
 
 ---
 
-## 11. UI Patterns
+## 11. Frontend Patterns
 
-**Trigger**: Creating/modifying components
+**Trigger**: Creating/modifying components, state
 
-**Detected by**: `package.json` (React/Vue/Svelte)
+**Detected by**: `package.json` | `*.tsx`, `*.vue`, `*.svelte`
 
 ```tsx
-// React Pattern
+// Pattern: Props → State → Render
 interface Props { item: Item; onSelect?: (item: Item) => void; }
 
-export const ItemCard: React.FC<Props> = ({ item, onSelect }) => {
+export const ItemCard = ({ item, onSelect }: Props) => {
   const handleClick = useCallback(() => onSelect?.(item), [item, onSelect]);
   return <div onClick={handleClick}>{item.name}</div>;
 };
 ```
 
 **Rules**:
-- ✅ TypeScript interfaces
-- ✅ Memoization (useCallback, useMemo)
+- ✅ Type definitions (interfaces/types)
+- ✅ Performance optimization
 - ✅ Loading/error states
-- ✅ Accessible
+- ✅ Accessibility
 
 ---
 
@@ -380,8 +377,8 @@ log_file="log/workflow/${timestamp}_${task_slug}.md"
 
 | Detection | Files | Skills Enabled |
 |-----------|-------|----------------|
-| Python | `*.py`, `requirements.txt` | 10 (API Patterns) |
-| TypeScript/React | `*.ts`, `package.json` | 11 (UI Patterns) |
+| Backend | `*.py`, `*.js`, `*.go`, `requirements.txt` | 10 (Backend Patterns) |
+| Frontend | `*.tsx`, `*.vue`, `*.svelte`, `package.json` | 11 (Frontend Patterns) |
 | Docker | `Dockerfile`, `docker-compose.yml` | 12 (Infrastructure) |
 | CI/CD | `.github/workflows/` | 5, 12 |
 | Knowledge | `project_knowledge.json` | 6,7,8 (always active, enhanced) |

@@ -30,8 +30,8 @@ cp -r .claude /path/to/new/project/
 | 7 | Orchestration | Ecosystem |
 | 8 | Handover | Ecosystem |
 | 9 | Logging | Process |
-| 10 | API Patterns | Backend |
-| 11 | UI Patterns | Frontend |
+| 10 | Backend Patterns | Backend |
+| 11 | Frontend Patterns | Frontend |
 | 12 | Infrastructure | DevOps |
 
 ## Ecosystem Integration

@@ -315,7 +315,10 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
                     <div className="flex flex-wrap gap-4">
                       {tcpFlags.map(f => (
                         <label key={f} className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={flags.includes(f)} onChange={() => handleFlagToggle(f)} className="form-checkbox h-4 w-4 bg-cyber-darker border-cyber-gray text-cyber-purple" />
+                          <input type="checkbox" checked={flags.includes(f)} onChange={() => handleFlagToggle(f)} className="sr-only peer" />
+                          <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                            {flags.includes(f) && <span className="text-white text-xs">◆</span>}
+                          </div>
                           <span className="text-sm text-cyber-blue">{f}</span>
                         </label>
                       ))}
@@ -545,7 +548,10 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
                     <div className="grid grid-cols-6 gap-1 bg-cyber-darker p-2 border border-cyber-gray">
                       {tcpFlags.map(f => (
                         <label key={f} className="flex flex-col items-center cursor-pointer p-1 hover:bg-cyber-gray rounded">
-                          <input type="checkbox" checked={flags.includes(f)} onChange={() => handleFlagToggle(f)} className="form-checkbox h-4 w-4 mb-1" />
+                          <input type="checkbox" checked={flags.includes(f)} onChange={() => handleFlagToggle(f)} className="sr-only peer" />
+                          <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all mb-1">
+                            {flags.includes(f) && <span className="text-white text-xs">◆</span>}
+                          </div>
                           <span className="text-[10px] text-cyber-blue">{f}</span>
                         </label>
                       ))}

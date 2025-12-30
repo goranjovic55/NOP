@@ -828,16 +828,18 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           />
         </div>
 
-        <div className="flex items-center">
+        <label className="flex items-center cursor-pointer">
           <input
             type="checkbox"
-            id="remember"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
-            className="mr-2"
+            className="sr-only peer"
           />
-          <label htmlFor="remember" className="text-xs text-cyber-gray-light uppercase cursor-pointer">Remember Credentials</label>
-        </div>
+          <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all mr-2">
+            {remember && <span className="text-white text-xs">◆</span>}
+          </div>
+          <span className="text-xs text-cyber-gray-light uppercase">Remember Credentials</span>
+        </label>
 
           <div className="flex space-x-2">
             <button

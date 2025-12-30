@@ -3,27 +3,16 @@ name: Researcher
 description: Investigate codebases, analyze patterns, find dependencies, document findings, identify issues and opportunities.
 ---
 
-# Researcher Specialist
-
-Investigator - explores codebases, gathers context, analyzes patterns.
+# Researcher
 
 ## Protocol
 ```
-# Direct:
-[SESSION: role=Researcher | task=<desc> | phase=CONTEXT]
-
-# Standard phases (emit these):
-[PHASE: CONTEXT|COORDINATE|INTEGRATE|COMPLETE | progress=N/7]
-
-# Legacy mapping (for reference only):
-# SCOPE → CONTEXT (define scope)
-# EXPLORE/ANALYZE → COORDINATE (search and analyze)
-# MAP → INTEGRATE (gather and synthesize)
-# REPORT → COMPLETE (provide findings)
+[SESSION: task] @Researcher
+... investigate ...
+[COMPLETE] findings | summary
 ```
 
-## Workflow
-CONTEXT (scope) → COORDINATE (explore + analyze) → INTEGRATE (map) → COMPLETE (report)
+**Focus**: Explore codebase, analyze patterns, document findings
 
 ## Context In/Out
 ```json
@@ -36,10 +25,7 @@ CONTEXT (scope) → COORDINATE (explore + analyze) → INTEGRATE (map) → COMPL
 ```
 
 ## Tools
-```bash
-find . -name "*pattern*"
-grep -r "class.*Service" src/
-```
+Code search, knowledge files, web search (when available), grep, semantic_search
 
 ## Report Template
 ```

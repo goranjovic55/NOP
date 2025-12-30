@@ -1102,12 +1102,17 @@ const SettingsToggle: React.FC<{
         <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
         {description && <p className="text-xs text-cyber-gray-light mt-1">{description}</p>}
       </div>
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 accent-cyber-red mt-1"
-      />
+      <label className="cursor-pointer mt-1">
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-5 h-5 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red transition-all">
+          {value && <span className="text-white text-sm">◆</span>}
+        </div>
+      </label>
     </div>
   );
 };
@@ -1133,7 +1138,7 @@ const SettingsSlider: React.FC<{
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full accent-cyber-red"
+        className="w-full h-2 bg-cyber-darker rounded-none appearance-none cursor-pointer [&::-webkit-slider-track]:bg-cyber-gray [&::-webkit-slider-track]:h-0.5 [&::-webkit-slider-track]:border [&::-webkit-slider-track]:border-cyber-purple [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-cyber-red [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyber-red [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,0,102,0.6)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(255,0,102,0.9)] [&::-moz-range-track]:bg-cyber-gray [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:border [&::-moz-range-track]:border-cyber-purple [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-cyber-red [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyber-red [&::-moz-range-thumb]:rounded-none"
       />
       {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
     </div>

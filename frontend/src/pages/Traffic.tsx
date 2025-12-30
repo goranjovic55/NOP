@@ -831,16 +831,18 @@ const Traffic: React.FC = () => {
 
                   {/* HTTPS Toggle (for HTTP) */}
                   {pingProtocol === 'http' && (
-                    <div className="flex items-center space-x-3">
+                    <label className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        id="use-https"
                         checked={pingUseHttps}
                         onChange={(e) => setPingUseHttps(e.target.checked)}
-                        className="w-4 h-4"
+                        className="sr-only peer"
                       />
-                      <label htmlFor="use-https" className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</label>
-                    </div>
+                      <div className="w-4 h-4 border-2 border-cyber-blue flex items-center justify-center peer-checked:bg-cyber-blue transition-all">
+                        {pingUseHttps && <span className="text-white text-xs">◆</span>}
+                      </div>
+                      <span className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</span>
+                    </label>
                   )}
 
                   {/* Advanced Options */}
