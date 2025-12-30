@@ -42,16 +42,32 @@ _DevTeam (Orchestrator)
 **Required emissions throughout session**:
 1. `[SESSION: ...]` ← FIRST ACTION, before any tool use
 2. `[PHASE: CONTEXT | progress=1/7]` ← SECOND ACTION, immediately after SESSION
-3. `[PHASE: PLAN | progress=2/7]` when designing solution
-4. `[DECISION: ?]` for EVERY choice between alternatives
-5. `[ATTEMPT #N]` for EVERY implementation iteration
-6. `[SUBAGENT: Name]` for EVERY delegation (#runSubagent)
-7. Track ALL phase transitions
+3. `[SKILLS: loaded=N | available: #1,#2,#3...]` ← THIRD ACTION, list loaded skills
+4. `[KNOWLEDGE: loaded | entities=N | sources=M]` ← FOURTH ACTION, confirm knowledge loaded
+5. `[PHASE: PLAN | progress=2/7]` when designing solution
+6. `[DECISION: ?]` for EVERY choice between alternatives
+7. `[SKILL: #N Name | applied]` when USING a skill from loaded set
+8. `[ATTEMPT #N]` for EVERY implementation iteration
+9. `[SUBAGENT: Name]` for EVERY delegation (#runSubagent)
+10. Track ALL phase transitions
 
 **ENFORCEMENT**: These are REQUIRED, not optional. Protocol compliance tracked in workflow logs.
-**VIOLATION CHECK**: Before any file edit, verify [SESSION:] and [PHASE: CONTEXT] were emitted.
+**VIOLATION CHECK**: Before any file edit, verify [SESSION:], [PHASE: CONTEXT], [SKILLS:], and [KNOWLEDGE:] were emitted.
 
+**Knowledge Loading Protocol**:
+```
 Load order: `.claude/skills.md` → `project_knowledge.json` → `.github/global_knowledge.json`
+
+[SKILLS: loaded=14 | available: #1-Code Standards, #2-Error Handling, #3-Security, #4-Testing, #5-Git & Deploy, #6-Knowledge, #7-Orchestration, #8-Handover, #9-Logging, #10-API Patterns, #11-UI Patterns, #12-Infrastructure, #13-Workflow Logs, #14-Context Switching]
+[KNOWLEDGE: loaded | entities=50 | sources=2 (project_knowledge.json, global_knowledge.json)]
+```
+
+**Skill Usage Tracking**:
+When applying a skill during work, emit:
+```
+[SKILL: #3 Security | applied] → Validating input sanitization
+[SKILL: #10 API Patterns | applied] → Using FastAPI response model pattern
+```
 
 ## Delegation
 
@@ -150,13 +166,18 @@ Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learni
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: CONTEXT | progress=1/7]
+[SKILLS: loaded=N | available: #1,#2,#3...]
+[KNOWLEDGE: loaded | entities=N | sources=M]
 ```
 
 **During task execution**:
 - [ ] Emit `[SESSION:]` at start ← **FIRST ACTION**
 - [ ] Emit `[PHASE: CONTEXT | progress=1/7]` ← **SECOND ACTION**
+- [ ] Emit `[SKILLS: loaded=N | available: ...]` ← **THIRD ACTION**
+- [ ] Emit `[KNOWLEDGE: loaded | entities=N | sources=M]` ← **FOURTH ACTION**
 - [ ] Emit `[PHASE: PLAN | progress=2/7]` when designing
 - [ ] Emit `[DECISION: ?]` for every choice
+- [ ] Emit `[SKILL: #N Name | applied]` when using a skill
 - [ ] Emit `[ATTEMPT #N]` for every implementation try
 - [ ] Use `#runSubagent` for specialist work → Emit `[SUBAGENT: Name]`
 - [ ] Emit `[PHASE: INTEGRATE | progress=4/7]`

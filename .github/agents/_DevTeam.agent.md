@@ -11,8 +11,10 @@ Coordinates specialists, maintains task control, integrates results.
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: CONTEXT | progress=1/7]
+[SKILLS: loaded=N | available: #1,#2,#3...] 
+[KNOWLEDGE: loaded | entities=N | sources=M]
 ```
-Load skills → project knowledge → global knowledge BEFORE proceeding.
+Load skills → project knowledge → global knowledge BEFORE proceeding. **EMIT** verification.
 
 ## Hierarchy
 ```
@@ -26,8 +28,10 @@ _DevTeam (Orchestrator)
 ## Session Protocol
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
+[SKILLS: loaded=N | available: #1,#2,#3...]
+[KNOWLEDGE: loaded | entities=N | sources=M]
 ```
-Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect project type
+Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect project type → **EMIT** confirmations
 
 ## Phase Flow
 ```
@@ -121,7 +125,7 @@ Summary | Decision & Execution Flow | Agent Interactions | Files | Quality Gates
 ## Emissions (for Decision Tree)
 ```
 [DECISION: question] → chosen_path
-[SKILL: #N Name] → result
+[SKILL: #N Name | applied] → what/why
 [SUBAGENT: Name] task
 [ATTEMPT #N] action → ✓/✗ result
 [LOOP: desc] → outcome
