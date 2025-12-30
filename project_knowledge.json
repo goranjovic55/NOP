@@ -237,3 +237,5 @@
 {"type":"relation","from":"Traffic","to":"StormFeature","relationType":"IMPLEMENTS"}
 {"type":"relation","from":"StormFeature","to":"SnifferService.Storm","relationType":"CONSUMES"}
 {"type":"relation","from":"SnifferService.Storm","to":"Scapy","relationType":"USES"}
+{"type":"entity","name":"Backend.Services.SnifferService.StormEngine","entityType":"module","observations":["Multi-threaded raw socket flooding for high PPS (50k+)","SO_BROADCAST required for broadcast addresses","CAP_NET_RAW capability required in container","System max ~155k PPS on 4 cores, scales with CPU count","upd:2024-12-30"]}
+{"type":"entity","name":"Backend.Docker.Capabilities","entityType":"config","observations":["CAP_NET_RAW for raw socket creation","CAP_NET_ADMIN for network configuration","docker-compose restart does not rebuild - use docker-compose build","upd:2024-12-30"]}
