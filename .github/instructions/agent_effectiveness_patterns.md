@@ -4,6 +4,10 @@
 
 **Last Updated**: 2025-12-30
 
+**Practical Application**: See `.claude/skills/devops.md` for 7 project-specific skills (D9-D15) derived from these patterns.
+
+**Agent Usage**: Agents load skills during CONTEXT phase. See `.github/agents/_DevTeam.agent.md` → Session Protocol.
+
 ---
 
 ## 1. Docker/Build Environment Issues
@@ -239,6 +243,7 @@ Edit A, B, C → Build → ✗ (which file?)
 - Ensure SESSION initialization (#5)
 - Document only critical decisions (#6)
 - Validate incrementally (#7)
+- **Skills Reference**: Loads `.claude/skills/devops.md` → D9, D14, D15 during CONTEXT phase
 
 ### Developer
 - Apply patterns #2, #3, #4, #7
@@ -246,16 +251,19 @@ Edit A, B, C → Build → ✗ (which file?)
 - Prefer truncation over complex edits (#3)
 - Verify imports before adding calls (#4)
 - Build after each file change (#7)
+- **Skills Reference**: Applies D10 (Incremental Validation), D11 (Import Verification), D12 (React Scope), D13 (File Edit Complexity)
 
 ### Researcher
 - Apply pattern #6
 - Focus findings on actionable insights
 - Don't over-document edge cases
+- **Skills Reference**: Uses D14 (Decision Minimalism) when documenting findings
 
 ### Reviewer
 - Apply pattern #7
 - Test incrementally, not batch
 - Report failures immediately
+- **Skills Reference**: Enforces D10 (Incremental Validation) during testing
 
 ---
 

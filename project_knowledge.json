@@ -57,7 +57,10 @@
 {"type":"entity","name":"Agent.Protocol.AntiDrift","entityType":"Standard","observations":["Ensures SESSION/PHASE markers emitted at task start","7-step checklist prevents knowledge loading failures","Added to _DevTeam agent as CRITICAL reminder","Prevents workflow context loss","upd:2025-12-30"]}
 {"type":"relation","from":"Agent.Effectiveness.Patterns","to":"Agent._DevTeam","relationType":"GUIDES"}
 {"type":"relation","from":"Agent.Effectiveness.Patterns","to":"Agent.Developer","relationType":"GUIDES"}
+{"type":"relation","from":"Agent.Effectiveness.Patterns","to":"NOP.AgentFramework.Skills","relationType":"INFORMS"}
 {"type":"relation","from":"Agent.Protocol.AntiDrift","to":"Documentation.WorkflowLog.DecisionDiagram","relationType":"ENABLES"}
+{"type":"relation","from":"NOP.AgentFramework.Skills","to":"Agent.Effectiveness.Patterns","relationType":"APPLIES"}
+{"type":"relation","from":"NOP.AgentFramework.Skills","to":"GitHub.Instructions","relationType":"REFERENCES"}
 {"type":"relation","from":"Frontend.Components.NeonToggle","to":"Frontend.UI.CyberpunkTheme","relationType":"IMPLEMENTS"}
 {"type":"relation","from":"Frontend.UI.TwoColumnLayout","to":"Frontend.Settings","relationType":"APPLIED_TO"}
 {"type":"relation","from":"Backend.Services.SnifferService.SourceOnlyTracking","to":"Backend.Services.SnifferService.PassiveDiscovery","relationType":"ENHANCES"}

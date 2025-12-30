@@ -27,6 +27,10 @@ Flexible - use what's needed, skip what's not.
 | Refactor | CONTEXT → PLAN → DESIGN → IMPLEMENT → TEST → LEARN |
 | Investigation | CONTEXT → PLAN → COMPLETE |
 
+**Cross-References**:
+- **7-Phase Workflow** (_DevTeam specific): See `.github/agents/_DevTeam.agent.md` → Phase Flow
+- **Practical patterns**: See `.claude/skills.md` → Skill #7 (Orchestration)
+
 ## Nesting
 ```
 # Simple:

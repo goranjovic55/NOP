@@ -146,7 +146,7 @@ project_knowledge.json     → Project entities, codegraph, relations
 {"type":"relation","from":"Component","to":"Feature","relationType":"IMPLEMENTS|USES|CONSUMES|DEPENDS_ON"}
 ```
 
-**Protocol**:
+**Protocol** (syncs with `.github/instructions/protocols.md`):
 | Event | Action |
 |-------|--------|
 | Session start | Load knowledge, query relevant entities |
@@ -154,19 +154,24 @@ project_knowledge.json     → Project entities, codegraph, relations
 | Bug fixed | Add pattern to knowledge |
 | Session end | Update knowledge, create handover |
 
+**Cross-References**:
+- Agent protocol: See `.github/agents/_DevTeam.agent.md` → Knowledge section
+- Detailed format: See `.github/instructions/protocols.md` → Knowledge section
+- Update workflow: See `.github/workflows/update_knowledge.md`
+
 ---
 
 ## 7. Orchestration
 
 **Trigger**: Multi-step tasks, complex operations
 
-**Phases** (syncs with _DevTeam):
+**Phases** (syncs with `.github/agents/_DevTeam.agent.md`):
 ```
 CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
    1        2         3           4          5        6        7
 ```
 
-**Emissions**:
+**Emissions** (detailed in `.github/instructions/protocols.md`):
 ```
 [SESSION: role=Lead | task=<desc> | phase=CONTEXT]
 [PHASE: PLAN | progress=2/7 | next=COORDINATE]
@@ -182,6 +187,11 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | Quick fix | CONTEXT→COORDINATE→COMPLETE |
 | Feature | Full 7-phase |
 | Bug | CONTEXT→COORDINATE→INTEGRATE→VERIFY→COMPLETE |
+
+**Cross-References**:
+- Agent workflow: See `.github/agents/_DevTeam.agent.md` → Phase Flow
+- Protocol details: See `.github/instructions/phases.md`
+- Examples: See `.github/instructions/examples.md`
 
 ---
 

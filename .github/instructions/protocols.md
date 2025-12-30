@@ -50,6 +50,13 @@ Artifacts: [files] | Learnings: [patterns]
 | relation | project_knowledge.json | Connections |
 | pattern | global_knowledge.json | Universal patterns |
 
+**Practical Application**: See `.claude/skills.md` → Skill #6 (Knowledge) for session workflow integration.
+
+**Format Details**: JSONL with entity/codegraph/relation types, observations array, update timestamps.
+
+---
+| pattern | global_knowledge.json | Universal patterns |
+
 ## Learn Phase
 ```
 [PHASE: LEARN | progress=6/7]

@@ -2,6 +2,12 @@
 
 > Project-specific effectiveness patterns from workflow analysis. Updated by agent effectiveness reviews.
 
+**Detailed Analysis**: See `.github/instructions/agent_effectiveness_patterns.md` for complete pattern analysis with prevention strategies.
+
+**Methodology**: See `.github/instructions/AGENT_EFFECTIVENESS_ANALYSIS.md` for 14-session analysis and validation plan.
+
+---
+
 ## Skill D9: Docker Cache Management
 
 **Trigger**: Frontend/backend changes not visible after rebuild
@@ -212,7 +218,11 @@ Track these across workflow logs:
 - 11 failures (14% rate)
 - 7 critical patterns identified
 
-**Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for detailed analysis and `.github/instructions/AGENT_EFFECTIVENESS_ANALYSIS.md` for complete methodology.
+**Detailed Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for complete analysis with code examples and prevention strategies.
+
+**Methodology**: See `.github/instructions/AGENT_EFFECTIVENESS_ANALYSIS.md` for validation plan and expected impact metrics.
+
+**Agent Integration**: Agents reference these skills during CONTEXT phase. See `.github/agents/_DevTeam.agent.md` → Session Protocol.
 
 ---
 
