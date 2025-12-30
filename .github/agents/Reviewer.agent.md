@@ -54,3 +54,31 @@ REVIEW → TEST → VALIDATE → CHECK → VERDICT
 - All tests passing
 - No vulnerabilities
 - Standards met
+- **Incremental validation** (test after each change, not batch)
+
+## Testing Anti-Patterns
+
+### Batch Testing (Inefficient)
+**Problem**: Test all changes at end, hard to isolate failures  
+**Solution**: Test incrementally
+```
+GOOD:  Change A → Test → ✓, Change B → Test → ✗ (know it's B)
+AVOID: Change A, B, C → Test → ✗ (which one?)
+```
+
+### Missing Edge Cases
+**Problem**: Tests pass but production fails  
+**Solution**: Check common edge cases
+```
+- Empty input / null values
+- Boundary conditions (0, max, negative)
+- Invalid data types
+- Network/service failures
+```
+
+**Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for patterns
+
+## Knowledge
+```
+[KNOWLEDGE: added=N | updated=M | type=project]
+```

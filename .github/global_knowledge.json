@@ -47,4 +47,10 @@
 {"type":"relation","from":"Global.Pattern.UI.ResponsiveGrid","to":"Global.Pattern.Code.KISS","relationType":"FOLLOWS"}
 {"type":"relation","from":"Global.Pattern.Network.SourceIPValidation","to":"Global.Pattern.Network.ServiceDiscovery","relationType":"ENHANCES"}
 {"type":"relation","from":"Global.Pattern.Documentation.DecisionTracking","to":"Global.Workflow.MultiAgent.Orchestrator","relationType":"SUPPORTS"}
+{"type":"entity","name":"Global.Pattern.DevOps.DockerCacheManagement","entityType":"Pattern","observations":["Nuclear cleanup protocol for persistent caching issues","docker-compose down -v && docker system prune -af --volumes","Apply after 2nd failed rebuild to prevent wasted attempts","Prevents code changes from being invisible in containers","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Development.IncrementalValidation","entityType":"Pattern","observations":["Build/test after each file change, not batch at end","Enables quick isolation of which change caused failure","Reduces debugging time from minutes to seconds","Apply especially in multi-file refactors","upd:2025-12-30,refs:1"]}
+{"type":"entity","name":"Global.Pattern.Architecture.DecisionMinimalism","entityType":"Pattern","observations":["Document main choice + primary alternative only","Avoid enumerating 5+ rejected options","Reduces cognitive overhead and speeds workflow","Focus on actionable rationale, not exhaustive analysis","upd:2025-12-30,refs:1"]}
+{"type":"relation","from":"Global.Pattern.DevOps.DockerCacheManagement","to":"Global.Pattern.Infrastructure","relationType":"EXTENDS"}
+{"type":"relation","from":"Global.Pattern.Development.IncrementalValidation","to":"Global.Pattern.Testing.UnitIsolation","relationType":"COMPLEMENTS"}
+{"type":"relation","from":"Global.Pattern.Architecture.DecisionMinimalism","to":"Global.Workflow.MultiAgent.Orchestrator","relationType":"OPTIMIZES"}
 

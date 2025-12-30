@@ -41,8 +41,42 @@ UNDERSTAND → EXPLORE → ANALYZE → DESIGN → DOCUMENT
 
 ## Quality Gates
 - Requirements clear
-- Alternatives considered
-- Trade-offs documented
+- Alternatives considered (main choice + primary alternative only)
+- Trade-offs documented (focus on critical factors)
+- **Actionable for Developer** (not abstract theory)
+
+## Design Anti-Patterns
+
+### Over-Analysis
+**Problem**: Documenting 5+ alternatives slows workflow  
+**Solution**: Main choice + primary alternative only
+```
+GOOD:
+  → CHOSEN: REST API (simple, well-known)
+  → REJECTED: GraphQL (adds complexity)
+
+AVOID:
+  → CHOSEN: REST
+  → REJECTED: GraphQL (complex)
+  → REJECTED: gRPC (overkill)
+  → REJECTED: WebSockets (wrong use case)
+  → REJECTED: SOAP (legacy)
+```
+
+### Missing Implementation Guidance
+**Problem**: Design lacks concrete next steps for Developer  
+**Solution**: Include code structure hints
+```
+GOOD:
+  "Use Service class pattern:
+   class FooService:
+     async def start(self): ..."
+
+AVOID:
+  "Use service-oriented architecture"
+```
+
+**Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for patterns
 
 ## Knowledge
 ```

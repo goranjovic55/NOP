@@ -14,6 +14,50 @@ Coordinates specialists, maintains task control, integrates results.
 ```
 Load skills → project knowledge → global knowledge BEFORE proceeding.
 
+**⚠️ ANTI-DRIFT PROTOCOL:**
+```
+Before ANY implementation work:
+1. Emit [SESSION: ...] at task start
+2. Emit [PHASE: CONTEXT | progress=1/7] when loading knowledge
+3. Emit [PHASE: PLAN | progress=2/7] when designing solution
+4. Emit [DECISION: ?] for every choice made
+5. Emit [ATTEMPT #N] for every implementation try
+6. Emit [SUBAGENT: Name] for every delegation
+7. Track phase transitions: CONTEXT→PLAN→COORDINATE→INTEGRATE→VERIFY→LEARN→COMPLETE
+
+VIOLATION CHECK: If you haven't emitted these markers, STOP and emit them now.
+```
+
+## Common Issues & Quick Protocols
+
+### Issue 1: Docker Caching (Code Changes Not Visible)
+**Symptoms**: Rebuild doesn't show new code, multiple attempts fail  
+**Action**: On 2nd failed rebuild, immediately escalate to nuclear cleanup:
+```bash
+docker-compose down -v && docker system prune -af --volumes
+docker-compose build --no-cache && docker-compose up -d
+```
+
+### Issue 2: Build Failures After Multiple Edits
+**Symptoms**: Hard to isolate which change caused failure  
+**Action**: Build after EACH file edit, not batch at end
+```
+Edit A → Build → ✓
+Edit B → Build → ✓  
+Edit C → Build → ✗ (know it's C)
+```
+
+### Issue 3: Decision Documentation Overload
+**Symptoms**: Too many rejected alternatives slow workflow  
+**Action**: Document ONLY main choice + primary alternative
+```
+[DECISION: question?]
+  → CHOSEN: selected (1 sentence why)
+  → REJECTED: main_alt (1 sentence why not)
+```
+
+**Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for complete patterns
+
 ## Hierarchy
 ```
 _DevTeam (Orchestrator)
