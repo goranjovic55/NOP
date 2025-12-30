@@ -1306,6 +1306,12 @@ class SnifferService:
                         sock.close()
                     else:
                         # Medium rate (1k-10k): Tighter burst control
+                        # Create raw socket for this mode
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+                        sock.setsockopt(socket.SOL_IP, socket.IP_HDRINCL, 1)
+                        if is_broadcast:
+                            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                        
                         burst_size = max(10, int(pps / 100))
                         burst_interval = burst_size / pps
                         
@@ -1337,8 +1343,8 @@ class SnifferService:
                             sleep_time = burst_interval - elapsed_burst
                             if sleep_time > 0:
                                 time.sleep(sleep_time)
-                    
-                    sock.close()
+                        
+                        sock.close()
                     
                 except Exception as e:
                     logger.error(f"Raw socket error: {e}")
