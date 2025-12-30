@@ -258,3 +258,7 @@
 {"type":"relation","from":"GitHub.Prompts","to":"GitHub.Workflows","relationType":"MIRRORS"}
 {"type":"relation","from":"GitHub.Prompts.UpdateAgents","to":"GitHub.Agents","relationType":"UPDATES"}
 {"type":"relation","from":"GitHub.Prompts.UpdateAgents","to":"GitHub.Instructions","relationType":"UPDATES"}
+{"type":"entity","name":"Backend.Services.PingService","entityType":"Service","observations":["Advanced ping operations supporting multiple protocols and ports","hping3-like functionality for testing firewall rules and services","Protocol support: ICMP, TCP, UDP ping variants","Target validation and sanitization","upd:2025-12-30"]}
+{"type":"entity","name":"Backend.Services.NetworkScanner","entityType":"Service","observations":["Network scanning and discovery using NMAP","Ping sweep for live host discovery","Port scanning and service detection","XML result parsing for structured data","upd:2025-12-30"]}
+{"type":"relation","from":"Backend.Services.PingService","to":"Backend.Services.AssetService","relationType":"SUPPORTS"}
+{"type":"relation","from":"Backend.Services.NetworkScanner","to":"Backend.Services.DiscoveryService","relationType":"USED_BY"}

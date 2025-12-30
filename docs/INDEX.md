@@ -153,6 +153,15 @@
 
 **Audience**: Product team, Contributors
 
+### [EXPLOIT_FEATURE.md](features/EXPLOIT_FEATURE.md)
+**Exploit Feature Documentation**
+- Vulnerability database integration
+- Exploit search and filtering
+- CVE tracking and analysis
+- Exploit execution workflow
+
+**Audience**: Security analysts, Penetration testers
+
 ---
 
 ## 🔍 Document Categories
@@ -175,11 +184,12 @@
 
 ## 📊 Documentation Statistics
 
-- **Total Documents**: 11 core documents
-- **Total Size**: ~176 KB
+- **Total Documents**: 12 core documents
+- **Total Size**: ~205 KB
 - **Categories**: 6 (Architecture, Technical, Guides, Development, Design, Features)
-- **Coverage**: System architecture, API, deployment, development, design
+- **Coverage**: System architecture, API, deployment, development, design, security features
 - **Duplication**: <5% (consolidated approach)
+- **Archive**: 5 obsolete documents moved to /docs/archive/
 
 ---
 

@@ -43,9 +43,9 @@ docker-compose up -d                    # Start all services
 docker-compose -f docker-compose.test.yml up -d  # Test environment
 
 # Test
-python backend/tests/test_complete_platform.py   # Full platform test
-python backend/tests/test_advanced_features.py   # Advanced features test
-python backend/tests/test_access_hub.py          # Access hub test
+cd scripts
+python test_source_only_tracking.py    # Test passive discovery
+python test_broadcast_filter.py         # Test broadcast filtering
 
 # Run Individual Services
 docker-compose up backend               # Backend only (port 12000)
@@ -69,24 +69,25 @@ cd backend && uvicorn app.main:app --reload  # Backend dev server
 - [x] Credential vault with encryption
 - [x] Host monitoring and terminal access
 - [x] Docker-based deployment complete
-- [x] Test environment with 4 service containers
-- [x] Comprehensive test suites (100% passing)
+- [x] Test environment with 7 service containers
+- [ ] Comprehensive test suites (~15% coverage, in development)
 - [x] Documentation and deployment guides
 - [x] Knowledge graph system (project + global)
 - [x] Skills framework configured
+- [x] Skills framework configured
 
 ## Session Notes
-**Task**: Execute update workflows (knowledge, skills)
+**Task**: Execute update workflows (knowledge, skills, documents, tests)
 **Changes**: 
-- context.md: Updated with full project details
-- skills/domain.md: Added 8 NOP-specific domain skills
-- Removed legacy memory system (scripts/update_memory.py, .openhands/microagents/memory_manager.md)
+- project_knowledge.json: Added PingService and NetworkScanner entities
+- docs/: Consolidated documentation (12 core docs, 5 archived)
+- backend/tests/: Created test structure (unit/, integration/)
+- context.md: Updated with accurate test status
 **Decisions**: 
-- Memory system deprecated - using knowledge files only (project_knowledge.json, global_knowledge.json)
-- Knowledge graph maintains JSONL format for compatibility
-- Skills framework configured for Python + TypeScript + Docker stack
-- Domain skills capture NOP-specific patterns (network services, WebSocket streaming, protocol dissection)
-**Next**: Complete knowledge graph optimization and generate workflow log
+- Documentation consolidated to meet 10-15 target (currently 12)
+- Test infrastructure established, comprehensive coverage deferred
+- Archive created for obsolete/duplicate documentation
+**Next**: Complete workflow execution and generate workflow log
 
 ## Handover
 **Branch**: copilot/update-all-3-workflows | **Uncommitted**: No | **Blockers**: None
