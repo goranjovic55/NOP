@@ -73,17 +73,20 @@ cd backend && uvicorn app.main:app --reload  # Backend dev server
 - [ ] Formal unit/integration test infrastructure (planned)
 
 ## Session Notes
-**Task**: Execute update workflows (knowledge, skills)
+**Task**: Execute update workflows (knowledge, skills, agents effectiveness)
 **Changes**: 
 - context.md: Updated with full project details
-- skills/domain.md: Added 8 NOP-specific domain skills
-- Removed legacy memory system (scripts/update_memory.py, .openhands/microagents/memory_manager.md)
+- skills/domain.md: 8 NOP-specific domain skills (network services, React patterns)
+- skills/devops.md: 7 DevOps/workflow effectiveness patterns (Docker, validation, etc.)
+- Removed legacy memory system (deprecated)
+- Agent files kept clean (cross-project, no bloat)
+- Project-specific patterns moved to skills/ directory
 **Decisions**: 
 - Memory system deprecated - using knowledge files only (project_knowledge.json, global_knowledge.json)
 - Knowledge graph maintains JSONL format for compatibility
-- Skills framework configured for Python + TypeScript + Docker stack
-- Domain skills capture NOP-specific patterns (network services, WebSocket streaming, protocol dissection)
-**Next**: Complete knowledge graph optimization and generate workflow log
+- Skills framework: 13 core + 8 domain + 7 devops patterns
+- Agent instructions stay cross-project, patterns in skills
+**Next**: Validate patterns through next 10 workflow sessions
 
 ## Handover
 **Branch**: copilot/update-all-3-workflows | **Uncommitted**: No | **Blockers**: None

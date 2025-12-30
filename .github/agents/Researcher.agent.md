@@ -48,27 +48,6 @@ grep -r "class.*Service" src/
 - Boundaries defined
 - Key areas explored
 - Findings synthesized
-- **Actionable insights** (not exhaustive documentation)
-
-## Research Anti-Patterns
-
-### Over-Documentation
-**Problem**: Documenting every edge case slows workflow  
-**Solution**: Focus on actionable patterns
-```
-GOOD:  "Found 3 Service classes following async pattern"
-AVOID: "Found 15 files, here's every line that matches..."
-```
-
-### Missing Context
-**Problem**: Findings lack "why it matters"  
-**Solution**: Always include implications
-```
-GOOD:  "Uses JWT auth (stateless, scales horizontally)"
-AVOID: "Uses JWT auth"
-```
-
-**Reference**: See `.github/instructions/agent_effectiveness_patterns.md` for patterns
 
 ## Knowledge
 ```

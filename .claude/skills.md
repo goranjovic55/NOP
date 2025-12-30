@@ -1,11 +1,11 @@
 # Claude Skills
 
-**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.1.0  
+**Purpose**: Codified patterns preventing rediscovery | **Version**: 1.2.0  
 **Usage**: Copy `.claude/` to any project, run `update_skills` workflow
 
 ---
 
-## Skill Index (13 Core Skills)
+## Skill Index (13 Core Skills + 7 DevOps/Workflow Skills)
 
 | # | Skill | Category | Trigger |
 |---|-------|----------|---------|
@@ -22,6 +22,10 @@
 | 11 | [UI Patterns](#11-ui-patterns) | Frontend | Components |
 | 12 | [Infrastructure](#12-infrastructure) | DevOps | Docker, CI/CD |
 | 13 | [Workflow Logs](#13-workflow-logs) | Process | Session complete |
+
+**Domain-Specific Skills**:
+- See `.claude/skills/domain.md` for 8 NOP-specific patterns (Network services, React, etc.)
+- See `.claude/skills/devops.md` for 7 DevOps/Workflow effectiveness patterns (Docker, validation, etc.)
 
 ---
 
