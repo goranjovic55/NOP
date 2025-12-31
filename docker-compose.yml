@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   frontend:
     image: ghcr.io/goranjovic55/nop-frontend:latest
+    pull_policy: always
     ports:
       - "12000:3000"
     environment:
@@ -16,6 +15,7 @@ services:
 
   backend:
     image: ghcr.io/goranjovic55/nop-backend:latest
+    pull_policy: always
     ports:
       - "12001:8000"
     environment:

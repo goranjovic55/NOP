@@ -143,14 +143,26 @@ This project follows the **Universal Agent Framework** for AI-assisted developme
 - Docker & Docker Compose
 - Git
 
-### Start Main Services
+### Production Deployment (Multi-Arch Images)
 ```bash
-docker-compose up -d --build
+# Pull and run pre-built multi-arch images (auto-detects amd64/arm64)
+git clone https://github.com/goranjovic55/NOP.git
+cd NOP
+docker compose up -d
 ```
 
-### Start Test Environment
+Images are automatically built for **amd64** and **arm64** via GitHub Actions and published to GHCR. Docker automatically pulls the correct architecture for your system.
+
+### Development (Build Locally)
 ```bash
-docker-compose -f docker-compose.test.yml up -d --build
+# Build from source
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### Test Environment
+```bash
+# Start test targets (SSH, VNC, RDP, FTP, Web servers)
+docker compose -f docker-compose.test.yml up -d --build
 ```
 
 ### Access Points

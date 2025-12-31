@@ -29,6 +29,9 @@ RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.pytho
 COPY app/ ./app/
 COPY start.sh .
 
+# Make start.sh executable
+RUN chmod +x start.sh
+
 # Create directories
 RUN mkdir -p /app/evidence /app/logs
 
