@@ -64,6 +64,7 @@ services:
     # platform: linux/amd64  # For x86_64 systems
     networks:
       - nop-internal
+      - test-network  # Need access to test hosts for RDP/VNC connections
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
