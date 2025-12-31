@@ -170,7 +170,7 @@ _DevTeam (Orchestrator) → Defines WHO and WHEN to delegate
 - [ ] All 7 phases traversed
 - [ ] `[→VERIFY]` emitted, user confirmed (VERIFY)
 - [ ] `project_knowledge.json` updated (LEARN)
-- [ ] Workflow log created if >30min (COMPLETE)
+- [ ] Workflow log created for ALL sessions (COMPLETE)
 
 ```
 [COMPLETE: task=<desc> | result=<summary>]
@@ -186,7 +186,8 @@ Summary | Decisions | Tools | Delegations | Files | Learnings
 [/WORKFLOW_LOG]
 ```
 
-**Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
+**Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`  
+**MANDATORY**: Create workflow log for ALL sessions - used for AKIS measurements and instruction adjustments
 
 ---
 

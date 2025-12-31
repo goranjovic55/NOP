@@ -25,7 +25,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | **4. INTEGRATE** | Execute work, apply changes, follow skill patterns |
 | **5. VERIFY** | Test, emit [→VERIFY], WAIT for user |
 | **6. LEARN** | Update project_knowledge.json, extract patterns, suggest new skills |
-| **7. COMPLETE** | Emit structured completion<br>**→ EMIT**: `[SKILLS_USED] skill-name, skill-name` or `[METHOD: approach]`, create workflow log |
+| **7. COMPLETE** | Emit structured completion<br>**→ EMIT**: `[SKILLS_USED] skill-name, skill-name` or `[METHOD: approach]`, create workflow log for ALL sessions |
 
 ## Skip Phases (only if justified)
 

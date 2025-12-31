@@ -536,7 +536,7 @@ const Assets: React.FC = () => {
                           ) : (
                             <span className="text-cyber-gray-light text-[10px] font-bold uppercase border border-cyber-gray px-1 opacity-40 w-fit">Unscanned</span>
                           )}
-                          {asset.vulnerable_count && asset.vulnerable_count > 0 && (
+                          {asset.vulnerable_count > 0 && (
                             <span className="text-cyber-red text-[9px] font-bold uppercase border border-cyber-red px-1 shadow-[0_0_3px_#ff0040] w-fit mt-1">
                               ⚠ {asset.vulnerable_count} VULN
                             </span>
@@ -559,14 +559,15 @@ const Assets: React.FC = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <span className={`font-mono text-sm ${
-                          !asset.open_ports || asset.open_ports.length === 0 ? 'text-cyber-gray-light opacity-40' :
-                          asset.open_ports.length > 10 ? 'text-cyber-red font-bold' :
-                          asset.open_ports.length > 5 ? 'text-yellow-400' :
-                          'text-cyber-blue'
-                        }`}>
-                          {asset.open_ports?.length || 0}
-                        </span>
+                        {asset.open_ports && asset.open_ports.length > 0 && (
+                          <span className={`font-mono text-sm ${
+                            asset.open_ports.length > 10 ? 'text-cyber-red font-bold' :
+                            asset.open_ports.length > 5 ? 'text-yellow-400' :
+                            'text-cyber-blue'
+                          }`}>
+                            {asset.open_ports.length}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {asset.open_ports && asset.open_ports.length > 0 ? (
