@@ -17,6 +17,9 @@ export interface Asset {
   open_ports?: number[];
   discovery_method?: string;
   services?: Record<string, { service: string; version?: string }>;
+  vulnerable_count?: number;
+  has_been_accessed?: boolean;
+  has_been_exploited?: boolean;
 }
 
 export const assetService = {

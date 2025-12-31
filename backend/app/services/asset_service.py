@@ -32,31 +32,74 @@ class AssetService:
         result = await self.db.execute(query)
         assets = result.scalars().all()
 
+        # Get vulnerability counts for all assets
+        from app.models.vulnerability import Vulnerability
+        vuln_counts = {}
+        try:
+            vuln_query = select(
+                Vulnerability.asset_id,
+                func.count(Vulnerability.id).label('count')
+            ).where(
+                Vulnerability.asset_id.in_([a.id for a in assets])
+            ).group_by(Vulnerability.asset_id)
+            vuln_result = await self.db.execute(vuln_query)
+            vuln_counts = {str(row[0]): row[1] for row in vuln_result.all()}
+        except Exception:
+            pass  # Table might not exist
+
+        # Get access/exploit status for all assets
+        from app.models.event import Event, EventType
+        accessed_assets = set()
+        exploited_assets = set()
+        try:
+            # Check for remote access events
+            access_query = select(func.distinct(Event.asset_id)).where(
+                Event.event_type == EventType.REMOTE_ACCESS_START,
+                Event.asset_id.in_([a.id for a in assets])
+            )
+            access_result = await self.db.execute(access_query)
+            accessed_assets = {str(row[0]) for row in access_result.all() if row[0]}
+
+            # Check for exploit success events
+            exploit_query = select(func.distinct(Event.asset_id)).where(
+                Event.event_type == EventType.EXPLOIT_SUCCESS,
+                Event.asset_id.in_([a.id for a in assets])
+            )
+            exploit_result = await self.db.execute(exploit_query)
+            exploited_assets = {str(row[0]) for row in exploit_result.all() if row[0]}
+        except Exception:
+            pass  # Table might not exist
+
         asset_responses = []
         for a in assets:
-            asset_responses.append(AssetResponse(
-                id=str(a.id),
-                ip_address=str(a.ip_address),
-                mac_address=a.mac_address,
-                hostname=a.hostname,
-                asset_type=a.asset_type,
-                status=a.status,
-                confidence_score=a.confidence_score,
-                vendor=a.vendor,
-                model=a.model,
-                os_name=a.os_name,
-                os_version=a.os_version,
-                open_ports=a.open_ports,
-                services=a.services,
-                first_seen=a.first_seen,
-                last_seen=a.last_seen,
-                discovery_method=a.discovery_method,
-                notes=a.notes,
-                tags=a.tags,
-                custom_fields=a.custom_fields,
-                created_at=a.created_at,
-                updated_at=a.updated_at
-            ))
+            asset_id = str(a.id)
+            asset_dict = {
+                "id": asset_id,
+                "ip_address": str(a.ip_address),
+                "mac_address": a.mac_address,
+                "hostname": a.hostname,
+                "asset_type": a.asset_type,
+                "status": a.status,
+                "confidence_score": a.confidence_score,
+                "vendor": a.vendor,
+                "model": a.model,
+                "os_name": a.os_name,
+                "os_version": a.os_version,
+                "open_ports": a.open_ports,
+                "services": a.services,
+                "first_seen": a.first_seen,
+                "last_seen": a.last_seen,
+                "discovery_method": a.discovery_method,
+                "notes": a.notes,
+                "tags": a.tags,
+                "custom_fields": a.custom_fields,
+                "created_at": a.created_at,
+                "updated_at": a.updated_at,
+                "vulnerable_count": vuln_counts.get(asset_id, 0),
+                "has_been_accessed": asset_id in accessed_assets,
+                "has_been_exploited": asset_id in exploited_assets
+            }
+            asset_responses.append(AssetResponse(**asset_dict))
 
         return AssetList(
             assets=asset_responses,
