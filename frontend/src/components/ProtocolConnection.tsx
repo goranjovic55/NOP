@@ -358,20 +358,10 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       token: token || ''
     });
 
-    // Use WebSocket tunnel - construct URL based on environment
-    // In Codespaces, we need to use the forwarded port URL directly
-    let wsUrl: string;
+    // Use WebSocket tunnel through nginx proxy
+    // Nginx proxies /api/v1/access/tunnel to backend WebSocket
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-    // Check if we're in Codespaces (GitHub dev URL pattern)
-    if (window.location.host.includes('.app.github.dev')) {
-      // Replace frontend port (12000) with backend port (12001) in the URL
-      const backendHost = window.location.host.replace('-12000.', '-12001.');
-      wsUrl = `${wsProtocol}//${backendHost}/api/v1/access/tunnel?${params.toString()}`;
-    } else {
-      // Local development - use same host
-      wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
-    }
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
     
     console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/password=[^&]*/, 'password=***'));
     console.log('[GUACAMOLE-CLIENT] Display dimensions:', displayRef.current?.clientWidth, 'x', displayRef.current?.clientHeight);

@@ -79,6 +79,7 @@ class AssetStats(BaseModel):
     online_assets: int
     offline_assets: int
     scanned_assets: int = 0
+    accessed_assets: int = 0
     vulnerable_assets: int = 0
     exploited_assets: int = 0
     active_scans: int

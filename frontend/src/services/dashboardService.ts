@@ -7,6 +7,7 @@ export interface DashboardStats {
   online_assets: number;
   offline_assets: number;
   scanned_assets: number;
+  accessed_assets: number;
   vulnerable_assets: number;
   exploited_assets: number;
   by_type: Record<string, number>;

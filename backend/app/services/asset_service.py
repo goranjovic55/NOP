@@ -178,18 +178,56 @@ class AssetService:
         scanned_result = await self.db.execute(scanned_query)
         scanned_assets = scanned_result.scalar() or 0
 
-        # Vulnerable assets - count assets with services that might indicate vulnerabilities
-        # For now, placeholder - could be enhanced with actual vulnerability scanning
-        vulnerable_assets = 0
+        # Accessed assets - count distinct assets with remote access events
+        accessed_assets = 0  # Initialize with default
+        try:
+            from app.models.event import Event, EventType
+            accessed_query = select(func.count(func.distinct(Event.asset_id))).where(
+                Event.event_type == EventType.REMOTE_ACCESS_START,
+                Event.asset_id.isnot(None)
+            )
+            accessed_result = await self.db.execute(accessed_query)
+            accessed_assets = accessed_result.scalar() or 0
+        except Exception as e:
+            # If events table doesn't exist yet
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get accessed_assets: {e}")
+            accessed_assets = 0
+
+        # Vulnerable assets - count distinct assets that have vulnerabilities
+        vulnerable_assets = 0  # Initialize with default
+        try:
+            from app.models.vulnerability import Vulnerability
+            vulnerable_query = select(func.count(func.distinct(Vulnerability.asset_id))).where(
+                Vulnerability.asset_id.isnot(None)
+            )
+            vulnerable_result = await self.db.execute(vulnerable_query)
+            vulnerable_assets = vulnerable_result.scalar() or 0
+        except Exception:
+            # If vulnerabilities table doesn't exist yet
+            vulnerable_assets = 0
         
-        # Exploited assets - placeholder for assets that have been exploited
-        exploited_assets = 0
+        # Exploited assets - count distinct assets with exploit success events
+        exploited_assets = 0  # Initialize with default
+        try:
+            from app.models.event import Event, EventType
+            exploited_query = select(func.count(func.distinct(Event.asset_id))).where(
+                Event.event_type == EventType.EXPLOIT_SUCCESS,
+                Event.asset_id.isnot(None)
+            )
+            exploited_result = await self.db.execute(exploited_query)
+            exploited_assets = exploited_result.scalar() or 0
+        except Exception:
+            # If events table doesn't exist yet
+            exploited_assets = 0
 
         return AssetStats(
             total_assets=total_assets,
             online_assets=online_assets,
             offline_assets=offline_assets,
             scanned_assets=scanned_assets,
+            accessed_assets=accessed_assets,
             vulnerable_assets=vulnerable_assets,
             exploited_assets=exploited_assets,
             active_scans=active_scans_count,

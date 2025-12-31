@@ -61,6 +61,7 @@ const Dashboard: React.FC = () => {
     activeScans: 0,
     activeConnections: 0,
     scannedHosts: 0,
+    accessedHosts: 0,
     vulnerableHosts: 0,
     exploitedHosts: 0,
     trafficVolume: '0 MB',
@@ -89,6 +90,7 @@ const Dashboard: React.FC = () => {
         activeScans: assetStats.active_scans || 0,
         activeConnections: assetStats.active_connections || 0,
         scannedHosts: assetStats.scanned_assets || 0,
+        accessedHosts: assetStats.accessed_assets || 0,
         vulnerableHosts: assetStats.vulnerable_assets || 0,
         exploitedHosts: assetStats.exploited_assets || 0,
         trafficVolume: `${((trafficStats.total_bytes || 0) / 1024 / 1024).toFixed(2)} MB`,
@@ -198,7 +200,7 @@ const Dashboard: React.FC = () => {
         <CombinedStatCard
           title="Scanned / Accessed"
           value1={stats.scannedHosts}
-          value2={stats.activeConnections}
+          value2={stats.accessedHosts}
           icon="◈"
           color1="text-cyber-purple"
           color2="text-cyber-green"
