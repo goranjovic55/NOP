@@ -30,3 +30,4 @@ Thumbs.db
 
 # Logs - workflow logs are tracked in git for session history
 # log/**/*.md  # Removed - workflow logs should be committed
+project_knowledge.json.new
