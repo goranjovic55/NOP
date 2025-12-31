@@ -9,9 +9,9 @@ For users who want to run NOP without building from source:
 git clone https://github.com/goranjovic55/NOP.git
 cd NOP
 
-# Pull pre-built images and start
-docker-compose -f docker-compose.prod.yml pull
-docker-compose -f docker-compose.prod.yml up -d
+# Pull and start (default uses pre-built images)
+docker-compose pull
+docker-compose up -d
 
 # Access application
 # Frontend: http://localhost:12000
@@ -31,14 +31,14 @@ For contributors who want to modify code:
 git clone https://github.com/goranjovic55/NOP.git
 cd NOP
 
-# Build and start
-docker-compose up -d --build
+# Build and start using dev compose file
+docker-compose -f docker-compose.dev.yml up -d --build
 
 # View logs
-docker-compose logs -f
+docker-compose -f docker-compose.dev.yml logs -f
 
 # Stop
-docker-compose down
+docker-compose -f docker-compose.dev.yml down
 ```
 
 ---
@@ -163,10 +163,10 @@ docker-compose up -d
 
 ```bash
 # Pull latest images
-docker-compose -f docker-compose.prod.yml pull
+docker-compose pull
 
 # Recreate containers
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose up -d
 
 # Remove old images
 docker image prune -a
@@ -190,5 +190,5 @@ gunzip -c nop-frontend.tar.gz | docker load
 gunzip -c nop-backend.tar.gz | docker load
 
 # Start
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose up -d
 ```

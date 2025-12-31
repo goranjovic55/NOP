@@ -1,5 +1,8 @@
 version: '3.8'
 
+# Development compose file - builds from source
+# Usage: docker-compose -f docker-compose.dev.yml up -d --build
+
 services:
   frontend:
     build:
