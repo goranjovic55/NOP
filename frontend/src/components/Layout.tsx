@@ -5,6 +5,7 @@ import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
 import { useExploitStore } from '../store/exploitStore';
+import { useTrafficStore } from '../store/trafficStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,10 +19,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
   const { getActiveSessionCount } = useExploitStore();
+  const { isPinging, isCapturing, isCrafting, isStorming } = useTrafficStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
   const activeExploitCount = getActiveSessionCount();
+  const isTrafficActive = isPinging || isCapturing || isCrafting || isStorming;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -86,6 +89,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   )}
                   {item.name === 'Assets' && isDiscovering && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-blue rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
+                  )}
+                  {item.name === 'Traffic' && isTrafficActive && (
+                    <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {isCapturing && <div className="w-2 h-2 bg-cyber-green rounded-full animate-pulse" title="Capturing"></div>}
+                      {isPinging && <div className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" title="Pinging"></div>}
+                      {isCrafting && <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse" title="Sending"></div>}
+                      {isStorming && <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Storming"></div>}
+                    </div>
                   )}
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>

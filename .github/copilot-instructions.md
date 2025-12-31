@@ -4,7 +4,13 @@
 
 ## AKIS Prompt
 
-**MANDATORY on every prompt/response**: Before proceeding, verify previous response included:
+**MANDATORY FIRST LINE** of every response (skip only for pure Q&A):
+```
+[PHASE: NAME | progress=H/V] @Mode
+[METHOD: approach] OR [SKILLS: skill1, skill2]
+```
+
+**Verify previous response included**:
 - [ ] **WHAT**: [PHASE: NAME | progress=H/V] where H=phase (1-7), V=depth (0-3)
 - [ ] **WHO**: [@AgentMode] OR [DELEGATE: agent=Name] if delegated
 - [ ] **HOW**: [SKILLS: skill-name, skill-name] OR [METHOD: approach]
@@ -76,7 +82,7 @@
 - Quick fixes: CONTEXT → INTEGRATE → VERIFY → COMPLETE
 - Q&A: CONTEXT → COMPLETE
 
-**MANDATORY: Before proceeding to VERIFY/COMPLETE**:
+**VERIFY GATE** (HARD BLOCK - do NOT proceed until user responds):
 ```
 [→VERIFY: awaiting user confirmation]
 ```
@@ -105,6 +111,13 @@
 
 **Template**: `.github/instructions/templates.md#agent-emission`  
 **Skip emissions only for**: Single Q&A without tools/decisions
+
+**Context Recovery** (after system summarizes conversation):
+```
+[RESUME: task=<from summary> | phase=<last known>]
+[AKIS_LOADED] entities: N, skills: relevant ones
+```
+Treat summarization as implicit interrupt. Re-establish context before continuing.
 
 ---
 

@@ -134,72 +134,28 @@ async def ping_host(request: PingRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/traceroute")
-async def traceroute(target: str, max_hops: int = 30, timeout: int = 5, protocol: str = 'icmp'):
-    """Perform traceroute to show network path to target"""
+@router.post("/ping/advanced")
+async def ping_advanced(request: PingRequest):
+    """Advanced ping with optional parallel traceroute.
+    
+    When include_route=True, runs traceroute and probe in parallel for faster results.
+    Returns complete results with hops and packets in one response.
+    
+    Works for all protocols: ICMP, TCP, UDP, HTTP, DNS
+    """
     try:
-        result = await ping_service.traceroute(
-            target=target,
-            max_hops=max_hops,
-            timeout=timeout,
-            protocol=protocol
+        result = await ping_service.parallel_ping(
+            target=request.target,
+            protocol=request.protocol,
+            port=request.port,
+            count=request.count,
+            timeout=request.timeout,
+            packet_size=request.packet_size,
+            use_https=request.use_https,
+            include_route=getattr(request, 'include_route', False)
         )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/ping/stream")
-async def ping_stream(request: PingRequest):
-    """Stream ping results in real-time as packets arrive"""
-    
-    async def generate():
-        try:
-            # If include_route is requested, first do a traceroute
-            route_info = None
-            if getattr(request, 'include_route', False):
-                route_info = await ping_service.traceroute(
-                    target=request.target,
-                    max_hops=30,
-                    timeout=3,
-                    protocol=request.protocol if request.protocol in ['icmp', 'tcp', 'udp'] else 'icmp'
-                )
-            
-            # Send initial status with route if available
-            start_msg = {
-                'type': 'start', 
-                'target': request.target, 
-                'protocol': request.protocol
-            }
-            if route_info:
-                start_msg['route'] = route_info.get('hops', [])
-            
-            yield f"data: {json.dumps(start_msg)}\n\n"
-            
-            async for result in ping_service.streaming_ping(
-                target=request.target,
-                protocol=request.protocol,
-                port=request.port,
-                count=request.count,
-                timeout=request.timeout,
-                packet_size=request.packet_size,
-                use_https=request.use_https
-            ):
-                # Send each packet result as it arrives
-                yield f"data: {json.dumps({'type': 'packet', 'data': result})}\n\n"
-                
-            # Send completion
-            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-            
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
-    
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        }
-    )

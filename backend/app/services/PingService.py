@@ -147,10 +147,11 @@ class PingService:
         timeout = max(1, min(30, timeout))
         
         try:
-            # Use hping3 for TCP SYN ping with traceroute-like information
-            # -S = SYN flag, -p = port, -c = count, -V = verbose
+            # Use hping3 for TCP SYN ping with traceroute to show packet path
+            # --traceroute = show hops, -S = SYN flag, -p = port, -c = count, -V = verbose
             cmd = [
                 'hping3',
+                '--traceroute',  # Always trace packet path
                 '-S',  # SYN packets
                 '-p', str(port),
                 '-c', str(count),
@@ -309,9 +310,10 @@ class PingService:
         timeout = max(1, min(30, timeout))
         
         try:
-            # Use hping3 for UDP ping
+            # Use hping3 for UDP ping with traceroute to show packet path
             cmd = [
                 'hping3',
+                '--traceroute',  # Always trace packet path
                 '--udp',  # UDP mode
                 '-p', str(port),
                 '-c', str(count),
@@ -784,122 +786,6 @@ class PingService:
             'timestamp': datetime.now().isoformat()
         }
 
-    async def traceroute(
-        self,
-        target: str,
-        max_hops: int = 30,
-        timeout: int = 5,
-        protocol: str = 'icmp'
-    ) -> Dict[str, Any]:
-        """
-        Perform traceroute to show packet path through network
-        
-        Args:
-            target: Target IP or hostname
-            max_hops: Maximum number of hops
-            timeout: Timeout per hop in seconds
-            protocol: Protocol to use (icmp, tcp, udp)
-            
-        Returns:
-            Dictionary with traceroute results including all hops
-        """
-        validated_target = self._validate_target(target)
-        hops = []
-        
-        try:
-            # Use traceroute command
-            cmd = ['traceroute', '-n', '-m', str(max_hops), '-w', str(timeout)]
-            
-            if protocol == 'tcp':
-                cmd.extend(['-T'])
-            elif protocol == 'udp':
-                cmd.extend(['-U'])
-            # Default is ICMP
-            
-            cmd.append(validated_target)
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=max_hops * timeout + 10
-            )
-            
-            output = stdout.decode('utf-8')
-            
-            # Parse traceroute output
-            for line in output.split('\n'):
-                # Skip header line
-                if line.strip().startswith('traceroute'):
-                    continue
-                    
-                # Parse hop line: "1  192.168.1.1  1.234 ms  1.456 ms  1.789 ms"
-                match = re.match(r'\s*(\d+)\s+(\S+)\s+([\d.]+)\s*ms', line)
-                if match:
-                    hop_num = int(match.group(1))
-                    hop_ip = match.group(2)
-                    rtt = float(match.group(3))
-                    
-                    # Check for asterisks (timeout)
-                    if hop_ip == '*':
-                        hops.append({
-                            'hop': hop_num,
-                            'ip': None,
-                            'rtt_ms': None,
-                            'status': 'timeout'
-                        })
-                    else:
-                        hops.append({
-                            'hop': hop_num,
-                            'ip': hop_ip,
-                            'rtt_ms': round(rtt, 2),
-                            'status': 'success'
-                        })
-                elif re.match(r'\s*(\d+)\s+\*', line):
-                    # Timeout hop
-                    hop_match = re.match(r'\s*(\d+)', line)
-                    if hop_match:
-                        hops.append({
-                            'hop': int(hop_match.group(1)),
-                            'ip': None,
-                            'rtt_ms': None,
-                            'status': 'timeout'
-                        })
-            
-            return {
-                'target': validated_target,
-                'hops': hops,
-                'total_hops': len(hops),
-                'destination_reached': any(h.get('ip') == validated_target for h in hops),
-                'timestamp': datetime.now().isoformat()
-            }
-            
-        except asyncio.TimeoutError:
-            return {
-                'target': validated_target,
-                'hops': hops,
-                'error': 'Traceroute timed out',
-                'timestamp': datetime.now().isoformat()
-            }
-        except FileNotFoundError:
-            return {
-                'target': validated_target,
-                'hops': [],
-                'error': 'traceroute command not found',
-                'timestamp': datetime.now().isoformat()
-            }
-        except Exception as e:
-            return {
-                'target': validated_target,
-                'hops': hops,
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
-            }
-
     async def advanced_ping(
         self,
         target: str,
@@ -952,40 +838,113 @@ class PingService:
         else:
             raise ValueError(f"Unsupported protocol: {protocol}")
     
-    async def streaming_ping(
+    async def _run_traceroute(
         self,
         target: str,
-        protocol: str = 'icmp',
+        protocol: str,
+        port: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Run traceroute and return list of hops.
+        Uses hping3 for TCP/UDP, system traceroute for ICMP/HTTP/DNS.
+        """
+        hops = []
+        
+        if protocol == 'tcp':
+            if port is None:
+                raise ValueError("Port is required for TCP")
+            trace_cmd = ['hping3', '--traceroute', '-S', '-p', str(port), '-c', '30', '-V', target]
+        elif protocol == 'udp':
+            if port is None:
+                raise ValueError("Port is required for UDP")
+            trace_cmd = ['hping3', '--traceroute', '--udp', '-p', str(port), '-c', '30', '-V', target]
+        else:
+            # Use system traceroute for ICMP, HTTP, DNS
+            trace_cmd = ['traceroute', '-n', '-m', '30', '-w', '2', target]
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *trace_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT
+            )
+            
+            stdout, _ = await asyncio.wait_for(process.communicate(), timeout=60)
+            output = stdout.decode('utf-8')
+            
+            for line in output.split('\n'):
+                # Parse hping3 traceroute output
+                hop_match = re.search(r'hop=(\d+)\s+TTL\s+\d+\s+during transit from ip=([\d.]+)', line)
+                if hop_match:
+                    hop_num = int(hop_match.group(1))
+                    hop_ip = hop_match.group(2)
+                    hops.append({'hop': hop_num, 'ip': hop_ip, 'rtt_ms': None, 'status': 'transit'})
+                
+                # Parse hping3 hop RTT: "hop=1 hoprtt=1.9 ms"
+                hoprtt_match = re.search(r'hop=(\d+)\s+hoprtt=([\d.]+)\s*ms', line)
+                if hoprtt_match:
+                    hop_num = int(hoprtt_match.group(1))
+                    hop_rtt = float(hoprtt_match.group(2))
+                    for h in hops:
+                        if h['hop'] == hop_num:
+                            h['rtt_ms'] = hop_rtt
+                
+                # Parse system traceroute output: "1  192.168.1.1  1.234 ms"
+                sys_hop_match = re.match(r'\s*(\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+([\d.]+)\s*ms', line)
+                if sys_hop_match:
+                    hops.append({
+                        'hop': int(sys_hop_match.group(1)),
+                        'ip': sys_hop_match.group(2),
+                        'rtt_ms': float(sys_hop_match.group(3)),
+                        'status': 'success'
+                    })
+                
+                # Parse timeout hops: "2  * * *"
+                timeout_match = re.match(r'\s*(\d+)\s+\*', line)
+                if timeout_match and not sys_hop_match:
+                    hops.append({
+                        'hop': int(timeout_match.group(1)),
+                        'ip': None,
+                        'rtt_ms': None,
+                        'status': 'timeout'
+                    })
+            
+            # Add destination marker
+            if hops:
+                hops.append({'hop': max(h['hop'] for h in hops) + 1, 'ip': target, 'rtt_ms': None, 'status': 'destination'})
+            
+        except asyncio.TimeoutError:
+            hops.append({'hop': 0, 'ip': None, 'rtt_ms': None, 'status': 'error', 'error': 'Traceroute timed out'})
+        except Exception as e:
+            hops.append({'hop': 0, 'ip': None, 'rtt_ms': None, 'status': 'error', 'error': str(e)})
+        
+        return hops
+    
+    async def _run_probe(
+        self,
+        target: str,
+        protocol: str,
         port: Optional[int] = None,
         count: int = 4,
         timeout: int = 5,
         packet_size: int = 56,
         use_https: bool = False
-    ):
+    ) -> List[Dict[str, Any]]:
         """
-        Stream ping results in real-time as packets arrive
-        Yields individual packet results for real-time UI updates
+        Run packet probe and return list of packet results.
+        Uses hping3 for TCP/UDP, advanced_ping for others.
         """
-        protocol = protocol.lower()
-        validated_target = self._validate_target(target)
+        packets = []
         
         if protocol == 'tcp' or protocol == 'udp':
-            # Stream hping3 output line by line
-            yield_count = 0
-            cmd = []
-            
             if protocol == 'tcp':
                 if port is None:
                     raise ValueError("Port is required for TCP ping")
-                if not isinstance(port, int) or port < 1 or port > 65535:
-                    raise ValueError("Port must be between 1 and 65535")
-                cmd = ['hping3', '-S', '-p', str(port), '-c', str(count), '-V', validated_target]
-            elif protocol == 'udp':
+                cmd = ['hping3', '-S', '-p', str(port), '-c', str(count), '-V', target]
+            else:  # udp
                 if port is None:
                     raise ValueError("Port is required for UDP ping")
-                if not isinstance(port, int) or port < 1 or port > 65535:
-                    raise ValueError("Port must be between 1 and 65535")
-                cmd = ['hping3', '--udp', '-p', str(port), '-c', str(count), '-V', validated_target]
+                cmd = ['hping3', '--udp', '-p', str(port), '-c', str(count), '-V', target]
             
             try:
                 process = await asyncio.create_subprocess_exec(
@@ -994,20 +953,18 @@ class PingService:
                     stderr=asyncio.subprocess.STDOUT
                 )
                 
-                # Read output line by line in real-time
-                buffer = []
-                async for line in process.stdout:
-                    line_str = line.decode('utf-8')
-                    buffer.append(line_str)
-                    
-                    # When we see a flags= line, we have a complete packet response
-                    if 'flags=' in line_str:
-                        # Parse this packet
-                        packet_info = {'seq': yield_count + 1, 'status': 'success'}
+                stdout, _ = await asyncio.wait_for(process.communicate(), timeout=timeout * count + 10)
+                output = stdout.decode('utf-8')
+                lines = output.split('\n')
+                
+                seq = 0
+                for i, line in enumerate(lines):
+                    if 'flags=' in line:
+                        packet_info = {'seq': seq + 1, 'status': 'success'}
                         
                         # Look for TTL in previous line
-                        if len(buffer) >= 2:
-                            prev_line = buffer[-2]
+                        if i > 0:
+                            prev_line = lines[i - 1]
                             ttl_match = re.search(r'ttl=(\d+)', prev_line)
                             if ttl_match:
                                 packet_info['ttl'] = int(ttl_match.group(1))
@@ -1016,38 +973,100 @@ class PingService:
                                 packet_info['ip_id'] = int(id_match.group(1))
                         
                         # Parse current line
-                        flags_match = re.search(r'flags=([A-Z]+)', line_str)
+                        flags_match = re.search(r'flags=([A-Z]+)', line)
                         if flags_match:
                             packet_info['flags'] = flags_match.group(1)
                         
-                        rtt_match = re.search(r'rtt=([\d.]+)', line_str)
+                        rtt_match = re.search(r'rtt=([\d.]+)', line)
                         if rtt_match:
                             packet_info['time_ms'] = float(rtt_match.group(1))
                         
-                        win_match = re.search(r'win=(\d+)', line_str)
+                        win_match = re.search(r'win=(\d+)', line)
                         if win_match:
                             packet_info['window'] = int(win_match.group(1))
                         
-                        yield_count += 1
-                        yield packet_info
+                        packets.append(packet_info)
+                        seq += 1
                         
-                await process.wait()
-                
-            except FileNotFoundError:
-                # Fallback for HTTP/ICMP or when hping3 not available
-                result = await self.advanced_ping(target, protocol, port, count, timeout, packet_size, use_https)
-                if result.get('results'):
-                    for packet in result['results']:
-                        yield packet
-                        await asyncio.sleep(0.5)  # Simulate streaming
+            except asyncio.TimeoutError:
+                packets.append({'seq': 0, 'status': 'error', 'error': 'Probe timed out'})
+            except Exception as e:
+                packets.append({'seq': 0, 'status': 'error', 'error': str(e)})
         
         else:
-            # For HTTP, ICMP, DNS - execute normally and yield results with delay to simulate streaming
+            # For HTTP, ICMP, DNS - use advanced_ping
             result = await self.advanced_ping(target, protocol, port, count, timeout, packet_size, use_https)
             if result.get('results'):
-                for packet in result['results']:
-                    yield packet
-                    await asyncio.sleep(0.5)  # Small delay between results for UI update
+                packets = result['results']
+        
+        return packets
+    
+    async def parallel_ping(
+        self,
+        target: str,
+        protocol: str = 'icmp',
+        port: Optional[int] = None,
+        count: int = 4,
+        timeout: int = 5,
+        packet_size: int = 56,
+        use_https: bool = False,
+        include_route: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Run traceroute and probe in parallel for faster results.
+        Returns complete results in one response.
+        
+        Args:
+            include_route: If True, run traceroute in parallel with probe
+        
+        Returns:
+            Dictionary with 'hops' (if include_route) and 'packets' lists
+        """
+        protocol = protocol.lower()
+        validated_target = self._validate_target(target)
+        
+        result = {
+            'target': validated_target,
+            'protocol': protocol,
+            'port': port,
+            'hops': [],
+            'packets': [],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        if include_route:
+            # Run both in parallel
+            trace_task = asyncio.create_task(
+                self._run_traceroute(validated_target, protocol, port)
+            )
+            probe_task = asyncio.create_task(
+                self._run_probe(validated_target, protocol, port, count, timeout, packet_size, use_https)
+            )
+            
+            # Wait for both to complete
+            hops, packets = await asyncio.gather(trace_task, probe_task)
+            result['hops'] = hops
+            result['packets'] = packets
+        else:
+            # Only run probe
+            packets = await self._run_probe(validated_target, protocol, port, count, timeout, packet_size, use_https)
+            result['packets'] = packets
+        
+        # Calculate statistics
+        successful = len([p for p in result['packets'] if p.get('status') == 'success'])
+        failed = len(result['packets']) - successful
+        rtts = [p['time_ms'] for p in result['packets'] if p.get('time_ms')]
+        
+        result['count'] = count
+        result['successful'] = successful
+        result['failed'] = failed
+        result['packet_loss'] = round((failed / count) * 100, 2) if count > 0 else 0
+        if rtts:
+            result['min_ms'] = round(min(rtts), 2)
+            result['max_ms'] = round(max(rtts), 2)
+            result['avg_ms'] = round(sum(rtts) / len(rtts), 2)
+        
+        return result
 
 
 # Global service instance

@@ -43,25 +43,16 @@ class TrafficStats(BaseModel):
     bandwidth_usage: Dict[str, float]
     alerts: List[Dict[str, Any]]
 
-
 class PingRequest(BaseModel):
     """Advanced ping request model"""
     target: str
-    protocol: str = 'icmp'  # icmp, tcp, udp, http
+    protocol: str = 'icmp'  # icmp, tcp, udp, http, dns
     port: Optional[int] = None
     count: int = 4
     timeout: int = 5
     packet_size: int = 56
     use_https: bool = False
-    include_route: bool = False  # Include traceroute information
-
-
-class TracerouteRequest(BaseModel):
-    """Traceroute request model"""
-    target: str
-    max_hops: int = 30
-    timeout: int = 5
-    protocol: str = 'icmp'  # icmp, tcp, udp
+    include_route: bool = False  # If true, run traceroute first then probe
 
 
 class PingResponse(BaseModel):

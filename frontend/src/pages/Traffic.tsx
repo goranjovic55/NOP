@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { useTrafficStore } from '../store/trafficStore';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
 
@@ -194,7 +195,7 @@ const Traffic: React.FC = () => {
   const [pingTimeout, setPingTimeout] = useState('5');
   const [pingPacketSize, setPingPacketSize] = useState('56');
   const [pingUseHttps, setPingUseHttps] = useState(false);
-  const [pingShowRoute, setPingShowRoute] = useState(false);
+  const [pingShowRoute, setPingShowRoute] = useState(false);  // Enable parallel traceroute + probe
   const [pingRoute, setPingRoute] = useState<Array<{hop: number, ip: string | null, rtt_ms: number | null, status: string}>>([]);
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
@@ -209,6 +210,7 @@ const Traffic: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
+  const { setIsPinging, setIsCapturing, setIsCrafting, setIsStorming } = useTrafficStore();
 
   useEffect(() => {
     fetchInterfaces();
@@ -289,6 +291,7 @@ const Traffic: React.FC = () => {
     if (isSniffing) {
       if (wsRef.current) wsRef.current.close();
       setIsSniffing(false);
+      setIsCapturing(false);  // Update global store
     } else {
       setPackets([]);
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -299,6 +302,7 @@ const Traffic: React.FC = () => {
       ws.onopen = () => {
         ws.send(JSON.stringify({ interface: selectedIface, filter }));
         setIsSniffing(true);
+        setIsCapturing(true);  // Update global store
       };
 
       ws.onmessage = (event) => {
@@ -306,7 +310,10 @@ const Traffic: React.FC = () => {
         setPackets(prev => [...prev.slice(-499), packet]);
       };
 
-      ws.onclose = () => setIsSniffing(false);
+      ws.onclose = () => {
+        setIsSniffing(false);
+        setIsCapturing(false);  // Update global store
+      };
       ws.onerror = (err) => console.error('WS Error:', err);
       wsRef.current = ws;
     }
@@ -444,6 +451,7 @@ const Traffic: React.FC = () => {
 
     setPingError('');
     setPingInProgress(true);
+    setIsPinging(true);  // Update global store
     setPingRoute([]); // Clear previous route
     setPingResults({
       protocol: pingProtocol,
@@ -462,7 +470,7 @@ const Traffic: React.FC = () => {
       count: parseInt(pingCount),
       timeout: parseInt(pingTimeout),
       packet_size: parseInt(pingPacketSize),
-      include_route: pingShowRoute,
+      include_route: pingShowRoute,  // Enable parallel: traceroute + probe
     };
 
     if (pingProtocol !== 'icmp' && pingPort) {
@@ -474,15 +482,8 @@ const Traffic: React.FC = () => {
     }
 
     try {
-      // Use EventSource for Server-Sent Events
-      const params = new URLSearchParams();
-      Object.keys(requestBody).forEach(key => {
-        if (requestBody[key] !== undefined && requestBody[key] !== null) {
-          params.append(key, requestBody[key].toString());
-        }
-      });
-
-      const response = await fetch('/api/v1/traffic/ping/stream', {
+      // Use new parallel ping endpoint (runs traceroute and probe concurrently)
+      const response = await fetch('/api/v1/traffic/ping/advanced', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -492,70 +493,32 @@ const Traffic: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start ping stream');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to perform ping');
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      const data = await response.json();
 
-      if (!reader) {
-        throw new Error('No response body');
+      // Set route if available (when include_route=true)
+      if (data.hops && data.hops.length > 0) {
+        setPingRoute(data.hops);
       }
 
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Set ping results
+      setPingResults({
+        protocol: data.protocol || pingProtocol,
+        target: data.target || pingTarget,
+        count: data.count || parseInt(pingCount),
+        successful: data.successful || 0,
+        failed: data.failed || 0,
+        packet_loss: data.packet_loss || 0,
+        min_ms: data.min_ms,
+        max_ms: data.max_ms,
+        avg_ms: data.avg_ms,
+        results: data.packets || [],
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        // Keep the last incomplete line in buffer
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.substring(6));
-
-              if (data.type === 'start' && data.route) {
-                // Extract route information from start message
-                setPingRoute(data.route);
-              } else if (data.type === 'packet') {
-                // Real-time update - add packet to results
-                setPingResults(prev => {
-                  if (!prev) return prev;
-                  const newResults = [...(prev.results || []), data.data];
-                  const successful = newResults.filter(r => r.status === 'success').length;
-                  const failed = newResults.length - successful;
-                  const rtts = newResults.filter(r => r.time_ms).map(r => r.time_ms!);
-
-                  return {
-                    ...prev,
-                    results: newResults,
-                    successful,
-                    failed,
-                    packet_loss: prev.count ? (failed / prev.count) * 100 : 0,
-                    min_ms: rtts.length ? Math.min(...rtts) : undefined,
-                    max_ms: rtts.length ? Math.max(...rtts) : undefined,
-                    avg_ms: rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : undefined,
-                  };
-                });
-              } else if (data.type === 'error') {
-                setPingResults(prev => ({
-                  ...prev,
-                  error: data.error,
-                  protocol: pingProtocol,
-                  target: pingTarget,
-                  timestamp: new Date().toISOString(),
-                }));
-              }
-            } catch (parseErr) {
-              console.error('Failed to parse SSE data:', parseErr);
-            }
-          }
-        }
-      }
     } catch (err: any) {
       setPingResults({
         error: err.message || 'Failed to perform ping',
@@ -565,6 +528,7 @@ const Traffic: React.FC = () => {
       });
     } finally {
       setPingInProgress(false);
+      setIsPinging(false);  // Update global store
     }
   };
 
@@ -930,21 +894,19 @@ const Traffic: React.FC = () => {
                     </label>
                   )}
 
-                  {/* Show Route Toggle */}
-                  {(pingProtocol === 'icmp' || pingProtocol === 'tcp' || pingProtocol === 'udp') && (
-                    <label className="flex items-center space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={pingShowRoute}
-                        onChange={(e) => setPingShowRoute(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
-                        {pingShowRoute && <span className="text-white text-xs">◆</span>}
-                      </div>
-                      <span className="text-xs text-cyber-purple font-bold uppercase">Show Route (Traceroute)</span>
-                    </label>
-                  )}
+                  {/* Show Route Toggle - runs traceroute before probe */}
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pingShowRoute}
+                      onChange={(e) => setPingShowRoute(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                      {pingShowRoute && <span className="text-white text-xs">◆</span>}
+                    </div>
+                    <span className="text-xs text-cyber-purple font-bold uppercase">Show Route (Traceroute)</span>
+                  </label>
 
                   {/* Advanced Options */}
                   <div className="grid grid-cols-3 gap-2">
@@ -1069,7 +1031,9 @@ const Traffic: React.FC = () => {
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
                     <div className="text-cyber-green text-4xl animate-pulse">⟳</div>
-                    <p className="text-cyber-green text-sm">Executing ping...</p>
+                    <p className="text-cyber-green text-sm">
+                      {pingShowRoute ? 'Running traceroute and probe in parallel...' : 'Executing ping...'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -1158,26 +1122,39 @@ const Traffic: React.FC = () => {
                       {/* Network Route (Traceroute) */}
                       {pingRoute.length > 0 && (
                         <div className="bg-cyber-darker border border-cyber-purple p-4">
-                          <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Route (Traceroute)</h4>
+                          <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Route</h4>
                           <div className="space-y-1">
-                            {pingRoute.map((hop, idx) => (
+                            {pingRoute.filter(h => h.status !== 'destination').map((hop, idx) => (
                               <div key={idx} className="flex items-center gap-3 text-[11px] font-mono">
                                 <span className="text-cyber-gray-light w-8">#{hop.hop}</span>
-                                {hop.ip ? (
+                                {hop.status === 'timeout' ? (
+                                  <span className="text-cyber-yellow">* * * (no response)</span>
+                                ) : hop.ip ? (
                                   <>
-                                    <span className="text-cyber-cyan w-32">{hop.ip}</span>
-                                    <span className="text-cyber-green">{hop.rtt_ms} ms</span>
+                                    <span className="text-cyber-cyan w-36">{hop.ip}</span>
+                                    {hop.rtt_ms !== null && (
+                                      <span className="text-cyber-green w-20">{hop.rtt_ms} ms</span>
+                                    )}
+                                    {hop.status === 'transit' && (
+                                      <span className="text-cyber-yellow text-[10px]">(TTL expired)</span>
+                                    )}
+                                    {hop.status === 'success' && (
+                                      <span className="text-cyber-green text-[10px]">✓</span>
+                                    )}
                                   </>
                                 ) : (
                                   <span className="text-cyber-yellow">* timeout *</span>
                                 )}
                               </div>
                             ))}
-                            <div className="flex items-center gap-3 text-[11px] font-mono mt-2 pt-2 border-t border-cyber-gray/30">
-                              <span className="text-cyber-gray-light w-8">→</span>
-                              <span className="text-cyber-green font-bold">{pingResults.target}</span>
-                              <span className="text-cyber-gray-light">(destination)</span>
-                            </div>
+                            {/* Show destination */}
+                            {pingRoute.find(h => h.status === 'destination') && (
+                              <div className="flex items-center gap-3 text-[11px] font-mono mt-2 pt-2 border-t border-cyber-gray/30">
+                                <span className="text-cyber-gray-light w-8">→</span>
+                                <span className="text-cyber-green font-bold w-36">{pingResults.target}</span>
+                                <span className="text-cyber-gray-light">(destination)</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
