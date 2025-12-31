@@ -19,6 +19,10 @@ class SnifferService:
     RESPONSE_HEX_MAX_LENGTH = 200  # characters
     STORM_THREAD_STOP_TIMEOUT = 2.0  # seconds
     
+    # Informational notes for packet crafting
+    NOTE_TCP_SYN_NO_RESPONSE = "Note: SYN packets may not receive responses if the target port is filtered by a firewall, the host is down, or the service is not listening. This is normal behavior for many hosts, especially public IPs like DNS servers (e.g., 8.8.8.8) which only respond to DNS queries on port 53."
+    NOTE_UDP_NO_RESPONSE = "Note: UDP is connectionless. No response may indicate the port is open but the service doesn't respond to empty packets, or the port is filtered by a firewall."
+    
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
@@ -995,9 +999,9 @@ class SnifferService:
                     # Add helpful note about why there might be no response
                     note = None
                     if protocol == "TCP" and flags and "SYN" in flags:
-                        note = "Note: SYN packets may not receive responses if the target port is filtered by a firewall, the host is down, or the service is not listening. This is normal behavior for many hosts, especially public IPs like DNS servers (e.g., 8.8.8.8) which only respond to DNS queries on port 53."
+                        note = self.NOTE_TCP_SYN_NO_RESPONSE
                     elif protocol == "UDP":
-                        note = "Note: UDP is connectionless. No response may indicate the port is open but the service doesn't respond to empty packets, or the port is filtered by a firewall."
+                        note = self.NOTE_UDP_NO_RESPONSE
                     
                     result = {
                         "success": True,

@@ -22,6 +22,37 @@ class PingRequest(BaseModel):
     timeout: int = 5
     packet_size: int = 56
     use_https: bool = False
+    
+    # Validators
+    @staticmethod
+    def validate_target(v):
+        if not v or len(v) > 255:
+            raise ValueError("Target must be a valid hostname or IP address")
+        return v
+    
+    @staticmethod
+    def validate_port(v):
+        if v is not None and (v < 1 or v > 65535):
+            raise ValueError("Port must be between 1 and 65535")
+        return v
+    
+    @staticmethod
+    def validate_count(v):
+        if v < 1 or v > 100:
+            raise ValueError("Count must be between 1 and 100")
+        return v
+    
+    @staticmethod
+    def validate_timeout(v):
+        if v < 1 or v > 30:
+            raise ValueError("Timeout must be between 1 and 30 seconds")
+        return v
+    
+    @staticmethod
+    def validate_packet_size(v):
+        if v < 1 or v > 65500:
+            raise ValueError("Packet size must be between 1 and 65500 bytes")
+        return v
 
 @router.get("/interfaces")
 async def get_interfaces():
@@ -388,6 +419,7 @@ async def ping_host(request: PingRequest):
             for i in range(1, count + 1):
                 try:
                     start = time.time()
+                    # Note: SSL verification disabled for ping testing. In production, consider making this configurable.
                     response = requests.get(url, timeout=timeout, verify=False)
                     elapsed_ms = (time.time() - start) * 1000
                     
@@ -436,7 +468,8 @@ async def ping_host(request: PingRequest):
                 
                 for i in range(1, count + 1):
                     try:
-                        cmd = ['dig', f'@{target}', '-p', str(port), 'google.com', 'A', '+time=1']
+                        # Query for root domain to ensure compatibility with any DNS server
+                        cmd = ['dig', f'@{target}', '-p', str(port), '.', 'NS', '+time=1']
                         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
                         
                         # Parse query time
