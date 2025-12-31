@@ -2,6 +2,21 @@
 
 > **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
 
+## AKIS Init
+
+**MANDATORY on every response**: Before proceeding, verify previous response included:
+- [ ] **WHAT**: [PHASE: NAME | progress=H/V] where H=phase (1-7), V=depth (0-3)
+- [ ] **WHO**: [@AgentMode] OR [DELEGATE: agent=Name] if delegated
+
+**If missing**: Emit now, then proceed.
+
+**Progress format**:
+- `progress=4/0` - Main thread, phase 4, no stack
+- `progress=1/1` - Interrupted at depth 1, phase 1 of nested task  
+- `progress=3/2` - Interrupted at depth 2, phase 3 of nested-nested task
+
+---
+
 ## AKIS Framework
 
 **AKIS** = **A**gents, **K**nowledge, **I**nstructions, **S**kills
@@ -23,12 +38,30 @@
 
 ## Session Boundaries
 
-**MANDATORY: Start every task with**:
+**MANDATORY at every session**:
 ```
 [SESSION: task_description] @mode
 [CONTEXT] objective, scope, constraints
 [AKIS_LOADED] entities, patterns, skills
 ```
+
+**MANDATORY: Follow 7-phase flow**:
+```
+[PHASE: CONTEXT | progress=1/V]    → Load AKIS, understand task
+[PHASE: PLAN | progress=2/V]       → Design approach, alternatives
+[PHASE: COORDINATE | progress=3/V] → Delegate or prepare tools
+[PHASE: INTEGRATE | progress=4/V]  → Execute work, apply changes
+[PHASE: VERIFY | progress=5/V]     → Test, validate, await confirmation
+[PHASE: LEARN | progress=6/V]      → Update knowledge, extract patterns
+[PHASE: COMPLETE | progress=7/V]   → Final emission, workflow log
+```
+
+**Horizontal (H)**: Phase progression 1-7 within current task  
+**Vertical (V)**: Stack depth 0=main, 1-3=nested interrupts
+
+**Skip phases** (only if justified):
+- Quick fixes: CONTEXT → INTEGRATE → VERIFY → COMPLETE
+- Q&A: CONTEXT → COMPLETE
 
 **MANDATORY: Before proceeding to VERIFY/COMPLETE**:
 ```
@@ -48,9 +81,13 @@
 **User interrupt** (100% MANDATORY):
 ```
 [PAUSE: task=current | phase=PHASE]
-Progress, blocking, state
+[STACK: push | task=<sub> | depth=N | parent=<main>]
+<work on interrupt: progress=1/N → 2/N → ... → 7/N>
+[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
 [RESUME: task=original | phase=PHASE]
 ```
+
+**Example**: Main at `progress=4/0` → interrupt → nested at `progress=1/1` → complete `progress=7/1` → pop → resume `progress=4/0`
 
 **Template**: `.github/instructions/templates.md#agent-emission`  
 **Skip emissions only for**: Single Q&A without tools/decisions
@@ -58,136 +95,86 @@ Progress, blocking, state
 ---
 
 ## Hierarchy
-```
-_DevTeam (Orchestrator)
-├── Architect  → Design, patterns
-├── Developer  → Code, debug
-├── Reviewer   → Test, validate
-└── Researcher → Investigate, document
-```
 
-## Phase Flow
-
-**MANDATORY: Emit progress on every response**:
 ```
-[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
+_DevTeam (Orchestrator) → Defines WHO and WHEN to delegate
+├── Architect  → Defines HOW to design, returns design decision
+├── Developer  → Defines HOW to code, returns implementation result
+├── Reviewer   → Defines HOW to test, returns validation report
+└── Researcher → Defines HOW to investigate, returns findings
 ```
 
-**During work** (emit at least one per response):
-- `[DECISION: ?] → answer` - Key choices
-- `[TOOLS: purpose]` - Tools being used
-- `[ATTEMPT #N]` - Retry loops
+## Delegation (_DevTeam only)
 
-**Required emissions**:
-- `[SESSION: task] @mode` - Start
-- `[PHASE: NAME]` - Every response
-- `[PAUSE/RESUME]` - Interrupts (100%)
-- `[→VERIFY]` - Before COMPLETE
-- `[COMPLETE]` - Finish
+**MANDATORY for _DevTeam**: Use #runSubagent for all non-trivial work
 
-**Knowledge Loading**:
-- `.claude/skills.md` → `project_knowledge.json` → `global_knowledge.json`
-- No emission required
-- Reference skills inline when used
+| When | Who | Format |
+|------|-----|--------|
+| Complex design | Architect | `[DELEGATE: agent=Architect \| task=description \| reason=complexity]`<br>`#runSubagent Architect "detailed task"` |
+| Major implementation | Developer | Same format |
+| Comprehensive testing | Reviewer | Same format |
+| Investigation | Researcher | Same format |
 
-## Delegation
+**DevTeam only handles**: Orchestration, Q&A, quick fixes (<5min)
 
-**MANDATORY for _DevTeam**: Use #runSubagent for all non-trivial work:
-- Complex design → Architect
-- Major implementation → Developer  
-- Comprehensive testing → Reviewer
-- Investigation → Researcher
+---
 
-**DevTeam only handles**: Orchestration, Q&A, single-file quick fixes (<5min)
+## Phase Checklist
 
-**Delegation pattern**:
-```
-[DELEGATE: agent=Name | task=description | reason=complexity]
-#runSubagent Name "detailed task description"
-```
+**Emit `[PHASE: NAME | progress=N/7]` on every response**
 
-## Nesting
-```
-[NEST: parent=<main> | child=<sub> | reason=<why>]
-[RETURN: to=<main> | result=<findings>]
+| Phase | MANDATORY Actions |
+|-------|-------------------|
+| **1. CONTEXT** | Load `project_knowledge.json`, load `.claude/skills.md`, understand task |
+| **2. PLAN** | Design approach, consider alternatives, decide delegation |
+| **3. COORDINATE** | #runSubagent OR prepare tools |
+| **4. INTEGRATE** | Execute work, apply changes |
+| **5. VERIFY** | Test, emit `[→VERIFY]`, **WAIT for user** |
+| **6. LEARN** | Update `project_knowledge.json`, extract patterns |
+| **7. COMPLETE** | Emit structured completion, create workflow log |
 
-[STACK: push | task=<sub> | depth=N | parent=<main>]
-[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
-```
+---
 
-## Interrupts
-```
-[PAUSE: task=<current> | phase=<phase>]
-[NEST: parent=<current> | child=<new> | reason=user-interrupt]
-[RETURN: to=<current> | result=<summary>]
-[RESUME: task=<current> | phase=<phase>]
-```
+## Completion Checklist
 
-## Learn Phase
-```
-[PHASE: LEARN | progress=6/7]
-```
-
-**Skill Discovery**: If session revealed reusable pattern, suggest new skill:
-```
-[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
-Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
-[/SKILL_SUGGESTION]
-```
-**Template**: `.github/instructions/templates.md#skill-suggestion`  
-Add to `.claude/skills.md` or `.claude/skills/domain.md`
-
-## Completion
-
-**MANDATORY before [COMPLETE]**:
-- [ ] `[SESSION]` emitted at start
-- [ ] `[AKIS_LOADED]` with knowledge/skills
-- [ ] Task objective met
-- [ ] Files changed as expected
-- [ ] Tests pass (if code changes)
-- [ ] Knowledge updated (project_knowledge.json)
-- [ ] Workflow log created (significant work >30min)
-- [ ] `[→VERIFY]` emitted - user confirmed to proceed
+**MANDATORY before `[COMPLETE]`**:
+- [ ] `[SESSION]` emitted (CONTEXT)
+- [ ] `[AKIS_LOADED]` (CONTEXT)
+- [ ] All 7 phases traversed
+- [ ] `[→VERIFY]` emitted, user confirmed (VERIFY)
+- [ ] `project_knowledge.json` updated (LEARN)
+- [ ] Workflow log created if >30min (COMPLETE)
 
 ```
 [COMPLETE: task=<desc> | result=<summary>]
-[DECISIONS] <choices with rationale>
-[TOOLS_USED] <categories and purpose>
-[DELEGATIONS] <agent tasks and outcomes>
-[COMPLIANCE] <skills, patterns, gates>
+[DECISIONS] <key choices>
+[TOOLS_USED] <categories>
+[DELEGATIONS] <outcomes>
+[COMPLIANCE] <skills, patterns>
 [AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=#N,#M
 
-[WORKFLOW_LOG: task=<desc>]  ← significant work only
-Summary | Decisions | Tools | Delegations | Files | Compliance | Learnings
+[WORKFLOW_LOG: task=<desc>]
+Summary | Decisions | Tools | Delegations | Files | Learnings
 [/WORKFLOW_LOG]
 ```
 
 **Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
 
-## Quality Gates
+---
 
-| Gate | Owner | Check |
-|------|-------|-------|
-| Context | Orchestrator | Knowledge loaded |
-| Design | Architect | Alternatives considered |
-| Code | Developer | Tests pass, linters pass, builds succeed |
-| Quality | Reviewer | Standards met |
+## Vertical Stacking (Nested Tasks)
 
-**User Confirmation Gate**:
+**Horizontal**: Main task through 7 phases  
+**Vertical**: Interrupt → push stack → nested task through 7 phases → pop stack → resume
+
 ```
-[→VERIFY: awaiting user confirmation]
+[PAUSE: task=main | phase=INTEGRATE]
+[STACK: push | task=interrupt | depth=2 | parent=main]
+  [SESSION: interrupt_task] @mode
+  [PHASE: CONTEXT | progress=1/7] → ...
+  [PHASE: COMPLETE | progress=7/7]
+[STACK: pop | task=interrupt | depth=1 | result=findings]
+[RESUME: task=main | phase=INTEGRATE]
 ```
-**Wait for user confirmation before proceeding to COMPLETE phase.**
 
-## Drift Detection
-
-**Auto-detected**:
-- Missing `[SESSION:]` before edits
-- Missing `[COMPLETE]`
-- Loops (3+ failed attempts)
-- Mode violations
-
-**Optional visibility**:
-- `[DECISION: ?] → answer`
-- `[ATTEMPT #N] → ✓/✗`
-- `[→VERIFY]`
+**Max depth**: 3 levels

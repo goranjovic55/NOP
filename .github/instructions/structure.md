@@ -4,59 +4,47 @@ applyTo: '**'
 
 # Structure
 
-## Project Layout
-```
-project/
-├── src/                    # Source (or lib/, app/)
-│   ├── models/
-│   ├── services/
-│   ├── controllers/
-│   └── utils/
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── docs/
-├── .github/
-│   ├── agents/             # *.agent.md
-│   ├── instructions/
-│   ├── workflows/
-│   └── global_knowledge.json
-└── project_knowledge.json
-```
+## AKIS Framework
 
-## Agent Framework (.github/)
 ```
 .github/
-├── agents/
-│   ├── _DevTeam.agent.md    # Orchestrator
-│   ├── Architect.agent.md
-│   ├── Developer.agent.md
-│   ├── Reviewer.agent.md
-│   └── Researcher.agent.md
-├── instructions/
-│   ├── protocols.md
-│   ├── phases.md
-│   ├── standards.md
-│   └── structure.md
-├── workflows/
-│   └── *.md
-└── global_knowledge.json
+├── agents/                  # Defines WHO and WHEN
+│   ├── _DevTeam.agent.md   # Orchestrator (delegation)
+│   ├── Architect.agent.md  # Design (how to design)
+│   ├── Developer.agent.md  # Code (how to implement)
+│   ├── Reviewer.agent.md   # Test (how to validate)
+│   └── Researcher.agent.md # Investigate (how to research)
+├── instructions/            # Framework protocols
+│   ├── phases.md           # 7-phase flow
+│   ├── protocols.md        # Emissions, delegation
+│   ├── structure.md        # This file
+│   └── templates.md        # Output formats
+├── prompts/
+│   └── update_akis.prompt.md
+└── copilot-instructions.md # Entry point
+
+.claude/
+└── skills.md               # 9 core patterns
+
+project_knowledge.json      # Entities, codegraph, relations
+
+log/workflow/               # Session logs
+└── YYYY-MM-DD_HHMMSS_task-slug.md
 ```
 
-## Knowledge Files
-| File | Location | Portable |
-|------|----------|----------|
-| project_knowledge.json | Root | No |
-| global_knowledge.json | .github/ | Yes |
+## Knowledge Format (JSONL)
+
+```json
+{"type":"entity","name":"Domain.Module","entityType":"type","observations":["desc, upd:YYYY-MM-DD"]}
+{"type":"codegraph","name":"file.py","language":"python","exports":["Class"],"imports":["module"]}
+{"type":"relation","from":"A","to":"B","relationType":"USES"}
+```
 
 ## File Limits
+
 | Type | Max |
 |------|-----|
-| Source files | 500 lines |
-| Test files | 500 lines |
-| Knowledge files | 5000 lines |
-
-## Language Conventions
-- Python: `snake_case.py`
-- JS/TS: `camelCase.ts` or `PascalCase.tsx`
-- Tests: `test_*.py` or `*.test.ts`
+| Instructions | <200 lines |
+| Agent files | <100 lines |
+| Skills | <100 lines |
+| Knowledge | <100KB |
