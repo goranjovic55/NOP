@@ -262,7 +262,7 @@ For detailed agent documentation, see `.github/agents/`.
 - **Features** - Implemented and proposed features
 
 ### Agent Framework Documentation
-- **Skills**: `.claude/skills.md` - 13 core coding patterns
-- **Domain Skills**: `.claude/skills/domain.md` - NOP-specific patterns
+- **Skills**: `.github/skills/*/SKILL.md` - 17 skills with progressive disclosure
+- **Agents**: `.github/agents/` - Agent definitions (Architect, Developer, Reviewer, Researcher)
 - **Knowledge Graph**: `project_knowledge.json` - Entity-relation model
-- **Workflows**: `.github/workflows/` - Agent workflow definitions
+- **Instructions**: `.github/instructions/` - Framework protocols and templates

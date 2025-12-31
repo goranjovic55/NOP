@@ -19,13 +19,13 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 
 | Phase | MANDATORY Actions |
 |-------|------------------|
-| **1. CONTEXT** | Load project_knowledge.json, load .claude/skills.md, understand task |
-| **2. PLAN** | Design approach, consider alternatives, decide delegation |
-| **3. COORDINATE** | #runSubagent OR prepare tools |
-| **4. INTEGRATE** | Execute work, apply changes |
+| **1. CONTEXT** | Read project_knowledge.json + read_file 3-5 relevant `.github/skills/*/SKILL.md` files, understand task, emit [AKIS_LOADED] with loaded skills |
+| **2. PLAN** | Design approach, consider alternatives, decide delegation, identify skills to use |
+| **3. COORDINATE** | #runSubagent OR prepare tools, emit [SKILLS: skill-name] or [METHOD: approach] |
+| **4. INTEGRATE** | Execute work, apply changes, follow skill patterns |
 | **5. VERIFY** | Test, emit [→VERIFY], WAIT for user |
-| **6. LEARN** | Update project_knowledge.json, extract patterns |
-| **7. COMPLETE** | Emit structured completion, create workflow log |
+| **6. LEARN** | Update project_knowledge.json, extract patterns, suggest new skills |
+| **7. COMPLETE** | Emit structured completion with [SKILLS_USED], create workflow log |
 
 ## Skip Phases (only if justified)
 

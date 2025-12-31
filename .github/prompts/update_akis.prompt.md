@@ -5,7 +5,7 @@ mode: agent
 # Update AKIS (Agents, Knowledge, Instructions, Skills)
 
 **Agents**: Researcher→Developer→Reviewer  
-**Sources**: `log/workflow/*.md`, `project_knowledge.json`, `.github/agents/`, `.github/instructions/`, `.claude/skills.md`
+**Sources**: `log/workflow/*.md`, `project_knowledge.json`, `.github/agents/`, `.github/instructions/`, `.github/skills/`
 
 ---
 
@@ -22,7 +22,7 @@ Reviewer:  Validate improvements → verify metrics
 | 1 | Agents | Delegation success, handoff clarity | Fix protocols, clarify scope |
 | 2 | Knowledge | Usage %, quality score, duplicates | Merge, standardize, archive |
 | 3 | Instructions | Adoption %, size, overlap | Consolidate, make terse |
-| 4 | Skills | Usage %, actionability ratio | Checklist format, integrate |
+| 4 | Skills | Usage %, activation rate, pattern following | Add YAML frontmatter, update checklists, create new skills |
 
 ---
 
@@ -31,13 +31,32 @@ Reviewer:  Validate improvements → verify metrics
 **Parse workflow logs**:
 ```bash
 # Protocol compliance
-grep -rh "\[SESSION\|\[KNOWLEDGE\|\[SKILLS" log/workflow/ | wc -l
+grep -rh "\[SESSION\|\[AKIS_LOADED\|\[SKILLS" log/workflow/ | wc -l
+
+# Skills usage
+grep -rh "\[SKILLS_USED\]" log/workflow/*.md | sort | uniq -c
+grep -rh "skills:" log/workflow/*.md | grep -oP '(?<=skills: )[^\n]+'
 
 # YAML metadata
 grep -rh "^complexity:\|^duration_min:\|^skills_used:" log/workflow/*.md
 
-# Pattern usage
-grep -rh "skill #\|error handling\|security" log/workflow/ | wc -l
+# Skill activation patterns
+grep -rh "SKILLS:" log/workflow/ | grep -oP '(?<=SKILLS: )[^\]]+'
+```
+
+**Analyze skills**:
+```bash
+# Count skills
+ls -1d .github/skills/*/ | wc -l
+
+# Check YAML frontmatter
+for skill in .github/skills/*/SKILL.md; do
+  echo "$skill:"
+  head -5 "$skill" | grep -E "^(name|description):"
+done
+
+# Skill usage frequency
+grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort | uniq -c | sort -rn
 ```
 
 **Analyze knowledge**:
@@ -59,13 +78,14 @@ python3 scripts/validate_knowledge.py  # duplicates, staleness, quality
 
 | Signal | Threshold | Action |
 |--------|-----------|--------|
-| Usage | <30% | Make optional/remove |
+| Skill usage | <30% | Review description, improve discoverability |
+| Skill activation | <10% | Update YAML frontmatter, add keywords |
 | Overhead | >40% quick tasks | Simplify emissions |
-| Duplication | >50% overlap | Consolidate |
-| Actionability | <0.15 ratio | Transform to checklist |
-| Quality | <70/100 | Cleanup pass |
+| Duplication | >50% overlap | Consolidate skills |
+| Checklist ratio | <0.15 | Add actionable checklist items |
+| Quality | <70/100 | Cleanup, add examples |
 | Staleness | >60 days | Archive/update |
-| Delegation success | <80% | Fix handoffs |
+| Missing frontmatter | Any | Add YAML with name/description |
 
 ---
 
@@ -76,8 +96,8 @@ python3 scripts/validate_knowledge.py  # duplicates, staleness, quality
 | Agents | Delegation gaps | 80%+ success | Clear handoffs |
 | Knowledge | 70/100 quality | 85+/100 | No dupes, timestamps |
 | Instructions | 352 lines | <200 lines | 60%+ adoption |
-| Skills | 431 lines, 0% use | <100 lines, 40%+ use | 0.20+ actionability |
-| Framework | 1,455 lines | <900 lines | 40%+ reduction |
+| Skills | 17 skills, progressive disclosure | 20+ skills, 50%+ activation | YAML frontmatter, usage tracking |
+| Framework | Protocol compliance | 80%+ sessions | HOW tracking, skill emissions |
 
 ---
 
@@ -85,9 +105,35 @@ python3 scripts/validate_knowledge.py  # duplicates, staleness, quality
 
 - `.github/agents/*.agent.md` - Protocol fixes
 - `project_knowledge.json` - Cleaned, deduplicated
-- `.github/instructions/*.md` - Simplified
-- `.claude/skills.md` - Terse checklists
+- `.github/instructions/*.md` - Simplified protocols
+- `.github/skills/*/SKILL.md` - Individual skills with YAML frontmatter, checklists, examples
 - `docs/analysis/AKIS_OPTIMIZATION_YYYY-MM-DD.md` - Metrics, recommendations
+
+### Skill Structure Requirements
+
+Each skill must have:
+```yaml
+---
+name: skill-name
+description: When to use description. Use when [scenarios].
+---
+
+# Skill Title
+
+## When to Use
+- Scenario 1
+- Scenario 2
+
+## Pattern
+Description
+
+## Checklist
+- [ ] Item 1
+- [ ] Item 2
+
+## Examples
+```code```
+```
 
 ---
 
@@ -95,10 +141,24 @@ python3 scripts/validate_knowledge.py  # duplicates, staleness, quality
 
 Remeasure after 10 sessions:
 ```yaml
-protocol_compliance: 80%+  # from 52.4%
-knowledge_usage: 40%+      # from 14.3%
-skills_usage: 40%+         # from 0%
-framework_size: <900       # from 1,455
-quality_score: 85+/100     # from 70
-overhead_quick: <15%       # from 40%
+protocol_compliance: 80%+     # [SESSION], [AKIS_LOADED], [SKILLS] emissions
+skills_activation: 50%+       # Skills auto-loaded by Copilot
+skills_usage_tracking: 100%   # All sessions emit [SKILLS_USED]
+knowledge_usage: 40%+         # from 14.3%
+quality_score: 85+/100        # from 70
+overhead_quick: <15%          # from 40%
+skills_with_yaml: 100%        # All skills have frontmatter
+```
+
+### Skill-Specific Metrics
+```bash
+# Top 10 most used skills
+grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort | uniq -c | sort -rn | head -10
+
+# Skills never used (candidates for review)
+comm -23 <(ls -1 .github/skills/) <(grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort -u)
+
+# Average skills per session
+grep -rh "SKILLS_USED" log/workflow/ | wc -l
+grep -rh "\[SESSION" log/workflow/ | wc -l
 ```

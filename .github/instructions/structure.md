@@ -46,5 +46,5 @@ log/workflow/               # Session logs
 |------|-----|
 | Instructions | <200 lines |
 | Agent files | <100 lines |
-| Skills | <100 lines |
+| Individual Skills | <300 lines (SKILL.md with examples) |
 | Knowledge | <100KB |

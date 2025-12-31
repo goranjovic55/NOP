@@ -10,7 +10,10 @@ applyTo: '**'
 ```
 [SESSION: task_description] @mode
 [CONTEXT] objective, scope, constraints
-[AKIS_LOADED] entities, patterns, skills
+[AKIS_LOADED]
+  entities: N entities from project_knowledge.json
+  skills: skill-name, skill-name, skill-name (relevant to task)
+  patterns: pattern1, pattern2
 ```
 
 **Finish**:

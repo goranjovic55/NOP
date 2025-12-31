@@ -16,9 +16,9 @@ Standard formats for consistent output. Reference in agents and copilot-instruct
 - Constraints: <limitations>
 
 [AKIS_LOADED]
-- Entities: <relevant entity names>
-- Skills: #N, #M applicable
-- Patterns: <from instructions>
+  entities: N entities from project_knowledge.json
+  skills: skill-name, skill-name, skill-name (relevant to task)
+  patterns: pattern1, pattern2
 ```
 
 **During work** (optional visibility):
@@ -94,7 +94,7 @@ What was done, what was learned, what changed.
 ## Measurable Data
 
 ### Skills Used
-- [ ] Skill name (from .claude/skills.md)
+- [ ] Skill name (from .github/skills/*/SKILL.md)
 - [ ] Skill name
 
 ### Patterns Discovered
@@ -167,7 +167,7 @@ _Complete delegation details documented in Delegations section_
 
 ## Compliance
 
-- **Skills**: #N, #M applied from .claude/skills.md
+- **Skills**: skill-name applied from .github/skills/
 - **Patterns**: pattern_name followed
 - **Quality Gates**: [all passed|specific failures]
 
@@ -244,7 +244,7 @@ Rules:
 [/SKILL_SUGGESTION]
 ```
 
-**Target**: `.claude/skills.md` (core) or `.claude/skills/domain.md` (project-specific)
+**Target**: `.github/skills/<skill-name>/SKILL.md` with YAML frontmatter
 
 ---
 

@@ -2,11 +2,12 @@
 
 > **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
 
-## AKIS Init
+## AKIS Prompt
 
-**MANDATORY on every response**: Before proceeding, verify previous response included:
+**MANDATORY on every prompt/response**: Before proceeding, verify previous response included:
 - [ ] **WHAT**: [PHASE: NAME | progress=H/V] where H=phase (1-7), V=depth (0-3)
 - [ ] **WHO**: [@AgentMode] OR [DELEGATE: agent=Name] if delegated
+- [ ] **HOW**: [SKILLS: skill-name, skill-name] OR [METHOD: approach]
 
 **If missing**: Emit now, then proceed.
 
@@ -23,14 +24,15 @@
 
 **MANDATORY at every session**:
 1. **Query AKIS** at `[SESSION]`: Load knowledge, skills, patterns
-2. **Emit AKIS** at `[COMPLETE]`: Update knowledge, log workflow
-3. **User confirmation** before VERIFY/COMPLETE phase
+2. **Track HOW**: List skills/methods used in each phase
+3. **Emit AKIS** at `[COMPLETE]`: Update knowledge, log workflow
+4. **User confirmation** before VERIFY/COMPLETE phase
 
 **Query AKIS** = Load framework components:
 - **Agents**: `.github/agents/*.agent.md`
 - **Knowledge**: `project_knowledge.json` (entities, codegraph, relations)
 - **Instructions**: `.github/instructions/*.md`
-- **Skills**: `.claude/skills.md`
+- **Skills**: Explicitly read_file 3-5 relevant `.github/skills/*/SKILL.md` during CONTEXT phase
 
 **Emit AKIS** = Structured emissions at [SESSION], [PAUSE], [COMPLETE]
 
@@ -42,12 +44,16 @@
 ```
 [SESSION: task_description] @mode
 [CONTEXT] objective, scope, constraints
-[AKIS_LOADED] entities, patterns, skills
+<read_file project_knowledge.json + read_file .github/skills/*/SKILL.md>
+[AKIS_LOADED] 
+  entities: N entities from project_knowledge.json
+  skills: skill-name, skill-name, skill-name (loaded via read_file)
+  patterns: pattern1, pattern2
 ```
 
 **MANDATORY: Follow 7-phase flow**:
 ```
-[PHASE: CONTEXT | progress=1/V]    → Load AKIS, understand task
+[PHASE: CONTEXT | progress=1/V]    → Load knowledge + read skills, understand task
 [PHASE: PLAN | progress=2/V]       → Design approach, alternatives
 [PHASE: COORDINATE | progress=3/V] → Delegate or prepare tools
 [PHASE: INTEGRATE | progress=4/V]  → Execute work, apply changes
@@ -75,7 +81,8 @@
 [TOOLS_USED] categories and purpose
 [DELEGATIONS] agent tasks and outcomes
 [COMPLIANCE] skills, patterns, gates
-[AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=#N,#M
+[SKILLS_USED] skill-name, skill-name (or METHOD: approach if no skills)
+[AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=skill-name,skill-name
 ```
 
 **User interrupt** (100% MANDATORY):
@@ -125,13 +132,13 @@ _DevTeam (Orchestrator) → Defines WHO and WHEN to delegate
 
 | Phase | MANDATORY Actions |
 |-------|-------------------|
-| **1. CONTEXT** | Load `project_knowledge.json`, load `.claude/skills.md`, understand task |
-| **2. PLAN** | Design approach, consider alternatives, decide delegation |
-| **3. COORDINATE** | #runSubagent OR prepare tools |
-| **4. INTEGRATE** | Execute work, apply changes |
+| **1. CONTEXT** | Load `project_knowledge.json`, query relevant skills from `.github/skills/`, understand task, emit [AKIS_LOADED] |
+| **2. PLAN** | Design approach, consider alternatives, decide delegation, identify skills to use |
+| **3. COORDINATE** | #runSubagent OR prepare tools, emit [SKILLS: skill-name] or [METHOD: approach] |
+| **4. INTEGRATE** | Execute work, apply changes, follow skill patterns |
 | **5. VERIFY** | Test, emit `[→VERIFY]`, **WAIT for user** |
-| **6. LEARN** | Update `project_knowledge.json`, extract patterns |
-| **7. COMPLETE** | Emit structured completion, create workflow log |
+| **6. LEARN** | Update `project_knowledge.json`, extract patterns, suggest new skills |
+| **7. COMPLETE** | Emit structured completion with [SKILLS_USED], create workflow log |
 
 ---
 
@@ -151,7 +158,8 @@ _DevTeam (Orchestrator) → Defines WHO and WHEN to delegate
 [TOOLS_USED] <categories>
 [DELEGATIONS] <outcomes>
 [COMPLIANCE] <skills, patterns>
-[AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=#N,#M
+[SKILLS_USED] skill-name, skill-name (or METHOD: approach if no skills)
+[AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=skill-name,skill-name
 
 [WORKFLOW_LOG: task=<desc>]
 Summary | Decisions | Tools | Delegations | Files | Learnings
