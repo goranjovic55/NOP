@@ -29,8 +29,14 @@ applyTo: '**'
 ## Delegation Format (_DevTeam only)
 
 ```
-[DELEGATE: agent=Name | task=description | reason=complexity]
-#runSubagent Name "detailed task description"
+[DELEGATE: agent=Name | task=desc | skills=skill1,skill2]
+#runSubagent Name "
+Task: <description>
+Context: <info>
+Scope: <bounds>
+Skills: skill1, skill2
+Expect: RESULT_TYPE
+"
 ```
 
 **Specialist Return Format**:
@@ -40,6 +46,8 @@ applyTo: '**'
 [IMPLEMENTATION_RESULT] changes, files (Developer)
 [VALIDATION_REPORT] status, findings (Reviewer)
 [FINDINGS] insights, recommendations (Researcher)
+
+Skills: [skill1, skill2]
 ```
 
 ## Interrupts (100% MANDATORY)

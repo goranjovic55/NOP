@@ -11,6 +11,8 @@
 
 **If missing**: Emit now, then proceed.
 
+**⚠️ ENFORCEMENT**: These emissions are checked by `scripts/check_workflow_compliance.sh`. Workflow logs without [AKIS_LOADED], [SKILLS:], and [SKILLS_USED] fail compliance audits.
+
 **Progress format**:
 - `progress=4/0` - Main thread, phase 4, no stack
 - `progress=1/1` - Interrupted at depth 1, phase 1 of nested task  
@@ -44,12 +46,17 @@
 ```
 [SESSION: task_description] @mode
 [CONTEXT] objective, scope, constraints
-<read_file project_knowledge.json + read_file .github/skills/*/SKILL.md>
+<read_file project_knowledge.json + read 3-5 .github/skills/*/SKILL.md files>
 [AKIS_LOADED] 
   entities: N entities from project_knowledge.json
   skills: skill-name, skill-name, skill-name (loaded via read_file)
   patterns: pattern1, pattern2
 ```
+
+**⚠️ CRITICAL EMISSIONS - DO NOT SKIP**:
+- **CONTEXT phase**: `[AKIS_LOADED]` with entity count, skill names, and patterns
+- **COORDINATE phase**: `[SKILLS: name, name]` or `[METHOD: approach]`
+- **COMPLETE phase**: `[SKILLS_USED] name, name` or `[METHOD: approach]`
 
 **MANDATORY: Follow 7-phase flow**:
 ```
@@ -132,13 +139,13 @@ _DevTeam (Orchestrator) → Defines WHO and WHEN to delegate
 
 | Phase | MANDATORY Actions |
 |-------|-------------------|
-| **1. CONTEXT** | Load `project_knowledge.json`, query relevant skills from `.github/skills/`, understand task, emit [AKIS_LOADED] |
+| **1. CONTEXT** | Load `project_knowledge.json`, read 3-5 relevant `.github/skills/*/SKILL.md`, understand task<br>**→ ALWAYS EMIT**: `[AKIS_LOADED]` with entities count, skill names, patterns |
 | **2. PLAN** | Design approach, consider alternatives, decide delegation, identify skills to use |
-| **3. COORDINATE** | #runSubagent OR prepare tools, emit [SKILLS: skill-name] or [METHOD: approach] |
+| **3. COORDINATE** | #runSubagent OR prepare tools<br>**→ ALWAYS EMIT**: `[SKILLS: skill-name, skill-name]` or `[METHOD: approach]` |
 | **4. INTEGRATE** | Execute work, apply changes, follow skill patterns |
 | **5. VERIFY** | Test, emit `[→VERIFY]`, **WAIT for user** |
 | **6. LEARN** | Update `project_knowledge.json`, extract patterns, suggest new skills |
-| **7. COMPLETE** | Emit structured completion with [SKILLS_USED], create workflow log |
+| **7. COMPLETE** | Emit structured completion<br>**→ ALWAYS EMIT**: `[SKILLS_USED] skill-name, skill-name` (or `[METHOD: approach]`), create workflow log |
 
 ---
 

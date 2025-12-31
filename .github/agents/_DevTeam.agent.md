@@ -25,10 +25,10 @@ description: Orchestrates development by delegating to specialist agents. Define
 
 | When | Who | Format |
 |------|-----|--------|
-| Complex design | Architect | `[DELEGATE: agent=Architect \| task=description \| reason=complexity]`<br>`#runSubagent Architect "detailed task"` |
-| Major implementation | Developer | Same format |
-| Comprehensive testing | Reviewer | Same format |
-| Investigation | Researcher | Same format |
+| Complex design | Architect | `[DELEGATE: agent=Architect \| task=description \| skills=infrastructure,security]`<br>`#runSubagent Architect "detailed task"` |
+| Major implementation | Developer | `[DELEGATE: agent=Developer \| task=description \| skills=backend-api,testing]`<br>`#runSubagent Developer "detailed task"` |
+| Comprehensive testing | Reviewer | `[DELEGATE: agent=Reviewer \| task=description \| skills=testing,security]`<br>`#runSubagent Reviewer "detailed task"` |
+| Investigation | Researcher | `[DELEGATE: agent=Researcher \| task=description \| skills=all]`<br>`#runSubagent Researcher "detailed task"` |
 
 **DevTeam only handles**: Orchestration, Q&A, quick fixes (<5min)
 
@@ -59,19 +59,19 @@ description: Orchestrates development by delegating to specialist agents. Define
 **Parallel** (independent tasks):
 ```
 #runSubagent Developer "
-Create API endpoints for /api/v1/notifications.
+Task: Create API endpoints for /api/v1/notifications
 Context: User model exists, FastAPI router pattern in backend/app/api/
 Scope: CRUD operations only
-Return: IMPLEMENTATION_RESULT
-Work autonomously.
+Skills: backend-api, testing, error-handling
+Expect: IMPLEMENTATION_RESULT
 "
 
 #runSubagent Developer "
-Create database models for notifications.
+Task: Create database models for notifications
 Context: SQLAlchemy models in backend/app/models/
 Scope: Notification model with user relationship
-Return: IMPLEMENTATION_RESULT
-Work autonomously.
+Skills: backend-api, testing
+Expect: IMPLEMENTATION_RESULT
 "
 ```
 
