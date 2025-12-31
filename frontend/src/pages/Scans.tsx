@@ -373,8 +373,8 @@ const Scans: React.FC = () => {
   };
 
   const handleBuildExploit = (vulnerability: Vulnerability) => {
-    // Navigate to Exploit page with pre-selected vulnerability
-    navigate('/exploit', { state: { vulnerability, targetIP: activeTab?.ip } });
+    // Navigate to Access page in exploit mode with pre-selected vulnerability
+    navigate('/access', { state: { mode: 'exploit', vulnerability, targetIP: activeTab?.ip } });
   };
 
   const getSeverityColor = (severity: string) => {
@@ -805,21 +805,30 @@ const Scans: React.FC = () => {
                     <span className="text-xs text-cyber-gray-light group-hover:text-cyber-red transition-colors uppercase">OS Detection (-O)</span>
                   </label>
                 </div>
-                <button
-                  onClick={() => handleStartScan(activeTab.id)}
-                  disabled={activeTab.status === 'running'}
-                  className={`w-full flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
-                    activeTab.status === 'running'
-                      ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
-                      : 'border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white cyber-glow-red'
-                  }`}
-                >
-                  {activeTab.status === 'running' ? (
-                    <span>Scan in Progress...</span>
-                  ) : (
-                    <span>Execute Port Scan</span>
-                  )}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleStartScan(activeTab.id)}
+                    disabled={activeTab.status === 'running'}
+                    className={`flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
+                      activeTab.status === 'running'
+                        ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
+                        : 'border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white cyber-glow-red'
+                    }`}
+                  >
+                    {activeTab.status === 'running' ? (
+                      <span className="text-xs">◉ Scanning...</span>
+                    ) : (
+                      <span className="text-xs">◈ Execute Port Scan</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigate('/access', { state: { mode: 'login', targetIP: activeTab?.ip } })}
+                    disabled={activeTab.status === 'running'}
+                    className="flex items-center justify-center space-x-2 py-3 border-2 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all uppercase font-bold tracking-widest text-xs"
+                  >
+                    ◉ Login
+                  </button>
+                </div>
               </div>
               
               {/* Port Scan Output */}
@@ -897,23 +906,32 @@ const Scans: React.FC = () => {
                 </div>
 
                 {/* Execute Vulnerability Scan Button */}
-                <button
-                  onClick={() => handleVulnerabilityScan(activeTab.id)}
-                  disabled={activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0}
-                  className={`w-full flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
-                    activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0
-                      ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
-                      : 'border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white'
-                  }`}
-                >
-                  {activeTab.vulnScanning ? (
-                    <>
-                      <span className="animate-pulse">Scanning for Vulnerabilities...</span>
-                    </>
-                  ) : (
-                    <span>Execute Vulnerability Scan</span>
-                  )}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleVulnerabilityScan(activeTab.id)}
+                    disabled={activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0}
+                    className={`flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
+                      activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0
+                        ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
+                        : 'border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white'
+                    }`}
+                  >
+                    {activeTab.vulnScanning ? (
+                      <>
+                        <span className="animate-pulse text-xs">◉ Scanning...</span>
+                      </>
+                    ) : (
+                      <span className="text-xs">◈ Execute Vuln Scan</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigate('/access', { state: { mode: 'exploit', targetIP: activeTab?.ip } })}
+                    disabled={activeTab.vulnScanning}
+                    className="flex items-center justify-center space-x-2 py-3 border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all uppercase font-bold tracking-widest text-xs"
+                  >
+                    ◉ Exploit
+                  </button>
+                </div>
               </div>
 
               {/* Vulnerability Results */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
 import { useAuthStore } from '../store/authStore';
@@ -10,6 +11,7 @@ type AccessMode = 'login' | 'exploit';
 
 const Access: React.FC = () => {
   const { token } = useAuthStore();
+  const location = useLocation();
   const { tabs, activeTabId, setActiveTab, removeTab, addTab, updateTabStatus } = useAccessStore();
   const { 
     sessions: shellSessions, 
@@ -113,11 +115,92 @@ const Access: React.FC = () => {
     }
   }, [token]);
 
+  // Handle navigation from Scans page with state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state) {
+      // Set mode if provided
+      if (state.mode === 'exploit' || state.mode === 'login') {
+        setAccessMode(state.mode);
+        if (state.mode === 'exploit') {
+          setShowExploitBuilder(true);
+          setShowConsole(true);
+        }
+      }
+      
+      // Set target IP if provided
+      if (state.targetIP) {
+        // Find or create asset for this IP
+        const existingAsset = assets.find(a => a.ip_address === state.targetIP);
+        if (existingAsset) {
+          setSelectedAsset(existingAsset);
+        } else {
+          // Create manual asset
+          const manualAsset: Asset = {
+            id: `manual-${Date.now()}`,
+            ip_address: state.targetIP,
+            hostname: undefined,
+            asset_type: 'unknown',
+            status: 'unknown',
+            last_seen: new Date().toISOString(),
+            discovery_method: 'manual',
+            open_ports: []
+          };
+          setAssets(prev => [...prev, manualAsset]);
+          setSelectedAsset(manualAsset);
+        }
+      }
+      
+      // Set vulnerability if provided (for exploit mode)
+      if (state.vulnerability) {
+        setSelectedVulnerability(state.vulnerability);
+      }
+    }
+  }, [location.state, assets]);
+
   useEffect(() => {
     if (terminalEndRef.current) {
       terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [output]);
+
+  // Handle navigation state from Scans page
+  useEffect(() => {
+    const state = location.state as any;
+    if (state) {
+      if (state.mode) {
+        setAccessMode(state.mode);
+        if (state.mode === 'exploit') {
+          setShowExploitBuilder(true);
+          setShowConsole(true);
+        }
+      }
+      if (state.vulnerability) {
+        setSelectedVulnerability(state.vulnerability);
+      }
+      if (state.targetIP) {
+        // Try to find and select the asset with this IP
+        const asset = assets.find(a => a.ip_address === state.targetIP);
+        if (asset) {
+          setSelectedAsset(asset);
+        } else {
+          // Create a manual asset entry
+          const newAsset: Asset = {
+            id: `manual-${Date.now()}`,
+            ip_address: state.targetIP,
+            hostname: undefined,
+            asset_type: 'unknown',
+            status: 'unknown',
+            last_seen: new Date().toISOString(),
+            discovery_method: 'manual',
+            open_ports: []
+          };
+          setAssets(prev => [...prev, newAsset]);
+          setSelectedAsset(newAsset);
+        }
+      }
+    }
+  }, [location.state, assets]);
 
   // Load vault credentials from localStorage
   useEffect(() => {
@@ -549,11 +632,11 @@ const Access: React.FC = () => {
       'ssh': '◈',
       'http': '◉',
       'https': '◉',
-      'ftp': '⬢',
+      'ftp': '◉',
       'telnet': '◆',
-      'rdp': '⬡',
-      'vnc': '◈',
-      'mysql': '⬢',
+      'rdp': '◉',
+      'vnc': '◉',
+      'mysql': '◉',
       'postgresql': '◉',
       'smb': '◆'
     };
