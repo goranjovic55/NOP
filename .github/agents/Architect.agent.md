@@ -27,14 +27,8 @@ description: Design system architecture, evaluate technology choices, define com
 ## Tools
 Knowledge files, code search, prior designs
 
-## Design Template
-```
-## Decision: [What]
-### Approach: [Solution]
-### Why: [Benefits]
-### Alternatives: [Rejected + reason]
-### Components: [Parts]
-```
+## Output
+See `.github/instructions/templates.md#design-decision`
 
 ## Quality Gates
 - Requirements clear

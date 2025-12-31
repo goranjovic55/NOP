@@ -30,7 +30,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
-    { name: 'Exploit', href: '/exploit', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
   ];
@@ -91,14 +90,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
-                  {item.name === 'ACCESS' && connectedCount > 0 && (
-                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
-                      {connectedCount}
-                    </div>
-                  )}
-                  {item.name === 'Exploit' && activeExploitCount > 0 && (
-                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-red text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
-                      {activeExploitCount}
+                  {item.name === 'ACCESS' && (connectedCount > 0 || activeExploitCount > 0) && (
+                    <div className={`absolute right-2 flex items-center justify-center ${
+                      activeExploitCount > 0 ? 'bg-cyber-red' : 'bg-cyber-green'
+                    } text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {activeExploitCount || connectedCount}
                     </div>
                   )}
                 </Link>

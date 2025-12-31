@@ -639,7 +639,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
                <input 
                  type="text" 
                  defaultValue={`http://${tab.ip}`}
-                 className="bg-black border border-cyber-gray text-cyber-green px-2 py-1 w-full text-xs font-mono focus:border-cyber-blue outline-none"
+                 className="bg-cyber-dark border border-cyber-gray text-cyber-green px-2 py-1 w-full text-xs font-mono focus:border-cyber-blue outline-none"
                  onKeyDown={(e) => {
                    if (e.key === 'Enter') {
                      const iframe = document.getElementById(`iframe-${tab.id}`) as HTMLIFrameElement;
@@ -775,21 +775,29 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-cyber-dark border border-cyber-gray rounded-lg shadow-xl">
-      <h3 className="text-xl font-bold text-cyber-blue uppercase mb-6 flex items-center">
-        <span className="mr-2">
-          {tab.protocol === 'ssh' && '🔒'}
-          {tab.protocol === 'rdp' && '🖥️'}
-          {tab.protocol === 'vnc' && '👁️'}
-          {tab.protocol === 'telnet' && '📟'}
-          {tab.protocol === 'exploit' && '💀'}
+    <div className="max-w-md mx-auto mt-10 p-6 bg-cyber-darker border-2 border-cyber-gray rounded-lg shadow-xl shadow-cyber-blue/10">
+      <h3 className="text-xl font-bold uppercase mb-6 flex items-center">
+        <span className="mr-3 text-2xl">
+          {tab.protocol === 'ssh' && <span className="text-cyber-green">◉</span>}
+          {tab.protocol === 'rdp' && <span className="text-cyber-blue">◉</span>}
+          {tab.protocol === 'vnc' && <span className="text-cyber-purple">◉</span>}
+          {tab.protocol === 'telnet' && <span className="text-cyber-blue">◉</span>}
+          {tab.protocol === 'exploit' && <span className="text-cyber-red">◆</span>}
         </span>
-        {tab.protocol.toUpperCase()} Connection
+        <span className={
+          tab.protocol === 'ssh' ? 'text-cyber-green' :
+          tab.protocol === 'rdp' ? 'text-cyber-blue' :
+          tab.protocol === 'vnc' ? 'text-cyber-purple' :
+          tab.protocol === 'telnet' ? 'text-cyber-blue' :
+          'text-cyber-red'
+        }>
+          {tab.protocol.toUpperCase()} Connection
+        </span>
       </h3>
 
       {savedCredentials.length > 0 && (
         <div className="mb-6">
-          <label className="block text-[10px] font-bold text-cyber-gray-light uppercase mb-2">Saved Credentials</label>
+          <label className="block text-[10px] font-bold text-cyber-gray-light uppercase mb-2 tracking-wider">◆ Saved Credentials</label>
           <div className="flex flex-wrap gap-2">
             {savedCredentials.map(cred => (
               <button
@@ -806,24 +814,24 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
       <form onSubmit={handleConnect} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1">Username</label>
+          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none transition-colors"
+            className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
             placeholder="admin"
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1">Password</label>
+          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none transition-colors"
+            className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
             placeholder="••••••••"
           />
         </div>
@@ -838,7 +846,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
           <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all mr-2">
             {remember && <span className="text-white text-xs">◆</span>}
           </div>
-          <span className="text-xs text-cyber-gray-light uppercase">Remember Credentials</span>
+          <span className="text-xs text-cyber-gray-light uppercase tracking-wide">◇ Remember Credentials</span>
         </label>
 
           <div className="flex space-x-2">

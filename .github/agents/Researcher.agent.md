@@ -27,14 +27,8 @@ description: Investigate codebases, analyze patterns, find dependencies, documen
 ## Tools
 Code search, knowledge files, web search (when available), grep, semantic_search
 
-## Report Template
-```
-## Investigation: [Topic]
-### Found: [Key findings]
-### Structure: [Organization]
-### Patterns: [What + where]
-### Issues: [Gaps, opportunities]
-```
+## Output
+See `.github/instructions/templates.md#investigation-report`
 
 ## Quality Gates
 - Boundaries defined

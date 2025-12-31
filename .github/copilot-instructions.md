@@ -2,24 +2,47 @@
 
 > **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
 
+## AKIS Framework
+
+**AKIS** = **A**gents, **K**nowledge, **I**nstructions, **S**kills
+
+**Query AKIS** = Load framework components:
+- **Agents**: `.github/agents/*.agent.md`
+- **Knowledge**: `project_knowledge.json` (entities, codegraph, relations)
+- **Instructions**: `.github/instructions/*.md`
+- **Skills**: `.claude/skills.md`
+
+**Emit AKIS** = Structured emissions at [SESSION], [PAUSE], [COMPLETE]
+
+---
+
 ## Session Boundaries
 
-**Start**:
+**Start** (query AKIS, use template):
 ```
 [SESSION: task_description] @mode
+[CONTEXT] objective, scope, constraints
+[AKIS_LOADED] entities, patterns, skills
 ```
 
-**Finish**:
+**Finish** (emit AKIS, use template):
 ```
-[COMPLETE] outcome | changed: files
+[COMPLETE: task=desc | result=summary]
+[DECISIONS] key choices with rationale
+[TOOLS_USED] categories and purpose
+[DELEGATIONS] agent tasks and outcomes
+[COMPLIANCE] skills, patterns, gates
+[AKIS_UPDATED] knowledge: added=N/updated=M | skills: used=#N,#M
 ```
 
 **User interrupt**:
 ```
-[PAUSE: current_task]
-[RESUME: original_task]
+[PAUSE: task=current | phase=PHASE]
+Progress, blocking, state
+[RESUME: task=original | phase=PHASE]
 ```
 
+**Template**: `.github/instructions/templates.md#agent-emission`  
 **Skip for**: Q&A, clarifications
 
 ---
@@ -92,6 +115,7 @@ _DevTeam (Orchestrator)
 Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
 [/SKILL_SUGGESTION]
 ```
+**Template**: `.github/instructions/templates.md#skill-suggestion`  
 Add to `.claude/skills.md` or `.claude/skills/domain.md`
 
 ## Knowledge
@@ -101,17 +125,23 @@ Add to `.claude/skills.md` or `.claude/skills/domain.md`
 
 **Format (JSONL)**:
 ```json
-{"type":"entity","name":"Project.Domain.Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD"]}
-{"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
-{"type":"relation","from":"A","to":"B","relationType":"USES"}
+{"type":"entity","name":"Project.Domain.N]
+[DECISIONS] <choices with rationale>
+[TOOLS_USED] <categories and purpose>
+[DELEGATIONS] <agent tasks and outcomes>
+[COMPLIANCE] <skills, patterns, gates>
+[KNOWLEDGE: added=N | updated=M]
+
+[WORKFLOW_LOG: task=<desc>]  ← significant work only
+Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learnings
+[/WORKFLOW_LOG]
 ```
 
-**Files**: `project_knowledge.json` (root) | `global_knowledge.json` (.github/)
-
-## Completion
-```
-[COMPLETE: task=<desc> | result=<summary> | learnings=N]
-
+**Before [COMPLETE]**:
+- [ ] Task objective met
+- [ ] Files changed as expected
+- [ ] Tests pass (if code changes)
+- [ ] Structured emission completed (template
 [WORKFLOW_LOG: task=<desc>]
 Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learnings
 [/WORKFLOW_LOG]
