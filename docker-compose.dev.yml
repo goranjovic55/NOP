@@ -11,8 +11,8 @@ services:
     ports:
       - "12000:3000"
     environment:
-      - REACT_APP_API_URL=
-      - REACT_APP_WS_URL=
+      - REACT_APP_API_URL=http://localhost:12001
+      - REACT_APP_WS_URL=ws://localhost:12001
     depends_on:
       - backend
     networks:
@@ -23,11 +23,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "12001:8000"
+    network_mode: host
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@localhost:5432/nop
+      - REDIS_URL=redis://localhost:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -39,9 +38,6 @@ services:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - nop-internal
-      - test-network
     restart: unless-stopped
     privileged: true
     cap_add:
@@ -50,6 +46,8 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=nop
       - POSTGRES_USER=nop
@@ -81,6 +79,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
