@@ -707,7 +707,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
                   {ftpFiles.map((file, i) => (
                     <tr key={i} className="hover:bg-cyber-darker border-b border-cyber-gray border-opacity-20">
                       <td className="py-2 cursor-pointer" onClick={() => file.type === 'directory' ? handleFtpNavigate(file.name) : null}>
-                        <span className="mr-2">{file.type === 'directory' ? '📁' : '📄'}</span>
+                        <span className="mr-2">{file.type === 'directory' ? '◈' : '◆'}</span>
                         {file.name}
                       </td>
                       <td className="py-2">{file.size}</td>

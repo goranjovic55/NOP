@@ -109,9 +109,18 @@ Details: [what was tested or why skipped]
 
 ## Key Decisions
 
-- Decision 1 → rationale
-## Key Decisions
+**Decision Tree** (complete flow):
+```
+Question 1?
+├─ Option A → rationale → Result
+└─ Option B (chosen) → rationale → led to Decision 2
 
+Question 2?
+├─ Option X → rationale  
+└─ Option Y (chosen) → rationale → final approach
+```
+
+**Summary**:
 - Decision 1 → rationale
 - Decision 2 → rationale
 
@@ -121,8 +130,24 @@ Details: [what was tested or why skipped]
 
 **Purpose**: [what tools accomplished]
 
-- tool_name(N calls): specific use case
-- tool_name(N calls): specific use case
+| Tool | Calls | Purpose | Key Results |
+|------|-------|---------|-------------|
+| tool_name | N | specific use | outcome |
+| tool_name | N | specific use | outcome |
+
+**Total**: N tools, M calls
+
+---
+
+## Delegations (if used)
+
+### #runSubagent: Agent Name
+- **Task**: [what was delegated]
+- **Reason**: [complexity justification]
+- **Input**: [context provided]
+- **Output**: [findings/result]
+- **Handoff**: [success|blocked|partial]
+- **Integration**: [how result was used]
 
 ---
 
@@ -134,13 +159,9 @@ Details: [what was tested or why skipped]
 
 ---
 
-## Agent Interactions (if delegated)
+## Agent Interactions (see Delegations section above)
 
-### Agent Name
-- **Role**: [responsibility]
-- **Task**: [what was delegated]
-- **Result**: [outcome]
-- **Handoff**: [blocker|success]
+_Complete delegation details documented in Delegations section_
 
 ---
 

@@ -217,6 +217,16 @@ class NetworkScanner:
                                 "version": service.get("version"),
                                 "extrainfo": service.get("extrainfo")
                             }
+                        
+                        # Port-level script results
+                        port_scripts = []
+                        for script in port.findall("script"):
+                            port_scripts.append({
+                                "id": script.get("id"),
+                                "output": script.get("output")
+                            })
+                        if port_scripts:
+                            port_info["scripts"] = port_scripts
 
                         host_info["ports"].append(port_info)
 

@@ -29,9 +29,9 @@ const Access: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   
   // Filtering
-  const [assetFilter, setAssetFilter] = useState<'all' | 'scanned' | 'unscanned'>(() => {
+  const [assetFilter, setAssetFilter] = useState<'all' | 'scanned' | 'vulnerable'>(() => {
     const saved = localStorage.getItem('access_assetFilter');
-    return (saved as 'all' | 'scanned' | 'unscanned') || 'all';
+    return (saved as 'all' | 'scanned' | 'vulnerable') || 'all';
   });
   const [ipFilter, setIpFilter] = useState(() => localStorage.getItem('access_ipFilter') || '');
   const [manualIP, setManualIP] = useState('');
@@ -245,8 +245,8 @@ const Access: React.FC = () => {
     
     if (assetFilter === 'scanned') {
       filtered = filtered.filter(asset => asset.open_ports && asset.open_ports.length > 0);
-    } else if (assetFilter === 'unscanned') {
-      filtered = filtered.filter(asset => !asset.open_ports || asset.open_ports.length === 0);
+    } else if (assetFilter === 'vulnerable') {
+      filtered = filtered.filter(asset => asset.vulnerable_count && asset.vulnerable_count > 0);
     }
     
     if (ipFilter.trim()) {
@@ -770,6 +770,16 @@ const Access: React.FC = () => {
                 >
                   Scanned
                 </button>
+                <button
+                  onClick={() => setAssetFilter('vulnerable')}
+                  className={`px-3 py-1 text-xs border rounded ${
+                    assetFilter === 'vulnerable' 
+                      ? 'border-cyber-red text-cyber-red bg-cyber-red bg-opacity-10' 
+                      : 'border-cyber-gray text-cyber-gray hover:border-cyber-red'
+                  }`}
+                >
+                  Vulnerable
+                </button>
               </div>
             </div>
             
@@ -844,50 +854,76 @@ const Access: React.FC = () => {
                   <div
                     key={asset.id}
                     onClick={() => handleAssetClick(asset)}
-                    className={`p-4 cursor-pointer transition-all border-2 rounded ${
+                    className={`p-4 cursor-pointer transition-all border-l-4 ${
                       selectedAsset?.id === asset.id
                         ? accessMode === 'login'
-                          ? 'border-cyber-green bg-transparent'
-                          : 'border-cyber-red bg-transparent'
-                        : 'border-transparent hover:bg-cyber-dark hover:border-cyber-purple'
+                          ? 'border-l-cyber-green bg-cyber-darker'
+                          : 'border-l-cyber-red bg-cyber-darker'
+                        : 'border-l-transparent hover:bg-cyber-dark hover:border-l-cyber-purple'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          {selectedAsset?.id === asset.id && (
-                            <span className={accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red'}>◉</span>
-                          )}
-                          <h4 className={`font-bold text-sm font-mono ${selectedAsset?.id === asset.id ? (accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red') : 'text-cyber-blue'}`}>{asset.ip_address}</h4>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
+                      {/* Left: Selection Indicator + IP */}
+                      <div className="flex items-center space-x-2 min-w-[140px]">
+                        {selectedAsset?.id === asset.id && (
+                          <span className={accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red'}>◉</span>
+                        )}
+                        <div>
+                          <h4 className={`font-bold text-sm font-mono ${selectedAsset?.id === asset.id ? (accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red') : 'text-cyber-blue'}`}>
+                            {asset.ip_address}
+                          </h4>
                           {asset.hostname && asset.hostname !== asset.ip_address && (
-                            <span className="text-cyber-gray-light text-xs">{asset.hostname}</span>
+                            <span className="text-cyber-gray-light text-[10px] block">{asset.hostname}</span>
                           )}
-                          {asset.open_ports && asset.open_ports.length > 0 && (
-                            <span className="px-1.5 py-0.5 text-xs border border-cyber-green text-cyber-green rounded">
-                              {asset.open_ports.length} ports
-                            </span>
-                          )}
+                          <span className="text-cyber-gray-light text-[10px]">
+                            OS: <span className="text-cyber-green">{asset.os_name || 'Unknown'}</span>
+                          </span>
                         </div>
-                        
-                        <div className="flex items-center space-x-4 text-xs mb-2">
-                          <span className="text-cyber-gray-light">OS: <span className="text-cyber-green">{asset.os_name || 'Unknown'}</span></span>
-                        </div>
+                      </div>
 
-                        {asset.services && Object.keys(asset.services).length > 0 && (
-                          <div className="flex gap-1 flex-wrap">
-                            {Object.keys(asset.services).slice(0, 8).map(port => (
+                      {/* Center: Ports */}
+                      <div>
+                        {asset.services && Object.keys(asset.services).length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {Object.keys(asset.services).slice(0, 4).map(port => (
                               <span
                                 key={port}
-                                className="px-2 py-0.5 bg-cyber-darker border border-cyber-blue text-cyber-blue rounded text-xs"
+                                className="px-2 py-0.5 bg-cyber-darker border border-cyber-blue text-cyber-blue rounded text-xs inline-block w-fit"
                                 title={`${asset.services?.[port]?.service || 'Unknown'} on port ${port}`}
                               >
                                 {getServiceIcon(asset.services?.[port]?.service || '')} {port}
                               </span>
                             ))}
-                            {Object.keys(asset.services).length > 8 && (
-                              <span className="text-cyber-gray text-xs">+{Object.keys(asset.services).length - 8}</span>
+                            {Object.keys(asset.services).length > 4 && (
+                              <span className="text-cyber-gray text-xs">+{Object.keys(asset.services).length - 4} more</span>
                             )}
                           </div>
+                        ) : (
+                          <span className="text-cyber-gray text-xs">No services detected</span>
+                        )}
+                      </div>
+
+                      {/* Right: Status Badges */}
+                      <div className="flex flex-col items-end gap-1.5 min-w-[100px]">
+                        {asset.has_been_accessed && (
+                          <span className="px-2 py-1 text-[10px] border border-cyber-green text-cyber-green rounded font-bold uppercase shadow-[0_0_3px_#00ff41] whitespace-nowrap">
+                            ◈ LOGIN
+                          </span>
+                        )}
+                        {asset.has_been_exploited && (
+                          <span className="px-2 py-1 text-[10px] border border-cyber-red text-cyber-red rounded font-bold uppercase shadow-[0_0_3px_#ff0040] whitespace-nowrap">
+                            ◆ EXPLOIT
+                          </span>
+                        )}
+                        {asset.vulnerable_count && asset.vulnerable_count > 0 && (
+                          <span className="px-2 py-1 text-[10px] border border-cyber-red text-cyber-red rounded font-bold uppercase shadow-[0_0_3px_#ff0040] whitespace-nowrap">
+                            ⚠ {asset.vulnerable_count} VULN
+                          </span>
+                        )}
+                        {asset.open_ports && asset.open_ports.length > 0 && (
+                          <span className="px-2 py-1 text-[10px] border border-cyber-green text-cyber-green rounded font-bold uppercase opacity-60 whitespace-nowrap">
+                            {asset.open_ports.length} PORTS
+                          </span>
                         )}
                       </div>
                     </div>
@@ -895,7 +931,7 @@ const Access: React.FC = () => {
                 ))}
               </div>
             )}
-            </div>
+          </div>
           </div>
 
           {/* Right Side - Connection/Exploit Area */}
