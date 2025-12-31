@@ -915,14 +915,14 @@ const Access: React.FC = () => {
                             ◆ EXPLOIT
                           </span>
                         )}
-                        {asset.vulnerable_count && asset.vulnerable_count > 0 && (
+                        {(asset.vulnerable_count || 0) > 0 && (
                           <span className="px-2 py-1 text-[10px] border border-cyber-red text-cyber-red rounded font-bold uppercase shadow-[0_0_3px_#ff0040] whitespace-nowrap">
                             ⚠ {asset.vulnerable_count} VULN
                           </span>
                         )}
-                        {asset.open_ports && asset.open_ports.length > 0 && (
+                        {(asset.open_ports?.length || 0) > 0 && (
                           <span className="px-2 py-1 text-[10px] border border-cyber-green text-cyber-green rounded font-bold uppercase opacity-60 whitespace-nowrap">
-                            {asset.open_ports.length} PORTS
+                            {asset.open_ports?.length} PORTS
                           </span>
                         )}
                       </div>

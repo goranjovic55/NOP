@@ -1,0 +1,72 @@
+version: '3.8'
+
+# Production compose file using pre-built images from GHCR
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  frontend:
+    image: ghcr.io/goranjovic55/nop-frontend:latest
+    ports:
+      - "12000:3000"
+    environment:
+      - REACT_APP_API_URL=
+      - REACT_APP_WS_URL=
+    depends_on:
+      - backend
+    networks:
+      - nop-internal
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/goranjovic55/nop-backend:latest
+    ports:
+      - "12001:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-change-this
+      - ADMIN_PASSWORD=admin123
+      - VNC_HOST=nop-custom-vnc
+      - RDP_HOST=nop-custom-rdp
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./volumes/evidence:/app/evidence
+      - ./volumes/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nop-internal
+      - test-network
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=nop
+      - POSTGRES_PASSWORD=nop_password
+      - POSTGRES_DB=nop
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nop-internal
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - nop-internal
+    restart: unless-stopped
+
+networks:
+  nop-internal:
+    driver: bridge
+  test-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
