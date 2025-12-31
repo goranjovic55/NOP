@@ -44,13 +44,13 @@ jobs:
           images: ${{ env.IMAGE_PREFIX }}-frontend
           tags: |
             type=raw,value=latest
-           latforms: linux/amd64,linux/arm64
-          p type=sha,prefix={{branch}}-
+            type=sha,prefix={{branch}}-
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
@@ -61,14 +61,14 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}-backend
           tags: |
-           latforms: linux/amd64,linux/arm64
-          p type=raw,value=latest
+            type=raw,value=latest
             type=sha,prefix={{branch}}-
 
       - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
