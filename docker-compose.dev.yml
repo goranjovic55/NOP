@@ -23,10 +23,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    network_mode: host
+    # TESTING: Disable host mode for devcontainer testing
+    # network_mode: host
+    ports:
+      - "12001:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@localhost:5432/nop
-      - REDIS_URL=redis://localhost:6379/0
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -38,6 +41,9 @@ services:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nop-internal
+      - test-network
     restart: unless-stopped
     privileged: true
     cap_add:
@@ -46,8 +52,8 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    ports:
-      - "127.0.0.1:5432:5432"
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_DB=nop
       - POSTGRES_USER=nop
