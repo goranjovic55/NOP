@@ -894,6 +894,7 @@ class SnifferService:
             
             # Send the packet(s)
             trace.append("Sending packet...")
+            trace.append(f"Packet summary: {packet.summary()}")
             start_time = time.time()
             
             # For continuous or multi-packet sending
@@ -990,7 +991,15 @@ class SnifferService:
                     }
                 else:
                     trace.append(f"No response received (timeout: {self.PACKET_SEND_TIMEOUT}s)")
-                    return {
+                    
+                    # Add helpful note about why there might be no response
+                    note = None
+                    if protocol == "TCP" and flags and "SYN" in flags:
+                        note = "Note: SYN packets may not receive responses if the target port is filtered by a firewall, the host is down, or the service is not listening. This is normal behavior for many hosts, especially public IPs like DNS servers (e.g., 8.8.8.8) which only respond to DNS queries on port 53."
+                    elif protocol == "UDP":
+                        note = "Note: UDP is connectionless. No response may indicate the port is open but the service doesn't respond to empty packets, or the port is filtered by a firewall."
+                    
+                    result = {
                         "success": True,
                         "sent_packet": {
                             "protocol": protocol,
@@ -1002,6 +1011,12 @@ class SnifferService:
                         "response": None,
                         "trace": trace
                     }
+                    
+                    if note:
+                        result["note"] = note
+                        trace.append(note)
+                    
+                    return result
                     
             except Exception as send_err:
                 trace.append(f"Error during send: {str(send_err)}")
