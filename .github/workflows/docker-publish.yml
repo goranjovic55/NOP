@@ -44,7 +44,8 @@ jobs:
           images: ${{ env.IMAGE_PREFIX }}-frontend
           tags: |
             type=raw,value=latest
-            type=sha,prefix={{branch}}-
+           latforms: linux/amd64,linux/arm64
+          p type=sha,prefix={{branch}}-
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -60,7 +61,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}-backend
           tags: |
-            type=raw,value=latest
+           latforms: linux/amd64,linux/arm64
+          p type=raw,value=latest
             type=sha,prefix={{branch}}-
 
       - name: Build and push backend

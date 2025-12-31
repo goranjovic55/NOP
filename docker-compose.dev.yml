@@ -1,11 +1,10 @@
 version: '3.8'
 
-# Production compose file using pre-built images from GHCR
-# Usage: docker-compose -f docker-compose.prod.yml up -d
-
 services:
   frontend:
-    image: ghcr.io/goranjovic55/nop-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "12000:3000"
     environment:
@@ -18,7 +17,9 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/goranjovic55/nop-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "12001:8000"
     environment:
@@ -47,17 +48,38 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
+      - POSTGRES_DB=nop
       - POSTGRES_USER=nop
       - POSTGRES_PASSWORD=nop_password
-      - POSTGRES_DB=nop
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - nop-internal
     restart: unless-stopped
 
+  guacd:
+    image: guacamole/guacd:latest
+    # Note: Remove platform line to auto-detect architecture (works on both ARM and x86_64)
+    # If you still get exec format error, manually set to your architecture:
+    # platform: linux/arm64  # For ARM64 devices like Radxa E54C
+    # platform: linux/amd64  # For x86_64 systems
+    networks:
+      - nop-internal
+      - test-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   redis:
     image: redis:7-alpine
+    volumes:
+      - redis_data:/data
     networks:
       - nop-internal
     restart: unless-stopped
@@ -66,7 +88,9 @@ networks:
   nop-internal:
     driver: bridge
   test-network:
-    driver: bridge
+    external: true
+    name: nop_test-network
 
 volumes:
   postgres_data:
+  redis_data:
