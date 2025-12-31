@@ -186,3 +186,9 @@ Summary | Decisions | Tools | Delegations | Files | Learnings
 ```
 
 **Max depth**: 3 levels
+
+**Statelessness Note**:
+- **Orchestrator (_DevTeam)**: Uses vertical stacking for user interrupts (stateful)
+- **Subagents (#runSubagent)**: Execute stateless, single-pass (no context sharing)
+- Subagents receive minimal context in delegation prompt, return one result
+- Stack depth applies to orchestrator only, not delegated work

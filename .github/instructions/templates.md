@@ -203,6 +203,62 @@ compliance_score: [0-100]
 
 ---
 
+## Delegation Prompt Template
+
+For #runSubagent invocations. Ensures explicit, self-contained, autonomous execution.
+
+```
+#runSubagent <Agent> "
+You are a <role> specialist. Task: <concise objective>
+
+Context:
+- <minimal required context>
+- <key constraints>
+
+Scope:
+- Include: <what to work on>
+- Exclude: <boundaries>
+
+Expected Return: <format from templates.md>
+- Use [RETURN: to=_DevTeam | result=<TYPE>] format
+- Include: <specific sections needed>
+
+Work autonomously. No questions back. Return one complete result.
+"
+```
+
+**6 Elements** (runSubagent best practices):
+1. **Role**: Specialist identity (Architect, Developer, Reviewer, Researcher)
+2. **Task**: Clear objective in 1-2 sentences
+3. **Context**: Minimal required information (not full chat history)
+4. **Scope**: Explicit boundaries (include/exclude)
+5. **Expected Return**: Reference template format (DESIGN_DECISION, IMPLEMENTATION_RESULT, etc.)
+6. **Autonomy**: "Work autonomously. No questions back."
+
+**Example**:
+```
+#runSubagent Architect "
+You are an architecture specialist. Task: Design JWT authentication with refresh tokens for FastAPI backend.
+
+Context:
+- Current auth: Basic password-only in backend/app/core/security.py
+- User model: backend/app/models/User.py with role-based access
+- JWT library: python-jose already in requirements.txt
+
+Scope:
+- Include: Token generation, refresh mechanism, expiry strategy
+- Exclude: Frontend integration (Developer will handle)
+
+Expected Return: DESIGN_DECISION format from .github/instructions/templates.md
+- Problem/Solution/Alternatives/Trade-offs sections
+- Update project_knowledge.json with new entities
+
+Work autonomously. No questions back. Return one complete design decision.
+"
+```
+
+---
+
 ## Knowledge Entry
 
 Format for `project_knowledge.json` and `global_knowledge.json` (JSONL).

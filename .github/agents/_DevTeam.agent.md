@@ -58,9 +58,24 @@ description: Orchestrates development by delegating to specialist agents. Define
 
 **Parallel** (independent tasks):
 ```
-#runSubagent Developer "Create API endpoints"
-#runSubagent Developer "Create database models"
+#runSubagent Developer "
+Create API endpoints for /api/v1/notifications.
+Context: User model exists, FastAPI router pattern in backend/app/api/
+Scope: CRUD operations only
+Return: IMPLEMENTATION_RESULT
+Work autonomously.
+"
+
+#runSubagent Developer "
+Create database models for notifications.
+Context: SQLAlchemy models in backend/app/models/
+Scope: Notification model with user relationship
+Return: IMPLEMENTATION_RESULT
+Work autonomously.
+"
 ```
+
+**Use parallel when**: Tasks are independent, no shared files, results don't depend on each other
 
 ---
 
