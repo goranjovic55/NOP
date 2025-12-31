@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
-from app.schemas.traffic import StormConfig
+from app.services.PingService import ping_service
+from app.schemas.traffic import StormConfig, PingRequest
 from pydantic import BaseModel
 import asyncio
 import json
@@ -11,9 +12,6 @@ import subprocess
 import time
 
 router = APIRouter()
-
-class PingRequest(BaseModel):
-    host: str
 
 @router.get("/interfaces")
 async def get_interfaces():
@@ -119,31 +117,89 @@ async def get_storm_metrics():
 
 @router.post("/ping")
 async def ping_host(request: PingRequest):
-    """Ping a host to check reachability"""
+    """Advanced ping supporting multiple protocols (ICMP, TCP, UDP, HTTP, DNS)"""
     try:
-        start_time = time.time()
-        result = subprocess.run(
-            ['ping', '-c', '1', '-W', '1', request.host],
-            capture_output=True,
-            text=True,
-            timeout=2
+        result = await ping_service.advanced_ping(
+            target=request.target,
+            protocol=request.protocol,
+            port=request.port,
+            count=request.count,
+            timeout=request.timeout,
+            packet_size=request.packet_size,
+            use_https=request.use_https
         )
-        latency = (time.time() - start_time) * 1000  # Convert to ms
-        
-        reachable = result.returncode == 0
-        
-        return {
-            "host": request.host,
-            "reachable": reachable,
-            "latency": latency if reachable else None,
-            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "host": request.host,
-            "reachable": False,
-            "latency": None,
-            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
-        }
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/traceroute")
+async def traceroute(target: str, max_hops: int = 30, timeout: int = 5, protocol: str = 'icmp'):
+    """Perform traceroute to show network path to target"""
+    try:
+        result = await ping_service.traceroute(
+            target=target,
+            max_hops=max_hops,
+            timeout=timeout,
+            protocol=protocol
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ping/stream")
+async def ping_stream(request: PingRequest):
+    """Stream ping results in real-time as packets arrive"""
+    
+    async def generate():
+        try:
+            # If include_route is requested, first do a traceroute
+            route_info = None
+            if getattr(request, 'include_route', False):
+                route_info = await ping_service.traceroute(
+                    target=request.target,
+                    max_hops=30,
+                    timeout=3,
+                    protocol=request.protocol if request.protocol in ['icmp', 'tcp', 'udp'] else 'icmp'
+                )
+            
+            # Send initial status with route if available
+            start_msg = {
+                'type': 'start', 
+                'target': request.target, 
+                'protocol': request.protocol
+            }
+            if route_info:
+                start_msg['route'] = route_info.get('hops', [])
+            
+            yield f"data: {json.dumps(start_msg)}\n\n"
+            
+            async for result in ping_service.streaming_ping(
+                target=request.target,
+                protocol=request.protocol,
+                port=request.port,
+                count=request.count,
+                timeout=request.timeout,
+                packet_size=request.packet_size,
+                use_https=request.use_https
+            ):
+                # Send each packet result as it arrives
+                yield f"data: {json.dumps({'type': 'packet', 'data': result})}\n\n"
+                
+            # Send completion
+            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )

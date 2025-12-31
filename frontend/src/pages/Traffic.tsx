@@ -125,6 +125,12 @@ interface PingResult {
   http_code?: string;
   error?: string;
   note?: string;
+  ttl?: number;
+  flags?: string;
+  ip_id?: number;
+  window?: number;
+  tcp_seq?: number;
+  tcp_ack?: number;
 }
 
 interface PingResponse {
@@ -188,6 +194,8 @@ const Traffic: React.FC = () => {
   const [pingTimeout, setPingTimeout] = useState('5');
   const [pingPacketSize, setPingPacketSize] = useState('56');
   const [pingUseHttps, setPingUseHttps] = useState(false);
+  const [pingShowRoute, setPingShowRoute] = useState(false);
+  const [pingRoute, setPingRoute] = useState<Array<{hop: number, ip: string | null, rtt_ms: number | null, status: string}>>([]);
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
   const [pingError, setPingError] = useState<string>('');
@@ -213,8 +221,8 @@ const Traffic: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch online assets when ping tab is active
-    if (activeTab === 'ping') {
+    // Fetch online assets when ping or craft tab is active
+    if (activeTab === 'ping' || activeTab === 'craft') {
       fetchOnlineAssets();
     }
   }, [activeTab, token]);
@@ -436,26 +444,45 @@ const Traffic: React.FC = () => {
 
     setPingError('');
     setPingInProgress(true);
-    setPingResults(null);
+    setPingRoute([]); // Clear previous route
+    setPingResults({
+      protocol: pingProtocol,
+      target: pingTarget,
+      count: parseInt(pingCount),
+      successful: 0,
+      failed: 0,
+      packet_loss: 0,
+      results: [],
+      timestamp: new Date().toISOString(),
+    });
+
+    const requestBody: any = {
+      target: pingTarget,
+      protocol: pingProtocol,
+      count: parseInt(pingCount),
+      timeout: parseInt(pingTimeout),
+      packet_size: parseInt(pingPacketSize),
+      include_route: pingShowRoute,
+    };
+
+    if (pingProtocol !== 'icmp' && pingPort) {
+      requestBody.port = parseInt(pingPort);
+    }
+
+    if (pingProtocol === 'http') {
+      requestBody.use_https = pingUseHttps;
+    }
 
     try {
-      const requestBody: any = {
-        target: pingTarget,
-        protocol: pingProtocol,
-        count: parseInt(pingCount),
-        timeout: parseInt(pingTimeout),
-        packet_size: parseInt(pingPacketSize),
-      };
+      // Use EventSource for Server-Sent Events
+      const params = new URLSearchParams();
+      Object.keys(requestBody).forEach(key => {
+        if (requestBody[key] !== undefined && requestBody[key] !== null) {
+          params.append(key, requestBody[key].toString());
+        }
+      });
 
-      if (pingProtocol !== 'icmp' && pingPort) {
-        requestBody.port = parseInt(pingPort);
-      }
-
-      if (pingProtocol === 'http') {
-        requestBody.use_https = pingUseHttps;
-      }
-
-      const response = await fetch('/api/v1/traffic/ping', {
+      const response = await fetch('/api/v1/traffic/ping/stream', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -465,12 +492,70 @@ const Traffic: React.FC = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Ping failed');
+        throw new Error('Failed to start ping stream');
       }
 
-      const result = await response.json();
-      setPingResults(result);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6));
+
+              if (data.type === 'start' && data.route) {
+                // Extract route information from start message
+                setPingRoute(data.route);
+              } else if (data.type === 'packet') {
+                // Real-time update - add packet to results
+                setPingResults(prev => {
+                  if (!prev) return prev;
+                  const newResults = [...(prev.results || []), data.data];
+                  const successful = newResults.filter(r => r.status === 'success').length;
+                  const failed = newResults.length - successful;
+                  const rtts = newResults.filter(r => r.time_ms).map(r => r.time_ms!);
+
+                  return {
+                    ...prev,
+                    results: newResults,
+                    successful,
+                    failed,
+                    packet_loss: prev.count ? (failed / prev.count) * 100 : 0,
+                    min_ms: rtts.length ? Math.min(...rtts) : undefined,
+                    max_ms: rtts.length ? Math.max(...rtts) : undefined,
+                    avg_ms: rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : undefined,
+                  };
+                });
+              } else if (data.type === 'error') {
+                setPingResults(prev => ({
+                  ...prev,
+                  error: data.error,
+                  protocol: pingProtocol,
+                  target: pingTarget,
+                  timestamp: new Date().toISOString(),
+                }));
+              }
+            } catch (parseErr) {
+              console.error('Failed to parse SSE data:', parseErr);
+            }
+          }
+        }
+      }
     } catch (err: any) {
       setPingResults({
         error: err.message || 'Failed to perform ping',
@@ -845,6 +930,22 @@ const Traffic: React.FC = () => {
                     </label>
                   )}
 
+                  {/* Show Route Toggle */}
+                  {(pingProtocol === 'icmp' || pingProtocol === 'tcp' || pingProtocol === 'udp') && (
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={pingShowRoute}
+                        onChange={(e) => setPingShowRoute(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                        {pingShowRoute && <span className="text-white text-xs">◆</span>}
+                      </div>
+                      <span className="text-xs text-cyber-purple font-bold uppercase">Show Route (Traceroute)</span>
+                    </label>
+                  )}
+
                   {/* Advanced Options */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
@@ -1054,43 +1155,96 @@ const Traffic: React.FC = () => {
                         )}
                       </div>
 
+                      {/* Network Route (Traceroute) */}
+                      {pingRoute.length > 0 && (
+                        <div className="bg-cyber-darker border border-cyber-purple p-4">
+                          <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Route (Traceroute)</h4>
+                          <div className="space-y-1">
+                            {pingRoute.map((hop, idx) => (
+                              <div key={idx} className="flex items-center gap-3 text-[11px] font-mono">
+                                <span className="text-cyber-gray-light w-8">#{hop.hop}</span>
+                                {hop.ip ? (
+                                  <>
+                                    <span className="text-cyber-cyan w-32">{hop.ip}</span>
+                                    <span className="text-cyber-green">{hop.rtt_ms} ms</span>
+                                  </>
+                                ) : (
+                                  <span className="text-cyber-yellow">* timeout *</span>
+                                )}
+                              </div>
+                            ))}
+                            <div className="flex items-center gap-3 text-[11px] font-mono mt-2 pt-2 border-t border-cyber-gray/30">
+                              <span className="text-cyber-gray-light w-8">→</span>
+                              <span className="text-cyber-green font-bold">{pingResults.target}</span>
+                              <span className="text-cyber-gray-light">(destination)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Individual Results */}
                       {pingResults.results && pingResults.results.length > 0 && (
                         <div className="bg-cyber-darker border border-cyber-blue p-4">
-                          <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Individual Results</h4>
+                          <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Packet Traversal Details</h4>
                           <div className="space-y-2">
                             {pingResults.results.map((result: PingResult, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between py-1 border-b border-cyber-gray/20">
-                                <span className="text-cyber-gray-light">
-                                  Seq {result.seq}:
-                                </span>
-                                <div className="flex items-center gap-4">
-                                  {result.status === 'success' && (
-                                    <>
-                                      <span className="text-cyber-green">✓ Success</span>
-                                      {result.time_ms !== undefined && (
-                                        <span className="text-cyber-blue">{result.time_ms} ms</span>
-                                      )}
-                                      {result.http_code && (
-                                        <span className="text-cyber-cyan">HTTP {result.http_code}</span>
-                                      )}
-                                    </>
-                                  )}
-                                  {result.status === 'sent' && (
-                                    <>
-                                      <span className="text-cyber-blue">→ Sent</span>
-                                      {result.time_ms !== undefined && (
-                                        <span className="text-cyber-blue">{result.time_ms} ms</span>
-                                      )}
-                                    </>
-                                  )}
-                                  {result.status === 'timeout' && (
-                                    <span className="text-cyber-yellow">⏱ Timeout</span>
-                                  )}
-                                  {result.status === 'failed' && (
-                                    <span className="text-cyber-red">✗ Failed</span>
-                                  )}
+                              <div key={idx} className="border border-cyber-gray/30 p-2 bg-black/30">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-cyber-gray-light font-bold">
+                                    Seq {result.seq}
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    {result.status === 'success' && (
+                                      <span className="text-cyber-green">✓</span>
+                                    )}
+                                    {result.time_ms !== undefined && (
+                                      <span className="text-cyber-blue font-bold">{result.time_ms} ms</span>
+                                    )}
+                                  </div>
                                 </div>
+                                {result.status === 'success' && (
+                                  <div className="grid grid-cols-3 gap-2 text-[10px] mt-2">
+                                    {result.ttl !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">TTL:</span>
+                                        <span className="text-cyber-cyan ml-1 font-bold">{result.ttl}</span>
+                                      </div>
+                                    )}
+                                    {result.flags && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">Flags:</span>
+                                        <span className="text-cyber-purple ml-1 font-bold">{result.flags}</span>
+                                      </div>
+                                    )}
+                                    {result.ip_id !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">IP ID:</span>
+                                        <span className="text-cyber-blue ml-1">{result.ip_id}</span>
+                                      </div>
+                                    )}
+                                    {result.window !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">Window:</span>
+                                        <span className="text-cyber-blue ml-1">{result.window}</span>
+                                      </div>
+                                    )}
+                                    {result.http_code && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">HTTP:</span>
+                                        <span className="text-cyber-cyan ml-1">{result.http_code}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {result.status === 'sent' && (
+                                  <span className="text-cyber-blue text-[10px]">→ Sent (UDP no ack)</span>
+                                )}
+                                {result.status === 'timeout' && (
+                                  <span className="text-cyber-yellow text-[10px]">⏱ Timeout</span>
+                                )}
+                                {result.status === 'failed' && (
+                                  <span className="text-cyber-red text-[10px]">✗ Failed {result.error}</span>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1116,7 +1270,7 @@ const Traffic: React.FC = () => {
       {/* Craft Packet Tab Content */}
       {activeTab === 'craft' && (
         <div className="flex-1 overflow-hidden">
-          <PacketCrafting />
+          <PacketCrafting assets={onlineAssets as any} />
         </div>
       )}
 

@@ -53,6 +53,15 @@ class PingRequest(BaseModel):
     timeout: int = 5
     packet_size: int = 56
     use_https: bool = False
+    include_route: bool = False  # Include traceroute information
+
+
+class TracerouteRequest(BaseModel):
+    """Traceroute request model"""
+    target: str
+    max_hops: int = 30
+    timeout: int = 5
+    protocol: str = 'icmp'  # icmp, tcp, udp
 
 
 class PingResponse(BaseModel):

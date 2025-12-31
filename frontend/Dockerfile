@@ -1,4 +1,4 @@
-# Build stage
+# Build stage - Multi-arch support (amd64/arm64)
 FROM node:18-alpine as build-stage
 WORKDIR /app
 
