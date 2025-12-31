@@ -117,6 +117,13 @@ async def update_settings(
             sniffer_service.set_filter_unicast(filter_unicast)
             sniffer_service.set_filter_multicast(filter_multicast)
             sniffer_service.set_filter_broadcast(filter_broadcast)
+            
+            # Restart sniffing if interface changed
+            interface_name = validated_config.get("interface_name", "eth0")
+            if sniffer_service.is_sniffing and sniffer_service.interface != interface_name:
+                sniffer_service.stop_sniffing()
+                sniffer_service.start_sniffing(interface_name, lambda x: None)
+
         
         return {
             "message": f"{category.capitalize()} settings updated successfully",

@@ -16,6 +16,7 @@ from app.api.websockets.router import websocket_router
 from app.services.SnifferService import sniffer_service
 from app.models.settings import Settings
 from sqlalchemy import select
+import psutil
 
 # Configure logging
 logging.basicConfig(
@@ -70,12 +71,18 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Failed to load discovery settings, using defaults: {e}")
         sniffer_service.set_track_source_only(True)
 
-    # Start sniffing in background
+    # Detect available network interfaces (don't auto-start sniffing)
     try:
-        sniffer_service.start_sniffing(settings.NETWORK_INTERFACE, lambda x: None)
-        logger.info(f"Traffic sniffer started on {settings.NETWORK_INTERFACE}")
+        interfaces = sniffer_service.get_interfaces()
+        available_ifaces = [i['name'] for i in interfaces if i['name'] != 'lo']
+        
+        if available_ifaces:
+            logger.info(f"Detected network interfaces: {', '.join(available_ifaces)}")
+            logger.info("Traffic sniffer ready. Select interface from Settings or Traffic page to start.")
+        else:
+            logger.warning("No network interfaces detected. Check network configuration.")
     except Exception as e:
-        logger.error(f"Failed to start traffic sniffer: {e}")
+        logger.warning(f"Could not detect network interfaces: {e}")
 
     
     yield
