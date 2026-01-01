@@ -1,174 +1,86 @@
-# 🔴 MANDATORY OUTPUT FORMAT - AKIS PROTOCOL
+# AKIS Framework
 
-**ALL responses MUST use this format. NOT optional.**
+**A**gents • **K**nowledge • **I**nstructions • **S**kills
+
+## Required Response Format
 
 ```
-[SESSION: task] @mode
+[SESSION: task] @AgentName
+[AKIS] entities=N | skills=X,Y | patterns=Z
 [PHASE: NAME | progress=N/7]
 <work>
-[COMPLETE] outcome | changed: files
+[COMPLETE] result | files: changed
 ```
 
-**REQUIRED markers**:
-- `[SESSION: task] @mode` → Start (always)
-- `[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]` → Phase tracking
-- `[COMPLETE]` → End (always)
-
-**Multi-file/cross-layer work REQUIRES**: `#runSubagent` delegation in _DevTeam mode
+**Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
 
 ---
 
-# Universal Agent Framework
+## 🔷 Agents (WHO)
 
-> **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
+**Load agent file ONLY when delegating.**
 
-## Session Boundaries
+| Agent | Role | When to Load |
+|-------|------|--------------|
+| _DevTeam | Orchestrator (delegates, never implements) | Complex tasks >30min |
+| Architect | Design, alternatives, trade-offs | Design decisions |
+| Developer | Code, tests, skill patterns | Implementation |
+| Reviewer | Validate, security, quality | Testing/validation |
+| Researcher | Investigate, document | Research tasks |
 
-**Start**:
-```
-[SESSION: task_description] @mode
-```
+**Path**: `.github/agents/{Name}.agent.md`
 
-**Finish**:
-```
-[COMPLETE] outcome | changed: files
-```
-
-**User interrupt**:
-```
-[PAUSE: current_task]
-[RESUME: original_task]
-```
+**Delegation**: `#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
 
 ---
 
-## Hierarchy
-```
-_DevTeam (Orchestrator)
-├── Architect  → Design, patterns
-├── Developer  → Code, debug
-├── Reviewer   → Test, validate
-└── Researcher → Investigate, document
-```
+## 🔷 Knowledge (WHAT)
 
-## Phase Flow
+**Load at session start**, query as needed.
 
-```
-[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
-```
+| File | Content |
+|------|---------|
+| `project_knowledge.json` | Entities, relations, codegraph (JSONL) |
+| `.github/global_knowledge.json` | Cross-project patterns |
 
-**Required**:
-- `[SESSION: task] @mode`
-- `[COMPLETE] outcome | changed: files`
-- `[PAUSE/RESUME]` on interrupts
-
-**Optional**:
-- `[DECISION: ?] → answer`
-- `[ATTEMPT #N] → ✓/✗`
-- `[→VERIFY]` before completion
-
-**Knowledge Loading**:
-- `.claude/skills.md` → `project_knowledge.json` → `global_knowledge.json`
-- No emission required
-- Reference skills inline when used
-
-## Delegation
-
-**Use #runSubagent when complexity justifies overhead**:
-- Complex design → Architect
-- Major implementation → Developer
-- Comprehensive testing → Reviewer
-- Investigation → Researcher
-
-**Don't delegate**: Quick fixes, simple edits
-
-## Nesting
-```
-[NEST: parent=<main> | child=<sub> | reason=<why>]
-[RETURN: to=<main> | result=<findings>]
-
-[STACK: push | task=<sub> | depth=N | parent=<main>]
-[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
-```
-
-## Interrupts
-```
-[PAUSE: task=<current> | phase=<phase>]
-[NEST: parent=<current> | child=<new> | reason=user-interrupt]
-[RETURN: to=<current> | result=<summary>]
-[RESUME: task=<current> | phase=<phase>]
-```
-
-## Learn Phase
-```
-[PHASE: LEARN | progress=6/7]
-```
-
-**Skill Discovery**: If session revealed reusable pattern, suggest new skill:
-```
-[SKILL_SUGGESTION: name=<SkillName> | category=<Quality|Process|Backend|Frontend|DevOps>]
-Trigger: <when to apply> | Pattern: <example> | Rules: <checklist>
-[/SKILL_SUGGESTION]
-```
-Add to `.claude/skills.md` or `.claude/skills/domain.md`
-
-## Knowledge
-```
-[KNOWLEDGE: added=N | updated=M | type=project|global]
-```
-
-**Format (JSONL)**:
+**Format**:
 ```json
-{"type":"entity","name":"Project.Domain.Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD"]}
-{"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
-{"type":"relation","from":"A","to":"B","relationType":"USES"}
+{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc, upd:YYYY-MM-DD"]}
+{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
+{"type":"codegraph","name":"file.ext","dependencies":["X"],"dependents":["Y"]}
 ```
 
-**Files**: `project_knowledge.json` (root) | `global_knowledge.json` (.github/)
+**Emit**: `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-## Completion
-```
-[COMPLETE: task=<desc> | result=<summary> | learnings=N]
+---
 
-[WORKFLOW_LOG: task=<desc>]
-Summary | Decision Diagram | Agent Interactions | Files | Quality Gates | Learnings
-[/WORKFLOW_LOG]
-```
+## 🔷 Instructions (HOW)
 
-**Before [COMPLETE]**:
-- [ ] Task objective met
-- [ ] Files changed as expected
-- [ ] Tests pass (if code changes)
-- [ ] Workflow log created (significant work only)
+**Load instruction file ONLY when relevant.**
 
-**Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task-slug.md`
-- Document key decisions and outcomes
-- 30-50 lines target (not exhaustive ceremony)
+| File | When to Load |
+|------|--------------|
+| `phases.md` | Every task (7-phase flow) |
+| `protocols.md` | Delegation, interrupts |
+| `templates.md` | Output formatting |
+| `structure.md` | Architecture tasks |
 
-## Quality Gates
+**Path**: `.github/instructions/{file}.md`
 
-| Gate | Owner | Check |
-|------|-------|-------|
-| Context | Orchestrator | Knowledge loaded |
-| Design | Architect | Alternatives considered |
-| Code | Developer | Tests pass, linters pass, builds succeed |
-| Quality | Reviewer | Standards met |
+**Phases**: CONTEXT(1) → PLAN(2) → COORDINATE(3) → INTEGRATE(4) → VERIFY(5) → LEARN(6) → COMPLETE(7)
 
-**User Confirmation Gate**:
-```
-[VERIFY: complete | awaiting user confirmation]
-→ PAUSE: Confirm testing passed before proceeding to LEARN/COMPLETE
-```
+**Skip**: Quick fix (1→4→5→7), Q&A (1→7)
 
-## Drift Detection
+---
 
-**Auto-detected**:
-- Missing `[SESSION:]` before edits
-- Missing `[COMPLETE]`
-- Loops (3+ failed attempts)
-- Mode violations
+## 🔷 Skills (PATTERNS)
 
-**Optional visibility**:
-- `[DECISION: ?] → answer`
-- `[ATTEMPT #N] → ✓/✗`
-- `[→VERIFY]`
+**Load skill when task matches**: API/REST → `backend-api` | React/UI → `frontend-react` | Tests → `testing` | Auth/secrets → `security` | Errors → `error-handling` | Docker → `infrastructure` | Git → `git-deploy`
+
+**Path**: `.github/skills/{name}/SKILL.md` (When to Use, Pattern, Checklist, Examples)
+
+---
+
+## Portability
+
+Copy `.github/` + empty `project_knowledge.json`. **Limits**: instructions <50, agents <50, skills <100 lines
