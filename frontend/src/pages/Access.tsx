@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 type AccessMode = 'login' | 'exploit';
 

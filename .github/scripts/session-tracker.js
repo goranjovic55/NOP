@@ -28,14 +28,17 @@ class SessionTracker {
             id: Date.now().toString(),
             startTime: new Date().toISOString(),
             task: sessionData.task || 'Unknown task',
+            userRequest: sessionData.userRequest || sessionData.task || 'Unknown request',
             agent: sessionData.agent || 'Unknown',
             status: 'active',
             phase: 'CONTEXT',
             progress: '1/0',
+            stackDepth: 0,
             decisions: [],
             emissions: [],
             delegations: [],
             skills: [],
+            interrupts: [],
             ...sessionData
         };
 
@@ -101,12 +104,13 @@ class SessionTracker {
     /**
      * Update session phase
      */
-    phase(phaseName, progress) {
+    phase(phaseName, progress, description) {
         this.emit({
             type: 'PHASE',
             phase: phaseName,
             progress: progress || this.getProgressFromPhase(phaseName),
-            content: phaseName
+            content: phaseName,
+            description: description || this.getPhaseDescription(phaseName)
         });
     }
 
@@ -143,7 +147,8 @@ class SessionTracker {
     }
 
     /**
-     * Complete the session and clean up
+     * Complete the session and save final state
+     * Note: File is NOT deleted and will be committed with the workflow
      */
     complete(workflowLogPath) {
         if (fs.existsSync(this.sessionPath)) {
@@ -152,16 +157,9 @@ class SessionTracker {
             session.endTime = new Date().toISOString();
             session.workflowLog = workflowLogPath;
 
-            // Write final state
+            // Write final state - file persists for commit
             fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-
-            // Delete after a short delay to allow extension to capture final state
-            setTimeout(() => {
-                if (fs.existsSync(this.sessionPath)) {
-                    fs.unlinkSync(this.sessionPath);
-                    console.log(`Session tracking file removed: ${SESSION_FILE}`);
-                }
-            }, 3000);
+            console.log(`Session completed and saved to ${SESSION_FILE}`);
         }
     }
 
@@ -173,6 +171,75 @@ class SessionTracker {
             return JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
         }
         return null;
+    }
+
+    /**
+     * Push interrupt (stack-based vertical workflow)
+     */
+    push(reason) {
+        if (!fs.existsSync(this.sessionPath)) {
+            console.error('No active session. Call start() first.');
+            return;
+        }
+
+        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        session.stackDepth = (session.stackDepth || 0) + 1;
+        
+        if (!session.interrupts) session.interrupts = [];
+        session.interrupts.push({
+            type: 'PUSH',
+            depth: session.stackDepth,
+            reason,
+            timestamp: new Date().toISOString()
+        });
+        // Save session with updated stackDepth before emitting
+        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+        this.emit({
+            type: 'INTERRUPT',
+            content: `[STACK: push] ${reason}`,
+            depth: session.stackDepth
+        });
+
+        console.log(`Interrupt pushed (depth: ${session.stackDepth})`);
+    }
+
+    /**
+     * Pop interrupt (return from vertical workflow)
+     */
+    pop(result) {
+        if (!fs.existsSync(this.sessionPath)) {
+            console.error('No active session. Call start() first.');
+            return;
+        }
+
+        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        const currentDepth = session.stackDepth || 0;
+        
+        if (currentDepth === 0) {
+            console.warn('Cannot pop: stack is empty');
+            return;
+        }
+
+        session.stackDepth = currentDepth - 1;
+        
+        if (!session.interrupts) session.interrupts = [];
+        session.interrupts.push({
+            type: 'POP',
+            depth: session.stackDepth,
+            result,
+            timestamp: new Date().toISOString()
+        });
+
+        // Save session with updated stackDepth before emitting
+        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+
+        this.emit({
+            type: 'INTERRUPT',
+            content: `[STACK: pop] ${result || 'Resumed'}`,
+            depth: session.stackDepth
+        });
+
+        console.log(`Interrupt popped (depth: ${session.stackDepth})`);
     }
 
     /**
@@ -190,6 +257,22 @@ class SessionTracker {
         };
         return phaseMap[phaseName] || '0/0';
     }
+
+    /**
+     * Get human-readable phase description
+     */
+    getPhaseDescription(phaseName) {
+        const descriptions = {
+            'CONTEXT': 'Loading knowledge, skills, and understanding requirements',
+            'PLAN': 'Designing approach and selecting appropriate patterns',
+            'COORDINATE': 'Delegating to specialists or preparing tools',
+            'INTEGRATE': 'Executing implementation and making changes',
+            'VERIFY': 'Testing, validating, and checking for errors',
+            'LEARN': 'Updating knowledge base and documenting changes',
+            'COMPLETE': 'Finalizing work and awaiting user verification'
+        };
+        return descriptions[phaseName] || 'Working on task';
+    }
 }
 
 // CLI usage
@@ -202,13 +285,14 @@ if (require.main === module) {
         case 'start':
             tracker.start({
                 task: args[1] || 'Task',
-                agent: args[2] || 'Agent'
+                agent: args[2] || 'Agent',
+                userRequest: args[3]
             });
             console.log('Session started');
             break;
 
         case 'phase':
-            tracker.phase(args[1], args[2]);
+            tracker.phase(args[1], args[2], args[3]);
             console.log(`Phase updated: ${args[1]}`);
             break;
 
@@ -227,6 +311,14 @@ if (require.main === module) {
             console.log('Skills recorded');
             break;
 
+        case 'push':
+            tracker.push(args.slice(1).join(' '));
+            break;
+
+        case 'pop':
+            tracker.pop(args.slice(1).join(' '));
+            break;
+
         case 'complete':
             tracker.complete(args[1]);
             console.log('Session completed');
@@ -241,18 +333,22 @@ if (require.main === module) {
 AKIS Session Tracker
 
 Usage:
-  node session-tracker.js start <task> <agent>
-  node session-tracker.js phase <PHASE_NAME> [progress]
+  node session-tracker.js start <task> <agent> [userRequest]
+  node session-tracker.js phase <PHASE_NAME> [progress] [description]
   node session-tracker.js decision <description>
   node session-tracker.js delegate <agent> <task>
   node session-tracker.js skills <skill1, skill2, ...>
+  node session-tracker.js push <reason>
+  node session-tracker.js pop [result]
   node session-tracker.js complete [workflow_log_path]
   node session-tracker.js get
 
 Example:
-  node session-tracker.js start "Add new feature" "_DevTeam"
-  node session-tracker.js phase CONTEXT "1/0"
+  node session-tracker.js start "Add new feature" "_DevTeam" "User wants X"
+  node session-tracker.js phase CONTEXT "1/0" "Loading project knowledge"
   node session-tracker.js decision "Use session tracking file"
+  node session-tracker.js push "Handle urgent bug fix"
+  node session-tracker.js pop "Bug fixed, resuming"
   node session-tracker.js complete "log/workflow/2026-01-01_163900_task.md"
             `);
     }

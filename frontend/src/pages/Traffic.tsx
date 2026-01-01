@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 interface Packet {
   id: string;

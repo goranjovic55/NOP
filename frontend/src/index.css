@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import AKIS Design System */
+@import './styles/design-system.css';
+
 * {
   box-sizing: border-box;
 }

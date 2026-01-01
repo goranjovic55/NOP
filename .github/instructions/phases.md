@@ -14,6 +14,20 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 
 **Emit**: `[PHASE: NAME | progress=H/V]` (H=phase 1-7, V=depth 0-3)
 
+**Todo Mapping**: Create todos using phase names for tracking:
+- CONTEXT phase → "Analyze/Load/Research [subject]"
+- PLAN phase → "Design/Plan [approach]"
+- COORDINATE phase → "Delegate/Prepare [task]"
+- INTEGRATE phase → "Implement/Execute [feature]"
+- VERIFY phase → "Test/Validate [result]"
+- LEARN phase → "Update knowledge/Document [changes]"
+- COMPLETE phase → "Finalize/Review [deliverable]"
+
+**Synchronization Rule**: When marking todo in-progress, emit phase first:
+```
+manage_todo_list(mark #N in-progress) → session-tracker.js phase NAME → do work
+```
+
 ## Phase Actions
 
 | # | Phase | Action | Emit |
@@ -24,7 +38,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | 4 | INTEGRATE | Execute work | - |
 | 5 | VERIFY | Test, validate | `[→VERIFY]` + wait |
 | 6 | LEARN | Update knowledge | `[AKIS_UPDATED]` |
-| 7 | COMPLETE | Emit completion | `[COMPLETE]` |
+| 7 | COMPLETE | **Ask user for verification** | `[COMPLETE]` after approval |
 
 ## Blocking Gates
 
@@ -32,7 +46,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 |-------|------|------|
 | CONTEXT | `[AKIS]` | Cannot proceed until emitted |
 | VERIFY | User confirmation | Must wait before LEARN |
-| COMPLETE | Task finished | Required for all sessions |
+| COMPLETE | **USER VERIFICATION** | **MANDATORY: Ask user to confirm before marking complete** |
 
 ## Skip Phases
 

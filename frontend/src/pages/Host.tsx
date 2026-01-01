@@ -6,6 +6,7 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import ProtocolConnection from '../components/ProtocolConnection';
 import { useAccessStore, Protocol } from '../store/accessStore';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 const Host: React.FC = () => {
   const { token, logout } = useAuthStore();

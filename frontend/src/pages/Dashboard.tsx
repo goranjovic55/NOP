@@ -4,6 +4,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import ForceGraph2D from 'react-force-graph-2d';
 import { dashboardService, SystemEvent } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { Card, CardHeader, CardTitle, Badge, Button } from '../components/DesignSystem';
 
 // Time ago helper
 const formatTimeAgo = (timestamp: string): string => {

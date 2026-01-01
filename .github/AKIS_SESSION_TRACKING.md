@@ -53,13 +53,17 @@ node .github/scripts/session-tracker.js skills "frontend-react, ui-components"
 
 ### 3. Complete Session
 
-When writing the workflow log (`[COMPLETE]` phase), clean up the session file:
+When writing the workflow log (`[COMPLETE]` phase), finalize the session:
 
 ```bash
 node .github/scripts/session-tracker.js complete "log/workflow/2026-01-01_163900_task.md"
 ```
 
-This marks the session as completed and auto-deletes the file after 3 seconds.
+This marks the session as completed. **The file is NOT deleted and should be committed** with the workflow log to preserve session details in git history.
+
+### 4. New Session Behavior
+
+When starting a new session, the `start` command will **overwrite** any existing `.akis-session.json` file (not append). This ensures each session is tracked independently.
 
 ## File Format
 
