@@ -29,7 +29,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
       - REDIS_URL=redis://172.28.0.11:6379/0
-      - GUACD_HOST=localhost
+      - GUACD_HOST=172.28.0.12
       - GUACD_PORT=4822
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
@@ -66,7 +66,10 @@ services:
   guacd:
     image: guacamole/guacd:latest
     container_name: nop-guacd
-    network_mode: host
+    networks:
+      nop-internal:
+        ipv4_address: 172.28.0.12
+      test-network:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
