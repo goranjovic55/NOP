@@ -5,6 +5,8 @@ import { assetService, Asset } from '../services/assetService';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const API_BASE_URL = '';
+
 // Memoized asset list item to prevent re-renders on filter input change
 interface AssetListItemProps {
   asset: Asset & { has_been_scanned?: boolean; last_detailed_scan?: string | null };
@@ -334,103 +336,130 @@ const Scans: React.FC = () => {
     setVulnerabilities(tabId, []);
 
     try {
+      addLog(tabId, `[*] Starting vulnerability scan on ${tab.ip}...`);
+      addLog(tabId, `[*] Step 1/2: Detecting service versions on ports ${portList}...`);
+
+      // Step 1: Detect service versions using nmap -sV
+      const versionResponse = await fetch(`${API_BASE_URL}/api/v1/scans/vuln-scan-${tabId}/version-detection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          host: tab.ip,
+          ports: portsToScan
+        })
+      });
+
+      if (!versionResponse.ok) {
+        throw new Error(`Version detection failed: ${versionResponse.statusText}`);
+      }
+
+      const versionData = await versionResponse.json();
+      addLog(tabId, `[+] Found ${versionData.services.length} services`);
       
-      // Simulate vulnerability scanning delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Log detected services
+      versionData.services.forEach((svc: any) => {
+        const product = svc.product || 'unknown';
+        const version = svc.version || 'unknown';
+        addLog(tabId, `    Port ${svc.port}: ${product} ${version}`);
+      });
+
+      addLog(tabId, `[*] Step 2/2: Looking up CVEs for detected services...`);
+
+      // Step 2: Lookup CVEs for each service
+      const foundVulnerabilities: Vulnerability[] = [];
       
-      const mockVulnerabilities: Vulnerability[] = [];
-      
-      if (portsToScan && portsToScan.length > 0) {
-        // Check for SSH vulnerabilities
-        if (portsToScan.includes(22)) {
-          mockVulnerabilities.push({
-            id: 'vuln-1',
-            cve_id: 'CVE-2023-5678',
-            title: 'OpenSSH Remote Code Execution',
-            description: 'Critical vulnerability in OpenSSH allowing remote code execution',
-            severity: 'critical',
-            cvss_score: 9.8,
-            affected_service: 'ssh',
-            affected_port: 22,
-            exploit_available: true,
-            exploit_module: 'openssh_rce',
-            source_database: 'cve'
-          });
+      for (const service of versionData.services) {
+        if (!service.product || !service.version) {
+          continue;
         }
-        
-        // Check for HTTP vulnerabilities
-        if (portsToScan.includes(80) || portsToScan.includes(8080)) {
-          const port = portsToScan.includes(80) ? 80 : 8080;
-          mockVulnerabilities.push({
-            id: 'vuln-2',
-            cve_id: 'CVE-2023-9101',
-            title: 'Jenkins CLI Remote Code Execution',
-            description: 'Unauthenticated RCE in Jenkins CLI interface',
-            severity: 'high',
-            cvss_score: 8.5,
-            affected_service: 'http',
-            affected_port: port,
-            exploit_available: true,
-            exploit_module: 'jenkins_cli_rce',
-            source_database: 'cve'
+
+        try {
+          const cveResponse = await fetch(`${API_BASE_URL}/api/v1/vulnerabilities/lookup-cve`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              product: service.product.toLowerCase(),
+              version: service.version,
+              vendor: service.vendor || null
+            })
           });
-        }
-        
-        // Check for FTP vulnerabilities
-        if (portsToScan.includes(21)) {
-          mockVulnerabilities.push({
-            id: 'vuln-3',
-            cve_id: 'CVE-2023-1234',
-            title: 'ProFTPD Remote Code Execution',
-            description: 'Buffer overflow in ProFTPD mod_copy module',
-            severity: 'critical',
-            cvss_score: 9.1,
-            affected_service: 'ftp',
-            affected_port: 21,
-            exploit_available: true,
-            exploit_module: 'proftpd_modcopy_exec',
-            source_database: 'metasploit'
-          });
-        }
-        
-        // Check for SMB vulnerabilities
-        if (portsToScan.includes(445)) {
-          mockVulnerabilities.push({
-            id: 'vuln-4',
-            cve_id: 'CVE-2017-0144',
-            title: 'EternalBlue SMB Remote Code Execution',
-            description: 'Critical vulnerability in SMBv1 exploited by WannaCry',
-            severity: 'critical',
-            cvss_score: 9.3,
-            affected_service: 'smb',
-            affected_port: 445,
-            exploit_available: true,
-            exploit_module: 'eternalblue',
-            source_database: 'exploit_db'
-          });
-        }
-        
-        // Check for MySQL vulnerabilities
-        if (portsToScan.includes(3306)) {
-          mockVulnerabilities.push({
-            id: 'vuln-5',
-            cve_id: 'CVE-2023-21980',
-            title: 'MySQL Authentication Bypass',
-            description: 'Authentication bypass allowing unauthorized access',
-            severity: 'high',
-            cvss_score: 8.1,
-            affected_service: 'mysql',
-            affected_port: 3306,
-            exploit_available: true,
-            exploit_module: 'mysql_auth_bypass',
-            source_database: 'cve'
-          });
+
+          if (cveResponse.ok) {
+            const cveData = await cveResponse.json();
+            
+            if (cveData.cves && cveData.cves.length > 0) {
+              addLog(tabId, `[*] Found ${cveData.cves.length} CVE(s) for ${service.product} ${service.version}, checking for exploits...`);
+              
+              // Check each CVE for available exploits
+              let exploitableCount = 0;
+              for (const cve of cveData.cves) {
+                try {
+                  // Query exploit availability
+                  const exploitResponse = await fetch(`${API_BASE_URL}/api/v1/vulnerabilities/exploits/${cve.cve_id}`, {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+
+                  if (exploitResponse.ok) {
+                    const exploits = await exploitResponse.json();
+                    
+                    // Only add CVE if it has exploits
+                    if (exploits && exploits.length > 0) {
+                      exploitableCount++;
+                      foundVulnerabilities.push({
+                        id: cve.cve_id,
+                        cve_id: cve.cve_id,
+                        title: cve.title || `Vulnerability in ${service.product}`,
+                        description: cve.description || 'No description available',
+                        severity: cve.severity || 'medium',
+                        cvss_score: cve.cvss_score || 0,
+                        affected_service: service.name || service.product,
+                        affected_port: parseInt(service.port),
+                        exploit_available: true,
+                        exploit_module: exploits[0].module_id || exploits[0].module_path,
+                        source_database: 'cve'
+                      });
+                    }
+                  }
+                } catch (exploitError) {
+                  // Skip CVEs without exploits
+                  continue;
+                }
+              }
+              
+              if (exploitableCount > 0) {
+                addLog(tabId, `[+] Found ${exploitableCount} exploitable CVE(s) for ${service.product} ${service.version}`);
+              } else {
+                addLog(tabId, `[-] No exploitable CVEs found for ${service.product} ${service.version}`);
+              }
+            } else {
+              addLog(tabId, `[-] No CVEs found for ${service.product} ${service.version}`);
+            }
+          }
+        } catch (cveError) {
+          console.error(`CVE lookup failed for ${service.product}:`, cveError);
+          addLog(tabId, `[!] CVE lookup failed for ${service.product} ${service.version}`);
         }
       }
+
+      if (foundVulnerabilities.length > 0) {
+        addLog(tabId, `[+] Vulnerability scan complete: Found ${foundVulnerabilities.length} exploitable vulnerability(ies)`);
+      } else {
+        addLog(tabId, `[*] Vulnerability scan complete: No exploitable vulnerabilities found`);
+      }
       
-      setVulnerabilities(tabId, mockVulnerabilities);
-    } catch (error) {
+      setVulnerabilities(tabId, foundVulnerabilities);
+    } catch (error: any) {
       console.error('Vulnerability scan failed:', error);
+      addLog(tabId, `[ERROR] Vulnerability scan failed: ${error.message}`);
     } finally {
       setVulnScanning(tabId, false);
     }

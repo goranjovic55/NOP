@@ -1,190 +1,97 @@
+version: '3.8'
+
 services:
   frontend:
-    image: ghcr.io/goranjovic55/nop-frontend:latest
-    pull_policy: always
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "12000:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_WS_URL=ws://localhost:8000
+      - REACT_APP_API_URL=
+      - REACT_APP_WS_URL=
     depends_on:
       - backend
     networks:
       - nop-internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   backend:
-    build: ./backend
-    image: nop-backend:local
-    network_mode: host
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "12001:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
-      - REDIS_URL=redis://172.28.0.11:6379/0
-      - GUACD_HOST=127.0.0.1
-      - GUACD_PORT=14822
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
+      - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
-      - VNC_HOST=172.21.0.51
-      - RDP_HOST=172.21.0.50
-      - NVD_API_KEY=${NVD_API_KEY:-}
+      - VNC_HOST=nop-custom-vnc
+      - RDP_HOST=nop-custom-rdp
     depends_on:
       - postgres
       - redis
-      - guacd
     volumes:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nop-internal
+      - test-network
     restart: unless-stopped
     privileged: true
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    # NETWORK ISOLATION NOTES:
-    # - Backend runs in host network mode for raw socket access
-    # - By default, has full network access including internet
-    # - For production, consider restricting egress to:
-    #   1. NVD API: services.nvd.nist.gov (port 443)
-    #   2. Internal services: postgres (172.28.0.10:5432), redis (172.28.0.11:6379)
-    #   3. Test network: 172.21.0.0/16
-    # - Use iptables or network policies for egress filtering:
-    #   iptables -A OUTPUT -d services.nvd.nist.gov -p tcp --dport 443 -j ACCEPT
-    #   iptables -A OUTPUT -d 172.28.0.0/16 -j ACCEPT
-    #   iptables -A OUTPUT -d 172.21.0.0/16 -j ACCEPT
-    #   iptables -A OUTPUT -j DROP
-    # - Alternatively, use Docker network with custom bridge + egress gateway
 
   postgres:
     image: postgres:15-alpine
-    container_name: nop-postgres
     environment:
+      - POSTGRES_DB=nop
       - POSTGRES_USER=nop
       - POSTGRES_PASSWORD=nop_password
-      - POSTGRES_DB=nop
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      nop-internal:
-        ipv4_address: 172.28.0.10
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: nop-redis
-    networks:
-      nop-internal:
-        ipv4_address: 172.28.0.11
+      - nop-internal
     restart: unless-stopped
 
   guacd:
-    image: ghcr.io/goranjovic55/nop-guacd:latest
-    container_name: nop-guacd
-    network_mode: host
-    environment:
-      - GUACD_LOG_LEVEL=info
-    entrypoint: ["/usr/local/sbin/guacd", "-b", "127.0.0.1", "-l", "14822", "-f"]
+    image: guacamole/guacd:latest
+    # Note: Remove platform line to auto-detect architecture (works on both ARM and x86_64)
+    # If you still get exec format error, manually set to your architecture:
+    # platform: linux/arm64  # For ARM64 devices like Radxa E54C
+    # platform: linux/amd64  # For x86_64 systems
+    networks:
+      - nop-internal
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 14822 || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # Vulnerable Test Hosts for Scanning & Exploitation
-  vulnerable-ssh:
-    build: ./test-environment/ssh-server
-    container_name: vulnerable-ssh
-    hostname: ssh-server
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
     networks:
-      test-network:
-        ipv4_address: 172.21.0.10
-    restart: unless-stopped
-
-  vulnerable-web:
-    build: ./test-environment/web-server
-    container_name: vulnerable-web
-    hostname: web-server
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.20
-    restart: unless-stopped
-
-  vulnerable-ftp:
-    build: ./test-environment/ftp-server
-    container_name: vulnerable-ftp
-    hostname: ftp-server
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.30
-    restart: unless-stopped
-
-  vulnerable-db:
-    build: ./test-environment/database-server
-    container_name: vulnerable-db
-    hostname: database-server
-    environment:
-      - MYSQL_ROOT_PASSWORD=root123
-      - MYSQL_DATABASE=testdb
-      - MYSQL_USER=dbuser
-      - MYSQL_PASSWORD=dbpass123
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.40
-    restart: unless-stopped
-
-  vulnerable-vnc:
-    build: ./test-environment/vnc-server
-    container_name: vulnerable-vnc
-    hostname: vnc-server
-    environment:
-      - VNC_PASSWORD=password
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.50
-    restart: unless-stopped
-
-  vulnerable-rdp:
-    build: ./test-environment/rdp-server
-    container_name: vulnerable-rdp
-    hostname: rdp-server
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.60
-    restart: unless-stopped
-
-  vulnerable-smb:
-    build: ./test-environment/file-server
-    container_name: vulnerable-smb
-    hostname: file-server
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.70
-    restart: unless-stopped
-
-  vulnerable-apache:
-    image: httpd:2.4.41
-    container_name: vulnerable-apache
-    hostname: apache-server
-    networks:
-      test-network:
-        ipv4_address: 172.21.0.80
+      - nop-internal
     restart: unless-stopped
 
 networks:
   nop-internal:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
   test-network:
+    external: true
+    name: test-environment_test-network
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.0/16
-          gateway: 172.21.0.1
 
 volumes:
   postgres_data:
+  redis_data:

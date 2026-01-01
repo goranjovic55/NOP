@@ -150,6 +150,8 @@ class CVELookupService:
             # Build CPE URI for query
             cpe_uri = self._build_cpe_uri(vendor, product, version)
             
+            logger.info(f"Querying NVD for CPE: {cpe_uri}")
+            
             # Query NVD API
             data = await self._fetch_by_cpe(cpe_uri)
             return data
@@ -427,7 +429,32 @@ class CVELookupService:
         return None
     
     def _build_cpe_uri(self, vendor: Optional[str], product: str, version: str) -> str:
-        """Build CPE URI for querying"""
+        """
+        Build CPE URI for querying
+        Maps common nmap product names to NVD CPE names
+        """
+        # Product name mapping: nmap -> (vendor, cpe_product)
+        product_map = {
+            "apache httpd": ("apache", "http_server"),
+            "apache": ("apache", "http_server"),
+            "nginx": ("nginx", "nginx"),
+            "openssh": ("openbsd", "openssh"),
+            "mysql": ("mysql", "mysql"),
+            "mariadb": ("mariadb", "mariadb"),
+            "postgresql": ("postgresql", "postgresql"),
+            "vsftpd": ("vsftpd_project", "vsftpd"),
+            "proftpd": ("proftpd", "proftpd"),
+        }
+        
+        # Check if product needs mapping
+        product_lower = product.lower()
+        if product_lower in product_map:
+            mapped_vendor, mapped_product = product_map[product_lower]
+            # Use mapped vendor if not provided
+            if not vendor:
+                vendor = mapped_vendor
+            product = mapped_product
+        
         vendor_part = vendor or "*"
         return f"cpe:2.3:a:{vendor_part}:{product}:{version}:*:*:*:*:*:*:*"
     

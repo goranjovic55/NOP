@@ -192,9 +192,10 @@ class VersionDetectionService:
     async def _update_asset_services(self, host: str, services: List[Dict[str, Any]]):
         """Update asset's services field in database"""
         try:
-            # Find asset by IP
+            # Find asset by IP (cast to text for comparison with inet type)
+            from sqlalchemy import cast, Text
             result = await self.db.execute(
-                select(Asset).where(Asset.ip_address == host)
+                select(Asset).where(cast(Asset.ip_address, Text) == host)
             )
             asset = result.scalar_one_or_none()
             
@@ -217,26 +218,43 @@ class VersionDetectionService:
     def build_product_query(self, service: Dict[str, Any]) -> Optional[Dict[str, str]]:
         """
         Build product/version query from service data
+        Maps nmap product names to NVD CPE names
         
         Returns:
             Dict with vendor, product, version or None
         """
-        product = service.get("product", "").lower()
+        nmap_product = service.get("product", "").lower()
         version = service.get("version", "")
         
-        if not product or not version:
+        if not nmap_product or not version:
             return None
         
-        # Parse vendor from product name (simple heuristic)
-        vendor = None
-        if "apache" in product.lower():
-            vendor = "apache"
-        elif "nginx" in product.lower():
-            vendor = "nginx"
-        elif "openssh" in product.lower():
-            vendor = "openbsd"
-        elif "microsoft" in product.lower():
-            vendor = "microsoft"
+        # Product name mapping: nmap -> (vendor, cpe_product)
+        product_map = {
+            "apache httpd": ("apache", "http_server"),
+            "apache": ("apache", "http_server"),
+            "nginx": ("nginx", "nginx"),
+            "openssh": ("openbsd", "openssh"),
+            "microsoft-iis": ("microsoft", "internet_information_services"),
+            "iis": ("microsoft", "internet_information_services"),
+            "mysql": ("mysql", "mysql"),
+            "mariadb": ("mariadb", "mariadb"),
+            "postgresql": ("postgresql", "postgresql"),
+            "vsftpd": ("vsftpd_project", "vsftpd"),
+            "proftpd": ("proftpd", "proftpd"),
+        }
+        
+        # Try exact match first
+        if nmap_product in product_map:
+            vendor, product = product_map[nmap_product]
+        else:
+            # Try partial match
+            vendor = None
+            product = nmap_product
+            for key, (v, p) in product_map.items():
+                if key in nmap_product:
+                    vendor, product = v, p
+                    break
         
         return {
             "vendor": vendor,
