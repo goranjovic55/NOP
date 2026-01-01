@@ -9,6 +9,7 @@ from typing import Optional, List
 import json
 import asyncio
 import time
+import os
 from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
 from app.services.access_hub import access_hub
@@ -362,8 +363,10 @@ async def guacamole_tunnel(
     await websocket.accept(subprotocol=subprotocol)
     logger.debug(f"[ACCESS-TUNNEL] WebSocket accepted")
     
-    # guacd hostname is the service name in docker-compose
-    tunnel = GuacamoleTunnel("guacd", 4822)
+    # Get guacd connection details from environment
+    guacd_host = os.getenv("GUACD_HOST", "guacd")
+    guacd_port = int(os.getenv("GUACD_PORT", "4822"))
+    tunnel = GuacamoleTunnel(guacd_host, guacd_port)
     
     connection_args = {
         "hostname": host,
@@ -464,7 +467,10 @@ async def http_tunnel_connect(
     session_id = str(uuid_module.uuid4())
     logger.info(f"[HTTP-TUNNEL] Creating session {session_id} for {protocol}://{host}:{port}")
     
-    tunnel = GuacamoleTunnel("guacd", 4822)
+    # Get guacd connection details from environment
+    guacd_host = os.getenv("GUACD_HOST", "guacd")
+    guacd_port = int(os.getenv("GUACD_PORT", "4822"))
+    tunnel = GuacamoleTunnel(guacd_host, guacd_port)
     
     connection_args = {
         "hostname": host,

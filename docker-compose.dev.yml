@@ -29,6 +29,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
       - REDIS_URL=redis://172.28.0.11:6379/0
+      - GUACD_HOST=172.28.0.12
+      - GUACD_PORT=4822
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -36,6 +38,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - guacd
     volumes:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
@@ -62,13 +65,10 @@ services:
 
   guacd:
     image: guacamole/guacd:latest
-    # Note: Remove platform line to auto-detect architecture (works on both ARM and x86_64)
-    # If you still get exec format error, manually set to your architecture:
-    # platform: linux/arm64  # For ARM64 devices like Radxa E54C
-    # platform: linux/amd64  # For x86_64 systems
+    container_name: nop-guacd
     networks:
-      - nop-internal
-      - test-network
+      nop-internal:
+        ipv4_address: 172.28.0.12
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
@@ -76,8 +76,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   redis:
     image: redis:7-alpine

@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
-from app.services.PingService import ping_service
-from app.schemas.traffic import StormConfig, PingRequest
+from app.schemas.traffic import StormConfig
 from pydantic import BaseModel
 import asyncio
 import json
@@ -12,6 +11,9 @@ import subprocess
 import time
 
 router = APIRouter()
+
+class PingRequest(BaseModel):
+    host: str
 
 @router.get("/interfaces")
 async def get_interfaces():
@@ -117,45 +119,31 @@ async def get_storm_metrics():
 
 @router.post("/ping")
 async def ping_host(request: PingRequest):
-    """Advanced ping supporting multiple protocols (ICMP, TCP, UDP, HTTP, DNS)"""
+    """Ping a host to check reachability"""
     try:
-        result = await ping_service.advanced_ping(
-            target=request.target,
-            protocol=request.protocol,
-            port=request.port,
-            count=request.count,
-            timeout=request.timeout,
-            packet_size=request.packet_size,
-            use_https=request.use_https
+        start_time = time.time()
+        result = subprocess.run(
+            ['ping', '-c', '1', '-W', '1', request.host],
+            capture_output=True,
+            text=True,
+            timeout=2
         )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/ping/advanced")
-async def ping_advanced(request: PingRequest):
-    """Advanced ping with optional parallel traceroute.
-    
-    When include_route=True, runs traceroute and probe in parallel for faster results.
-    Returns complete results with hops and packets in one response.
-    
-    Works for all protocols: ICMP, TCP, UDP, HTTP, DNS
-    """
-    try:
-        result = await ping_service.parallel_ping(
-            target=request.target,
-            protocol=request.protocol,
-            port=request.port,
-            count=request.count,
-            timeout=request.timeout,
-            packet_size=request.packet_size,
-            use_https=request.use_https,
-            include_route=getattr(request, 'include_route', False)
-        )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        latency = (time.time() - start_time) * 1000  # Convert to ms
+        
+        reachable = result.returncode == 0
+        
+        return {
+            "host": request.host,
+            "reachable": reachable,
+            "latency": latency if reachable else None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "host": request.host,
+            "reachable": False,
+            "latency": None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

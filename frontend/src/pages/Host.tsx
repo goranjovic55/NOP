@@ -605,25 +605,39 @@ const Host: React.FC = () => {
 
       {/* System Info Header */}
       {systemInfo && (
-        <div className="bg-cyber-dark border border-cyber-gray p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="dashboard-card p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Hostname</div>
-              <div className="text-cyber-green font-mono">{systemInfo.hostname}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Hostname</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.hostname}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Platform</div>
-              <div className="text-cyber-green font-mono">{systemInfo.platform} {systemInfo.platform_release}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Platform</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.platform} {systemInfo.platform_release}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Architecture</div>
-              <div className="text-cyber-green font-mono">{systemInfo.architecture}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Architecture</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.architecture}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Uptime</div>
-              <div className="text-cyber-green font-mono">{formatUptime(systemInfo.boot_time)}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Uptime</p>
+              <p className="text-cyber-green font-mono text-sm">{formatUptime(systemInfo.boot_time)}</p>
             </div>
           </div>
+          {systemInfo.network_interfaces && systemInfo.network_interfaces.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-cyber-gray/50">
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-2">Network Interfaces</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {systemInfo.network_interfaces.map((iface: any, idx: number) => (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <span className="text-cyber-purple text-xs">●</span>
+                    <span className="text-cyber-blue font-mono text-xs">{iface.name}:</span>
+                    <span className="text-cyber-green font-mono text-sm">{iface.address}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -631,7 +645,7 @@ const Host: React.FC = () => {
       <div className="flex space-x-2 border-b border-cyber-gray">
         <button
           onClick={() => setActiveTab('metrics')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'metrics'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -641,7 +655,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('terminal')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'terminal'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -651,7 +665,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('filesystem')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'filesystem'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -661,7 +675,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('desktop')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'desktop'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -673,16 +687,16 @@ const Host: React.FC = () => {
 
       {/* Metrics Tab */}
       {activeTab === 'metrics' && metrics && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* Row 1: CPU, Memory, Swap */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* CPU */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
+            <div className="dashboard-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-cyber-red uppercase text-xs font-bold flex items-center">
+                <p className="text-cyber-red uppercase text-xs font-mono tracking-wider flex items-center">
                   <span className="mr-1">⬡</span> CPU
-                </span>
-                <span className="text-cyber-green font-mono text-sm">{metrics.cpu.percent_total.toFixed(1)}%</span>
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.cpu.percent_total.toFixed(1)}%</p>
               </div>
               <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
                 <div className="bg-cyber-red h-full transition-all" style={{ width: `${metrics.cpu.percent_total}%` }} />
@@ -698,12 +712,12 @@ const Host: React.FC = () => {
             </div>
 
             {/* Memory */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
+            <div className="dashboard-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-cyber-purple uppercase text-xs font-bold flex items-center">
+                <p className="text-cyber-purple uppercase text-xs font-mono tracking-wider flex items-center">
                   <span className="mr-1">⬢</span> RAM
-                </span>
-                <span className="text-cyber-green font-mono text-sm">{metrics.memory.percent.toFixed(1)}%</span>
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.memory.percent.toFixed(1)}%</p>
               </div>
               <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
                 <div className="bg-cyber-purple h-full transition-all" style={{ width: `${metrics.memory.percent}%` }} />
@@ -719,12 +733,12 @@ const Host: React.FC = () => {
             </div>
 
             {/* Swap */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
+            <div className="dashboard-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-cyber-purple uppercase text-xs font-bold flex items-center">
+                <p className="text-cyber-purple uppercase text-xs font-mono tracking-wider flex items-center">
                   <span className="mr-1">⇌</span> Swap
-                </span>
-                <span className="text-cyber-green font-mono text-sm">{metrics.memory.swap_percent.toFixed(1)}%</span>
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.memory.swap_percent.toFixed(1)}%</p>
               </div>
               <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
                 <div className="bg-cyber-purple/70 h-full transition-all" style={{ width: `${metrics.memory.swap_percent}%` }} />
@@ -741,12 +755,12 @@ const Host: React.FC = () => {
           </div>
 
           {/* Row 2: Network I/O, Disk I/O */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Network I/O */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
-              <div className="text-cyber-red uppercase text-xs font-bold mb-2 flex items-center">
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
                 <span className="mr-1">⇄</span> Network I/O
-              </div>
+              </p>
               <div className="grid grid-cols-4 gap-2 text-xs">
                 <div>
                   <div className="text-cyber-gray-light">TX</div>
@@ -774,10 +788,10 @@ const Host: React.FC = () => {
             </div>
 
             {/* Disk I/O */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
-              <div className="text-cyber-red uppercase text-xs font-bold mb-2 flex items-center">
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
                 <span className="mr-1">◈</span> Disk I/O
-              </div>
+              </p>
               {diskIO && Object.keys(diskIO).length > 0 ? (
                 <div className="grid grid-cols-2 gap-2 text-xs max-h-20 overflow-y-auto">
                   {Object.entries(diskIO).slice(0, 4).map(([disk, io]) => (
@@ -796,10 +810,10 @@ const Host: React.FC = () => {
           </div>
 
           {/* Row 3: Disk Space */}
-          <div className="bg-cyber-dark border border-cyber-gray p-3">
-            <div className="text-cyber-red uppercase text-xs font-bold mb-2 flex items-center">
+          <div className="dashboard-card p-4">
+            <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
               <span className="mr-1">⛁</span> Disk Space
-            </div>
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {metrics.disk.map((disk, idx) => (
                 <div key={idx} className="border border-cyber-gray/50 p-2">
@@ -824,13 +838,13 @@ const Host: React.FC = () => {
           </div>
 
           {/* Row 4: Top Processes and Network Connections side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Top Processes */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
-              <div className="text-cyber-red uppercase text-xs font-bold mb-2 flex items-center justify-between">
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center justify-between">
                 <span className="flex items-center"><span className="mr-1">⧫</span> Top Processes</span>
                 <span className="text-cyber-gray-light font-normal">{metrics.processes} total</span>
-              </div>
+              </p>
               <div className="overflow-x-auto max-h-48">
                 <table className="w-full text-xs">
                   <thead className="border-b border-cyber-gray sticky top-0 bg-cyber-dark">
@@ -856,11 +870,11 @@ const Host: React.FC = () => {
             </div>
 
             {/* Network Connections */}
-            <div className="bg-cyber-dark border border-cyber-gray p-3">
-              <div className="text-cyber-red uppercase text-xs font-bold mb-2 flex items-center justify-between">
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center justify-between">
                 <span className="flex items-center"><span className="mr-1">⌘</span> Connections</span>
                 <span className="text-cyber-gray-light font-normal">{connections.length} active</span>
-              </div>
+              </p>
               <div className="overflow-x-auto max-h-48">
                 <table className="w-full text-xs">
                   <thead className="border-b border-cyber-gray sticky top-0 bg-cyber-dark">
@@ -896,17 +910,17 @@ const Host: React.FC = () => {
 
       {/* Terminal Tab */}
       {activeTab === 'terminal' && (
-        <div className="bg-cyber-dark border border-cyber-green/30 p-4">
-          <div className="text-cyber-green text-sm mb-2 uppercase flex items-center">
+        <div className="dashboard-card p-4">
+          <p className="text-cyber-green text-xs font-mono tracking-wider mb-2 uppercase flex items-center">
             <span className="mr-2">⌬</span> Neural Interface • Shell Access
-          </div>
+          </p>
           <div
             ref={terminalRef}
             className="h-[600px] border border-cyber-green/50 bg-black"
           />
-          <div className="text-cyber-gray-light text-xs mt-2 flex items-center">
+          <p className="text-cyber-gray-light text-xs font-mono mt-2 flex items-center">
             <span className="mr-2 text-cyber-purple">◇</span> WebSocket terminal with PTY support • ESC to detach
-          </div>
+          </p>
         </div>
       )}
 
@@ -1233,9 +1247,9 @@ const Host: React.FC = () => {
 
       {/* Desktop Tab */}
       {activeTab === 'desktop' && (
-        <div className="bg-cyber-dark border border-cyber-gray p-4">
+        <div className="dashboard-card p-4">
           <div className="mb-4">
-            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
+            <h3 className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-3 flex items-center">
               <span className="mr-2">⬡</span> Remote Desktop Access
             </h3>
             <div className="flex gap-4">
@@ -1251,7 +1265,7 @@ const Host: React.FC = () => {
                     credentials: null,
                   });
                 }}
-                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                className={`px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold transition-all ${
                   desktopProtocol === 'vnc' && desktopConnectionTab
                     ? 'bg-cyber-green text-black'
                     : 'bg-cyber-darker border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
@@ -1271,7 +1285,7 @@ const Host: React.FC = () => {
                     credentials: null,
                   });
                 }}
-                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                className={`px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold transition-all ${
                   desktopProtocol === 'rdp' && desktopConnectionTab
                     ? 'bg-cyber-blue text-black'
                     : 'bg-cyber-darker border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black'
@@ -1282,7 +1296,7 @@ const Host: React.FC = () => {
               {desktopConnectionTab && (
                 <button
                   onClick={() => setDesktopConnectionTab(null)}
-                  className="px-6 py-3 uppercase text-sm font-bold bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-all"
+                  className="px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-all"
                 >
                   ✕ Disconnect
                 </button>
@@ -1298,10 +1312,10 @@ const Host: React.FC = () => {
             <div className="border border-cyber-gray bg-cyber-black min-h-[600px] flex items-center justify-center">
               <div className="text-center text-cyber-gray-light">
                 <div className="text-6xl mb-4">◉</div>
-                <div className="text-lg uppercase mb-2">Host Desktop Access</div>
-                <div className="text-sm">
+                <p className="text-sm font-mono uppercase tracking-wider mb-2">Host Desktop Access</p>
+                <p className="text-xs font-mono">
                   Click VNC or RDP above to connect to the host
-                </div>
+                </p>
               </div>
             </div>
           )}

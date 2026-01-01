@@ -29,6 +29,20 @@ async def get_system_info(
 ) -> Dict[str, Any]:
     """Get basic system information"""
     try:
+        # Get network interfaces
+        network_interfaces = []
+        net_if_addrs = psutil.net_if_addrs()
+        for interface_name, addresses in net_if_addrs.items():
+            for addr in addresses:
+                # Only include IPv4 addresses
+                if addr.family == 2:  # AF_INET (IPv4)
+                    # Skip loopback
+                    if not addr.address.startswith('127.'):
+                        network_interfaces.append({
+                            "name": interface_name,
+                            "address": addr.address
+                        })
+        
         return {
             "hostname": platform.node(),
             "platform": platform.system(),
@@ -38,6 +52,7 @@ async def get_system_info(
             "processor": platform.processor(),
             "python_version": platform.python_version(),
             "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat(),
+            "network_interfaces": network_interfaces,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get system info: {str(e)}")

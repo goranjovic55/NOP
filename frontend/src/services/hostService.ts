@@ -12,6 +12,10 @@ export interface SystemInfo {
   processor: string;
   python_version: string;
   boot_time: string;
+  network_interfaces?: Array<{
+    name: string;
+    address: string;
+  }>;
 }
 
 export interface SystemMetrics {

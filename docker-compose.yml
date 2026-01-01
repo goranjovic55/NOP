@@ -22,6 +22,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
       - REDIS_URL=redis://172.28.0.11:6379/0
+      - GUACD_HOST=172.28.0.12
+      - GUACD_PORT=4822
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -29,6 +31,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - guacd
     volumes:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
@@ -60,6 +63,20 @@ services:
       nop-internal:
         ipv4_address: 172.28.0.11
     restart: unless-stopped
+
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: nop-guacd
+    networks:
+      nop-internal:
+        ipv4_address: 172.28.0.12
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   nop-internal:
