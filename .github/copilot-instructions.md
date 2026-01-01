@@ -9,7 +9,7 @@ This protocol is NON-NEGOTIABLE. Every response MUST follow AKIS structure.
 ## MANDATORY OUTPUT FORMAT
 
 ```
-[SESSION: task] @Agent
+[SESSION: task] @AgentName
 [AKIS_LOADED] entities: N | skills: skill1, skill2 | patterns: pat1, pat2
 [PHASE: NAME | progress=N/7]
 <work>
@@ -17,8 +17,10 @@ This protocol is NON-NEGOTIABLE. Every response MUST follow AKIS structure.
 [COMPLETE] outcome | changed: files
 ```
 
+**Example**: `[SESSION: Add JWT auth] @_DevTeam`
+
 **BLOCKING REQUIREMENTS** (cannot proceed without):
-1. `[SESSION: task] @Agent` → Start marker (FIRST)
+1. `[SESSION: task] @AgentName` → Start marker (FIRST, where AgentName = _DevTeam, Architect, Developer, Reviewer, or Researcher)
 2. `[AKIS_LOADED]` → Knowledge verification (SECOND)
 3. `[PHASE: ...]` → Phase tracking (DURING)
 4. `[SKILLS_USED]` → Skills applied (BEFORE COMPLETE)
@@ -39,14 +41,15 @@ This protocol is NON-NEGOTIABLE. Every response MUST follow AKIS structure.
 - **Capabilities**: What they can do
 - **Return format**: How they report results
 
-### Agent Hierarchy
+### Agent Hierarchy (Files in `.github/agents/`)
 ```
-_DevTeam (Orchestrator) ← Entry point for complex tasks
-├── Architect.agent.md  → Design decisions, patterns, architecture
-├── Developer.agent.md  → Implementation, debugging, coding
-├── Reviewer.agent.md   → Testing, validation, quality assurance
-└── Researcher.agent.md → Investigation, documentation, analysis
+_DevTeam (Orchestrator) ← READ .github/agents/_DevTeam.agent.md
+├── Architect           → READ .github/agents/Architect.agent.md
+├── Developer           → READ .github/agents/Developer.agent.md
+├── Reviewer            → READ .github/agents/Reviewer.agent.md
+└── Researcher          → READ .github/agents/Researcher.agent.md
 ```
+**ACTION**: Actually open and read these files before work
 
 ### Enforcement Rules
 
@@ -88,10 +91,12 @@ Expect: RESULT_TYPE
 ### AKIS_LOADED Emission (BLOCKING)
 ```
 [AKIS_LOADED]
-  entities: 47 entities from project_knowledge.json
-  skills: backend-api, security, testing
-  patterns: Global.Pattern.API.RESTful, Global.Pattern.Security.JWTAuth
+  entities: N entities from project_knowledge.json  (replace N with actual count)
+  skills: backend-api, security, testing            (list relevant skills)
+  patterns: Global.Pattern.API.RESTful, ...         (cite matching patterns)
 ```
+
+**Example**: `[AKIS_LOADED] entities: 270 | skills: backend-api, testing | patterns: Global.Pattern.API.RESTful`
 
 **CANNOT proceed to PLAN without this emission**
 
@@ -199,7 +204,7 @@ Restoring: <saved state>
 4. Apply skill checklists during work
 5. Emit `[SKILLS_USED]` at completion
 
-### Available Skills (14 skills)
+### Available Skills (scan `.github/skills/` for current list)
 
 **Core Skills (Universal)**:
 | Skill | Trigger | Files |
@@ -275,9 +280,9 @@ Restoring: <saved state>
 ## Drift Detection
 
 **Auto-detected violations**:
-- Missing `[SESSION:]` before edits → HALT
-- Missing `[AKIS_LOADED]` in CONTEXT phase → HALT
-- Missing `[SKILLS_USED]` before COMPLETE → HALT
+- Missing `[SESSION: task] @AgentName` before edits → HALT
+- Missing `[AKIS_LOADED] entities: N | skills: ...` in CONTEXT phase → HALT
+- Missing `[SKILLS_USED] skill1, skill2` before COMPLETE → HALT
 - Phase skipped without justification → WARNING
 - Knowledge not queried for new code → WARNING
 - Skill checklist not followed → WARNING
