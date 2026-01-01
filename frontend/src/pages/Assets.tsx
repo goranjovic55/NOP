@@ -6,6 +6,7 @@ import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
 import ScanSettingsModal from '../components/ScanSettingsModal';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 interface ScanSettings {
   autoScanEnabled: boolean;
@@ -365,71 +366,63 @@ const Assets: React.FC = () => {
 
             {/* Filter Tabs */}
           <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray">
-            <button
+            <Button
               onClick={() => setFilterTab('all')}
-              className={`px-3 py-1 text-xs uppercase font-bold transition-colors ${
-                filterTab === 'all'
-                  ? 'bg-cyber-blue text-cyber-darker border-r border-cyber-gray'
-                  : 'text-cyber-gray-light hover:text-cyber-blue'
-              }`}
+              variant={filterTab === 'all' ? 'info' : 'ghost'}
+              size="sm"
+              active={filterTab === 'all'}
             >
               ◈ All
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setFilterTab('scanned')}
-              className={`px-3 py-1 text-xs uppercase font-bold transition-colors border-r border-cyber-gray ${
-                filterTab === 'scanned'
-                  ? 'bg-cyber-purple text-cyber-darker'
-                  : 'text-cyber-gray-light hover:text-cyber-purple'
-              }`}
+              variant={filterTab === 'scanned' ? 'secondary' : 'ghost'}
+              size="sm"
+              active={filterTab === 'scanned'}
             >
               ◉ Scanned
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setFilterTab('vulnerable')}
-              className={`px-3 py-1 text-xs uppercase font-bold transition-colors ${
-                filterTab === 'vulnerable'
-                  ? 'bg-cyber-red text-cyber-darker'
-                  : 'text-cyber-gray-light hover:text-cyber-red'
-              }`}
+              variant={filterTab === 'vulnerable' ? 'primary' : 'ghost'}
+              size="sm"
+              active={filterTab === 'vulnerable'}
             >
               ⚠ Vulnerable
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
-              <span className="text-xs text-cyber-purple uppercase font-bold">Status:</span>
-              <select
+              <span className="text-xs-cyber text-cyber-purple uppercase font-bold">Status:</span>
+              <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent text-cyber-blue text-sm focus:outline-none border-none cursor-pointer"
+                size="sm"
               >
-                <option value="all" className="bg-cyber-darker">ALL ASSETS</option>
-                <option value="online" className="bg-cyber-darker">ONLINE ONLY</option>
-                <option value="offline" className="bg-cyber-darker">OFFLINE ONLY</option>
-              </select>
+                <option value="all">ALL ASSETS</option>
+                <option value="online">ONLINE ONLY</option>
+                <option value="offline">OFFLINE ONLY</option>
+              </Select>
             </div>
 
-            <button 
+            <Button 
               onClick={() => {
                 const newSettings = { ...scanSettings, passiveDiscoveryEnabled: !scanSettings.passiveDiscoveryEnabled };
                 setScanSettings(newSettings);
                 localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
               }}
-              className={`p-2 px-3 border text-sm font-bold transition-colors ${
-                scanSettings.passiveDiscoveryEnabled 
-                  ? 'bg-cyber-green bg-opacity-10 border-cyber-green text-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.3)]' 
-                  : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-green'
-              }`}
+              variant={scanSettings.passiveDiscoveryEnabled ? 'success' : 'ghost'}
+              size="sm"
+              active={scanSettings.passiveDiscoveryEnabled}
               title="Toggle passive network discovery from traffic"
             >
               {scanSettings.passiveDiscoveryEnabled ? '● PASSIVE ON' : '○ PASSIVE OFF'}
-            </button>
+            </Button>
 
-            <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-cyber-darker border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue transition-colors text-sm font-bold">
+            <Button onClick={() => setIsSettingsOpen(true)} variant="ghost" size="sm">
               CONFIG
-            </button>
-            <button 
+            </Button>
+            <Button 
               onClick={async () => {
                 if (window.confirm('Are you sure you want to clear all assets? This cannot be undone.')) {
                   try {
@@ -440,12 +433,13 @@ const Assets: React.FC = () => {
                   }
                 }
               }} 
-              className="p-2 bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-colors text-sm font-bold"
+              variant="primary"
+              size="sm"
             >
               CLEAR ALL
-            </button>
-            <button onClick={() => fetchAssets(true)} className="btn-cyber px-4 py-2">Refresh</button>
-            <button onClick={() => triggerScan('manual')} className="btn-cyber px-4 py-2 border-cyber-red text-cyber-red">Discover</button>
+            </Button>
+            <Button onClick={() => fetchAssets(true)} variant="info" size="md">Refresh</Button>
+            <Button onClick={() => triggerScan('manual')} variant="primary" size="md">Discover</Button>
           </div>
         </div>
 

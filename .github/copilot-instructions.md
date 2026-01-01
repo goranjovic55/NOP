@@ -2,19 +2,47 @@
 
 **A**gents • **K**nowledge • **I**nstructions • **S**kills
 
-## Required Response Format
+**⚠️ CRITICAL**: Reading this file = user work requested. Load `.github/skills/session-tracking/SKILL.md` and start session NOW.
+
+## Session Start (MANDATORY)
+
+1. Load `.github/skills/session-tracking/SKILL.md`
+2. Start tracking + emit CONTEXT
+3. Proceed with work
+
+## Response Format (After Session Start)
 
 ```
 [SESSION: task] @AgentName
 [AKIS] entities=N | skills=X,Y | patterns=Z
 [PHASE: NAME | progress=N/7]
 <work>
-[COMPLETE] result | files: changed
+[AWAIT USER VERIFICATION]
+[COMPLETE] result | files: changed  ← ONLY after user approval
 ```
 
-**Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
+**Blocking (HALT if missing)**: Session start sequence, `[AKIS]` in CONTEXT, **USER VERIFICATION** before `[COMPLETE]`
 
-**Session Tracking (REQUIRED)**: Call `node .github/scripts/session-tracker.js` at every phase/decision/delegation. Start: `start "task" "agent"`. Phase: `phase NAME "N/0"`. Decision: `decision "desc"`. Delegate: `delegate Agent "task"`. Complete: `complete "log/workflow/file.md"`. See `.github/AKIS_SESSION_TRACKING.md`.
+**CRITICAL RULE**: Never execute COMPLETE phase or mark session complete without explicit user approval. Always present summary and wait for confirmation.
+
+**Todo Tracking (REQUIRED)**: Map phases to todo titles for visibility:
+- CONTEXT → "Analyze/Research [subject]"
+- PLAN → "Design/Plan [approach]"  
+- COORDINATE → "Delegate/Prepare [task]"
+- INTEGRATE → "Implement/Execute [feature]"
+- VERIFY → "Test/Validate [result]"
+- LEARN → "Update/Document [changes]"
+- COMPLETE → "Finalize/Review [deliverable]"
+
+**Session Tracking (REQUIRED)**: Use `session-tracking` skill for all work:
+- **MANDATORY FIRST STEP**: Load `.github/skills/session-tracking/SKILL.md` and follow its initialization pattern
+- **TRIGGER**: Reading the session-tracking skill file means user work is requested - ALWAYS start session tracking
+- **NO EXCEPTIONS**: Every user request requiring work must have an active tracked session
+- Provides: External roadmap (no context overhead)
+- Enforces: Phase emissions, decision logging, interrupt handling
+- All commands and patterns documented in the skill file
+
+**CRITICAL**: Session tracking must be initialized BEFORE any work begins. The skill file contains all necessary commands and workflow patterns. If you read the session-tracking skill, you MUST start a session.
 
 ---
 
@@ -35,32 +63,11 @@
 **Delegation**: `#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
 
 **⚠️ LIVE SESSION TRACKING**:
-- **MANDATORY**: Update `.akis-session.json` after each emission for real-time monitoring
-- Use `.github/scripts/session-tracker.js` to emit session state
+- **MANDATORY**: `.akis-session.json` tracks all session state in real-time
+- Session-tracking skill (`.github/skills/session-tracking/SKILL.md`) provides all commands and patterns
 - VSCode extension monitors this file for live visualization
 - **File is committed** with workflow log to preserve session details in git history
 - Starting new session **overwrites** existing file (does not append)
-
-**Session Tracking Commands**:
-```bash
-# Start session
-node .github/scripts/session-tracker.js start "task description" "AgentName"
-
-# Update phase
-node .github/scripts/session-tracker.js phase CONTEXT "1/0"
-
-# Record decision
-node .github/scripts/session-tracker.js decision "Decision description"
-
-# Record delegation
-node .github/scripts/session-tracker.js delegate DeveloperAgent "Implementation task"
-
-# Record skills
-node .github/scripts/session-tracker.js skills "skill-name, skill-name"
-
-# Complete session (file persists for commit)
-node .github/scripts/session-tracker.js complete "log/workflow/YYYY-MM-DD_HHMMSS_task.md"
-```
 
 ---
 

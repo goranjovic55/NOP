@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 interface StormMetrics {
   packets_sent: number;

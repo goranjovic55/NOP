@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { assetService, Asset } from '../services/assetService';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 const API_BASE_URL = '';
 
@@ -88,6 +89,7 @@ const Scans: React.FC = () => {
   const [selectedVulnForDetails, setSelectedVulnForDetails] = useState<Vulnerability | null>(null);
   const [vulnDetailDatabase, setVulnDetailDatabase] = useState<string>('cve');
   const [manualPorts, setManualPorts] = useState<string>('');
+  const [vulnFilter, setVulnFilter] = useState<'all' | 'exploitable'>('all');
 
   useEffect(() => {
     if (logEndRef.current) {
@@ -1088,22 +1090,47 @@ const Scans: React.FC = () => {
                   <h3 className="text-cyber-purple font-bold uppercase tracking-widest text-sm">Vulnerability Scan</h3>
                   <span className="text-cyber-gray-light text-sm">{activeTab.vulnerabilities?.length || 0} found</span>
                 </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {['cve', 'exploit_db', 'metasploit'].map((db) => (
-                    <label key={db} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={activeTab.selectedDatabases?.includes(db) || false}
-                        onChange={() => toggleDatabase(activeTab.id, db)}
-                        disabled={activeTab.vulnScanning}
-                        className="sr-only peer"
-                      />
-                      <div className="w-4 h-4 border border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
-                        {activeTab.selectedDatabases?.includes(db) && <span className="text-white text-xs">✓</span>}
-                      </div>
-                      <span className="text-xs text-cyber-gray-light uppercase">{db === 'exploit_db' ? 'ExDB' : db}</span>
-                    </label>
-                  ))}
+                <div className="grid grid-cols-6 gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={manualPorts}
+                    onChange={(e) => setManualPorts(e.target.value)}
+                    disabled={activeTab.vulnScanning}
+                    className="col-span-2 bg-cyber-dark border border-cyber-purple px-3 py-2 text-cyber-purple text-sm font-mono outline-none focus:border-cyber-red"
+                    placeholder="Ports (e.g., 80,443,3306)"
+                  />
+                  <div className="col-span-4 grid grid-cols-5 gap-1">
+                    {['cve', 'exploit_db', 'metasploit', 'packetstorm', 'vulns'].map((db) => (
+                      <label key={db} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={activeTab.selectedDatabases?.includes(db) || false}
+                          onChange={() => toggleDatabase(activeTab.id, db)}
+                          disabled={activeTab.vulnScanning}
+                          className="sr-only peer"
+                        />
+                        <div className="w-4 h-4 border border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                          {activeTab.selectedDatabases?.includes(db) && <span className="text-white text-xs">✓</span>}
+                        </div>
+                        <span className="text-xs text-cyber-gray-light uppercase">{db === 'exploit_db' ? 'ExDB' : db === 'packetstorm' ? 'PkStm' : db}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <select
+                    value={vulnFilter}
+                    onChange={(e) => setVulnFilter(e.target.value as 'all' | 'exploitable')}
+                    className="bg-cyber-dark border border-cyber-purple px-3 py-2 text-cyber-purple text-xs outline-none focus:border-cyber-red"
+                  >
+                    <option value="all">All Vulnerabilities</option>
+                    <option value="exploitable">Exploitable Only</option>
+                  </select>
+                  <span className="text-xs text-cyber-gray-light flex items-center px-2">
+                    {activeTab.vulnerabilities?.filter(v => vulnFilter === 'all' || v.exploit_available).length || 0} / {activeTab.vulnerabilities?.length || 0} shown
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleVulnerabilityScan(activeTab.id)}
                     disabled={activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0}
@@ -1133,7 +1160,7 @@ const Scans: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {activeTab.vulnerabilities?.map((vuln) => (
+                    {activeTab.vulnerabilities?.filter(v => vulnFilter === 'all' || v.exploit_available).map((vuln) => (
                       <div key={vuln.id} className="bg-cyber-darker border border-cyber-gray p-3 space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

@@ -119,5 +119,17 @@ services:
       - "8081:80"
     restart: unless-stopped
 
+  # Shellshock Apache - CVE-2014-6271 (HIGHLY EXPLOITABLE)
+  shellshock-apache:
+    build: ./shellshock-apache
+    container_name: shellshock-apache
+    hostname: shellshock-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.25
+    ports:
+      - "8888:80"
+    restart: unless-stopped
+
 volumes:
   jenkins_home:

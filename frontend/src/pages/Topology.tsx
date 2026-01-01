@@ -3,6 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 interface GraphNode {
   id: string;

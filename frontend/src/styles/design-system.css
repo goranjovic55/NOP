@@ -1,0 +1,356 @@
+/**
+ * AKIS Design System - Cyberpunk Theme
+ * Centralized design tokens and component styles
+ * Ensures consistency across all UI elements
+ */
+
+/* ======================
+   TYPOGRAPHY SYSTEM
+   ====================== */
+
+.text-xs-cyber { font-size: 0.75rem; line-height: 1.2; letter-spacing: 0.025em; }  /* 11.25px */
+.text-sm-cyber { font-size: 0.875rem; line-height: 1.4; letter-spacing: 0.025em; } /* 13.125px */
+.text-base-cyber { font-size: 1rem; line-height: 1.5; letter-spacing: 0.025em; }   /* 15px */
+.text-lg-cyber { font-size: 1.125rem; line-height: 1.5; letter-spacing: 0.025em; } /* 16.875px */
+.text-xl-cyber { font-size: 1.25rem; line-height: 1.4; letter-spacing: 0.025em; }  /* 18.75px */
+.text-2xl-cyber { font-size: 1.5rem; line-height: 1.3; letter-spacing: 0.025em; }  /* 22.5px */
+.text-3xl-cyber { font-size: 1.875rem; line-height: 1.25; letter-spacing: 0.025em; } /* 28.125px */
+
+/* ======================
+   BUTTON SYSTEM
+   ====================== */
+
+/* Base Button - Default appearance */
+.btn {
+  @apply px-4 py-2 text-sm-cyber font-medium uppercase tracking-wider;
+  @apply border border-cyber-gray bg-gradient-to-br from-cyber-dark to-cyber-darker;
+  @apply transition-all duration-300 ease-in-out;
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyber-black;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  border-radius: 2px;
+}
+
+/* Primary CTA Button */
+.btn-primary {
+  @apply btn border-cyber-red text-cyber-red;
+  @apply hover:bg-cyber-red/10 hover:shadow-cyber;
+  @apply focus:ring-cyber-red;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  @apply btn border-cyber-purple text-cyber-purple;
+  @apply hover:bg-cyber-purple/10 hover:shadow-cyber-purple;
+  @apply focus:ring-cyber-purple;
+}
+
+/* Success Button */
+.btn-success {
+  @apply btn border-cyber-green text-cyber-green;
+  @apply hover:bg-cyber-green/10 hover:shadow-cyber-green;
+  @apply focus:ring-cyber-green;
+}
+
+/* Info Button */
+.btn-info {
+  @apply btn border-cyber-blue text-cyber-blue;
+  @apply hover:bg-cyber-blue/10 hover:shadow-cyber-blue;
+  @apply focus:ring-cyber-blue;
+}
+
+/* Ghost Button - Minimal */
+.btn-ghost {
+  @apply px-4 py-2 text-sm-cyber font-medium uppercase tracking-wider;
+  @apply text-cyber-gray-light border-none bg-transparent;
+  @apply hover:text-white transition-colors duration-200;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Icon Button - Small square */
+.btn-icon {
+  @apply p-2 border border-cyber-gray bg-cyber-darker;
+  @apply text-cyber-gray-light hover:text-white hover:border-cyber-purple;
+  @apply transition-all duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-cyber-purple;
+  border-radius: 2px;
+}
+
+/* Size Variants */
+.btn-sm { @apply px-3 py-1.5 text-xs-cyber; }
+.btn-md { @apply px-4 py-2 text-sm-cyber; }
+.btn-lg { @apply px-6 py-3 text-base-cyber; }
+.btn-xl { @apply px-8 py-4 text-lg-cyber; }
+
+/* Active States */
+.btn-active-red {
+  @apply border-2 border-cyber-red bg-cyber-red/10;
+  box-shadow: 0 0 15px rgba(255, 0, 64, 0.3);
+}
+
+.btn-active-green {
+  @apply border-2 border-cyber-green bg-cyber-green/10;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.btn-active-purple {
+  @apply border-2 border-cyber-purple bg-cyber-purple/10;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+/* ======================
+   INPUT SYSTEM
+   ====================== */
+
+.input {
+  @apply w-full px-3 py-2 text-base-cyber;
+  @apply bg-cyber-darker border border-cyber-gray text-cyber-blue;
+  @apply font-mono transition-all duration-200;
+  @apply focus:outline-none focus:border-cyber-red focus:ring-1 focus:ring-cyber-red;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply placeholder:text-cyber-gray;
+  border-radius: 2px;
+}
+
+.input-sm { @apply px-2 py-1.5 text-sm-cyber; }
+.input-md { @apply px-3 py-2 text-base-cyber; }
+.input-lg { @apply px-4 py-3 text-lg-cyber; }
+
+/* Select Dropdown */
+.select {
+  @apply input appearance-none cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ff0040' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Textarea */
+.textarea {
+  @apply input resize-none;
+  min-height: 80px;
+}
+
+/* Checkbox */
+.checkbox {
+  @apply w-5 h-5 border-2 border-cyber-red bg-cyber-darker;
+  @apply checked:bg-cyber-red transition-all;
+  @apply focus:outline-none focus:ring-2 focus:ring-cyber-red;
+  appearance: none;
+  border-radius: 0;
+}
+
+.checkbox:checked::after {
+  content: '✓';
+  @apply text-white text-sm font-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Radio */
+.radio {
+  @apply w-5 h-5 border-2 border-cyber-purple bg-cyber-darker;
+  @apply checked:bg-cyber-purple checked:border-cyber-purple;
+  @apply focus:outline-none focus:ring-2 focus:ring-cyber-purple;
+  appearance: none;
+  border-radius: 50%;
+}
+
+.radio:checked::after {
+  content: '';
+  @apply w-2 h-2 bg-white rounded-full;
+  display: block;
+  margin: auto;
+}
+
+/* Range Slider */
+.range {
+  @apply w-full h-2 bg-cyber-darker rounded-none appearance-none cursor-pointer;
+}
+
+.range::-webkit-slider-track {
+  @apply bg-cyber-gray h-0.5 border border-cyber-purple;
+}
+
+.range::-webkit-slider-thumb {
+  @apply appearance-none w-3 h-3 bg-cyber-red border-2 border-cyber-red;
+  box-shadow: 0 0 8px rgba(255, 0, 102, 0.6);
+}
+
+.range::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 102, 0.9);
+}
+
+/* ======================
+   CARD SYSTEM
+   ====================== */
+
+.card {
+  @apply bg-gradient-to-br from-cyber-dark to-cyber-darker;
+  @apply border border-cyber-gray p-4;
+  @apply transition-all duration-300;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 0, 64, 0.05);
+}
+
+.card-hover {
+  @apply card hover:border-cyber-red hover:-translate-y-0.5;
+  @apply hover:shadow-[inset_0_0_0_1px_rgba(255,0,64,0.2),0_0_15px_rgba(255,0,64,0.1),0_4px_20px_rgba(0,0,0,0.5)];
+}
+
+.card-header {
+  @apply border-b border-cyber-gray pb-3 mb-3;
+}
+
+.card-title {
+  @apply text-lg-cyber font-bold text-cyber-red uppercase tracking-wider;
+}
+
+/* ======================
+   SPACING SYSTEM
+   Consistent padding/margin scale
+   ====================== */
+
+.space-xs { @apply p-2; }    /* 8px */
+.space-sm { @apply p-3; }    /* 12px */
+.space-md { @apply p-4; }    /* 16px */
+.space-lg { @apply p-6; }    /* 24px */
+.space-xl { @apply p-8; }    /* 32px */
+
+/* ======================
+   RESPONSIVE UTILITIES
+   ====================== */
+
+/* Mobile First Breakpoints:
+   sm: 640px
+   md: 768px
+   lg: 1024px
+   xl: 1280px
+   2xl: 1536px
+*/
+
+/* Responsive Text */
+@media (max-width: 640px) {
+  .text-responsive-sm { @apply text-xs-cyber; }
+  .text-responsive { @apply text-sm-cyber; }
+  .text-responsive-lg { @apply text-base-cyber; }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .text-responsive-sm { @apply text-sm-cyber; }
+  .text-responsive { @apply text-base-cyber; }
+  .text-responsive-lg { @apply text-lg-cyber; }
+}
+
+@media (min-width: 1025px) {
+  .text-responsive-sm { @apply text-sm-cyber; }
+  .text-responsive { @apply text-base-cyber; }
+  .text-responsive-lg { @apply text-xl-cyber; }
+}
+
+/* Responsive Grid */
+.grid-responsive {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-responsive-md {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.grid-responsive-lg {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+/* Responsive Padding */
+.padding-responsive {
+  @apply p-4 md:p-6 lg:p-8;
+}
+
+/* ======================
+   STATUS INDICATORS
+   ====================== */
+
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-online {
+  @apply status-dot bg-cyber-green;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+
+.status-offline {
+  @apply status-dot bg-cyber-red;
+  box-shadow: 0 0 8px rgba(255, 0, 64, 0.6);
+}
+
+.status-warning {
+  @apply status-dot bg-yellow-400;
+  box-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
+}
+
+.status-unknown {
+  @apply status-dot bg-cyber-purple;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+}
+
+/* ======================
+   BADGE SYSTEM
+   ====================== */
+
+.badge {
+  @apply inline-flex items-center px-2 py-1 text-xs-cyber font-bold uppercase;
+  @apply border rounded-sm;
+}
+
+.badge-red {
+  @apply badge border-cyber-red text-cyber-red bg-cyber-red/10;
+}
+
+.badge-green {
+  @apply badge border-cyber-green text-cyber-green bg-cyber-green/10;
+}
+
+.badge-purple {
+  @apply badge border-cyber-purple text-cyber-purple bg-cyber-purple/10;
+}
+
+.badge-blue {
+  @apply badge border-cyber-blue text-cyber-blue bg-cyber-blue/10;
+}
+
+/* ======================
+   ANIMATIONS
+   ====================== */
+
+.animate-cyber-pulse {
+  animation: cyber-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cyber-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 15px currentColor;
+  }
+}
+
+.animate-cyber-glow {
+  animation: cyber-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes cyber-glow {
+  from {
+    text-shadow: 0 0 5px currentColor;
+  }
+  to {
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}

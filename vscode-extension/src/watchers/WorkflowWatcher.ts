@@ -33,9 +33,18 @@ export class WorkflowWatcher implements vscode.Disposable {
         
         // Watch the workspace root for .akis-session.json
         try {
-            this.sessionWatcher = fs.watch(sessionDir, (eventType, filename) => {
+            // Use both fs.watch and fs.watchFile for better cross-platform support
+            this.sessionWatcher = fs.watch(sessionDir, { persistent: false }, (eventType, filename) => {
                 if (filename === '.akis-session.json') {
-                    console.log('Session file changed');
+                    console.log(`Session file changed (${eventType}):`, filename);
+                    this.notifyProviders();
+                }
+            });
+            
+            // Also use polling as fallback
+            fs.watchFile(sessionPath, { interval: 1000 }, (curr, prev) => {
+                if (curr.mtime !== prev.mtime) {
+                    console.log('Session file modified (polling)');
                     this.notifyProviders();
                 }
             });
@@ -74,9 +83,9 @@ export class WorkflowWatcher implements vscode.Disposable {
 
     private notifyProviders() {
         const config = vscode.workspace.getConfiguration('akisMonitor');
-        const interval = config.get<number>('refreshInterval', 2000);
+        const interval = config.get<number>('refreshInterval', 500);
 
-        // Debounce rapid changes
+        // Debounce rapid changes (reduced from 2000ms to 500ms for faster updates)
         setTimeout(() => {
             this.providers.forEach(provider => provider.refresh());
         }, interval);

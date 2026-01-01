@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import ProtocolConnection from '../components/ProtocolConnection';
+import { Button, Input, Select, Card, CardHeader, CardTitle, Badge } from '../components/DesignSystem';
 
 const AccessHub: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, addTab } = useAccessStore();
