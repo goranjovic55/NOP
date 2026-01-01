@@ -65,6 +65,7 @@
 | `phases.md` | Every task (7-phase flow) |
 | `protocols.md` | Delegation, interrupts |
 | `templates.md` | Output formatting |
+| `todo-list.md` | Creating/managing todos |
 | `structure.md` | Architecture tasks |
 
 **Path**: `.github/instructions/{file}.md`
@@ -72,6 +73,8 @@
 **Phases**: CONTEXT(1) → PLAN(2) → COORDINATE(3) → INTEGRATE(4) → VERIFY(5) → LEARN(6) → COMPLETE(7)
 
 **Skip**: Quick fix (1→4→5→7), Q&A (1→7)
+
+**Todo Format**: `[PHASE: NAME | N/7] Description` - Always create all 7 phases in todo list
 
 ---
 
