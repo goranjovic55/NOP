@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/**'
       - 'backend/**'
+      - 'docker/guacd/**'
       - 'docker-compose.dev.yml'
   workflow_dispatch:
 
@@ -72,3 +73,22 @@ jobs:
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
+
+      - name: Extract metadata for guacd
+        id: meta-guacd
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-guacd
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push guacd
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/guacd
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-guacd.outputs.tags }}
+          labels: ${{ steps.meta-guacd.outputs.labels }}
+
