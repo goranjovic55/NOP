@@ -20,8 +20,8 @@ services:
     pull_policy: always
     network_mode: host
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@localhost:5432/nop
-      - REDIS_URL=redis://localhost:6379/0
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
+      - REDIS_URL=redis://172.28.0.11:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -41,8 +41,7 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    ports:
-      - "127.0.0.1:5432:5432"
+    container_name: nop-postgres
     environment:
       - POSTGRES_USER=nop
       - POSTGRES_PASSWORD=nop_password
@@ -50,20 +49,24 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - nop-internal
+      nop-internal:
+        ipv4_address: 172.28.0.10
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "127.0.0.1:6379:6379"
+    container_name: nop-redis
     networks:
-      - nop-internal
+      nop-internal:
+        ipv4_address: 172.28.0.11
     restart: unless-stopped
 
 networks:
   nop-internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
   test-network:
     driver: bridge
 
