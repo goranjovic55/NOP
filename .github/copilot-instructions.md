@@ -197,6 +197,29 @@ Summary | Decisions | Tools | Delegations | Files | Learnings
 
 ---
 
+## Continuous Improvement (Periodic)
+
+**When**: Monthly or when compliance drops below 75%
+
+**AKIS Edge Case Analysis** (simulate failures, suggest improvements):
+
+1. **Load workflow logs**: `log/workflow/*.md` (sample 20-30 recent)
+2. **Run compliance check**: `bash scripts/check_all_workflows.sh`
+3. **Identify patterns**: Missing emissions, protocol violations, context loss
+4. **Simulate edge cases**: Based on real failure patterns from logs
+5. **Calculate metrics**: Frequency, severity, impact
+6. **Propose adjustments**: Specific file changes (terse, high-impact)
+7. **Measure improvement**: Projected compliance increase
+8. **Update framework**: Apply critical fixes, validate
+
+**Trigger keywords**: "analyze akis compliance", "edge case analysis", "framework improvements"
+
+**Output**: Analysis document + implementation guide (like 2026-01-01 analysis)
+
+**Method**: Analytical simulation (not actual testing) using historical data
+
+---
+
 ## Vertical Stacking (Nested Tasks)
 
 **Horizontal**: Main task through 7 phases  

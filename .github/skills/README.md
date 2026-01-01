@@ -28,6 +28,8 @@
 │   └── SKILL.md
 ├── context-switching/           # Task interrupt handling
 │   └── SKILL.md
+├── akis-analysis/               # Framework edge case analysis
+│   └── SKILL.md
 │
 ├── protocol-dissection/         # NOP: Packet parsing patterns
 │   └── SKILL.md
@@ -52,7 +54,7 @@
 
 ## Skill Categories
 
-### Core Skills (Universal) - 8 skills
+### Core Skills (Universal) - 9 skills
 - **error-handling**: Exception handling and JSON error responses
 - **security**: Authentication, validation, secrets management
 - **testing**: Unit, integration, E2E test patterns (with commands/ subfolder)
@@ -61,6 +63,7 @@
 - **git-deploy**: Conventional commits and deployment risk assessment
 - **infrastructure**: Docker, containers, and network service lifecycle
 - **context-switching**: Task interrupt and state preservation
+- **akis-analysis**: Framework edge case analysis and continuous improvement
 
 ### Domain Skills (NOP-Specific) - 5 skills
 - **protocol-dissection**: Multi-layer packet parsing with Scapy
