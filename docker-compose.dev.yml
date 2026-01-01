@@ -69,6 +69,7 @@ services:
     networks:
       nop-internal:
         ipv4_address: 172.28.0.12
+      test-network:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
