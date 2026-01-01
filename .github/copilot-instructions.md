@@ -14,6 +14,8 @@
 
 **Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
 
+**Session Tracking (REQUIRED)**: Call `node .github/scripts/session-tracker.js` at every phase/decision/delegation. Start: `start "task" "agent"`. Phase: `phase NAME "N/0"`. Decision: `decision "desc"`. Delegate: `delegate Agent "task"`. Complete: `complete "log/workflow/file.md"`. See `.github/AKIS_SESSION_TRACKING.md`.
+
 ---
 
 ## 🔷 Agents (WHO)
