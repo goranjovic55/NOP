@@ -18,6 +18,11 @@ yarn-error.log*
 # React build
 frontend/build/
 
+# VSCode Extension
+vscode-extension/out/
+vscode-extension/*.vsix
+vscode-extension/node_modules/
+
 # IDEs
 .vscode/
 .idea/
