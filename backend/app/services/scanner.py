@@ -19,18 +19,62 @@ class NetworkScanner:
 
     def __init__(self):
         self.scan_results = {}
+    
+    def _validate_ip_or_network(self, target: str) -> bool:
+        """Validate IP address or network CIDR notation"""
+        try:
+            # Try as IP address
+            ipaddress.ip_address(target)
+            return True
+        except ValueError:
+            # Try as network
+            try:
+                ipaddress.ip_network(target, strict=False)
+                return True
+            except ValueError:
+                return False
+    
+    def _validate_port_range(self, ports: str) -> bool:
+        """Validate port range string (e.g., '1-1000', '22,80,443')"""
+        # Allow patterns: single (80), range (1-1000), list (22,80,443), mixed (1-100,443)
+        pattern = r'^[0-9,\-]+$'
+        import re
+        if not re.match(pattern, ports):
+            return False
+        
+        # Validate individual port numbers
+        parts = ports.replace('-', ',').split(',')
+        for part in parts:
+            try:
+                port = int(part)
+                if not (1 <= port <= 65535):
+                    return False
+            except ValueError:
+                return False
+        return True
 
     async def ping_sweep(self, network: str) -> List[str]:
         """Perform ping sweep to discover live hosts"""
         try:
-            # Use nmap for ping sweep
+            # Validate network CIDR to prevent command injection
+            if not self._validate_ip_or_network(network):
+                logger.error(f"Invalid network format: {network}")
+                return []
+            
+            # Use nmap for ping sweep with timeout
             cmd = ["nmap", "-sn", network]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=300.0
             )
-            stdout, stderr = await result.communicate()
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=300.0
+            )
 
             if result.returncode == 0:
                 output = stdout.decode()
@@ -55,15 +99,31 @@ class NetworkScanner:
     async def port_scan(self, host: str, ports: str = "1-1000") -> Dict[str, Any]:
         """Perform port scan on a host"""
         try:
+            # Validate IP address to prevent command injection
+            if not self._validate_ip_or_network(host):
+                logger.error(f"Invalid IP address: {host}")
+                return {"error": "Invalid IP address format"}
+            
+            # Validate port range to prevent command injection
+            if not self._validate_port_range(ports):
+                logger.error(f"Invalid port range: {ports}")
+                return {"error": "Invalid port range format"}
+            
             # Add -Pn to skip ping probe as we might have already established it's up
             # or we want to scan it regardless
             cmd = ["nmap", "-sS", "-Pn", "-p", ports, "-oX", "-", host]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=300.0
             )
-            stdout, stderr = await result.communicate()
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=300.0
+            )
 
             if result.returncode == 0:
                 return self._parse_nmap_xml(stdout.decode())
@@ -78,14 +138,31 @@ class NetworkScanner:
     async def service_detection(self, host: str, ports: List[int]) -> Dict[str, Any]:
         """Perform service detection on specific ports"""
         try:
+            # Validate IP address
+            if not self._validate_ip_or_network(host):
+                logger.error(f"Invalid IP address: {host}")
+                return {"error": "Invalid IP address format"}
+            
+            # Validate ports
+            for port in ports:
+                if not isinstance(port, int) or not (1 <= port <= 65535):
+                    logger.error(f"Invalid port: {port}")
+                    return {"error": f"Invalid port: {port}"}
+            
             port_list = ",".join(map(str, ports))
             cmd = ["nmap", "-sV", "-p", port_list, "-oX", "-", host]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=300.0
             )
-            stdout, stderr = await result.communicate()
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=300.0
+            )
 
             if result.returncode == 0:
                 return self._parse_nmap_xml(stdout.decode())
@@ -100,13 +177,24 @@ class NetworkScanner:
     async def os_detection(self, host: str) -> Dict[str, Any]:
         """Perform OS detection"""
         try:
+            # Validate IP address
+            if not self._validate_ip_or_network(host):
+                logger.error(f"Invalid IP address: {host}")
+                return {"error": "Invalid IP address format"}
+            
             cmd = ["nmap", "-O", "-oX", "-", host]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=300.0
             )
-            stdout, stderr = await result.communicate()
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=300.0
+            )
 
             if result.returncode == 0:
                 return self._parse_nmap_xml(stdout.decode())
@@ -121,13 +209,24 @@ class NetworkScanner:
     async def vulnerability_scan(self, host: str) -> Dict[str, Any]:
         """Perform basic vulnerability scanning"""
         try:
+            # Validate IP address
+            if not self._validate_ip_or_network(host):
+                logger.error(f"Invalid IP address: {host}")
+                return {"error": "Invalid IP address format"}
+            
             cmd = ["nmap", "--script", "vuln", "-oX", "-", host]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=600.0  # Longer timeout for vuln scans
             )
-            stdout, stderr = await result.communicate()
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=600.0
+            )
 
             if result.returncode == 0:
                 return self._parse_nmap_xml(stdout.decode())
@@ -142,11 +241,23 @@ class NetworkScanner:
     async def comprehensive_scan(self, host: str) -> Dict[str, Any]:
         """Perform comprehensive scan including ports, services, and OS"""
         try:
+            # Validate IP address
+            if not self._validate_ip_or_network(host):
+                logger.error(f"Invalid IP address: {host}")
+                return {"error": "Invalid IP address format"}
+            
             cmd = ["nmap", "-sS", "-sV", "-O", "-A", "--script", "default", "-oX", "-", host]
-            result = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            result = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                ),
+                timeout=600.0  # Longer timeout for comprehensive scans
+            )
+            stdout, stderr = await asyncio.wait_for(
+                result.communicate(),
+                timeout=600.0
             )
             stdout, stderr = await result.communicate()
 

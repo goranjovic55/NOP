@@ -1,0 +1,110 @@
+version: '3.8'
+
+networks:
+  test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+
+services:
+  ssh-server:
+    build: ./ssh-server
+    container_name: vulnerable-ssh
+    hostname: ssh-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.10
+    ports:
+      - "2222:22"
+    restart: unless-stopped
+
+  web-server:
+    build: ./web-server
+    container_name: vulnerable-web
+    hostname: web-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.20
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  ftp-server:
+    build: ./ftp-server
+    container_name: vulnerable-ftp
+    hostname: ftp-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.30
+    ports:
+      - "2121:21"
+      - "21100-21110:21100-21110"
+    restart: unless-stopped
+
+  database-server:
+    build: ./database-server
+    container_name: vulnerable-db
+    hostname: database-server
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=dbuser
+      - MYSQL_PASSWORD=dbpass123
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.40
+    ports:
+      - "3307:3306"
+    restart: unless-stopped
+
+  vnc-server:
+    build: ./vnc-server
+    container_name: vulnerable-vnc
+    hostname: vnc-server
+    environment:
+      - VNC_PASSWORD=password
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.50
+    ports:
+      - "5901:5900"
+    restart: unless-stopped
+
+  rdp-server:
+    build: ./rdp-server
+    container_name: vulnerable-rdp
+    hostname: rdp-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.60
+    ports:
+      - "3390:3389"
+    restart: unless-stopped
+
+  file-server:
+    build: ./file-server
+    container_name: vulnerable-smb
+    hostname: file-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.70
+    ports:
+      - "1445:445"
+      - "1139:139"
+    restart: unless-stopped
+
+  apache-server:
+    image: httpd:2.4.18  # Old Apache with CVE-2017-7668, CVE-2017-7679
+    container_name: vulnerable-apache
+    hostname: apache-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.80
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:
