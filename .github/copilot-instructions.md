@@ -50,6 +50,33 @@ If missing → agent MUST emit before proceeding
 
 **Emit AKIS** = Structured emissions at [SESSION], [PAUSE], [COMPLETE]
 
+**⚠️ LIVE SESSION TRACKING**:
+- **MANDATORY**: Update `.akis-session.json` after each emission for real-time monitoring
+- Use `.github/scripts/session-tracker.js` to emit session state
+- VSCode extension monitors this file for live visualization
+- File is auto-deleted when workflow log is written
+
+**Session Tracking Commands**:
+```bash
+# Start session
+node .github/scripts/session-tracker.js start "task description" "AgentName"
+
+# Update phase
+node .github/scripts/session-tracker.js phase CONTEXT "1/0"
+
+# Record decision
+node .github/scripts/session-tracker.js decision "Decision description"
+
+# Record delegation
+node .github/scripts/session-tracker.js delegate DeveloperAgent "Implementation task"
+
+# Record skills
+node .github/scripts/session-tracker.js skills "skill-name, skill-name"
+
+# Complete session (auto-deletes after 3s)
+node .github/scripts/session-tracker.js complete "log/workflow/YYYY-MM-DD_HHMMSS_task.md"
+```
+
 ---
 
 ## Session Boundaries

@@ -21,11 +21,8 @@ export interface SessionEmission {
 
 export class LiveSessionParser {
     /**
-     * Parse live session data from GitHub Copilot Chat output
-     * Since we can't directly access the chat, we'll monitor:
-     * 1. The most recently modified workflow log (if being written)
-     * 2. VSCode's output channels
-     * 3. Any temporary session tracking files
+     * Parse live session data from .akis-session.json
+     * This file is updated in real-time by agents during execution
      */
     static parseCurrentSession(workspaceFolder: vscode.WorkspaceFolder): LiveSession {
         const defaultSession: LiveSession = {
@@ -41,7 +38,15 @@ export class LiveSessionParser {
         };
 
         try {
-            // Strategy 1: Check for most recently modified workflow log
+            // Primary strategy: Check for .akis-session.json (written by agents)
+            const sessionFilePath = `${workspaceFolder.uri.fsPath}/.akis-session.json`;
+            
+            if (fs.existsSync(sessionFilePath)) {
+                const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf-8'));
+                return this.parseSessionFile(sessionData);
+            }
+
+            // Fallback: Check for most recently modified workflow log (old behavior)
             const workflowPath = vscode.workspace.getConfiguration('akisMonitor')
                 .get<string>('workflowLogsPath', 'log/workflow');
             const fullPath = `${workspaceFolder.uri.fsPath}/${workflowPath}`;
@@ -67,18 +72,38 @@ export class LiveSessionParser {
                 }
             }
 
-            // Strategy 2: Check for a session tracker file (if we implement one)
-            const sessionTrackerPath = `${workspaceFolder.uri.fsPath}/.akis-session.json`;
-            if (fs.existsSync(sessionTrackerPath)) {
-                const sessionData = JSON.parse(fs.readFileSync(sessionTrackerPath, 'utf-8'));
-                return this.parseSessionTracker(sessionData);
-            }
-
         } catch (error) {
             console.error('Error parsing live session:', error);
         }
 
         return defaultSession;
+    }
+
+    /**
+     * Parse session data from .akis-session.json
+     */
+    private static parseSessionFile(data: any): LiveSession {
+        const decisions = (data.decisions || []).map((d: any) => 
+            typeof d === 'string' ? d : d.description
+        );
+
+        const emissions = (data.emissions || []).map((e: any) => ({
+            timestamp: new Date(e.timestamp),
+            type: e.type || 'SESSION',
+            content: e.content || ''
+        }));
+
+        return {
+            isActive: data.status === 'active',
+            task: data.task || 'Unknown task',
+            phase: data.phase || 'UNKNOWN',
+            progress: data.progress || '0/0',
+            agent: data.agent || 'Unknown',
+            decisions,
+            emissions,
+            startTime: new Date(data.startTime || Date.now()),
+            lastUpdate: new Date(data.lastUpdate || Date.now())
+        };
     }
 
     /**
@@ -199,22 +224,5 @@ export class LiveSessionParser {
         }
 
         return emissions;
-    }
-
-    /**
-     * Parse session tracker JSON file
-     */
-    private static parseSessionTracker(data: any): LiveSession {
-        return {
-            isActive: data.isActive || false,
-            task: data.task || 'Unknown',
-            phase: data.phase || 'UNKNOWN',
-            progress: data.progress || '0/0',
-            agent: data.agent || 'Unknown',
-            decisions: data.decisions || [],
-            emissions: data.emissions || [],
-            startTime: new Date(data.startTime || Date.now()),
-            lastUpdate: new Date(data.lastUpdate || Date.now())
-        };
     }
 }

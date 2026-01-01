@@ -9,6 +9,7 @@ export interface RefreshableProvider {
 export class WorkflowWatcher implements vscode.Disposable {
     private watcher: fs.FSWatcher | undefined;
     private knowledgeWatcher: fs.FSWatcher | undefined;
+    private sessionWatcher: fs.FSWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
 
     constructor(
@@ -26,7 +27,23 @@ export class WorkflowWatcher implements vscode.Disposable {
             return;
         }
 
-        // Watch workflow logs
+        // Watch .akis-session.json (primary live session source)
+        const sessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-session.json');
+        const sessionDir = path.dirname(sessionPath);
+        
+        // Watch the workspace root for .akis-session.json
+        try {
+            this.sessionWatcher = fs.watch(sessionDir, (eventType, filename) => {
+                if (filename === '.akis-session.json') {
+                    console.log('Session file changed');
+                    this.notifyProviders();
+                }
+            });
+        } catch (error) {
+            console.error('Could not watch session file:', error);
+        }
+
+        // Watch workflow logs (fallback)
         const workflowPath = path.join(
             this.workspaceFolder.uri.fsPath,
             config.get<string>('workflowLogsPath', 'log/workflow')
@@ -71,6 +88,9 @@ export class WorkflowWatcher implements vscode.Disposable {
         }
         if (this.knowledgeWatcher) {
             this.knowledgeWatcher.close();
+        }
+        if (this.sessionWatcher) {
+            this.sessionWatcher.close();
         }
         this.disposables.forEach(d => d.dispose());
     }

@@ -5,14 +5,16 @@ Monitor and visualize AKIS (Agents, Knowledge, Instructions, Skills) system work
 ## Features
 
 - **Live Session Monitoring**: Real-time view of the currently active AKIS agent session
+  - Reads from `.akis-session.json` (written by agents during execution)
   - Current phase and progress tracking
   - Decisions made so far in the session
   - Session timeline with emissions
   - Auto-refreshes every 2 seconds
+  - Fallback to workflow log monitoring if session file doesn't exist
 - **Workflow History**: Complete history of all agent workflows from `log/workflow/` directory
 - **Decision Diagram**: Interactive Mermaid diagrams showing decision points and delegations
 - **Knowledge Graph**: D3.js force-directed graph of entities from `project_knowledge.json`
-- **Auto-refresh**: Automatically updates when workflow logs or knowledge files change
+- **Auto-refresh**: Automatically updates when files change
 - **Cyberpunk Theme**: Matches the NOP platform aesthetic
 
 ## Installation

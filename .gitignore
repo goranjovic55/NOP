@@ -35,3 +35,6 @@ Thumbs.db
 
 # Logs - workflow logs are tracked in git for session history
 # log/**/*.md  # Removed - workflow logs should be committed
+
+# AKIS Session tracking (temporary, deleted after session completes)
+.akis-session.json
