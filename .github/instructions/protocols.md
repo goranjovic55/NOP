@@ -52,19 +52,30 @@ Skills: [skill1, skill2]
 
 ## Interrupts (100% MANDATORY)
 
+**Auto-detect when**:
+- User requests new task during active session
+- Topic differs from current work
+- User says "also", "meanwhile", "quick question"
+
+**MANDATORY sequence**:
 ```
-[PAUSE: task=current | phase=PHASE]
-[STACK: push | task=sub | depth=N | parent=main]
-<work on interrupt: progress=1/N → 2/N → ... → 7/N>
-[STACK: pop | task=sub | depth=N-1 | result=findings]
-[RESUME: task=original | phase=PHASE]
+[PAUSE: task=current | phase=PHASE | progress=H/V]
+State: <files modified, next operation, context>
+
+[STACK: push | task=interrupt | depth=V+1 | parent=current]
+
+<work on interrupt: progress=1/(V+1) → 7/(V+1)>
+
+[STACK: pop | task=interrupt | depth=V | result=summary]
+
+[RESUME: task=current | phase=PHASE | progress=H/V]
+Restoring: <saved state>
 ```
 
 **Example**: Main `progress=4/0` → interrupt → nested `progress=1/1` → complete `progress=7/1` → pop → resume `progress=4/0`
 
-**Max depth**: 3 levels
-
-**Max depth**: 3 levels
+**Max depth**: 3 levels (L0, L1, L2, L3)
+- At depth 3: Reject new interrupts, complete current first
 
 ## Examples
 

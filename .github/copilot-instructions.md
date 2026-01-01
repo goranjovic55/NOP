@@ -17,7 +17,13 @@
 
 **If missing**: Emit now, then proceed.
 
-**⚠️ ENFORCEMENT**: These emissions are checked by `scripts/check_workflow_compliance.sh`. Workflow logs without [AKIS_LOADED], [SKILLS:], and [SKILLS_USED] fail compliance audits.
+**⚠️ ENFORCEMENT**: These emissions are checked by `scripts/check_workflow_compliance.sh`. Workflow logs without [SESSION], [AKIS_LOADED], [SKILLS:], and [SKILLS_USED] fail compliance audits.
+
+**Before ANY work**:
+```
+[SESSION: task_description] @mode
+```
+If missing → agent MUST emit before proceeding
 
 **Progress format**:
 - `progress=4/0` - Main thread, phase 4, no stack

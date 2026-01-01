@@ -40,6 +40,7 @@ class KnowledgeValidator:
         self._check_codegraph()
         self._check_naming()
         self._check_observations()
+        self._check_freshness()
         self._check_size()
         
         return len(self.errors) == 0
@@ -200,6 +201,37 @@ class KnowledgeValidator:
         entity_count = len(self.entities)
         if entity_count > 500:
             self.warnings.append(f"Entity count {entity_count} exceeds 500 recommended max")
+    
+    def _check_freshness(self):
+        """Check for stale entities (>30 days old)"""
+        now = datetime.now()
+        stale = []
+        
+        for name, entity in self.entities.items():
+            obs = entity.get('observations', [])
+            if not obs:
+                continue
+            
+            obs_str = obs[0] if isinstance(obs, list) else obs
+            if 'upd:' in obs_str:
+                try:
+                    date_str = obs_str.split('upd:')[1].split(',')[0].strip()
+                    date = datetime.strptime(date_str, '%Y-%m-%d')
+                    age_days = (now - date).days
+                    
+                    if age_days > 30:
+                        stale.append((name, age_days, date_str))
+                except (ValueError, IndexError):
+                    pass
+        
+        if stale:
+            self.warnings.append(f"{len(stale)} entities >30 days old (consider refresh)")
+            # Show oldest 3
+            stale.sort(key=lambda x: x[1], reverse=True)
+            for name, age, date in stale[:3]:
+                self.warnings.append(f"  • {name}: {age} days old (last: {date})")
+            if len(stale) > 3:
+                self.warnings.append(f"  • ...and {len(stale)-3} more")
             
     def print_report(self):
         """Print validation report"""

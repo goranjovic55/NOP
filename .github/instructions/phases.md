@@ -19,13 +19,13 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 
 | Phase | MANDATORY Actions |
 |-------|------------------|
-| **1. CONTEXT** | Read project_knowledge.json + read_file 3-5 relevant `.github/skills/*/SKILL.md` files, understand task<br>**→ EMIT**: `[AKIS_LOADED]` with entity count, skill names, patterns |
+| **1. CONTEXT** | Read project_knowledge.json + read_file 3-5 relevant `.github/skills/*/SKILL.md` files, understand task<br>**→ BLOCKING EMIT**: `[AKIS_LOADED]` with entity count, skill names, patterns<br>**→ GATE**: Cannot proceed to PLAN until emitted |
 | **2. PLAN** | Design approach, consider alternatives, decide delegation, identify skills to use |
 | **3. COORDINATE** | #runSubagent OR prepare tools<br>**→ EMIT**: `[SKILLS: skill-name, skill-name]` or `[METHOD: approach]` |
 | **4. INTEGRATE** | Execute work, apply changes, follow skill patterns |
-| **5. VERIFY** | Test, emit [→VERIFY], WAIT for user |
-| **6. LEARN** | Update project_knowledge.json, extract patterns, suggest new skills |
-| **7. COMPLETE** | Emit structured completion<br>**→ EMIT**: `[SKILLS_USED] skill-name, skill-name` or `[METHOD: approach]`, create workflow log for ALL sessions |
+| **5. VERIFY** | Test, emit [→VERIFY], WAIT for user<br>**→ BLOCKING GATE**: Must wait for user confirmation before LEARN |
+| **6. LEARN** | Update project_knowledge.json, extract patterns, suggest new skills<br>**→ REQUIRED**: Must emit `[AKIS_UPDATED]` or justify skip |
+| **7. COMPLETE** | Emit structured completion<br>**→ BLOCKING EMIT**: `[SKILLS_USED] skill-name, skill-name` or `[METHOD: approach]`<br>**→ REQUIRED**: Create workflow log for ALL sessions |
 
 ## Skip Phases (only if justified)
 
