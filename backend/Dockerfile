@@ -15,8 +15,14 @@ RUN apt-get update && apt-get install -y \
     traceroute \
     tcptraceroute \
     dnsutils \
+    git \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
+
+# Install exploitdb from git
+RUN git clone --depth 1 https://gitlab.com/exploit-database/exploitdb.git /opt/exploitdb \
+    && ln -sf /opt/exploitdb/searchsploit /usr/local/bin/searchsploit \
+    && cp -n /opt/exploitdb/.searchsploit_rc ~/ || true
 
 # Set working directory
 WORKDIR /app
