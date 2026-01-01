@@ -1,164 +1,116 @@
 ---
-description: 'AKIS optimization from empirical workflow analysis'
+description: 'AKIS optimization through branch comparison and intelligent merge'
 mode: agent
 ---
 # Update AKIS (Agents, Knowledge, Instructions, Skills)
 
-**Agents**: Researcher→Developer→Reviewer  
-**Sources**: `log/workflow/*.md`, `project_knowledge.json`, `.github/agents/`, `.github/instructions/`, `.github/skills/`
+**Process**: Compare → Analyze → Merge → Validate
 
 ---
 
-## Flow
+## Phase 1: Gather Sources
 
-```
-Researcher: Measure all components → effectiveness signals
-Developer: Apply optimizations → update files
-Reviewer:  Validate improvements → verify metrics
-```
-
-| Step | Component | Measure | Optimize |
-|------|-----------|---------|----------|
-| 1 | Agents | Delegation success, handoff clarity | Fix protocols, clarify scope |
-| 2 | Knowledge | Usage %, quality score, duplicates | Merge, standardize, archive |
-| 3 | Instructions | Adoption %, size, overlap | Consolidate, make terse |
-| 4 | Skills | Usage %, activation rate, pattern following | Add YAML frontmatter, update checklists, create new skills |
-
----
-
-## Measurements
-
-**Parse workflow logs**:
+**Compare branches/versions**:
 ```bash
-# Protocol compliance
-grep -rh "\[SESSION\|\[AKIS_LOADED\|\[SKILLS" log/workflow/ | wc -l
+# Find optimization branches
+git fetch origin && git branch -a | grep -i akis
 
-# Skills usage
-grep -rh "\[SKILLS_USED\]" log/workflow/*.md | sort | uniq -c
-grep -rh "skills:" log/workflow/*.md | grep -oP '(?<=skills: )[^\n]+'
+# Diff framework files
+git diff main origin/<branch> -- .github/ --stat
 
-# YAML metadata
-grep -rh "^complexity:\|^duration_min:\|^skills_used:" log/workflow/*.md
-
-# Skill activation patterns
-grep -rh "SKILLS:" log/workflow/ | grep -oP '(?<=SKILLS: )[^\]]+'
+# Show specific file changes
+git show origin/<branch>:.github/copilot-instructions.md
 ```
 
-**Analyze skills**:
+**Current state**:
 ```bash
-# Count skills
-ls -1d .github/skills/*/ | wc -l
-
-# Check YAML frontmatter
-for skill in .github/skills/*/SKILL.md; do
-  echo "$skill:"
-  head -5 "$skill" | grep -E "^(name|description):"
-done
-
-# Skill usage frequency
-grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort | uniq -c | sort -rn
+wc -l .github/copilot-instructions.md
+wc -l .github/instructions/*.md
+wc -l .github/agents/*.md
 ```
-
-**Analyze knowledge**:
-```bash
-wc -l project_knowledge.json
-python3 scripts/validate_knowledge.py  # duplicates, staleness, quality
-```
-
-**Calculate metrics**:
-- Protocol compliance: `[SESSION]`, `[KNOWLEDGE]`, `[SKILLS]` count / total sessions
-- Usage rate: Sessions using component / total sessions  
-- Quality score: Freshness(20) + Relations(30) + NoDupes(20) + Observations(20) + Timestamps(10)
-- Actionability: Checklist items / descriptive lines
-- Overhead: Emissions count / duration for quick tasks
 
 ---
 
-## Effectiveness Signals
+## Phase 2: Analyze Differences
 
-| Signal | Threshold | Action |
-|--------|-----------|--------|
-| Skill usage | <30% | Review description, improve discoverability |
-| Skill activation | <10% | Update YAML frontmatter, add keywords |
-| Overhead | >40% quick tasks | Simplify emissions |
-| Duplication | >50% overlap | Consolidate skills |
-| Checklist ratio | <0.15 | Add actionable checklist items |
-| Quality | <70/100 | Cleanup, add examples |
-| Staleness | >60 days | Archive/update |
-| Missing frontmatter | Any | Add YAML with name/description |
+| Metric | Current | Target | Check |
+|--------|---------|--------|-------|
+| copilot-instructions | lines | <100 | Terse but complete |
+| Instructions files | lines | <50 each | Essential only |
+| Agent files | lines | <50 each | Role + format |
+| Skills | lines | <100 each | Pattern + checklist |
+
+**Key optimizations to look for**:
+- Load-on-demand philosophy ("When to Load" columns)
+- Blocking enforcement (fewer required emissions)
+- Skill trigger mapping (keyword → skill)
+- Emoji section markers (🔷) for scannability
+- Tighter file limits
 
 ---
 
-## Targets
+## Phase 3: Intelligent Merge
 
-| Component | Before | Target | Validation |
-|-----------|--------|--------|------------|
-| Agents | Delegation gaps | 80%+ success | Clear handoffs |
-| Knowledge | 70/100 quality | 85+/100 | No dupes, timestamps |
-| Instructions | 352 lines | <200 lines | 60%+ adoption |
-| Skills | 17 skills, progressive disclosure | 20+ skills, 50%+ activation | YAML frontmatter, usage tracking |
-| Framework | Protocol compliance | 80%+ sessions | HOW tracking, skill emissions |
+**Merge rules**:
+1. **Keep from terse version**: Structure, brevity, trigger tables
+2. **Keep from complete version**: Critical details, examples, edge cases
+3. **Remove**: Redundancy, verbose examples, optional emissions
+
+**Required format after merge**:
+```
+[SESSION: task] @AgentName
+[AKIS] entities=N | skills=X,Y | patterns=Z
+[PHASE: NAME | progress=N/7]
+<work>
+[COMPLETE] result | files: changed
+```
+
+**Blocking (HALT if missing)**: `[SESSION:]`, `[AKIS]`, `[COMPLETE]`
+
+---
+
+## Phase 4: Validate
+
+**Line counts**:
+```bash
+wc -l .github/copilot-instructions.md  # <100
+wc -l .github/instructions/*.md         # <50 each
+wc -l .github/agents/*.md               # <50 each
+```
+
+**Completeness check**:
+- [ ] 4 pillars documented (Agents, Knowledge, Instructions, Skills)
+- [ ] 7-phase flow present
+- [ ] Delegation format present
+- [ ] Interrupt handling present
+- [ ] File limits defined
+- [ ] Portability instructions present
+
+**Commit**:
+```bash
+git add .github/
+git commit -m "Optimize AKIS framework - intelligent merge"
+git push origin main
+```
 
 ---
 
 ## Outputs
 
-- `.github/agents/*.agent.md` - Protocol fixes
-- `project_knowledge.json` - Cleaned, deduplicated
-- `.github/instructions/*.md` - Simplified protocols
-- `.github/skills/*/SKILL.md` - Individual skills with YAML frontmatter, checklists, examples
-- `docs/analysis/AKIS_OPTIMIZATION_YYYY-MM-DD.md` - Metrics, recommendations
-
-### Skill Structure Requirements
-
-Each skill must have:
-```yaml
----
-name: skill-name
-description: When to use description. Use when [scenarios].
----
-
-# Skill Title
-
-## When to Use
-- Scenario 1
-- Scenario 2
-
-## Pattern
-Description
-
-## Checklist
-- [ ] Item 1
-- [ ] Item 2
-
-## Examples
-```code```
-```
+| File | Max Lines | Content |
+|------|-----------|---------|
+| `copilot-instructions.md` | 100 | Entry point, 4 pillars, response format |
+| `instructions/*.md` | 50 each | phases, protocols, templates, structure |
+| `agents/*.md` | 50 each | Role, delegation, format |
+| `skills/*/SKILL.md` | 100 | When, pattern, checklist |
 
 ---
 
 ## Success Criteria
 
-Remeasure after 10 sessions:
-```yaml
-protocol_compliance: 80%+     # [SESSION], [AKIS_LOADED], [SKILLS] emissions
-skills_activation: 50%+       # Skills auto-loaded by Copilot
-skills_usage_tracking: 100%   # All sessions emit [SKILLS_USED]
-knowledge_usage: 40%+         # from 14.3%
-quality_score: 85+/100        # from 70
-overhead_quick: <15%          # from 40%
-skills_with_yaml: 100%        # All skills have frontmatter
-```
-
-### Skill-Specific Metrics
-```bash
-# Top 10 most used skills
-grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort | uniq -c | sort -rn | head -10
-
-# Skills never used (candidates for review)
-comm -23 <(ls -1 .github/skills/) <(grep -rh "SKILLS_USED" log/workflow/ | tr ',' '\n' | sort -u)
-
-# Average skills per session
-grep -rh "SKILLS_USED" log/workflow/ | wc -l
-grep -rh "\[SESSION" log/workflow/ | wc -l
-```
+After merge, verify:
+- Total framework <500 lines (down from 1000+)
+- All blocking emissions documented
+- Load-on-demand philosophy clear
+- Skill triggers mapped
+- Framework portable (no hardcoded tech)

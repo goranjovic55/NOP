@@ -1,151 +1,126 @@
-# Skills Directory
+# Skills
 
-**Purpose**: Agent Skills for GitHub Copilot with progressive disclosure  
-**Format**: Each skill in its own directory with SKILL.md  
-**Usage**: Copilot automatically loads relevant skills based on task context
+**Load** relevant SKILL.md files **BEFORE** implementing.
 
-## Structure
+## How to Use
 
-```
-.github/skills/
-├── README.md                    # This file
-│
-├── error-handling/              # Exception and error response patterns
-│   └── SKILL.md
-├── security/                    # Auth, validation, secrets management
-│   └── SKILL.md
-├── testing/                     # Unit, integration, E2E testing
-│   ├── SKILL.md
-│   └── commands/                # Example: Test execution scripts
-│       └── run_backend_tests.sh
-├── backend-api/                 # FastAPI patterns (merged from backend-patterns + fastapi-endpoint)
-│   └── SKILL.md
-├── frontend-react/              # React patterns (merged from frontend-patterns + react-components)
-│   └── SKILL.md
-├── git-deploy/                  # Git workflow and deployment
-│   └── SKILL.md
-├── infrastructure/              # Docker, containers, network services (merged with network-service)
-│   └── SKILL.md
-├── context-switching/           # Task interrupt handling
-│   └── SKILL.md
-├── akis-analysis/               # Framework edge case analysis
-│   └── SKILL.md
-│
-├── protocol-dissection/         # NOP: Packet parsing patterns
-│   └── SKILL.md
-├── zustand-store/               # NOP: State management patterns
-│   └── SKILL.md
-├── api-service/                 # NOP: Frontend API client patterns
-│   └── SKILL.md
-├── ui-components/               # NOP: Generic UI component patterns
-│   └── SKILL.md
-└── cyberpunk-theme/             # NOP: UI theming patterns
-    └── SKILL.md
-```
+1. **At CONTEXT**: Identify skills needed for task
+2. **Read SKILL.md**: `read_file .github/skills/{skill}/SKILL.md`
+3. **Follow checklist**: Each skill has required steps
+4. **Apply patterns**: Use examples as templates
+5. **Emit at COMPLETE**: `[SKILLS_USED] skill1, skill2`
 
-## How Skills Work
+---
 
-**Progressive Disclosure** (3 levels):
-1. **Level 1**: Copilot scans skill descriptions in YAML frontmatter
-2. **Level 2**: Loads SKILL.md body if skill is relevant
-3. **Level 3**: Accesses additional files in skill directory if needed
+## Core Skills (Universal)
 
-**Auto-Activation**: Skills are automatically loaded when Copilot detects relevant keywords in your request.
+These skills work across projects:
 
-## Skill Categories
+| Skill | When to Use |
+|-------|-------------|
+| `backend-api` | API endpoints, routes, services |
+| `frontend-react` | UI components, pages, state |
+| `testing` | Unit, integration, E2E tests |
+| `security` | Auth, validation, secrets |
+| `error-handling` | Exceptions, error responses |
+| `infrastructure` | Docker, containers, deployment |
+| `git-deploy` | Commits, branching, releases |
+| `context-switching` | Task interrupts, state preservation |
+| `akis-analysis` | Framework compliance, improvements |
 
-### Core Skills (Universal) - 9 skills
-- **error-handling**: Exception handling and JSON error responses
-- **security**: Authentication, validation, secrets management
-- **testing**: Unit, integration, E2E test patterns (with commands/ subfolder)
-- **backend-api**: FastAPI patterns with layered architecture
-- **frontend-react**: React component patterns with TypeScript and hooks
-- **git-deploy**: Conventional commits and deployment risk assessment
-- **infrastructure**: Docker, containers, and network service lifecycle
-- **context-switching**: Task interrupt and state preservation
-- **akis-analysis**: Framework edge case analysis and continuous improvement
+---
 
-### Domain Skills (NOP-Specific) - 5 skills
-- **protocol-dissection**: Multi-layer packet parsing with Scapy
-- **zustand-store**: State management patterns
-- **api-service**: Frontend API client with Axios
-- **ui-components**: Generic UI component patterns
-- **cyberpunk-theme**: Neon theming and styling
+## Project Skills (Add Your Own)
 
-## Creating New Skills
+Create skills specific to your project domain:
 
-### 1. Create Skill Directory
 ```bash
-mkdir .github/skills/my-skill
+mkdir .github/skills/{skill-name}
+# Create .github/skills/{skill-name}/SKILL.md
 ```
 
-### 2. Create SKILL.md with Frontmatter
+**Examples of project skills**:
+- Domain-specific patterns (e.g., payment processing, data pipelines)
+- Technology-specific patterns (e.g., specific frameworks)
+- Business logic patterns (e.g., workflow engines)
+
+---
+
+## Skill File Format
+
 ```markdown
 ---
-name: my-skill
-description: Brief description of when to use this skill. Use when doing X or Y.
+name: skill-name
+description: When to use this skill
 ---
 
-# My Skill Title
+# Skill Title
 
 ## When to Use
 - Scenario 1
 - Scenario 2
 
 ## Pattern
-Description of the pattern/approach
+Architecture/approach description
 
 ## Checklist
-- [ ] Check item 1
-- [ ] Check item 2
+- [ ] Required step 1
+- [ ] Required step 2
 
 ## Examples
-```code examples```
+(code examples with comments)
 ```
 
-### 3. (Optional) Add Resource Files
+---
+
+## Directory Structure
+
 ```
-my-skill/
-├── SKILL.md
-├── template.py
-└── example.ts
+.github/skills/
+├── README.md              # This file
+│
+├── # Core Skills (copy to new projects)
+├── backend-api/SKILL.md
+├── frontend-react/SKILL.md
+├── testing/SKILL.md
+├── security/SKILL.md
+├── error-handling/SKILL.md
+├── infrastructure/SKILL.md
+├── git-deploy/SKILL.md
+├── context-switching/SKILL.md
+├── akis-analysis/SKILL.md
+│
+└── # Project Skills (project-specific)
+    └── {your-skill}/SKILL.md
 ```
 
-## Usage in Copilot
-
-**Enable Agent Skills**: 
-- Settings → Search "Use Agent Skills" (chat.useAgentSkills)
-- Available in VS Code Insiders (stable support early 2026)
-
-**Prompt naturally**:
-- "Create Playwright tests" → auto-loads `testing` skill
-- "Add error handling" → auto-loads `error-handling` skill
-- "Style this button" → auto-loads `ui-components` skill
-- "Parse network packets" → auto-loads `protocol-dissection` skill
+---
 
 ## AKIS Integration
 
-Skills are part of the AKIS framework:
-- **A**gents: `.github/agents/*.agent.md` - Who executes
-- **K**nowledge: `project_knowledge.json` - What exists
-- **I**nstructions: `.github/instructions/*.md` - How to behave
-- **S**kills: `.github/skills/*/SKILL.md` - Patterns to apply
+Skills are the **S** in AKIS:
 
-**At [SESSION]**: Copilot queries relevant skills  
-**At [COMPLETE]**: Updates skills if new patterns discovered
+| Pillar | Purpose |
+|--------|---------|
+| **A**gents | WHO does work |
+| **K**nowledge | WHAT exists (history) |
+| **I**nstructions | HOW to work (process) |
+| **S**kills | PATTERNS for scenarios |
 
-## Migration Notes
+**Load at CONTEXT** → **Apply at INTEGRATE** → **Emit at COMPLETE**
 
-**Migrated**: 2025-12-31  
-**From**: Flat files (core.md, domain.md) → Individual skill directories  
-**Reason**: Align with GitHub Copilot Agent Skills best practices (progressive disclosure)
+---
 
-Legacy `.claude/` directory remains for backward compatibility.
+## Creating New Skills
 
-## Community Skills
+When you discover a reusable pattern:
 
-Explore community skills:
-- [github/awesome-copilot](https://github.com/github/awesome-copilot)
-- [anthropics/skills](https://github.com/anthropics/skills)
+1. Create directory: `.github/skills/{name}/`
+2. Create `SKILL.md` with frontmatter
+3. Document: When to Use, Pattern, Checklist, Examples
+4. Reference in knowledge if significant
 
-Copy skills to `.github/skills/` to use them in your project.
+**Good skill candidates**:
+- Patterns used 3+ times
+- Complex procedures needing consistency
+- Domain-specific knowledge

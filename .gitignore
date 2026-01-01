@@ -18,11 +18,6 @@ yarn-error.log*
 # React build
 frontend/build/
 
-# VSCode Extension
-vscode-extension/out/
-vscode-extension/*.vsix
-vscode-extension/node_modules/
-
 # IDEs
 .vscode/
 .idea/
@@ -36,5 +31,5 @@ Thumbs.db
 # Logs - workflow logs are tracked in git for session history
 # log/**/*.md  # Removed - workflow logs should be committed
 
-# AKIS Session tracking (temporary, deleted after session completes)
+# AKIS session tracking (temporary file for VSCode extension)
 .akis-session.json

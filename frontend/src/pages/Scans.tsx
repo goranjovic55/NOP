@@ -1,9 +1,59 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useScanStore, Vulnerability } from '../store/scanStore';
 import { useAuthStore } from '../store/authStore';
 import { assetService, Asset } from '../services/assetService';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const API_BASE_URL = '';
+
+// Memoized asset list item to prevent re-renders on filter input change
+interface AssetListItemProps {
+  asset: Asset & { has_been_scanned?: boolean; last_detailed_scan?: string | null };
+  isSelected: boolean;
+  isActive: boolean;
+  onSelect: (ip: string) => void;
+  onScan: (asset: Asset) => void;
+}
+
+const AssetListItem = memo(({ asset, isSelected, isActive, onSelect, onScan }: AssetListItemProps) => {
+  return (
+    <div
+      onClick={() => onSelect(asset.ip_address)}
+      className={`px-3 py-2 cursor-pointer border-l-2 transition-all ${
+        isActive
+          ? 'bg-cyber-red bg-opacity-20 border-cyber-red'
+          : isSelected
+          ? 'bg-cyber-blue bg-opacity-10 border-cyber-blue'
+          : 'border-transparent hover:bg-cyber-darker hover:border-cyber-gray'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="text-cyber-blue font-mono text-sm font-bold truncate">
+            {asset.ip_address}
+          </div>
+          {asset.hostname && asset.hostname !== asset.ip_address && (
+            <div className="text-cyber-gray-light text-xs truncate">{asset.hostname}</div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          <span className={`w-2 h-2 rounded-full ${asset.status === 'online' ? 'bg-cyber-green' : 'bg-cyber-gray'}`} />
+          {asset.has_been_scanned && (
+            <span className="text-xs text-cyber-purple px-1 border border-cyber-purple">SCND</span>
+          )}
+        </div>
+      </div>
+      {asset.open_ports && asset.open_ports.length > 0 && (
+        <div className="text-xs text-cyber-purple mt-1 truncate">
+          Ports: {asset.open_ports.slice(0, 5).join(', ')}{asset.open_ports.length > 5 ? '...' : ''}
+        </div>
+      )}
+    </div>
+  );
+});
+
+AssetListItem.displayName = 'AssetListItem';
 
 const Scans: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
@@ -25,6 +75,14 @@ const Scans: React.FC = () => {
   });
   const [ipFilter, setIpFilter] = useState(() => {
     return localStorage.getItem('nop_scans_ip_filter') || '';
+  });
+  const [scanFilter, setScanFilter] = useState<'all' | 'scanned' | 'unscanned'>(() => {
+    const saved = localStorage.getItem('nop_scans_scan_filter');
+    return (saved as 'all' | 'scanned' | 'unscanned') || 'all';
+  });
+  const [sortBy, setSortBy] = useState<'ip' | 'time' | 'status'>(() => {
+    const saved = localStorage.getItem('nop_scans_sort_by');
+    return (saved as 'ip' | 'time' | 'status') || 'time';
   });
   const [showVulnDetails, setShowVulnDetails] = useState(false);
   const [selectedVulnForDetails, setSelectedVulnForDetails] = useState<Vulnerability | null>(null);
@@ -61,6 +119,14 @@ const Scans: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nop_scans_ip_filter', ipFilter);
   }, [ipFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('nop_scans_scan_filter', scanFilter);
+  }, [scanFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('nop_scans_sort_by', sortBy);
+  }, [sortBy]);
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -270,103 +336,130 @@ const Scans: React.FC = () => {
     setVulnerabilities(tabId, []);
 
     try {
+      addLog(tabId, `[*] Starting vulnerability scan on ${tab.ip}...`);
+      addLog(tabId, `[*] Step 1/2: Detecting service versions on ports ${portList}...`);
+
+      // Step 1: Detect service versions using nmap -sV
+      const versionResponse = await fetch(`${API_BASE_URL}/api/v1/scans/vuln-scan-${tabId}/version-detection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          host: tab.ip,
+          ports: portsToScan
+        })
+      });
+
+      if (!versionResponse.ok) {
+        throw new Error(`Version detection failed: ${versionResponse.statusText}`);
+      }
+
+      const versionData = await versionResponse.json();
+      addLog(tabId, `[+] Found ${versionData.services.length} services`);
       
-      // Simulate vulnerability scanning delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Log detected services
+      versionData.services.forEach((svc: any) => {
+        const product = svc.product || 'unknown';
+        const version = svc.version || 'unknown';
+        addLog(tabId, `    Port ${svc.port}: ${product} ${version}`);
+      });
+
+      addLog(tabId, `[*] Step 2/2: Looking up CVEs for detected services...`);
+
+      // Step 2: Lookup CVEs for each service
+      const foundVulnerabilities: Vulnerability[] = [];
       
-      const mockVulnerabilities: Vulnerability[] = [];
-      
-      if (portsToScan && portsToScan.length > 0) {
-        // Check for SSH vulnerabilities
-        if (portsToScan.includes(22)) {
-          mockVulnerabilities.push({
-            id: 'vuln-1',
-            cve_id: 'CVE-2023-5678',
-            title: 'OpenSSH Remote Code Execution',
-            description: 'Critical vulnerability in OpenSSH allowing remote code execution',
-            severity: 'critical',
-            cvss_score: 9.8,
-            affected_service: 'ssh',
-            affected_port: 22,
-            exploit_available: true,
-            exploit_module: 'openssh_rce',
-            source_database: 'cve'
-          });
+      for (const service of versionData.services) {
+        if (!service.product || !service.version) {
+          continue;
         }
-        
-        // Check for HTTP vulnerabilities
-        if (portsToScan.includes(80) || portsToScan.includes(8080)) {
-          const port = portsToScan.includes(80) ? 80 : 8080;
-          mockVulnerabilities.push({
-            id: 'vuln-2',
-            cve_id: 'CVE-2023-9101',
-            title: 'Jenkins CLI Remote Code Execution',
-            description: 'Unauthenticated RCE in Jenkins CLI interface',
-            severity: 'high',
-            cvss_score: 8.5,
-            affected_service: 'http',
-            affected_port: port,
-            exploit_available: true,
-            exploit_module: 'jenkins_cli_rce',
-            source_database: 'cve'
+
+        try {
+          const cveResponse = await fetch(`${API_BASE_URL}/api/v1/vulnerabilities/lookup-cve`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              product: service.product.toLowerCase(),
+              version: service.version,
+              vendor: service.vendor || null
+            })
           });
-        }
-        
-        // Check for FTP vulnerabilities
-        if (portsToScan.includes(21)) {
-          mockVulnerabilities.push({
-            id: 'vuln-3',
-            cve_id: 'CVE-2023-1234',
-            title: 'ProFTPD Remote Code Execution',
-            description: 'Buffer overflow in ProFTPD mod_copy module',
-            severity: 'critical',
-            cvss_score: 9.1,
-            affected_service: 'ftp',
-            affected_port: 21,
-            exploit_available: true,
-            exploit_module: 'proftpd_modcopy_exec',
-            source_database: 'metasploit'
-          });
-        }
-        
-        // Check for SMB vulnerabilities
-        if (portsToScan.includes(445)) {
-          mockVulnerabilities.push({
-            id: 'vuln-4',
-            cve_id: 'CVE-2017-0144',
-            title: 'EternalBlue SMB Remote Code Execution',
-            description: 'Critical vulnerability in SMBv1 exploited by WannaCry',
-            severity: 'critical',
-            cvss_score: 9.3,
-            affected_service: 'smb',
-            affected_port: 445,
-            exploit_available: true,
-            exploit_module: 'eternalblue',
-            source_database: 'exploit_db'
-          });
-        }
-        
-        // Check for MySQL vulnerabilities
-        if (portsToScan.includes(3306)) {
-          mockVulnerabilities.push({
-            id: 'vuln-5',
-            cve_id: 'CVE-2023-21980',
-            title: 'MySQL Authentication Bypass',
-            description: 'Authentication bypass allowing unauthorized access',
-            severity: 'high',
-            cvss_score: 8.1,
-            affected_service: 'mysql',
-            affected_port: 3306,
-            exploit_available: true,
-            exploit_module: 'mysql_auth_bypass',
-            source_database: 'cve'
-          });
+
+          if (cveResponse.ok) {
+            const cveData = await cveResponse.json();
+            
+            if (cveData.cves && cveData.cves.length > 0) {
+              addLog(tabId, `[*] Found ${cveData.cves.length} CVE(s) for ${service.product} ${service.version}, checking for exploits...`);
+              
+              // Check each CVE for available exploits
+              let exploitableCount = 0;
+              for (const cve of cveData.cves) {
+                try {
+                  // Query exploit availability
+                  const exploitResponse = await fetch(`${API_BASE_URL}/api/v1/vulnerabilities/exploits/${cve.cve_id}`, {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+
+                  if (exploitResponse.ok) {
+                    const exploits = await exploitResponse.json();
+                    
+                    // Only add CVE if it has exploits
+                    if (exploits && exploits.length > 0) {
+                      exploitableCount++;
+                      foundVulnerabilities.push({
+                        id: cve.cve_id,
+                        cve_id: cve.cve_id,
+                        title: cve.title || `Vulnerability in ${service.product}`,
+                        description: cve.description || 'No description available',
+                        severity: cve.severity || 'medium',
+                        cvss_score: cve.cvss_score || 0,
+                        affected_service: service.name || service.product,
+                        affected_port: parseInt(service.port),
+                        exploit_available: true,
+                        exploit_module: exploits[0].module_id || exploits[0].module_path,
+                        source_database: 'cve'
+                      });
+                    }
+                  }
+                } catch (exploitError) {
+                  // Skip CVEs without exploits
+                  continue;
+                }
+              }
+              
+              if (exploitableCount > 0) {
+                addLog(tabId, `[+] Found ${exploitableCount} exploitable CVE(s) for ${service.product} ${service.version}`);
+              } else {
+                addLog(tabId, `[-] No exploitable CVEs found for ${service.product} ${service.version}`);
+              }
+            } else {
+              addLog(tabId, `[-] No CVEs found for ${service.product} ${service.version}`);
+            }
+          }
+        } catch (cveError) {
+          console.error(`CVE lookup failed for ${service.product}:`, cveError);
+          addLog(tabId, `[!] CVE lookup failed for ${service.product} ${service.version}`);
         }
       }
+
+      if (foundVulnerabilities.length > 0) {
+        addLog(tabId, `[+] Vulnerability scan complete: Found ${foundVulnerabilities.length} exploitable vulnerability(ies)`);
+      } else {
+        addLog(tabId, `[*] Vulnerability scan complete: No exploitable vulnerabilities found`);
+      }
       
-      setVulnerabilities(tabId, mockVulnerabilities);
-    } catch (error) {
+      setVulnerabilities(tabId, foundVulnerabilities);
+    } catch (error: any) {
       console.error('Vulnerability scan failed:', error);
+      addLog(tabId, `[ERROR] Vulnerability scan failed: ${error.message}`);
     } finally {
       setVulnScanning(tabId, false);
     }
@@ -421,6 +514,64 @@ const Scans: React.FC = () => {
     
     return true;
   });
+
+  // Memoized filtered and sorted assets for split layout
+  const filteredAssets = useMemo(() => {
+    let result = assets.filter((asset: any) => {
+      // Apply scan filter
+      if (scanFilter === 'scanned' && !asset.has_been_scanned) return false;
+      if (scanFilter === 'unscanned' && asset.has_been_scanned) return false;
+      
+      // Apply status filter
+      if (statusFilter === 'online' && asset.status !== 'online') return false;
+      if (statusFilter === 'offline' && asset.status !== 'offline') return false;
+      
+      // Apply IP filter
+      if (ipFilter.trim()) {
+        const searchTerm = ipFilter.toLowerCase();
+        const matchesIp = asset.ip_address.toLowerCase().includes(searchTerm);
+        const matchesHostname = asset.hostname?.toLowerCase().includes(searchTerm);
+        if (!matchesIp && !matchesHostname) return false;
+      }
+      
+      return true;
+    });
+    
+    // Sort
+    result.sort((a: any, b: any) => {
+      if (sortBy === 'time') {
+        const aTime = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+        const bTime = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+        return bTime - aTime; // Most recent first
+      } else if (sortBy === 'status') {
+        if (a.status === 'online' && b.status !== 'online') return -1;
+        if (a.status !== 'online' && b.status === 'online') return 1;
+        return a.ip_address.localeCompare(b.ip_address);
+      } else {
+        // IP sort
+        const aParts = a.ip_address.split('.').map(Number);
+        const bParts = b.ip_address.split('.').map(Number);
+        for (let i = 0; i < 4; i++) {
+          if (aParts[i] !== bParts[i]) return aParts[i] - bParts[i];
+        }
+        return 0;
+      }
+    });
+    
+    return result;
+  }, [assets, scanFilter, statusFilter, ipFilter, sortBy]);
+
+  // Stable callbacks for AssetListItem
+  const handleAssetSelect = useCallback((ip: string) => {
+    const asset = assets.find(a => a.ip_address === ip);
+    if (asset) {
+      handleScanSingleAsset(asset);
+    }
+  }, [assets]);
+
+  const handleAssetScan = useCallback((asset: Asset) => {
+    handleScanSingleAsset(asset);
+  }, []);
 
   // Dashboard view component
   const DashboardView = () => (
@@ -655,192 +806,265 @@ const Scans: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
-      {/* Tab Bar - Only show when there are active scans */}
-      {tabs.length > 0 && (
-        <div 
-          className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar"
-          onClick={(e) => {
-            // If clicked on the tab bar background (not on a tab), show dashboard
-            if (e.target === e.currentTarget) {
-              setShowDashboard(true);
-            }
-          }}
-        >
-          {/* Active Scan Tabs */}
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setShowDashboard(false);
-              }}
-              className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all min-w-[150px] ${
-                activeTabId === tab.id && !showDashboard
-                  ? 'bg-cyber-darker border-cyber-red text-cyber-red'
-                  : 'bg-cyber-dark border-transparent text-cyber-gray-light hover:bg-cyber-darker'
-              }`}
-            >
-              <div className="flex-1 truncate">
-                <div className="text-xs font-bold uppercase">
-                  {tab.ips ? `Multi-host (${tab.ips.length})` : tab.ip}
-                </div>
-                <div className="text-[10px] opacity-60">
-                  {tab.ips ? tab.ips.slice(0, 2).join(', ') + (tab.ips.length > 2 ? '...' : '') : (tab.hostname || 'Manual Target')}
-                </div>
-              </div>
-              {tab.status === 'running' && (
-                <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping"></div>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeTab(tab.id);
-                  // If removing last tab, show dashboard
-                  if (tabs.length === 1) {
-                    setShowDashboard(true);
-                  }
+    <div className="flex h-[calc(100vh-12rem)]">
+      {/* LEFT SIDEBAR - 30% - Asset List */}
+      <div className="w-[30%] flex flex-col border-r border-cyber-gray bg-cyber-darker overflow-hidden">
+        {/* Manual IP Entry */}
+        <div className="px-3 py-2 border-b border-cyber-gray">
+          <form onSubmit={handleManualSubmit} className="flex gap-2">
+            <div className="flex-1 relative" ref={assetDropdownRef}>
+              <input
+                type="text"
+                value={manualIp}
+                onChange={(e) => {
+                  setManualIp(e.target.value);
+                  setShowAssetDropdown(e.target.value.length > 0);
                 }}
-                className="hover:text-cyber-red ml-2"
-              >
-                &times;
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Content Area */}
-      {showDashboard ? (
-        <DashboardView />
-      ) : activeTab ? (
-        <div className="flex flex-col flex-1 space-y-4 overflow-hidden">
-          {/* Two-Pane Layout: Port Scan (Left) + Vulnerability Scan (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-hidden">
-            {/* LEFT PANE: Port Scan Configuration and Results */}
-            <div className="flex flex-col space-y-4 overflow-hidden">
-              {/* Port Scan Configuration */}
-              <div className="bg-cyber-darker p-6 border border-cyber-gray space-y-4">
-                <h3 className="text-cyber-blue font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Port Scan Configuration</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-cyber-purple uppercase font-bold">Scan Type</label>
-                    <select
-                      value={activeTab.options.scanType}
-                      onChange={(e) => updateTabOptions(activeTab.id, { scanType: e.target.value as any })}
-                      disabled={activeTab.status === 'running'}
-                      className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-xs outline-none focus:border-cyber-red"
-                    >
-                      <option value="basic">Basic Port Scan</option>
-                      <option value="comprehensive">Comprehensive</option>
-                      <option value="vuln">Vulnerability Scan</option>
-                      <option value="custom">Custom Script</option>
-                    </select>
+                onFocus={() => setShowAssetDropdown(manualIp.length > 0)}
+                placeholder="IP or CIDR..."
+                className="w-full bg-cyber-dark border border-cyber-gray px-3 py-2 text-cyber-blue text-sm outline-none focus:border-cyber-red transition-colors font-mono"
+              />
+              {showAssetDropdown && onlineAssets.length > 0 && (() => {
+                const filtered = onlineAssets.filter(a => 
+                  a.ip_address.toLowerCase().includes(manualIp.toLowerCase()) ||
+                  a.hostname.toLowerCase().includes(manualIp.toLowerCase())
+                );
+                return filtered.length > 0 ? (
+                  <div className="absolute z-20 w-full mt-1 bg-cyber-dark border border-cyber-gray max-h-40 overflow-y-auto custom-scrollbar">
+                    {filtered.slice(0, 8).map((asset) => (
+                      <div
+                        key={asset.ip_address}
+                        onClick={() => {
+                          setManualIp(asset.ip_address);
+                          setShowAssetDropdown(false);
+                        }}
+                        className="flex justify-between items-center px-3 py-2 hover:bg-cyber-darker cursor-pointer border-b border-cyber-gray last:border-0"
+                      >
+                        <span className="text-cyber-blue font-mono text-sm">{asset.ip_address}</span>
+                        <span className={`${asset.status === 'online' ? 'text-cyber-green' : 'text-cyber-gray'}`}>●</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-cyber-purple uppercase font-bold">Timing Template</label>
-                    <select
-                      value={activeTab.options.timing}
-                      onChange={(e) => updateTabOptions(activeTab.id, { timing: e.target.value as any })}
-                      disabled={activeTab.status === 'running'}
-                      className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-xs outline-none focus:border-cyber-red"
-                    >
-                      <option value="1">T1 (Paranoid)</option>
-                      <option value="2">T2 (Sneaky)</option>
-                      <option value="3">T3 (Normal)</option>
-                      <option value="4">T4 (Aggressive)</option>
-                      <option value="5">T5 (Insane)</option>
-                    </select>
+                ) : null;
+              })()}
+            </div>
+            <button
+              type="submit"
+              className="px-3 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white text-xs font-bold uppercase"
+            >
+              Add
+            </button>
+          </form>
+        </div>
+
+        {/* Filters */}
+        <div className="px-3 py-2 border-b border-cyber-gray space-y-2">
+          {/* Scan Filter */}
+          <div className="flex gap-1">
+            {(['all', 'scanned', 'unscanned'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setScanFilter(f)}
+                className={`flex-1 px-2 py-1 text-xs uppercase font-bold border transition-all ${
+                  scanFilter === f
+                    ? 'bg-cyber-blue text-white border-cyber-blue'
+                    : 'bg-cyber-dark text-cyber-gray-light border-cyber-gray hover:border-cyber-blue'
+                }`}
+              >
+                {f === 'all' ? '◈' : f === 'scanned' ? '◉' : '○'} {f}
+              </button>
+            ))}
+          </div>
+          {/* Status Filter */}
+          <div className="flex gap-1">
+            {(['all', 'online', 'offline'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`flex-1 px-2 py-1 text-xs uppercase font-bold border transition-all ${
+                  statusFilter === f
+                    ? f === 'online' ? 'bg-cyber-green text-white border-cyber-green' 
+                      : f === 'offline' ? 'bg-cyber-gray text-white border-cyber-gray'
+                      : 'bg-cyber-blue text-white border-cyber-blue'
+                    : 'bg-cyber-dark text-cyber-gray-light border-cyber-gray hover:border-cyber-blue'
+                }`}
+              >
+                {f === 'online' ? '●' : f === 'offline' ? '○' : '◈'} {f}
+              </button>
+            ))}
+          </div>
+          {/* Search + Sort */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={ipFilter}
+              onChange={(e) => setIpFilter(e.target.value)}
+              placeholder="Search IP/host..."
+              className="flex-1 bg-cyber-dark border border-cyber-gray px-3 py-1 text-cyber-blue text-sm outline-none focus:border-cyber-red font-mono"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-cyber-dark border border-cyber-gray px-2 py-1 text-cyber-blue text-sm outline-none cursor-pointer"
+            >
+              <option value="time">Time</option>
+              <option value="ip">IP</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Asset List */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {loading ? (
+            <div className="px-6 py-4 text-center text-cyber-gray-light text-sm">Loading assets...</div>
+          ) : filteredAssets.length === 0 ? (
+            <div className="px-6 py-4 text-center text-cyber-gray-light text-sm">No assets match filters</div>
+          ) : (
+            <div className="divide-y divide-cyber-gray">
+              {filteredAssets.map((asset: any) => (
+                <AssetListItem
+                  key={asset.id}
+                  asset={asset}
+                  isSelected={selectedAssets.has(asset.ip_address)}
+                  isActive={activeTab?.ip === asset.ip_address}
+                  onSelect={handleAssetSelect}
+                  onScan={handleAssetScan}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Multi-select action */}
+        {selectedAssets.size > 0 && (
+          <div className="px-3 py-2 border-t border-cyber-gray">
+            <button
+              onClick={handleScanSelectedAssets}
+              className="w-full py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white text-xs font-bold uppercase"
+            >
+              Scan Selected ({selectedAssets.size})
+            </button>
+          </div>
+        )}
+
+        {/* Asset count */}
+        <div className="px-3 py-2 border-t border-cyber-gray text-xs text-cyber-gray-light text-center">
+          {filteredAssets.length} assets • {assets.filter((a: any) => a.has_been_scanned).length} scanned
+        </div>
+      </div>
+
+      {/* RIGHT PANEL - 70% - Scan Results */}
+      <div className="w-[70%] flex flex-col overflow-hidden">
+        {/* Tab Bar */}
+        {tabs.length > 0 && (
+          <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar bg-cyber-dark">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setShowDashboard(false);
+                }}
+                className={`flex items-center space-x-2 px-4 py-2 cursor-pointer border-t-2 transition-all ${
+                  activeTabId === tab.id && !showDashboard
+                    ? 'bg-cyber-darker border-cyber-red text-cyber-red'
+                    : 'border-transparent text-cyber-gray-light hover:bg-cyber-darker'
+                }`}
+              >
+                <div className="truncate">
+                  <div className="text-xs font-bold uppercase">
+                    {tab.ips ? `Multi (${tab.ips.length})` : tab.ip}
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-cyber-purple uppercase font-bold">Port Range</label>
+                {tab.status === 'running' && (
+                  <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping"></div>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTab(tab.id);
+                    if (tabs.length === 1) setShowDashboard(true);
+                  }}
+                  className="hover:text-cyber-red text-sm"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => setShowDashboard(true)}
+              className={`px-4 py-2 text-xs font-bold ${showDashboard ? 'text-cyber-blue' : 'text-cyber-gray-light hover:text-cyber-blue'}`}
+            >
+              + New
+            </button>
+          </div>
+        )}
+
+        {/* Content - Show dashboard or active scan */}
+        {showDashboard || !activeTab ? (
+          <div className="flex-1 flex items-center justify-center text-cyber-gray-light">
+            <div className="text-center p-8">
+              <div className="text-4xl mb-4">◎</div>
+              <div className="text-sm uppercase tracking-widest mb-2">Select an Asset</div>
+              <div className="text-xs opacity-60">Click on an asset from the left panel to start scanning</div>
+            </div>
+          </div>
+        ) : (
+          /* Port Scan + Vuln Scan stacked vertically */
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* TOP: Port Scan Section */}
+            <div className="flex-1 flex flex-col border-b border-cyber-gray overflow-hidden min-h-0">
+              {/* Port Scan Config */}
+              <div className="bg-cyber-darker px-4 py-3 border-b border-cyber-gray">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-cyber-blue font-bold uppercase tracking-widest text-sm">Port Scan</h3>
+                  <span className="text-cyber-gray-light text-sm font-mono">{activeTab.ip}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <select
+                    value={activeTab.options.scanType}
+                    onChange={(e) => updateTabOptions(activeTab.id, { scanType: e.target.value as any })}
+                    disabled={activeTab.status === 'running'}
+                    className="bg-cyber-dark border border-cyber-gray px-3 py-2 text-cyber-blue text-sm outline-none focus:border-cyber-red cursor-pointer"
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="comprehensive">Full</option>
+                    <option value="vuln">Vuln</option>
+                  </select>
                   <input
                     type="text"
                     value={activeTab.options.ports}
                     onChange={(e) => updateTabOptions(activeTab.id, { ports: e.target.value })}
                     disabled={activeTab.status === 'running'}
-                    className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-xs font-mono outline-none focus:border-cyber-red"
-                    placeholder="e.g. 1-65535, U:53, T:21-25"
+                    className="bg-cyber-dark border border-cyber-gray px-3 py-2 text-cyber-blue text-sm font-mono outline-none focus:border-cyber-red"
+                    placeholder="Ports..."
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="flex items-center space-x-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={activeTab.options.aggressive}
-                      onChange={(e) => updateTabOptions(activeTab.id, { aggressive: e.target.checked })}
-                      disabled={activeTab.status === 'running'}
-                      className="sr-only peer"
-                    />
-                    <div className="w-4 h-4 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red peer-disabled:opacity-50 transition-all">
-                      {activeTab.options.aggressive && <span className="text-white text-xs">◆</span>}
-                    </div>
-                    <span className="text-xs text-cyber-gray-light group-hover:text-cyber-red transition-colors uppercase">Aggressive (-A)</span>
-                  </label>
-                  <label className="flex items-center space-x-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={activeTab.options.serviceDetection}
-                      onChange={(e) => updateTabOptions(activeTab.id, { serviceDetection: e.target.checked })}
-                      disabled={activeTab.status === 'running'}
-                      className="sr-only peer"
-                    />
-                    <div className="w-4 h-4 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red peer-disabled:opacity-50 transition-all">
-                      {activeTab.options.serviceDetection && <span className="text-white text-xs">◆</span>}
-                    </div>
-                    <span className="text-xs text-cyber-gray-light group-hover:text-cyber-red transition-colors uppercase">Service Version (-sV)</span>
-                  </label>
-                  <label className="flex items-center space-x-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={activeTab.options.osDetection}
-                      onChange={(e) => updateTabOptions(activeTab.id, { osDetection: e.target.checked })}
-                      disabled={activeTab.status === 'running'}
-                      className="sr-only peer"
-                    />
-                    <div className="w-4 h-4 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red peer-disabled:opacity-50 transition-all">
-                      {activeTab.options.osDetection && <span className="text-white text-xs">◆</span>}
-                    </div>
-                    <span className="text-xs text-cyber-gray-light group-hover:text-cyber-red transition-colors uppercase">OS Detection (-O)</span>
-                  </label>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleStartScan(activeTab.id)}
                     disabled={activeTab.status === 'running'}
-                    className={`flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
+                    className={`px-3 py-2 border text-xs font-bold uppercase ${
                       activeTab.status === 'running'
                         ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
-                        : 'border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white cyber-glow-red'
+                        : 'border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white'
                     }`}
                   >
-                    {activeTab.status === 'running' ? (
-                      <span className="text-xs">◉ Scanning...</span>
-                    ) : (
-                      <span className="text-xs">◈ Execute Port Scan</span>
-                    )}
+                    {activeTab.status === 'running' ? '⟳ Scanning...' : '▶ Scan'}
                   </button>
                   <button
                     onClick={() => navigate('/access', { state: { mode: 'login', targetIP: activeTab?.ip } })}
-                    disabled={activeTab.status === 'running'}
-                    className="flex items-center justify-center space-x-2 py-3 border-2 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all uppercase font-bold tracking-widest text-xs"
+                    className="px-3 py-2 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white text-xs font-bold uppercase"
                   >
-                    ◉ Login
+                    Login
                   </button>
                 </div>
               </div>
-              
               {/* Port Scan Output */}
-              <div className="flex-1 flex flex-col bg-black border border-cyber-gray overflow-hidden">
-                <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
-                  <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest">Port Scan Output</span>
-                  <span className="text-[10px] text-cyber-gray-light font-mono">
-                    {activeTab.ips ? `${activeTab.ips.length} hosts` : activeTab.ip}
-                  </span>
-                </div>
-                <div className="flex-1 p-4 font-mono text-xs overflow-y-auto custom-scrollbar space-y-1">
-                  {activeTab.logs.map((log, i) => (
+              <div className="flex-1 bg-black px-4 py-2 font-mono text-xs overflow-y-auto custom-scrollbar">
+                {activeTab.logs.length === 0 ? (
+                  <div className="text-cyber-gray-light opacity-50">Port scan output will appear here...</div>
+                ) : (
+                  activeTab.logs.map((log, i) => (
                     <div key={i} className={`${
                       log.includes('[SUCCESS]') ? 'text-cyber-green' :
                       log.includes('[SCAN]') ? 'text-cyber-blue' :
@@ -848,181 +1072,109 @@ const Scans: React.FC = () => {
                       log.includes('[INFO]') ? 'text-cyber-purple' :
                       'text-cyber-gray-light'
                     }`}>
-                      <span className="opacity-50 mr-2">[{new Date().toLocaleTimeString()}]</span>
                       {log}
                     </div>
-                  ))}
-                  <div ref={logEndRef} />
-                </div>
+                  ))
+                )}
+                <div ref={logEndRef} />
               </div>
             </div>
 
-            {/* RIGHT PANE: Vulnerability Scan */}
-            <div className="flex flex-col space-y-4 overflow-hidden border-l border-cyber-gray pl-4">
-              {/* Vulnerability Scan Configuration */}
-              <div className="bg-cyber-darker p-6 border border-cyber-gray space-y-4">
-                <h3 className="text-cyber-purple font-bold uppercase tracking-widest border-b border-cyber-gray pb-2">Vulnerability Scan</h3>
-                
-                {/* Database Selection */}
-                <div className="space-y-2">
-                  <label className="text-[10px] text-cyber-purple uppercase font-bold">Vulnerability Databases</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['cve', 'exploit_db', 'metasploit', 'vulners', 'packetstorm'].map((db) => (
-                      <label key={db} className="flex items-center space-x-2 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={activeTab.selectedDatabases?.includes(db) || false}
-                          onChange={() => toggleDatabase(activeTab.id, db)}
-                          disabled={activeTab.vulnScanning}
-                          className="sr-only peer"
-                        />
-                        <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple peer-disabled:opacity-50 transition-all">
-                          {activeTab.selectedDatabases?.includes(db) && <span className="text-white text-xs">◆</span>}
-                        </div>
-                        <span className="text-xs text-cyber-gray-light group-hover:text-cyber-purple transition-colors uppercase">
-                          {db === 'exploit_db' ? 'ExploitDB' : db.charAt(0).toUpperCase() + db.slice(1)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+            {/* BOTTOM: Vulnerability Scan Section */}
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+              {/* Vuln Scan Config */}
+              <div className="bg-cyber-darker px-4 py-3 border-b border-cyber-gray">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-cyber-purple font-bold uppercase tracking-widest text-sm">Vulnerability Scan</h3>
+                  <span className="text-cyber-gray-light text-sm">{activeTab.vulnerabilities?.length || 0} found</span>
                 </div>
-
-                {/* Manual Port Input */}
-                <div className="space-y-2">
-                  <label className="text-[10px] text-cyber-purple uppercase font-bold">
-                    Manual Ports {activeTab.status !== 'completed' && '(Optional)'}
-                  </label>
-                  <input
-                    type="text"
-                    value={manualPorts}
-                    onChange={(e) => setManualPorts(e.target.value)}
-                    placeholder="e.g., 22,80,443,3306"
-                    className="w-full bg-cyber-dark border border-cyber-gray p-2 text-cyber-blue text-xs font-mono outline-none focus:border-cyber-purple"
-                    disabled={activeTab.vulnScanning}
-                  />
-                  <p className="text-[9px] text-cyber-gray-light">
-                    {activeTab.status === 'completed' ? 'Ports auto-detected from scan' : 'Enter ports manually if port scan not performed'}
-                  </p>
-                </div>
-
-                {/* Execute Vulnerability Scan Button */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-5 gap-2">
+                  {['cve', 'exploit_db', 'metasploit'].map((db) => (
+                    <label key={db} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={activeTab.selectedDatabases?.includes(db) || false}
+                        onChange={() => toggleDatabase(activeTab.id, db)}
+                        disabled={activeTab.vulnScanning}
+                        className="sr-only peer"
+                      />
+                      <div className="w-4 h-4 border border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                        {activeTab.selectedDatabases?.includes(db) && <span className="text-white text-xs">✓</span>}
+                      </div>
+                      <span className="text-xs text-cyber-gray-light uppercase">{db === 'exploit_db' ? 'ExDB' : db}</span>
+                    </label>
+                  ))}
                   <button
                     onClick={() => handleVulnerabilityScan(activeTab.id)}
                     disabled={activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0}
-                    className={`flex items-center justify-center space-x-2 py-3 border-2 transition-all uppercase font-bold tracking-widest ${
+                    className={`px-3 py-2 border text-xs font-bold uppercase ${
                       activeTab.vulnScanning || activeTab.selectedDatabases?.length === 0
                         ? 'border-cyber-gray text-cyber-gray cursor-not-allowed'
                         : 'border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white'
                     }`}
                   >
-                    {activeTab.vulnScanning ? (
-                      <>
-                        <span className="animate-pulse text-xs">◉ Scanning...</span>
-                      </>
-                    ) : (
-                      <span className="text-xs">◈ Execute Vuln Scan</span>
-                    )}
+                    {activeTab.vulnScanning ? '⟳ Scanning...' : '▶ Vuln Scan'}
                   </button>
                   <button
                     onClick={() => navigate('/access', { state: { mode: 'exploit', targetIP: activeTab?.ip } })}
-                    disabled={activeTab.vulnScanning}
-                    className="flex items-center justify-center space-x-2 py-3 border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all uppercase font-bold tracking-widest text-xs"
+                    className="px-3 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white text-xs font-bold uppercase"
                   >
-                    ◉ Exploit
+                    Exploit
                   </button>
                 </div>
               </div>
-
-              {/* Vulnerability Results */}
-              <div className="flex-1 flex flex-col bg-cyber-darker border border-cyber-gray overflow-hidden">
-                <div className="bg-cyber-dark px-4 py-2 border-b border-cyber-gray">
-                  <span className="text-[10px] text-cyber-purple uppercase font-bold tracking-widest">
-                    Vulnerability Results ({activeTab.vulnerabilities?.length || 0})
-                  </span>
-                </div>
-                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-3">
-                  {activeTab.vulnScanning ? (
-                    <div className="flex flex-col items-center justify-center h-full text-cyber-purple">
-                      <div className="animate-pulse text-lg">⚡ Scanning...</div>
-                      <div className="text-xs mt-2 opacity-60">Querying vulnerability databases</div>
-                    </div>
-                  ) : activeTab.vulnerabilities?.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-cyber-gray-light">
-                      <div className="text-lg">No vulnerabilities detected</div>
-                      <div className="text-xs mt-2 opacity-60">
-                        {activeTab.status === 'completed' ? 'Target appears secure' : 'Run vulnerability scan first'}
-                      </div>
-                    </div>
-                  ) : (
-                    activeTab.vulnerabilities?.map((vuln) => (
-                      <div key={vuln.id} className="bg-cyber-dark border border-cyber-gray p-4 space-y-3">
-                        {/* Vulnerability Header */}
+              {/* Vuln Results */}
+              <div className="flex-1 px-4 py-2 overflow-y-auto custom-scrollbar bg-cyber-dark">
+                {activeTab.vulnScanning ? (
+                  <div className="flex items-center justify-center h-full text-cyber-purple text-sm animate-pulse">⚡ Scanning...</div>
+                ) : activeTab.vulnerabilities?.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-cyber-gray-light text-sm">
+                    No vulnerabilities found. Run vulnerability scan.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeTab.vulnerabilities?.map((vuln) => (
+                      <div key={vuln.id} className="bg-cyber-darker border border-cyber-gray p-3 space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="text-cyber-blue font-bold text-sm">{vuln.title}</div>
-                            <div className="text-cyber-gray-light text-xs mt-1">{vuln.cve_id}</div>
+                            <div className="text-cyber-gray-light text-xs">{vuln.cve_id}</div>
                           </div>
-                          <div className={`px-2 py-1 border text-[10px] font-bold uppercase ${getSeverityColor(vuln.severity)}`}>
+                          <span className={`px-2 py-1 border text-xs font-bold uppercase ${getSeverityColor(vuln.severity)}`}>
                             {vuln.severity}
-                          </div>
+                          </span>
                         </div>
-
-                        {/* Vulnerability Details */}
-                        <div className="text-xs text-cyber-gray-light">
-                          {vuln.description}
+                        <div className="flex items-center gap-4 text-xs">
+                          <span className="text-cyber-purple">CVSS: {vuln.cvss_score}</span>
+                          <span className="text-cyber-blue font-mono">{vuln.affected_service}:{vuln.affected_port}</span>
+                          {vuln.exploit_available && <span className="text-cyber-red">⚡ Exploit Available</span>}
                         </div>
-
-                        {/* Metrics */}
-                        <div className="flex items-center space-x-4 text-xs">
-                          <div className="text-cyber-purple">
-                            CVSS: <span className="font-bold">{vuln.cvss_score}</span>
-                          </div>
-                          <div className="text-cyber-blue">
-                            Service: <span className="font-mono">{vuln.affected_service}</span>
-                          </div>
-                          <div className="text-cyber-blue">
-                            Port: <span className="font-mono">{vuln.affected_port}</span>
-                          </div>
-                        </div>
-
-                        {/* Exploit Availability */}
-                        {vuln.exploit_available && (
-                          <div className="flex items-center space-x-2 text-xs">
-                            <span className="text-cyber-red">⚡ Exploit Available</span>
-                            {vuln.exploit_module && (
-                              <span className="text-cyber-gray-light font-mono">({vuln.exploit_module})</span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex space-x-2">
+                        <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => {
                               setSelectedVulnForDetails(vuln);
                               setShowVulnDetails(true);
                             }}
-                            className="flex-1 btn-cyber border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white py-2 text-xs uppercase font-bold tracking-widest"
+                            className="flex-1 py-2 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white text-xs font-bold uppercase"
                           >
                             Details
                           </button>
                           <button
                             onClick={() => handleBuildExploit(vuln)}
-                            className="flex-1 btn-cyber border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white py-2 text-xs uppercase font-bold tracking-widest"
+                            className="flex-1 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white text-xs font-bold uppercase"
                           >
                             Build
                           </button>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        )}
+      </div>
 
       {/* Vulnerability Details Panel */}
       {showVulnDetails && selectedVulnForDetails && (
