@@ -182,6 +182,42 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             margin-top: 16px;
             opacity: 0.7;
         }
+        .tree {
+            margin: 10px 0;
+        }
+        .tree-node {
+            margin-left: 20px;
+            position: relative;
+        }
+        .tree-toggle {
+            cursor: pointer;
+            user-select: none;
+            color: var(--vscode-charts-green);
+            display: inline-block;
+            width: 16px;
+        }
+        .tree-content {
+            padding: 4px 8px;
+            margin: 4px 0;
+            border-left: 2px solid var(--vscode-charts-purple);
+            background: var(--vscode-editor-inactiveSelectionBackground);
+            cursor: pointer;
+        }
+        .tree-content:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .tree-children {
+            margin-left: 15px;
+        }
+        .tree-children.collapsed {
+            display: none;
+        }
+        .tree-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: rgba(100, 100, 100, 0.1);
+            border-left: 2px solid var(--vscode-charts-blue);
+        }
     </style>
 </head>
 <body>
@@ -203,26 +239,43 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             </div>
         </div>
 
-        ${session.decisions.length > 0 ? `
-            <div class="decisions-section">
-                <div class="section-title">Decisions So Far</div>
-                ${session.decisions.map(decision => `
-                    <div class="decision-item">${this.escapeHtml(decision)}</div>
-                `).join('')}
+        <div class="tree">
+            <div class="tree-node">
+                <div class="tree-content" onclick="toggleNode(this)">
+                    <span class="tree-toggle">▼</span> <strong>Session Details</strong>
+                </div>
+                <div class="tree-children">
+                    ${session.decisions.length > 0 ? `
+                        <div class="tree-node">
+                            <div class="tree-content" onclick="toggleNode(this)">
+                                <span class="tree-toggle">▼</span> <strong>Decisions (${session.decisions.length})</strong>
+                            </div>
+                            <div class="tree-children">
+                                ${session.decisions.map(decision => `
+                                    <div class="tree-item">📋 ${this.escapeHtml(decision)}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${session.emissions.length > 0 ? `
+                        <div class="tree-node">
+                            <div class="tree-content" onclick="toggleNode(this)">
+                                <span class="tree-toggle">▼</span> <strong>Timeline (${session.emissions.length})</strong>
+                            </div>
+                            <div class="tree-children">
+                                ${session.emissions.slice(-15).reverse().map(emission => `
+                                    <div class="tree-item">
+                                        <span class="emission-type ${emission.type}">[${emission.type}]</span>
+                                        ${this.escapeHtml(emission.content)}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
-        ` : ''}
-
-        ${session.emissions.length > 0 ? `
-            <div class="emissions-timeline">
-                <div class="section-title">Session Timeline</div>
-                ${session.emissions.slice(-10).reverse().map(emission => `
-                    <div class="emission-item">
-                        <span class="emission-type ${emission.type}">[${emission.type}]</span>
-                        ${this.escapeHtml(emission.content)}
-                    </div>
-                `).join('')}
-            </div>
-        ` : ''}
+        </div>
 
         <div class="refresh-indicator">
             Auto-refreshing every 2 seconds
@@ -248,6 +301,19 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             Checking for active sessions...
         </div>
     `}
+    
+    <script>
+        function toggleNode(elem) {
+            const children = elem.nextElementSibling;
+            if (children && children.classList.contains('tree-children')) {
+                children.classList.toggle('collapsed');
+                const toggle = elem.querySelector('.tree-toggle');
+                if (toggle) {
+                    toggle.textContent = children.classList.contains('collapsed') ? '▶' : '▼';
+                }
+            }
+        }
+    </script>
 </body>
 </html>`;
     }

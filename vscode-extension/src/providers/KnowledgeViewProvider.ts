@@ -5,6 +5,7 @@ import { RefreshableProvider } from '../watchers/WorkflowWatcher';
 
 export class KnowledgeViewProvider implements vscode.WebviewViewProvider, RefreshableProvider {
     private view?: vscode.WebviewView;
+    private knowledgeSource: 'project' | 'global' = 'project';
 
     constructor(
         private readonly extensionUri: vscode.Uri,
@@ -24,6 +25,18 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
         };
 
         webviewView.webview.html = this.getHtmlContent(webviewView.webview);
+
+        // Handle messages from webview
+        webviewView.webview.onDidReceiveMessage(
+            message => {
+                switch (message.command) {
+                    case 'switchKnowledge':
+                        this.knowledgeSource = message.source;
+                        this.refresh();
+                        break;
+                }
+            }
+        );
     }
 
     public refresh() {
@@ -33,10 +46,10 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
     }
 
     private getHtmlContent(webview: vscode.Webview): string {
-        const config = vscode.workspace.getConfiguration('akisMonitor');
+        const knowledgeFilename = this.knowledgeSource === 'global' ? '.github/global_knowledge.json' : 'project_knowledge.json';
         const knowledgePath = path.join(
             this.workspaceFolder.uri.fsPath,
-            config.get<string>('knowledgeFilePath', 'project_knowledge.json')
+            knowledgeFilename
         );
 
         const entities = KnowledgeParser.parseKnowledgeFile(knowledgePath);
@@ -61,10 +74,34 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
             background-color: var(--vscode-editor-background);
             padding: 0;
             margin: 0;
+            overflow: hidden;
+        }
+        .controls {
+            padding: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+        .btn:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        .btn.active {
+            background: var(--vscode-button-secondaryBackground);
+            border: 1px solid var(--vscode-charts-green);
         }
         #graph {
             width: 100%;
             height: 400px;
+            background: var(--vscode-editor-background);
         }
         .node {
             cursor: pointer;
@@ -76,6 +113,7 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
         .node text {
             font-size: 10px;
             fill: var(--vscode-foreground);
+            pointer-events: none;
         }
         .link {
             stroke: #06b6d4;
@@ -121,11 +159,13 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
     </style>
 </head>
 <body>
+    <div class="controls">
+        <button class="btn ${this.knowledgeSource === 'project' ? 'active' : ''}" onclick="switchSource('project')">Project Knowledge</button>
+        <button class="btn ${this.knowledgeSource === 'global' ? 'active' : ''}" onclick="switchSource('global')">Global Knowledge</button>
+        <button class="btn" onclick="resetZoom()">Reset View</button>
+    </div>
+    
     ${entities.length > 0 ? `
-        <div class="controls">
-            <button class="control-button" onclick="resetZoom()">Reset View</button>
-            <button class="control-button" onclick="window.open('https://memviz.anthropic.com/', '_blank')">Open Memviz</button>
-        </div>
         <svg id="graph"></svg>
         <div class="entity-stats">
             <h3>Knowledge Statistics</h3>
@@ -144,31 +184,47 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
                 <span class="stat-value">${relationships.length}</span>
             </div>
         </div>
-    ` : '<div class="no-data">No knowledge data found. Check project_knowledge.json path.</div>'}
+    ` : `<div class="no-data">No knowledge data found in ${knowledgeFilename}. Check file path.</div>`}
     
     <script>
+        const vscode = acquireVsCodeApi();
         const graphData = ${JSON.stringify(graphData)};
+        let simulation;
+
+        function switchSource(source) {
+            vscode.postMessage({ command: 'switchKnowledge', source: source });
+        }
+
+        function resetZoom() {
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
         
         if (graphData.nodes.length > 0) {
             const svg = d3.select("#graph");
-            const width = svg.node().getBoundingClientRect().width;
+            const container = svg.node().parentElement;
+            const width = container.clientWidth;
             const height = 400;
             
-            svg.attr("viewBox", [0, 0, width, height]);
+            svg.attr("width", width).attr("height", height);
+            svg.selectAll("*").remove();
             
-            const simulation = d3.forceSimulation(graphData.nodes)
-                .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(80))
-                .force("charge", d3.forceManyBody().strength(-200))
+            simulation = d3.forceSimulation(graphData.nodes)
+                .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-300))
                 .force("center", d3.forceCenter(width / 2, height / 2))
-                .force("collision", d3.forceCollide().radius(30));
+                .force("collision", d3.forceCollide().radius(35));
             
-            const link = svg.append("g")
+            const g = svg.append("g");
+            
+            const link = g.append("g")
                 .selectAll("line")
                 .data(graphData.links)
                 .join("line")
                 .attr("class", "link");
             
-            const node = svg.append("g")
+            const node = g.append("g")
                 .selectAll("g")
                 .data(graphData.nodes)
                 .join("g")
@@ -227,21 +283,62 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
     }
 
     private generateGraphData(entities: any[], relationships: any[]): any {
-        const nodes = entities.slice(0, 50).map(entity => ({
+        // Limit to 100 entities for performance
+        const limitedEntities = entities.slice(0, 100);
+        
+        const nodes = limitedEntities.map(entity => ({
             id: entity.name,
             label: entity.name.split('.').pop() || entity.name.substring(0, 20),
-            tooltip: entity.name,
-            size: 8 + (entity.observations?.length || 0),
+            tooltip: `${entity.name}\nType: ${entity.entityType}\nObservations: ${entity.observations?.length || 0}`,
+            size: 8 + Math.min((entity.observations?.length || 0) * 2, 20),
             color: this.getColorByType(entity.entityType)
         }));
 
-        const links = relationships.slice(0, 100).map(rel => ({
-            source: rel.source,
-            target: rel.target,
-            type: rel.type
-        }));
+        // Create a set of valid node IDs
+        const nodeIds = new Set(nodes.map(n => n.id));
 
-        return { nodes, links };
+        // Filter links to only include those where both source and target exist
+        const validLinks = relationships
+            .filter(rel => nodeIds.has(rel.source) && nodeIds.has(rel.target))
+            .slice(0, 150)
+            .map(rel => ({
+                source: rel.source,
+                target: rel.target,
+                type: rel.type || 'relates'
+            }));
+
+        // If no valid links, create a simple hierarchy from entity names
+        if (validLinks.length === 0 && nodes.length > 1) {
+            const hierarchyLinks: any[] = [];
+            const grouped = new Map<string, any[]>();
+            
+            // Group by prefix (e.g., "NOP.Backend" -> "NOP")
+            nodes.forEach(node => {
+                const parts = node.id.split('.');
+                if (parts.length > 1) {
+                    const prefix = parts[0];
+                    if (!grouped.has(prefix)) {
+                        grouped.set(prefix, []);
+                    }
+                    grouped.get(prefix)!.push(node);
+                }
+            });
+
+            // Create links within groups
+            grouped.forEach((groupNodes, prefix) => {
+                for (let i = 1; i < groupNodes.length; i++) {
+                    hierarchyLinks.push({
+                        source: groupNodes[0].id,
+                        target: groupNodes[i].id,
+                        type: 'hierarchy'
+                    });
+                }
+            });
+
+            return { nodes, links: hierarchyLinks };
+        }
+
+        return { nodes, links: validLinks };
     }
 
     private getColorByType(type: string): string {
