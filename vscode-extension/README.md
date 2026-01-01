@@ -4,7 +4,12 @@ Monitor and visualize AKIS (Agents, Knowledge, Instructions, Skills) system work
 
 ## Features
 
-- **Workflow Tree Visualization**: Real-time monitoring of agent workflows from `log/workflow/` directory
+- **Live Session Monitoring**: Real-time view of the currently active AKIS agent session
+  - Current phase and progress tracking
+  - Decisions made so far in the session
+  - Session timeline with emissions
+  - Auto-refreshes every 2 seconds
+- **Workflow History**: Complete history of all agent workflows from `log/workflow/` directory
 - **Decision Diagram**: Interactive Mermaid diagrams showing decision points and delegations
 - **Knowledge Graph**: D3.js force-directed graph of entities from `project_knowledge.json`
 - **Auto-refresh**: Automatically updates when workflow logs or knowledge files change
@@ -44,8 +49,9 @@ Monitor and visualize AKIS (Agents, Knowledge, Instructions, Skills) system work
 ### Opening AKIS Monitor
 
 1. Click the AKIS icon in the Activity Bar (left sidebar)
-2. Three views will appear:
-   - **Workflow Tree**: Shows all recent workflows
+2. Four views will appear:
+   - **Live Session**: Shows the currently active AKIS agent session
+   - **Workflow History**: Shows all completed workflows
    - **Decision Diagram**: Visualizes decision flows
    - **Knowledge Graph**: Interactive entity graph
 

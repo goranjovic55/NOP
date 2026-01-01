@@ -32,8 +32,13 @@
     "views": {
       "akis-monitor": [
         {
+          "id": "akis-live-session-view",
+          "name": "Live Session",
+          "type": "webview"
+        },
+        {
           "id": "akis-workflow-view",
-          "name": "Workflow Tree",
+          "name": "Workflow History",
           "type": "webview"
         },
         {
@@ -49,6 +54,11 @@
       ]
     },
     "commands": [
+      {
+        "command": "akis-monitor.refreshLiveSession",
+        "title": "AKIS: Refresh Live Session",
+        "icon": "$(refresh)"
+      },
       {
         "command": "akis-monitor.refreshWorkflow",
         "title": "AKIS: Refresh Workflow",
@@ -71,6 +81,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "akis-monitor.refreshLiveSession",
+          "when": "view == akis-live-session-view",
+          "group": "navigation"
+        },
         {
           "command": "akis-monitor.refreshWorkflow",
           "when": "view == akis-workflow-view",

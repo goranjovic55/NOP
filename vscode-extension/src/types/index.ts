@@ -43,3 +43,21 @@ export interface WorkflowNode {
     timestamp?: string;
     children?: WorkflowNode[];
 }
+
+export interface LiveSession {
+    isActive: boolean;
+    task: string;
+    phase: string;
+    progress: string;
+    agent: string;
+    decisions: string[];
+    emissions: SessionEmission[];
+    startTime: Date;
+    lastUpdate: Date;
+}
+
+export interface SessionEmission {
+    timestamp: Date;
+    type: 'PHASE' | 'DECISION' | 'DELEGATE' | 'TOOL' | 'SKILL' | 'SESSION' | 'COMPLETE';
+    content: string;
+}

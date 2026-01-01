@@ -15,11 +15,52 @@ Open the NOP repository folder in VSCode to see the extension in action.
 
 ### 3. View AKIS Monitor
 
-Click the hexagonal AKIS icon in the Activity Bar (left sidebar). You'll see three panels:
+Click the hexagonal AKIS icon in the Activity Bar (left sidebar). You'll see four panels:
 
-## Panel 1: Workflow Tree
+## Panel 1: Live Session (NEW!)
 
-**What it shows**: All workflow logs from `log/workflow/` directory
+**What it shows**: Real-time status of the currently active AKIS agent session
+
+**Features**:
+- Live phase tracking (CONTEXT, PLAN, COORDINATE, INTEGRATE, VERIFY, LEARN, COMPLETE)
+- Current progress indicator (e.g., "progress=4/7")
+- Decisions made so far in the current session
+- Session timeline showing all emissions
+- Auto-refresh every 2 seconds
+- Active/Idle status indicator with animation
+
+**Example Display**:
+```
+┌─────────────────────────────────────────────┐
+│ ● ACTIVE                                    │
+│ Add live session monitoring                 │
+│ Agent: _DevTeam                            │
+│ Last update: 3s ago                         │
+│                                             │
+│ INTEGRATE                                   │
+│ Progress: 4/7                               │
+│                                             │
+│ Decisions So Far:                           │
+│ • Create Live Session parser                │
+│ • Monitor most recent workflow log          │
+│                                             │
+│ Session Timeline:                           │
+│ [PHASE] INTEGRATE | progress=4/7            │
+│ [DECISION] Parser implementation            │
+│ [SKILL] frontend-react, infrastructure      │
+└─────────────────────────────────────────────┘
+```
+
+**How it works**:
+- Monitors the most recently modified workflow log
+- Considers a file "live" if modified in the last 5 minutes
+- Parses partial workflow content for current state
+- Extracts phase, progress, decisions from emissions
+- Auto-refreshes to show real-time updates
+
+## Panel 2: Workflow History
+
+**What it shows**: All completed workflow logs from `log/workflow/` directory
 
 **Features**:
 - Chronological list of all agent workflows
@@ -43,7 +84,7 @@ Click the hexagonal AKIS icon in the Activity Bar (left sidebar). You'll see thr
 └─────────────────────────────────────────────┘
 ```
 
-## Panel 2: Decision Diagram
+## Panel 3: Decision Diagram
 
 **What it shows**: Mermaid flowchart of agent decisions
 
@@ -68,7 +109,7 @@ graph TD
 - Source workflow and timestamp
 - Purple accent color (cyberpunk theme)
 
-## Panel 3: Knowledge Graph
+## Panel 4: Knowledge Graph
 
 **What it shows**: Interactive D3.js graph of project knowledge
 
