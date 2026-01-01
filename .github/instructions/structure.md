@@ -4,32 +4,17 @@ applyTo: '**'
 
 # Structure
 
-## AKIS Framework
+## AKIS Files
 
 ```
 .github/
-├── agents/                  # Defines WHO and WHEN
-│   ├── _DevTeam.agent.md   # Orchestrator (delegation)
-│   ├── Architect.agent.md  # Design (how to design)
-│   ├── Developer.agent.md  # Code (how to implement)
-│   ├── Reviewer.agent.md   # Test (how to validate)
-│   └── Researcher.agent.md # Investigate (how to research)
-├── instructions/            # Framework protocols
-│   ├── phases.md           # 7-phase flow
-│   ├── protocols.md        # Emissions, delegation
-│   ├── structure.md        # This file
-│   └── templates.md        # Output formats
-├── prompts/
-│   └── update_akis.prompt.md
-└── copilot-instructions.md # Entry point
+├── agents/              # WHO: _DevTeam, Architect, Developer, Reviewer, Researcher
+├── instructions/        # HOW: phases, protocols, templates, structure
+├── skills/              # PATTERNS: backend-api, security, testing, etc.
+└── copilot-instructions.md  # Entry point
 
-.claude/
-└── skills.md               # 9 core patterns
-
-project_knowledge.json      # Entities, codegraph, relations
-
-log/workflow/               # Session logs
-└── YYYY-MM-DD_HHMMSS_task-slug.md
+project_knowledge.json   # WHAT: entities, relations, codegraph
+log/workflow/            # Session logs
 ```
 
 ## Knowledge Format (JSONL)
@@ -42,9 +27,9 @@ log/workflow/               # Session logs
 
 ## File Limits
 
-| Type | Max |
-|------|-----|
-| Instructions | <200 lines |
-| Agent files | <100 lines |
-| Individual Skills | <300 lines (SKILL.md with examples) |
-| Knowledge | <100KB |
+| Type | Max Lines |
+|------|-----------|
+| copilot-instructions | 100 |
+| Instructions | 50 |
+| Agent files | 50 |
+| Skills | 100 |
