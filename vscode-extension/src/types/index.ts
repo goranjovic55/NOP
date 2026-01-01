@@ -9,6 +9,14 @@ export interface WorkflowLog {
     tools: ToolUsage[];
     delegations: Delegation[];
     files: string[];
+    phases: Phase[];
+    skills: string[];
+}
+
+export interface Phase {
+    phase: string;
+    progress: string;
+    timestamp?: string;
 }
 
 export interface Decision {

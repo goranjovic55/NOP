@@ -37,13 +37,8 @@
           "type": "webview"
         },
         {
-          "id": "akis-workflow-view",
-          "name": "Workflow History",
-          "type": "webview"
-        },
-        {
           "id": "akis-decisions-view",
-          "name": "Decision Diagram",
+          "name": "Historical Diagram",
           "type": "webview"
         },
         {
@@ -57,11 +52,6 @@
       {
         "command": "akis-monitor.refreshLiveSession",
         "title": "AKIS: Refresh Live Session",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "akis-monitor.refreshWorkflow",
-        "title": "AKIS: Refresh Workflow",
         "icon": "$(refresh)"
       },
       {

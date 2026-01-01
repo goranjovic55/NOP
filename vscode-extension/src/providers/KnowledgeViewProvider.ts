@@ -210,6 +210,15 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
             svg.attr("width", width).attr("height", height);
             svg.selectAll("*").remove();
             
+            // Add zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
             simulation = d3.forceSimulation(graphData.nodes)
                 .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(100))
                 .force("charge", d3.forceManyBody().strength(-300))
@@ -274,6 +283,10 @@ export class KnowledgeViewProvider implements vscode.WebviewViewProvider, Refres
             }
             
             window.resetZoom = function() {
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                );
                 simulation.alpha(1).restart();
             };
         }

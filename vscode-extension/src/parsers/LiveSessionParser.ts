@@ -9,8 +9,16 @@ export interface LiveSession {
     agent: string;
     decisions: string[];
     emissions: SessionEmission[];
+    skills: string[];
+    delegations: Delegation[];
     startTime: Date;
     lastUpdate: Date;
+}
+
+export interface Delegation {
+    agent: string;
+    task: string;
+    timestamp: Date;
 }
 
 export interface SessionEmission {
@@ -33,6 +41,8 @@ export class LiveSessionParser {
             agent: 'None',
             decisions: [],
             emissions: [],
+            skills: [],
+            delegations: [],
             startTime: new Date(),
             lastUpdate: new Date()
         };
@@ -93,6 +103,14 @@ export class LiveSessionParser {
             content: e.content || ''
         }));
 
+        const skills = data.skills || [];
+
+        const delegations = (data.delegations || []).map((d: any) => ({
+            agent: d.agent || 'Unknown',
+            task: d.task || '',
+            timestamp: new Date(d.timestamp || Date.now())
+        }));
+
         return {
             isActive: data.status === 'active',
             task: data.task || 'Unknown task',
@@ -101,6 +119,8 @@ export class LiveSessionParser {
             agent: data.agent || 'Unknown',
             decisions,
             emissions,
+            skills,
+            delegations,
             startTime: new Date(data.startTime || Date.now()),
             lastUpdate: new Date(data.lastUpdate || Date.now())
         };
@@ -157,6 +177,8 @@ export class LiveSessionParser {
                 agent,
                 decisions,
                 emissions,
+                skills: [],
+                delegations: [],
                 startTime: new Date(mtime.getTime() - 60000), // Estimate start time
                 lastUpdate: mtime
             };
@@ -170,6 +192,8 @@ export class LiveSessionParser {
                 agent: 'Unknown',
                 decisions: [],
                 emissions: [],
+                skills: [],
+                delegations: [],
                 startTime: new Date(),
                 lastUpdate: new Date()
             };

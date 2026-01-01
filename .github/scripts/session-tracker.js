@@ -143,7 +143,8 @@ class SessionTracker {
     }
 
     /**
-     * Complete the session and clean up
+     * Complete the session and save final state
+     * Note: File is NOT deleted and will be committed with the workflow
      */
     complete(workflowLogPath) {
         if (fs.existsSync(this.sessionPath)) {
@@ -152,16 +153,9 @@ class SessionTracker {
             session.endTime = new Date().toISOString();
             session.workflowLog = workflowLogPath;
 
-            // Write final state
+            // Write final state - file persists for commit
             fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-
-            // Delete after a short delay to allow extension to capture final state
-            setTimeout(() => {
-                if (fs.existsSync(this.sessionPath)) {
-                    fs.unlinkSync(this.sessionPath);
-                    console.log(`Session tracking file removed: ${SESSION_FILE}`);
-                }
-            }, 3000);
+            console.log(`Session completed and saved to ${SESSION_FILE}`);
         }
     }
 

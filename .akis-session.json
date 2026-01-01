@@ -1,0 +1,89 @@
+{
+  "id": "1767299868579",
+  "startTime": "2026-01-01T20:37:48.579Z",
+  "task": "Add zoom controls and fix decision diagram",
+  "agent": "_DevTeam",
+  "status": "completed",
+  "phase": "COMPLETE",
+  "progress": "7/0",
+  "decisions": [
+    {
+      "description": "Add D3 zoom behavior with mousewheel to knowledge graph",
+      "timestamp": "2026-01-01T20:38:14.228Z"
+    },
+    {
+      "description": "Add SVG pan/zoom to decision diagram mermaid view",
+      "timestamp": "2026-01-01T20:38:14.270Z"
+    },
+    {
+      "description": "Fix mermaid diagram generation for workflows without all fields",
+      "timestamp": "2026-01-01T20:38:14.315Z"
+    }
+  ],
+  "emissions": [
+    {
+      "timestamp": "2026-01-01T20:38:03.438Z",
+      "type": "PHASE",
+      "phase": "CONTEXT",
+      "progress": "1/0",
+      "content": "CONTEXT"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:07.752Z",
+      "type": "PHASE",
+      "phase": "PLAN",
+      "progress": "2/0",
+      "content": "PLAN"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:14.228Z",
+      "type": "DECISION",
+      "content": "Add D3 zoom behavior with mousewheel to knowledge graph"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:14.270Z",
+      "type": "DECISION",
+      "content": "Add SVG pan/zoom to decision diagram mermaid view"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:14.315Z",
+      "type": "DECISION",
+      "content": "Fix mermaid diagram generation for workflows without all fields"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:18.645Z",
+      "type": "PHASE",
+      "phase": "INTEGRATE",
+      "progress": "4/0",
+      "content": "INTEGRATE"
+    },
+    {
+      "timestamp": "2026-01-01T20:38:18.678Z",
+      "type": "SKILL",
+      "content": "vscode-extension, d3-visualization, svg-zoom"
+    },
+    {
+      "timestamp": "2026-01-01T20:39:02.113Z",
+      "type": "PHASE",
+      "phase": "VERIFY",
+      "progress": "5/0",
+      "content": "VERIFY"
+    },
+    {
+      "timestamp": "2026-01-01T21:24:57.362Z",
+      "type": "PHASE",
+      "phase": "COMPLETE",
+      "progress": "7/0",
+      "content": "COMPLETE"
+    }
+  ],
+  "delegations": [],
+  "skills": [
+    "vscode-extension",
+    "d3-visualization",
+    "svg-zoom"
+  ],
+  "lastUpdate": "2026-01-01T21:24:57.361Z",
+  "endTime": "2026-01-01T21:25:45.471Z",
+  "workflowLog": "log/workflow/2026-01-01_210000_vscode-extension-enhancements.md"
+}

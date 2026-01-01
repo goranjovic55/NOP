@@ -217,6 +217,55 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             margin: 2px 0;
             background: rgba(100, 100, 100, 0.1);
             border-left: 2px solid var(--vscode-charts-blue);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tree-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--vscode-editor-background);
+            border-left: 2px solid var(--vscode-charts-green);
+            padding: 20px;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+            z-index: 1000;
+            box-shadow: -4px 0 8px rgba(0,0,0,0.3);
+        }
+        .detail-panel.open {
+            right: 0;
+        }
+        .detail-close {
+            float: right;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--vscode-charts-red);
+        }
+        .detail-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--vscode-charts-green);
+            margin-bottom: 16px;
+        }
+        .detail-section {
+            margin: 16px 0;
+            padding: 12px;
+            background: rgba(100, 100, 100, 0.1);
+            border-left: 3px solid var(--vscode-charts-blue);
+        }
+        .detail-label {
+            font-weight: bold;
+            color: var(--vscode-charts-cyan);
+            margin-bottom: 8px;
+        }
+        .detail-content {
+            color: var(--vscode-foreground);
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -258,14 +307,42 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                         </div>
                     ` : ''}
                     
+                    ${session.skills.length > 0 ? `
+                        <div class="tree-node">
+                            <div class="tree-content" onclick="toggleNode(this)">
+                                <span class="tree-toggle">▼</span> <strong>Skills Used (${session.skills.length})</strong>
+                            </div>
+                            <div class="tree-children">
+                                ${session.skills.map(skill => `
+                                    <div class="tree-item">🎯 ${this.escapeHtml(skill)}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${session.delegations.length > 0 ? `
+                        <div class="tree-node">
+                            <div class="tree-content" onclick="toggleNode(this)">
+                                <span class="tree-toggle">▼</span> <strong>Delegations (${session.delegations.length})</strong>
+                            </div>
+                            <div class="tree-children">
+                                ${session.delegations.map(delegation => `
+                                    <div class="tree-item">
+                                        🤝 <strong>${this.escapeHtml(delegation.agent)}</strong>: ${this.escapeHtml(delegation.task)}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
                     ${session.emissions.length > 0 ? `
                         <div class="tree-node">
                             <div class="tree-content" onclick="toggleNode(this)">
                                 <span class="tree-toggle">▼</span> <strong>Timeline (${session.emissions.length})</strong>
                             </div>
                             <div class="tree-children">
-                                ${session.emissions.slice(-15).reverse().map(emission => `
-                                    <div class="tree-item">
+                                ${session.emissions.slice(-15).reverse().map((emission, idx) => `
+                                    <div class="tree-item" onclick="showDetail(${idx})">
                                         <span class="emission-type ${emission.type}">[${emission.type}]</span>
                                         ${this.escapeHtml(emission.content)}
                                     </div>
@@ -302,7 +379,61 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         </div>
     `}
     
+    <div id="detailPanel" class="detail-panel">
+        <span class="detail-close" onclick="closeDetail()">×</span>
+        <div id="detailContent"></div>
+    </div>
+    
     <script>
+        const emissionData = ${JSON.stringify(session.emissions.slice(-15).reverse())};
+        
+        function showDetail(idx) {
+            const emission = emissionData[idx];
+            if (!emission) return;
+            
+            const panel = document.getElementById('detailPanel');
+            const detailContent = document.getElementById('detailContent');
+            
+            let html = '<div class="detail-title">Event Details</div>';
+            
+            html += '<div class="detail-section">';
+            html += '<div class="detail-label">Type</div>';
+            html += '<div class="detail-content">' + emission.type + '</div>';
+            html += '</div>';
+            
+            html += '<div class="detail-section">';
+            html += '<div class="detail-label">Timestamp</div>';
+            html += '<div class="detail-content">' + new Date(emission.timestamp).toLocaleString() + '</div>';
+            html += '</div>';
+            
+            html += '<div class="detail-section">';
+            html += '<div class="detail-label">Content</div>';
+            html += '<div class="detail-content">' + emission.content + '</div>';
+            html += '</div>';
+            
+            // Show surrounding context
+            html += '<div class="detail-section">';
+            html += '<div class="detail-label">Surrounding Context</div>';
+            html += '<div class="detail-content">';
+            const start = Math.max(0, idx - 2);
+            const end = Math.min(emissionData.length, idx + 3);
+            for (let i = start; i < end; i++) {
+                const e = emissionData[i];
+                const isCurrent = i === idx;
+                html += '<div style="padding: 6px; margin: 4px 0; background: ' + (isCurrent ? 'var(--vscode-list-activeSelectionBackground)' : 'rgba(100,100,100,0.1)') + '; border-left: 2px solid ' + (isCurrent ? 'var(--vscode-charts-green)' : 'var(--vscode-charts-blue)') + ';">';
+                html += '<strong>[' + e.type + ']</strong> ' + e.content;
+                html += '</div>';
+            }
+            html += '</div></div>';
+            
+            detailContent.innerHTML = html;
+            panel.classList.add('open');
+        }
+        
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('open');
+        }
+        
         function toggleNode(elem) {
             const children = elem.nextElementSibling;
             if (children && children.classList.contains('tree-children')) {

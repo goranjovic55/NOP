@@ -61,7 +61,7 @@ export class DecisionViewProvider implements vscode.WebviewViewProvider, Refresh
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decision Diagram</title>
+    <title>Historical Diagram</title>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ 
@@ -140,6 +140,11 @@ export class DecisionViewProvider implements vscode.WebviewViewProvider, Refresh
             margin: 4px 0;
             border-left: 2px solid var(--vscode-charts-purple);
             background: var(--vscode-editor-inactiveSelectionBackground);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tree-content:hover {
+            background: var(--vscode-list-hoverBackground);
         }
         .tree-children {
             margin-left: 15px;
@@ -154,11 +159,24 @@ export class DecisionViewProvider implements vscode.WebviewViewProvider, Refresh
         }
         .diagram-container {
             width: 100%;
-            overflow-x: auto;
+            height: 500px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--vscode-panel-border);
+            cursor: grab;
+        }
+        .diagram-container:active {
+            cursor: grabbing;
+        }
+        .diagram-container svg {
+            width: 100%;
+            height: 100%;
         }
         pre.mermaid {
             background: transparent;
             text-align: center;
+            margin: 0;
+            padding: 20px;
         }
     </style>
 </head>
@@ -199,12 +217,96 @@ export class DecisionViewProvider implements vscode.WebviewViewProvider, Refresh
             event.target.classList.add('active');
 
             if (view === 'mermaid' && window.mermaid) {
-                window.mermaid.run();
+                setTimeout(() => {
+                    window.mermaid.run();
+                    initMermaidZoom();
+                }, 100);
             }
         }
 
         function selectWorkflow(index) {
             vscode.postMessage({ command: 'selectWorkflow', index: parseInt(index) });
+        }
+        
+        // Auto-run mermaid when view loads if mermaid view is active
+        if (currentView === 'mermaid' && window.mermaid) {
+            setTimeout(() => {
+                window.mermaid.run();
+                initMermaidZoom();
+            }, 100);
+        }
+        
+        function initMermaidZoom() {
+            const container = document.querySelector('.diagram-container');
+            const svg = container?.querySelector('svg');
+            if (!svg) return;
+            
+            let scale = 1;
+            let translateX = 0;
+            let translateY = 0;
+            let isDragging = false;
+            let startX, startY;
+            
+            // Mousewheel zoom from cursor position
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Calculate the position in the transformed coordinate system
+                const transformedMouseX = (mouseX - translateX) / scale;
+                const transformedMouseY = (mouseY - translateY) / scale;
+                
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(0.1, Math.min(10, scale * delta));
+                
+                // Adjust translation to keep the mouse position fixed
+                translateX = mouseX - transformedMouseX * newScale;
+                translateY = mouseY - transformedMouseY * newScale;
+                scale = newScale;
+                
+                updateTransform();
+            });
+            
+            // Pan with mouse drag
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                container.style.cursor = 'grabbing';
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+            });
+            
+            // Set initial cursor
+            container.style.cursor = 'grab';
+            
+            function updateTransform() {
+                svg.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
+                svg.style.transformOrigin = 'center center';
+            }
+        }
+        
+        // Init zoom for initially loaded diagram
+        if (currentView === 'mermaid') {
+            setTimeout(() => initMermaidZoom(), 100);
         }
 
         function toggleNode(elem) {
@@ -298,33 +400,65 @@ export class DecisionViewProvider implements vscode.WebviewViewProvider, Refresh
         let diagram = 'graph TD\n';
         
         const rootId = 'START';
-        diagram += `    ${rootId}["${log.task}"]\n`;
+        const taskText = (log.task || 'Workflow').replace(/"/g, "'");
+        diagram += `    ${rootId}["${taskText}"]\n`;
         
         let nodeCount = 0;
+        let hasNodes = false;
         
         // Add phases
-        if (log.phases && log.phases.length > 0) {
+        if (log.phases && Array.isArray(log.phases) && log.phases.length > 0) {
             log.phases.forEach((phase: any) => {
-                const phaseId = `P${nodeCount++}`;
-                diagram += `    ${rootId} --> ${phaseId}["${phase.phase} | ${phase.progress}"]\n`;
+                if (phase && phase.phase) {
+                    const phaseId = `P${nodeCount++}`;
+                    const phaseName = phase.phase.replace(/"/g, "'");
+                    const progress = phase.progress || '';
+                    diagram += `    ${rootId} --> ${phaseId}["${phaseName} | ${progress}"]\n`;
+                    hasNodes = true;
+                }
             });
         }
         
         // Add decisions
-        if (log.decisions && log.decisions.length > 0) {
+        if (log.decisions && Array.isArray(log.decisions) && log.decisions.length > 0) {
             log.decisions.forEach((decision: any) => {
-                const decId = `D${nodeCount++}`;
-                const decText = decision.description.substring(0, 50);
-                diagram += `    ${rootId} --> ${decId}{"${decText}..."}\n`;
+                if (decision) {
+                    const decId = `D${nodeCount++}`;
+                    const decText = (typeof decision === 'string' ? decision : decision.description || 'Decision');
+                    const sanitized = decText.substring(0, 50).replace(/"/g, "'");
+                    diagram += `    ${rootId} --> ${decId}{"${sanitized}..."}\n`;
+                    hasNodes = true;
+                }
             });
         }
 
         // Add delegations
-        if (log.delegations && log.delegations.length > 0) {
+        if (log.delegations && Array.isArray(log.delegations) && log.delegations.length > 0) {
             log.delegations.forEach((delegation: any) => {
-                const delId = `DEL${nodeCount++}`;
-                diagram += `    ${rootId} --> ${delId}["→ ${delegation.agent}"]\n`;
+                if (delegation && delegation.agent) {
+                    const delId = `DEL${nodeCount++}`;
+                    const agent = delegation.agent.replace(/"/g, "'");
+                    diagram += `    ${rootId} --> ${delId}["→ ${agent}"]\n`;
+                    hasNodes = true;
+                }
             });
+        }
+        
+        // Add skills
+        if (log.skills && Array.isArray(log.skills) && log.skills.length > 0) {
+            log.skills.forEach((skill: any) => {
+                if (skill) {
+                    const skillId = `S${nodeCount++}`;
+                    const skillText = (typeof skill === 'string' ? skill : 'Skill').replace(/"/g, "'");
+                    diagram += `    ${rootId} --> ${skillId}["🎯 ${skillText}"]\n`;
+                    hasNodes = true;
+                }
+            });
+        }
+        
+        // If no nodes were added, add a placeholder
+        if (!hasNodes) {
+            diagram += `    ${rootId} --> INFO["No detailed information available"]\n`;
         }
 
         return diagram;

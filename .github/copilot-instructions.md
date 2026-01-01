@@ -38,7 +38,8 @@
 - **MANDATORY**: Update `.akis-session.json` after each emission for real-time monitoring
 - Use `.github/scripts/session-tracker.js` to emit session state
 - VSCode extension monitors this file for live visualization
-- File is auto-deleted when workflow log is written
+- **File is committed** with workflow log to preserve session details in git history
+- Starting new session **overwrites** existing file (does not append)
 
 **Session Tracking Commands**:
 ```bash
@@ -57,7 +58,7 @@ node .github/scripts/session-tracker.js delegate DeveloperAgent "Implementation 
 # Record skills
 node .github/scripts/session-tracker.js skills "skill-name, skill-name"
 
-# Complete session (auto-deletes after 3s)
+# Complete session (file persists for commit)
 node .github/scripts/session-tracker.js complete "log/workflow/YYYY-MM-DD_HHMMSS_task.md"
 ```
 

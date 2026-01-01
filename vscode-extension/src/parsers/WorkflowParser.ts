@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { WorkflowLog, Decision, ToolUsage, Delegation } from '../types';
+import { WorkflowLog, Decision, ToolUsage, Delegation, Phase } from '../types';
 
 export class WorkflowParser {
     static parseWorkflowLog(filePath: string): WorkflowLog | null {
@@ -29,6 +29,12 @@ export class WorkflowParser {
             
             // Extract modified files
             const files = this.extractFiles(content);
+            
+            // Extract phases
+            const phases = this.extractPhases(content);
+            
+            // Extract skills
+            const skills = this.extractSkills(content);
 
             return {
                 filename,
@@ -40,7 +46,9 @@ export class WorkflowParser {
                 decisions,
                 tools,
                 delegations,
-                files
+                files,
+                phases,
+                skills
             };
         } catch (error) {
             console.error(`Error parsing workflow log ${filePath}:`, error);
@@ -134,6 +142,44 @@ export class WorkflowParser {
         }
 
         return [...new Set(files)]; // Remove duplicates
+    }
+
+    private static extractPhases(content: string): { phase: string; progress: string; timestamp?: string }[] {
+        const phases: { phase: string; progress: string; timestamp?: string }[] = [];
+        const phaseMatches = content.matchAll(/\[PHASE:\s*([A-Z]+)\s*\|?\s*progress=(\d+\/\d+)?\]/g);
+        
+        for (const match of phaseMatches) {
+            phases.push({
+                phase: match[1],
+                progress: match[2] || '0/0'
+            });
+        }
+        
+        return phases;
+    }
+
+    private static extractSkills(content: string): string[] {
+        const skills: string[] = [];
+        
+        // Look for [AKIS] emissions with skills
+        const akisMatches = content.matchAll(/\[AKIS\].*?skills=([^|\]]+)/g);
+        for (const match of akisMatches) {
+            const skillList = match[1].split(',').map(s => s.trim()).filter(s => s);
+            skills.push(...skillList);
+        }
+        
+        // Also look for explicit skills section
+        const skillsSection = content.match(/\[SKILLS\]([\s\S]+?)(?=\[|##|$)/i);
+        if (skillsSection) {
+            const lines = skillsSection[1].split('\n').filter(line => line.trim());
+            lines.forEach(line => {
+                if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
+                    skills.push(line.replace(/^[-*]\s*/, '').trim());
+                }
+            });
+        }
+        
+        return [...new Set(skills)]; // Remove duplicates
     }
 
     static parseAllWorkflowLogs(workflowDir: string): WorkflowLog[] {
