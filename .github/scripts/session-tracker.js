@@ -25,11 +25,46 @@ class SessionTracker {
     /**
      * Get all active sessions
      */
+    /**
+     * Get all active sessions (with validation and corruption recovery)
+     */
     getAllSessions() {
         if (!fs.existsSync(this.multiSessionPath)) {
             return { sessions: [], currentSessionId: null };
         }
-        return JSON.parse(fs.readFileSync(this.multiSessionPath, 'utf-8'));
+        
+        try {
+            const data = JSON.parse(fs.readFileSync(this.multiSessionPath, 'utf-8'));
+            
+            // Basic validation
+            if (!data || typeof data !== 'object' || !Array.isArray(data.sessions)) {
+                throw new Error('Invalid session file structure');
+            }
+            
+            return data;
+        } catch (error) {
+            console.warn(`Session file corrupted: ${error.message}`);
+            
+            // Attempt recovery from backup
+            const backupPath = this.multiSessionPath + '.backup';
+            if (fs.existsSync(backupPath)) {
+                console.warn('Recovering from backup...');
+                try {
+                    const backup = JSON.parse(fs.readFileSync(backupPath, 'utf-8'));
+                    if (backup && Array.isArray(backup.sessions)) {
+                        fs.copyFileSync(backupPath, this.multiSessionPath);
+                        console.warn('✓ Recovered from backup');
+                        return backup;
+                    }
+                } catch (backupError) {
+                    console.error('Backup also corrupted:', backupError.message);
+                }
+            }
+            
+            // Last resort: return empty state
+            console.error('Unable to recover, starting fresh');
+            return { sessions: [], currentSessionId: null };
+        }
     }
 
     /**
@@ -55,6 +90,7 @@ class SessionTracker {
      */
     start(sessionData) {
         // Check max depth (prevent runaway nesting)
+        const MAX_DEPTH = parseInt(process.env.AKIS_MAX_DEPTH || '10');
         const allSessions = this.getAllSessions();
         const activeSessions = (allSessions.sessions || []).filter(s => s.status === 'active');
         if (activeSessions.length >= 3) {
@@ -69,6 +105,11 @@ class SessionTracker {
             const currentActive = activeSessions[activeSessions.length - 1];
             parentSessionId = currentActive.id;
             depth = (currentActive.depth || 0) + 1;
+            
+            // Enforce max depth
+            if (depth > MAX_DEPTH) {
+                throw new Error(`Max session depth ${MAX_DEPTH} exceeded. Complete parent sessions first. (Set AKIS_MAX_DEPTH to override)`);
+            }
             
             // Pause the parent session with current state
             const parentIdx = allSessions.sessions.findIndex(s => s.id === parentSessionId);
@@ -1189,6 +1230,86 @@ class SessionTracker {
     }
 
     /**
+     * Archive stale sessions (>N hours without updates)
+     */
+    archiveStale(hoursOld = 1) {
+        const cutoffMs = Date.now() - (hoursOld * 3600000);
+        const allSessions = this.getAllSessions();
+        let archivedCount = 0;
+        
+        allSessions.sessions.forEach(s => {
+            if (s.status === 'active') {
+                const lastUpdate = new Date(s.lastUpdate).getTime();
+                if (lastUpdate < cutoffMs) {
+                    s.status = 'stale';
+                    s.archivedAt = new Date().toISOString();
+                    archivedCount++;
+                }
+            }
+        });
+        
+        if (archivedCount > 0) {
+            this.saveAllSessions(allSessions);
+        }
+        
+        return {
+            archived: archivedCount,
+            cutoffHours: hoursOld,
+            message: `Archived ${archivedCount} stale session(s) older than ${hoursOld}h`
+        };
+    }
+
+    /**
+     * Health check - validates session integrity
+     */
+    healthCheck() {
+        const allSessions = this.getAllSessions();
+        const sessions = allSessions.sessions || [];
+        const issues = [];
+        
+        // Check orphaned sessions
+        sessions.forEach(s => {
+            if (s.parentSessionId && !sessions.find(p => p.id === s.parentSessionId)) {
+                issues.push({ 
+                    session: s.id, 
+                    task: s.task,
+                    issue: 'orphaned',
+                    detail: `Parent ${s.parentSessionId} not found`
+                });
+            }
+        });
+        
+        // Check depth consistency
+        sessions.forEach(s => {
+            const parent = sessions.find(p => p.id === s.parentSessionId);
+            if (parent && s.depth !== parent.depth + 1) {
+                issues.push({ 
+                    session: s.id, 
+                    task: s.task,
+                    issue: 'depth_mismatch',
+                    detail: `Expected depth ${parent.depth + 1}, got ${s.depth}`
+                });
+            }
+        });
+        
+        // Check for stale active sessions
+        const cutoffMs = Date.now() - (3600000); // 1 hour
+        const stale = sessions.filter(s => 
+            s.status === 'active' && new Date(s.lastUpdate).getTime() < cutoffMs
+        );
+        
+        return {
+            healthy: issues.length === 0,
+            sessionCount: sessions.length,
+            activeCount: sessions.filter(s => s.status === 'active').length,
+            completedCount: sessions.filter(s => s.status === 'completed').length,
+            staleCount: stale.length,
+            issues,
+            stale: stale.map(s => ({ id: s.id, task: s.task, lastUpdate: s.lastUpdate }))
+        };
+    }
+
+    /**
      * Recover from last known state
      */
     recover() {
@@ -1375,6 +1496,17 @@ if (require.main === module) {
             console.log('Checkpoint saved to .akis-checkpoint.json');
             break;
 
+        case 'health':
+        case 'healthcheck':
+        case 'health-check':
+            console.log(JSON.stringify(tracker.healthCheck(), null, 2));
+            break;
+
+        case 'archive-stale':
+            const hours = parseInt(args[1]) || 1;
+            console.log(JSON.stringify(tracker.archiveStale(hours), null, 2));
+            break;
+
         default:
             console.log(`
 AKIS Session Tracker - Multi-Session SSOT
@@ -1401,11 +1533,16 @@ Usage:
   node session-tracker.js validate <response>
   node session-tracker.js recover
   node session-tracker.js checkpoint
+  node session-tracker.js health (or healthcheck)
+  node session-tracker.js archive-stale [hours]
 
 SSOT Features:
   - Sessions contain all context needed to restore agent state
   - Track entities, files, patterns, changes in session.context
   - Phase details for extension tree view
+  
+Environment Variables:
+  AKIS_MAX_DEPTH - Max session nesting depth (default: 10)
   - Parallel session updates by ID
   - Named sessions for easy identification
   - Terse context summaries for quick restoration

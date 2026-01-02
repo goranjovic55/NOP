@@ -207,6 +207,24 @@ See [`SESSION_RESILIENCE_TEST_RESULTS.md`](../SESSION_RESILIENCE_TEST_RESULTS.md
 
 ## Contributing
 
+### AKIS Improvements Implemented
+
+Based on resilience testing, the following improvements have been added:
+
+1. **Hard Depth Limit** (`AKIS_MAX_DEPTH=10`) - Prevents runaway nesting
+2. **Validation on Load** - Auto-recovery from corruption via backup
+3. **Stale Session Cleanup** - Archive inactive sessions >1hr old
+4. **Health Check API** - Validate session integrity programmatically
+
+```bash
+# Test new features
+export AKIS_MAX_DEPTH=5
+node .github/scripts/session-tracker.js health
+node .github/scripts/session-tracker.js archive-stale 2
+```
+
+See `.github/AKIS_IMPROVEMENTS.md` for details.
+
 To add new tests:
 
 1. **Edge Case Test**: Add to `test-session-resilience.js`
