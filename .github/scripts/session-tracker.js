@@ -15,6 +15,8 @@ const path = require('path');
 
 const SESSION_FILE = '.akis-session.json';
 const MULTI_SESSION_FILE = '.akis-sessions.json';
+const PARENT_STALE_THRESHOLD_MS = 3600000; // 1 hour
+const MAX_PARENT_CHAIN_DEPTH = 10;
 
 class SessionTracker {
     constructor() {
@@ -56,7 +58,7 @@ class SessionTracker {
         let currentId = parentId;
         let safety = 0;
         
-        while (currentId && safety < 10) {
+        while (currentId && safety < MAX_PARENT_CHAIN_DEPTH) {
             const parent = (allSessions.sessions || []).find(s => s.id === currentId);
             if (!parent) break;
             
@@ -92,7 +94,7 @@ class SessionTracker {
         }
         
         const parentAge = Date.now() - new Date(parent.lastUpdate).getTime();
-        if (parentAge > 3600000) { // 1 hour
+        if (parentAge > PARENT_STALE_THRESHOLD_MS) {
             return { healthy: false, reason: 'PARENT_STALE', staleSinceMs: parentAge };
         }
         

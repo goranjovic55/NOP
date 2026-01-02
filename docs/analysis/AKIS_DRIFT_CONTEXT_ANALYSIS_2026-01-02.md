@@ -131,11 +131,11 @@ Analysis of AKIS framework for drift prevention and context retention. Identifie
 
 ### File Size Reduction
 ```
-copilot-instructions.md: 140 → 128 lines (-9%)
-phases.md: 110 → 52 lines (-53%)
-protocols.md: 68 → 38 lines (-44%)
-error_recovery.md: 73 → 24 lines (-67%)
-TOTAL: 391 → 242 lines (-38%)
+copilot-instructions.md: 140 → 129 lines (-8%)
+phases.md: 110 → 56 lines (-49%)
+protocols.md: 68 → 39 lines (-43%)
+error_recovery.md: 73 → 29 lines (-60%)
+TOTAL: 391 → 253 lines (-35%)
 ```
 
 ### Gate Coverage
