@@ -21,7 +21,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | 1 | CONTEXT | Load knowledge + relevant skills | `[AKIS]` |
 | 2 | PLAN | Design approach, select skills | - |
 | 3 | COORDINATE | Delegate OR prepare tools | `[DELEGATE:]` |
-| 4 | INTEGRATE | Execute work | `[SKILLS:]` used |
+| 4 | INTEGRATE | Execute work | `[SKILLS:]` |
 | 5 | VERIFY | Test, validate | `[→VERIFY]` + wait |
 | 6 | LEARN | Update knowledge | `[AKIS_UPDATED]` |
 | 7 | COMPLETE | Emit completion | `[COMPLETE]` |
