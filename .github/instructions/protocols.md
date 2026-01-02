@@ -28,6 +28,16 @@ applyTo: '**'
 | Reviewer | `[VALIDATION_REPORT]` |
 | Researcher | `[FINDINGS]` |
 
+**On receive**: Parse `Context:` as CONSTRAINTS → Emit `[PARSED:]` before work
+
+## Stale Session Recovery
+
+| Age | Action |
+|-----|--------|
+| < 30min | Auto-resume from checkpoint |
+| 30min-1hr | `[STALE: task=X]` → Ask user |
+| > 1hr | Mark abandoned, start fresh |
+
 ## Interrupts
 
 **ON INTERRUPT:**

@@ -8,10 +8,11 @@ interface AssetListItemProps {
   asset: Asset & { has_been_scanned?: boolean; last_detailed_scan?: string | null };
   isActive: boolean;
   scanStatus?: 'idle' | 'running' | 'completed' | 'failed';
+  vulnScanning?: boolean;
   onOpen: (asset: Asset) => void;
 }
 
-const AssetListItem = memo(({ asset, isActive, scanStatus, onOpen }: AssetListItemProps) => {
+const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, onOpen }: AssetListItemProps) => {
   return (
     <div
       onClick={() => onOpen(asset)}
@@ -30,6 +31,10 @@ const AssetListItem = memo(({ asset, isActive, scanStatus, onOpen }: AssetListIt
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Vuln scan indicator */}
+          {vulnScanning && (
+            <span className="w-2 h-2 rounded-full bg-cyber-purple animate-pulse" title="Vulnerability scan running" />
+          )}
           {/* Scan status indicator */}
           {scanStatus === 'running' && (
             <span className="w-2 h-2 rounded-full bg-cyber-red animate-pulse" title="Scan running" />
@@ -104,46 +109,214 @@ const Scans: React.FC = () => {
 
   const handleStartScan = async (id: string) => {
     const tab = tabs.find((t) => t.id === id);
-    if (!tab) return;
+    if (!tab || !token) return;
 
-    startScan(id);
-    setScanStatus(id, 'running');
-    addLog(id, `[SCAN] Starting ${tab.options.scanType} scan on ${tab.ip} (${tab.options.ports || 'default ports'})`);
+    try {
+      startScan(id);
+      setScanStatus(id, 'running');
+      addLog(id, `[SCAN] Starting ${tab.options.scanType} scan on ${tab.ip} (${tab.options.ports || 'default ports'})`);
+      addLog(id, '[INFO] Enumerating services and collecting banners...');
 
-    setTimeout(() => addLog(id, '[INFO] Enumerating services and collecting banners...'), 800);
-    setTimeout(() => {
-      setScanStatus(id, 'completed');
-      addLog(id, '[SUCCESS] Scan complete. No critical issues detected.');
-      onScanComplete?.(tab.ip, {});
-    }, 3000);
+      // Call the real API
+      const result = await assetService.startScan(token, tab.ip, tab.options.scanType || 'basic');
+      
+      if (result && result.scan_id) {
+        addLog(id, `[INFO] Scan initiated with ID: ${result.scan_id}`);
+        
+        // Poll for scan results
+        const pollInterval = setInterval(async () => {
+          try {
+            const scanStatus = await assetService.getScanStatus(token, result.scan_id);
+            
+            if (scanStatus.status === 'completed') {
+              clearInterval(pollInterval);
+              setScanStatus(id, 'completed');
+              
+              // Parse and display scan results
+              const results = scanStatus.results || {};
+              const hosts = results.hosts || [];
+              addLog(id, `[SUCCESS] Scan complete. Found ${hosts.length} host(s)`);
+              
+              // Log discovered hosts and their open ports
+              for (const host of hosts) {
+                const hostIp = host.ip || host.address || 'unknown';
+                const ports = host.ports || [];
+                const openPorts = ports.filter((p: any) => p.state === 'open');
+                
+                if (openPorts.length > 0) {
+                  addLog(id, `[HOST] ${hostIp}`);
+                  for (const port of openPorts) {
+                    const portId = port.portid || port.port;
+                    const service = port.service?.name || port.service || 'unknown';
+                    const version = port.service?.version || port.version || '';
+                    const product = port.service?.product || port.product || '';
+                    const serviceInfo = version ? `${service} ${product} ${version}`.trim() : service;
+                    addLog(id, `  [PORT] ${portId}/tcp - ${serviceInfo}`);
+                  }
+                } else if (host.status === 'up') {
+                  addLog(id, `[HOST] ${hostIp} - Up (no open ports in scan range)`);
+                }
+              }
+              
+              // Refresh assets list
+              const updatedAssets = await assetService.getAssets(token);
+              setAssets(updatedAssets);
+              
+              onScanComplete?.(tab.ip, scanStatus);
+            } else if (scanStatus.status === 'failed') {
+              clearInterval(pollInterval);
+              setScanStatus(id, 'failed');
+              addLog(id, '[ERROR] Scan failed');
+            } else {
+              addLog(id, `[INFO] Scan progress: ${scanStatus.progress || 'running'}...`);
+            }
+          } catch (err) {
+            clearInterval(pollInterval);
+            setScanStatus(id, 'failed');
+            addLog(id, '[ERROR] Failed to get scan status');
+          }
+        }, 2000);
+      } else {
+        setScanStatus(id, 'failed');
+        addLog(id, '[ERROR] Failed to start scan');
+      }
+    } catch (error: any) {
+      setScanStatus(id, 'failed');
+      addLog(id, `[ERROR] Scan failed: ${error.response?.data?.detail || error.message}`);
+    }
   };
 
   const handleVulnerabilityScan = async (tabId: string) => {
     const tab = tabs.find((t) => t.id === tabId);
-    if (!tab || tab.vulnScanning) return;
+    if (!tab || tab.vulnScanning || !token) return;
 
-    setVulnScanning(tabId, true);
-    addLog(tabId, `[SCAN] Running vulnerability checks against ${tab.selectedDatabases.join(', ')}`);
+    try {
+      setVulnScanning(tabId, true);
+      addLog(tabId, `[SCAN] Running vulnerability checks against ${tab.selectedDatabases.join(', ')}`);
+      
+      // Find asset by IP to get open ports
+      const asset = assets.find(a => a.ip_address === tab.ip);
+      if (!asset || !asset.open_ports || asset.open_ports.length === 0) {
+        addLog(tabId, '[ERROR] No open ports found. Run a port scan first.');
+        setVulnScanning(tabId, false);
+        return;
+      }
 
-    setTimeout(() => {
-      const sample: Vulnerability[] = [
-        {
-          id: `${tabId}-vuln-1`,
-          cve_id: 'CVE-2024-0001',
-          title: 'Sample Vulnerability',
-          description: 'Example vulnerability for demo purposes',
-          severity: 'medium',
-          cvss_score: 6.3,
-          affected_service: 'http',
-          affected_port: 80,
-          exploit_available: false,
-          source_database: 'cve'
+      // Batch ports into groups of 5 to avoid proxy timeouts (Codespaces has ~2min limit)
+      const BATCH_SIZE = 5;
+      const portBatches: number[][] = [];
+      for (let i = 0; i < asset.open_ports.length; i += BATCH_SIZE) {
+        portBatches.push(asset.open_ports.slice(i, i + BATCH_SIZE));
+      }
+
+      addLog(tabId, `[INFO] Detecting service versions on ${asset.open_ports.length} open ports in ${portBatches.length} batches...`);
+      
+      // Step 1: Detect service versions in batches
+      const allServices: any[] = [];
+      
+      for (let batchIdx = 0; batchIdx < portBatches.length; batchIdx++) {
+        const batch = portBatches[batchIdx];
+        addLog(tabId, `[INFO] Scanning batch ${batchIdx + 1}/${portBatches.length}: ports ${batch.join(', ')}...`);
+        
+        try {
+          const versionResponse = await fetch(`/api/v1/scans/${tabId}/version-detection`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              host: tab.ip,
+              ports: batch
+            })
+          });
+
+          if (!versionResponse.ok) {
+            addLog(tabId, `[WARN] Batch ${batchIdx + 1} failed, continuing...`);
+            continue;
+          }
+          
+          const versionData = await versionResponse.json();
+          if (versionData.services) {
+            allServices.push(...versionData.services);
+          }
+        } catch (fetchError: any) {
+          addLog(tabId, `[WARN] Batch ${batchIdx + 1} error: ${fetchError.message}`);
+          continue;
         }
-      ];
-      setVulnerabilities(tabId, sample);
+      }
+
+      addLog(tabId, `[INFO] Detected ${allServices.length} services total`);
+
+      const allVulnerabilities: Vulnerability[] = [];
+
+      // Step 2: Lookup CVEs for each service
+      for (const service of allServices) {
+        if (!service.product || !service.version) continue;
+
+        addLog(tabId, `[INFO] Scanning ${service.product} ${service.version} on port ${service.port}...`);
+
+        const cveResponse = await fetch(`/api/v1/vulnerabilities/lookup-cve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            product: service.product,
+            version: service.version
+          })
+        });
+
+        if (!cveResponse.ok) continue;
+
+        const cveData = await cveResponse.json();
+        const cves = cveData.cves || [];
+        
+        addLog(tabId, `[INFO] Found ${cves.length} CVEs for ${service.product}`);
+
+        // Step 3: Check for exploits for each CVE
+        for (const cve of cves.slice(0, 10)) { // Limit to first 10 to avoid overwhelming
+          try {
+            const exploitResponse = await fetch(`/api/v1/vulnerabilities/exploits/${cve.cve_id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+
+            const exploits = exploitResponse.ok ? await exploitResponse.json() : [];
+            const hasExploit = exploits && exploits.length > 0;
+
+            // Only add CVEs with available exploits
+            if (hasExploit) {
+              allVulnerabilities.push({
+                id: `${tabId}-${cve.cve_id}`,
+                cve_id: cve.cve_id,
+                title: cve.title || cve.cve_id,
+                description: cve.description || 'No description available',
+                severity: cve.severity || 'medium',
+                cvss_score: cve.cvss_score || 0,
+                affected_service: service.product,
+                affected_port: service.port,
+                exploit_available: true,
+                exploit_module: exploits[0]?.module_path || exploits[0]?.module_id,
+                source_database: 'cve'
+              });
+            }
+          } catch (err) {
+            // Skip CVEs that fail exploit lookup
+          }
+        }
+      }
+
+      setVulnerabilities(tabId, allVulnerabilities);
       setVulnScanning(tabId, false);
-      addLog(tabId, '[SUCCESS] Vulnerability scan complete');
-    }, 2000);
+      addLog(tabId, `[SUCCESS] Vulnerability scan complete. Found ${allVulnerabilities.length} exploitable CVEs`);
+
+    } catch (error: any) {
+      setVulnScanning(tabId, false);
+      addLog(tabId, `[ERROR] Vulnerability scan failed: ${error.message}`);
+    }
   };
 
   const toggleDatabase = (tabId: string, database: string) => {
@@ -241,15 +414,19 @@ const Scans: React.FC = () => {
             ) : filteredAssets.length === 0 ? (
               <p className="text-cyber-gray-light text-sm">No assets match the filters.</p>
             ) : (
-              filteredAssets.map((asset) => (
-                <AssetListItem
-                  key={asset.id}
-                  asset={asset}
-                  isActive={asset.ip_address === activeTab?.ip}
-                  scanStatus={getScanStatus(asset.ip_address)}
-                  onOpen={handleOpenAsset}
-                />
-              ))
+              filteredAssets.map((asset) => {
+                const tab = tabs.find(t => t.ip === asset.ip_address);
+                return (
+                  <AssetListItem
+                    key={asset.id}
+                    asset={asset}
+                    isActive={asset.ip_address === activeTab?.ip}
+                    scanStatus={getScanStatus(asset.ip_address)}
+                    vulnScanning={tab?.vulnScanning}
+                    onOpen={handleOpenAsset}
+                  />
+                );
+              })
             )}
           </div>
         </div>
@@ -291,7 +468,17 @@ const Scans: React.FC = () => {
                       <p className="text-xs text-cyber-gray uppercase tracking-wider">Scan Type</p>
                       <select
                         value={activeTab.options.scanType}
-                        onChange={(e) => updateTabOptions(activeTab.id, { scanType: e.target.value as any })}
+                        onChange={(e) => {
+                          const scanType = e.target.value as any;
+                          const updates: any = { scanType };
+                          // Set port range based on scan type
+                          if (scanType === 'comprehensive') {
+                            updates.ports = '1-65535';
+                          } else if (scanType === 'basic') {
+                            updates.ports = '1-1000';
+                          }
+                          updateTabOptions(activeTab.id, updates);
+                        }}
                         disabled={activeTab.status === 'running'}
                         className="w-full bg-cyber-dark border border-cyber-gray px-2 py-1.5 text-xs text-cyber-blue outline-none focus:border-cyber-blue"
                       >
@@ -312,7 +499,7 @@ const Scans: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex-1 bg-black border border-cyber-gray p-3 rounded-sm overflow-y-auto custom-scrollbar font-mono text-xs">
+                  <div className="flex-1 min-h-0 bg-black border border-cyber-gray p-3 rounded-sm overflow-y-auto custom-scrollbar font-mono text-xs">
                     {activeTab.logs.length === 0 ? (
                       <div className="text-cyber-gray-light opacity-60">&gt; Awaiting scan command...</div>
                     ) : (

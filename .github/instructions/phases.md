@@ -16,23 +16,28 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 
 ## Phase Actions
 
-| # | Phase | Action | Update Session |
-|---|-------|--------|----------------|
-| 1 | CONTEXT | Load knowledge + relevant skills | `[AKIS]` entities, skills |
-| 2 | PLAN | Design approach, select skills | decisions[] if deviate |
-| 3 | COORDINATE | Delegate OR prepare tools | `skill NAME` if used |
-| 4 | INTEGRATE | Execute work | action FILE_CHANGE |
-| 5 | VERIFY | Test, validate | action VALIDATION |
-| 6 | LEARN | Update knowledge | action KNOWLEDGE_UPDATE |
-| 7 | COMPLETE | Emit completion | `complete "summary"` |
+| # | Phase | Action | Gate |
+|---|-------|--------|------|
+| 1 | CONTEXT | Load knowledge + skills | `[AKIS]` |
+| 2 | PLAN | Design approach, define scope | `[SCOPE]` |
+| 3 | COORDINATE | Delegate OR load skill files | - |
+| 4 | INTEGRATE | Execute work within scope | `[ANCHOR]` |
+| 5 | VERIFY | Test, validate, audit scope | `[SCOPE_AUDIT]` |
+| 6 | LEARN | Update knowledge | - |
+| 7 | COMPLETE | Emit completion | `[COMPLETE]` |
 
-## Blocking Gates
+## Anti-Drift Gates
 
-| Phase | Gate | Rule |
-|-------|------|------|
-| START | `[SESSION:]` | FIRST emission in every response |
-| CONTEXT | `[AKIS]` | Load knowledge, emit stats |
-| COMPLETE | `[COMPLETE]` | Required for all sessions |
+| Gate | When | Format |
+|------|------|--------|
+| `[SESSION]` | START | Required first emission |
+| `[AKIS]` | CONTEXT | Load knowledge, emit stats |
+| `[SCOPE]` | PLAN | `files=[...] \| max=N` |
+| `[ANCHOR]` | INTEGRATE | `task="X" \| on_track=yes/no` |
+| `[SCOPE_AUDIT]` | VERIFY | `planned=N \| actual=M` |
+| `[COMPLETE]` | END | Required for all sessions |
+
+**Drift detected?** → `[DRIFT: should_be="X"]` → Correct before proceed
 
 ## Session-Driven Workflow
 
@@ -44,7 +49,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 5. Deviations → `decision "why"`
 6. Phase progress automatic from session state
 
-**Phase Completion**: On `complete` → Auto-resumes `parentSessionId` at paused phase
+**Phase Completion**: On `complete` → Auto-resumes parent at paused phase
 
 ## Skip Phases
 
@@ -54,9 +59,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | Q&A | 1 → 7 |
 | Feature | All 7 |
 
-## Progress Examples
+## Progress Format
 
-- `progress=4/0` → Main task, phase 4
-- `progress=1/1` → Nested interrupt, phase 1, depth 1
-- `progress=3/2` → Double-nested, phase 3, depth 2
+`progress=H/V` → H=phase (1-7), V=depth (0=main, 1+=nested)
 ```
