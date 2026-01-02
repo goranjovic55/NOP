@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend:
     build:
@@ -22,11 +20,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "12001:8000"
+    network_mode: host
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
+      - REDIS_URL=redis://172.28.0.11:6379/0
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -38,9 +35,6 @@ services:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - nop-internal
-      - test-network
     restart: unless-stopped
     privileged: true
     cap_add:
@@ -56,15 +50,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - nop-internal
+      nop-internal:
+        ipv4_address: 172.28.0.10
     restart: unless-stopped
 
   guacd:
     image: guacamole/guacd:latest
-    # Note: Remove platform line to auto-detect architecture (works on both ARM and x86_64)
-    # If you still get exec format error, manually set to your architecture:
-    # platform: linux/arm64  # For ARM64 devices like Radxa E54C
-    # platform: linux/amd64  # For x86_64 systems
     networks:
       - nop-internal
     restart: unless-stopped
@@ -82,15 +73,16 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - nop-internal
+      nop-internal:
+        ipv4_address: 172.28.0.11
     restart: unless-stopped
 
 networks:
   nop-internal:
-  test-network:
-    external: true
-    name: test-environment_test-network
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
 
 volumes:
   postgres_data:

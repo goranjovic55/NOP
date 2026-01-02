@@ -25,13 +25,19 @@ node .github/scripts/session-tracker.js start "Add live session monitoring" "_De
 
 ### 2. Update During Execution
 
-After each significant emission, update the session file:
+After each significant emission, update the session file. PHASE emissions now include the agent name for delegation clarity (e.g., `_DevTeam INTEGRATE`). If a PHASE emission comes from a different agent than the session owner, the live monitor shows `SUBAGENT` with the emitting agent (e.g., `[SUBAGENT] _Developer`). A verbose field is also emitted for the live tracker: `<content> | progress=X/Y`.
 
-**Phase Changes:**
+**Phase Changes (with detailed messages):**
 ```bash
-node .github/scripts/session-tracker.js phase CONTEXT "1/0"
-node .github/scripts/session-tracker.js phase PLAN "2/0"
-node .github/scripts/session-tracker.js phase INTEGRATE "4/0"
+node .github/scripts/session-tracker.js phase CONTEXT "1/7" "Examining codebase structure"
+node .github/scripts/session-tracker.js phase PLAN "2/7" "Designing solution approach"
+node .github/scripts/session-tracker.js phase INTEGRATE "4/7" "Implementing session tracker changes"
+```
+
+**Phase Changes (basic - backwards compatible):**
+```bash
+node .github/scripts/session-tracker.js phase CONTEXT "1/7"
+node .github/scripts/session-tracker.js phase PLAN "2/7"
 ```
 
 **Decisions:**
@@ -43,7 +49,6 @@ node .github/scripts/session-tracker.js decision "Create interactive decision tr
 **Delegations:**
 ```bash
 node .github/scripts/session-tracker.js delegate Developer "Implement feature X"
-node .github/scripts/session-tracker.js delegate Reviewer "Validate changes"
 ```
 
 **Skills:**
@@ -53,13 +58,21 @@ node .github/scripts/session-tracker.js skills "frontend-react, ui-components"
 
 ### 3. Complete Session
 
-When writing the workflow log (`[COMPLETE]` phase), clean up the session file:
+When writing the workflow log (`[COMPLETE]` phase), mark the session completed (the file now stays in place):
 
 ```bash
 node .github/scripts/session-tracker.js complete "log/workflow/2026-01-01_163900_task.md"
 ```
 
-This marks the session as completed and auto-deletes the file after 3 seconds.
+### 4. Reset After GitHub Commit
+
+Only reset the live session file after the user verifies the work and the changes are committed/pushed:
+
+```bash
+node .github/scripts/session-tracker.js reset
+```
+
+This manual reset keeps the live monitor intact through verification and commit steps.
 
 ## File Format
 
@@ -74,7 +87,11 @@ The `.akis-session.json` file contains:
   "agent": "_DevTeam",
   "status": "active",
   "phase": "INTEGRATE",
-  "progress": "4/0",
+  "phaseDisplay": "_DevTeam INTEGRATE",
+  "phaseAgent": "_DevTeam",
+  "phaseMessage": "Applying code changes to session tracker",
+  "phaseVerbose": "_DevTeam INTEGRATE - Applying code changes to session tracker | progress=4/7",
+  "progress": "4/7",
   "decisions": [
     {
       "description": "Use session tracking file approach",
@@ -91,17 +108,30 @@ The `.akis-session.json` file contains:
       "timestamp": "2026-01-01T16:41:00.000Z",
       "type": "PHASE",
       "phase": "CONTEXT",
-      "progress": "1/0",
-      "content": "CONTEXT"
+      "progress": "1/7",
+      "content": "_DevTeam CONTEXT",
+      "message": "Gathering requirements and context",
+      "agent": "_DevTeam",
+      "isDelegated": false
     },
     {
       "timestamp": "2026-01-01T16:42:30.000Z",
       "type": "DECISION",
       "content": "Use session tracking file approach"
+    },
+    {
+      "timestamp": "2026-01-01T16:43:10.000Z",
+      "type": "SUBAGENT",
+      "phase": "SUBAGENT",
+      "progress": "3/0",
+      "content": "[SUBAGENT] _Developer",
+      "agent": "_Developer",
+      "isDelegated": true
     }
   ],
   "delegations": [],
-  "skills": ["frontend-react", "ui-components"]
+  "skills": ["frontend-react", "ui-components"],
+  "awaitingReset": false
 }
 ```
 
@@ -128,34 +158,34 @@ Add these lines at key points in your agent workflow:
 node .github/scripts/session-tracker.js start "Implement new feature" "_DevTeam"
 
 # CONTEXT phase
-node .github/scripts/session-tracker.js phase CONTEXT "1/0"
+node .github/scripts/session-tracker.js phase CONTEXT "1/7" "Gathering requirements and analyzing codebase"
 # ... do context work ...
 
 # PLAN phase
-node .github/scripts/session-tracker.js phase PLAN "2/0"
+node .github/scripts/session-tracker.js phase PLAN "2/7" "Designing solution architecture"
 node .github/scripts/session-tracker.js decision "Use approach X instead of Y"
 # ... do planning work ...
 
 # COORDINATE phase
-node .github/scripts/session-tracker.js phase COORDINATE "3/0"
+node .github/scripts/session-tracker.js phase COORDINATE "3/7" "Delegating tasks to specialists"
 node .github/scripts/session-tracker.js delegate Developer "Implement module A"
 node .github/scripts/session-tracker.js skills "backend-api, testing"
 # ... coordinate work ...
 
 # INTEGRATE phase
-node .github/scripts/session-tracker.js phase INTEGRATE "4/0"
+node .github/scripts/session-tracker.js phase INTEGRATE "4/7" "Implementing code changes"
 # ... do integration work ...
 
 # VERIFY phase
-node .github/scripts/session-tracker.js phase VERIFY "5/0"
+node .github/scripts/session-tracker.js phase VERIFY "5/7" "Running tests and validation"
 # ... verify work ...
 
 # LEARN phase
-node .github/scripts/session-tracker.js phase LEARN "6/0"
+node .github/scripts/session-tracker.js phase LEARN "6/7" "Updating project knowledge"
 # ... update knowledge ...
 
 # COMPLETE phase
-node .github/scripts/session-tracker.js phase COMPLETE "7/0"
+node .github/scripts/session-tracker.js phase COMPLETE "7/7" "Finalizing and writing workflow log"
 # Write workflow log
 WORKFLOW_LOG="log/workflow/$(date +%Y-%m-%d_%H%M%S)_task-name.md"
 # ... create workflow log ...

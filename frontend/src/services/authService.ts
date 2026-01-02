@@ -24,18 +24,22 @@ interface User {
 export const authService = {
     async login(username: string, password: string): Promise<LoginResponse> {
       const params = new URLSearchParams();
-      params.append("username", username);
-      params.append("password", password);
+      params.append('grant_type', 'password');
+      params.append('username', username.trim());
+      params.append('password', password);
+      params.append('scope', '');
 
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
-
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/login`,
+        params.toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
       return response.data;
     },
-
   async getCurrentUser(token: string): Promise<User> {
     const response = await axios.get(`${API_BASE_URL}/auth/me`, {
       headers: {

@@ -752,31 +752,19 @@ const Access: React.FC = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => setAssetFilter('all')}
-                  className={`px-3 py-1 text-xs border rounded ${
-                    assetFilter === 'all' 
-                      ? 'border-cyber-blue text-cyber-blue bg-cyber-blue bg-opacity-10' 
-                      : 'border-cyber-gray text-cyber-gray hover:border-cyber-blue'
-                  }`}
+                  className={`btn-base btn-sm ${assetFilter === 'all' ? 'btn-blue' : 'btn-gray'}`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => setAssetFilter('scanned')}
-                  className={`px-3 py-1 text-xs border rounded ${
-                    assetFilter === 'scanned' 
-                      ? 'border-cyber-green text-cyber-green bg-cyber-green bg-opacity-10' 
-                      : 'border-cyber-gray text-cyber-gray hover:border-cyber-green'
-                  }`}
+                  className={`btn-base btn-sm ${assetFilter === 'scanned' ? 'btn-green' : 'btn-gray'}`}
                 >
                   Scanned
                 </button>
                 <button
                   onClick={() => setAssetFilter('vulnerable')}
-                  className={`px-3 py-1 text-xs border rounded ${
-                    assetFilter === 'vulnerable' 
-                      ? 'border-cyber-red text-cyber-red bg-cyber-red bg-opacity-10' 
-                      : 'border-cyber-gray text-cyber-gray hover:border-cyber-red'
-                  }`}
+                  className={`btn-base btn-sm ${assetFilter === 'vulnerable' ? 'btn-red' : 'btn-gray'}`}
                 >
                   Vulnerable
                 </button>
@@ -1066,7 +1054,7 @@ const Access: React.FC = () => {
                             key={session.id}
                             className={`flex items-center space-x-2 px-3 py-1 border rounded cursor-pointer ${
                               activeSessionId === session.id
-                                ? 'border-cyber-green text-cyber-green bg-cyber-green bg-opacity-10'
+                                ? 'border-cyber-green text-cyber-green'
                                 : 'border-cyber-gray text-cyber-gray hover:border-cyber-green'
                             }`}
                             onClick={() => setActiveSession(session.id)}
@@ -1200,31 +1188,19 @@ const Access: React.FC = () => {
                   <div className="flex space-x-1">
                     <button
                       onClick={() => setVaultSortBy('recent')}
-                      className={`text-xs px-2 py-1 border rounded transition-all ${
-                        vaultSortBy === 'recent'
-                          ? 'border-cyber-purple text-cyber-purple bg-cyber-purple bg-opacity-10'
-                          : 'border-cyber-gray text-cyber-gray hover:border-cyber-purple hover:text-cyber-purple'
-                      }`}
+                      className={`btn-base btn-sm ${vaultSortBy === 'recent' ? 'btn-purple' : 'btn-gray'}`}
                     >
                       Recent
                     </button>
                     <button
                       onClick={() => setVaultSortBy('frequent')}
-                      className={`text-xs px-2 py-1 border rounded transition-all ${
-                        vaultSortBy === 'frequent'
-                          ? 'border-cyber-purple text-cyber-purple bg-cyber-purple bg-opacity-10'
-                          : 'border-cyber-gray text-cyber-gray hover:border-cyber-purple hover:text-cyber-purple'
-                      }`}
+                      className={`btn-base btn-sm ${vaultSortBy === 'frequent' ? 'btn-purple' : 'btn-gray'}`}
                     >
                       Frequent
                     </button>
                     <button
                       onClick={() => setVaultSortBy('name')}
-                      className={`text-xs px-2 py-1 border rounded transition-all ${
-                        vaultSortBy === 'name'
-                          ? 'border-cyber-purple text-cyber-purple bg-cyber-purple bg-opacity-10'
-                          : 'border-cyber-gray text-cyber-gray hover:border-cyber-purple hover:text-cyber-purple'
-                      }`}
+                      className={`btn-base btn-sm ${vaultSortBy === 'name' ? 'btn-purple' : 'btn-gray'}`}
                     >
                       Name
                     </button>

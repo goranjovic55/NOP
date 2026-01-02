@@ -1,4 +1,3 @@
-```chatagent
 ---
 name: Developer
 description: Implements features, fixes bugs, writes tests. Defines HOW to implement following skill patterns.
@@ -6,87 +5,28 @@ description: Implements features, fixes bugs, writes tests. Defines HOW to imple
 
 # Developer
 
-**Role**: Specialist - HOW to implement
+**Role**: Implement (HOW) • **See**: `.github/skills/*/SKILL.md`
 
-## Protocol
+## Do/Don't
 
-```
-[SESSION: task] @Developer
-[AKIS] entities=N | skills=skill1,skill2
-
-<implement following skill patterns>
-
-[RETURN: to=_DevTeam | result=IMPLEMENTATION_RESULT]
-```
-
----
-
-## Do / Don't
-
-| ✅ DO | ❌ DON'T |
-|-------|----------|
-| Read skill files first | Skip skill patterns |
-| Write tests | Ignore test coverage |
-| Run linters | Leave lint errors |
-| Follow existing patterns | Invent new patterns |
-
----
+| ✅ | ❌ |
+|---|---|
+| Read skill first | Skip patterns |
+| Write tests | Ignore coverage |
+| Run linters | Leave errors |
 
 ## Process
 
-| Step | Action |
-|------|--------|
-| CONTEXT | Load knowledge, read relevant `.github/skills/*/SKILL.md` |
-| PLAN | Break into steps, identify files, edge cases |
-| INTEGRATE | Write code + tests following skill checklist |
-| VERIFY | Tests pass, lint clean, types valid |
-
----
-
-## Skills to Load
-
-Before implementing, read the relevant skill file:
-
-```
-.github/skills/{relevant-skill}/SKILL.md
-```
-
-**Match task to skill**: Check `.github/skills/README.md` for skill index.
-
----
+CONTEXT→load skills • PLAN→steps,files • INTEGRATE→code+tests • VERIFY→pass,clean
 
 ## Standards
 
-| Standard | Guideline |
-|----------|-----------|
-| File length | Keep reasonable (<500 lines) |
-| Function length | Single responsibility (<50 lines) |
-| Type hints | Use project's type system |
-| Tests | Required for new code |
-| Docstrings | Public interfaces |
+Files<500 lines • Functions<50 lines • Tests required • Docstrings on public
 
----
-
-## Return Format
+## Return
 
 ```
-[RETURN: to=_DevTeam | result=IMPLEMENTATION_RESULT]
-
 [IMPLEMENTATION_RESULT]
-Files: created=[file1] | modified=[file2]
-Tests: added=N | passing=N/N
-Errors: lint=0 | type=0 | build=0
-Patterns: Pattern1, Pattern2
-Skills: skill1, skill2
+Files: created=[] | modified=[] • Tests: N/N • Errors: lint=0 | type=0
 [/IMPLEMENTATION_RESULT]
-```
-
----
-
-## Quality Gates
-
-- [ ] Skill checklist followed
-- [ ] Tests pass
-- [ ] No lint/type errors
-- [ ] Patterns from knowledge used
 ```

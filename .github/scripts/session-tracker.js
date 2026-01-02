@@ -7,7 +7,7 @@
  * 
  * Usage in agent responses:
  * - Call after each significant emission ([PHASE], [DECISION], [DELEGATE], etc.)
- * - Automatically clears session file when workflow log is written
+ * - Clears session file only when reset is called after commit
  */
 
 const fs = require('fs');
@@ -31,13 +31,23 @@ class SessionTracker {
             agent: sessionData.agent || 'Unknown',
             status: 'active',
             phase: 'CONTEXT',
+            phaseDisplay: 'Unknown CONTEXT',
+            phaseAgent: sessionData.agent || 'Unknown',
+            phaseMessage: '',
+            phaseVerbose: 'Unknown CONTEXT | progress=1/0',
             progress: '1/0',
             decisions: [],
             emissions: [],
             delegations: [],
             skills: [],
+            awaitingReset: false,
             ...sessionData
         };
+
+        session.phaseDisplay = `${session.agent || 'Unknown'} ${session.phase}`.trim();
+        session.phaseAgent = session.agent || 'Unknown';
+        session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress}`;
+        session.lastUpdate = session.startTime;
 
         fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
         return session;
@@ -55,19 +65,55 @@ class SessionTracker {
         const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
         session.lastUpdate = new Date().toISOString();
 
+        const agentLabel = emission.agent || session.agent || 'Unknown';
+        const isDelegated = Boolean(emission.agent && emission.agent !== session.agent);
+
         const emissionData = {
             timestamp: new Date().toISOString(),
+            agent: agentLabel,
             ...emission
         };
 
-        // Update phase if provided
-        if (emission.phase) {
-            session.phase = emission.phase;
+        emissionData.isDelegated = isDelegated;
+        if (isDelegated && emission.type === 'PHASE') {
+            emissionData.type = 'SUBAGENT';
         }
 
-        // Update progress if provided
-        if (emission.progress) {
-            session.progress = emission.progress;
+        if (emission.type === 'PHASE') {
+            const phaseLabelRaw = emission.phase || emission.content || session.phase || 'PHASE';
+            const displayPhase = isDelegated ? 'SUBAGENT' : phaseLabelRaw;
+            const phaseContent = isDelegated
+                ? `[SUBAGENT] ${agentLabel}`
+                : `${agentLabel} ${phaseLabelRaw}`;
+
+            emissionData.phase = displayPhase;
+            emissionData.content = phaseContent;
+            emissionData.message = emission.message || '';
+            session.phase = displayPhase;
+            session.phaseDisplay = phaseContent;
+            session.phaseAgent = agentLabel;
+            session.phaseMessage = emission.message || '';
+
+            if (emission.progress) {
+                session.progress = emission.progress;
+            } else if (!session.progress) {
+                session.progress = this.getProgressFromPhase(displayPhase);
+            }
+
+            // Include message in verbose output if provided
+            const messageText = emission.message ? ` - ${emission.message}` : '';
+            session.phaseVerbose = `${phaseContent}${messageText} | progress=${session.progress}`;
+        } else {
+            // Update phase or progress for non-PHASE emissions
+            if (emission.phase) {
+                session.phase = emission.phase;
+            }
+
+            if (emission.progress) {
+                session.progress = emission.progress;
+            }
+
+            session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress}`;
         }
 
         // Add to emissions timeline
@@ -100,13 +146,17 @@ class SessionTracker {
 
     /**
      * Update session phase
+     * @param {string} phaseName - The phase name (CONTEXT, PLAN, etc.)
+     * @param {string} progress - Progress indicator (e.g., "1/7")
+     * @param {string} message - Optional detailed message describing what's happening
      */
-    phase(phaseName, progress) {
+    phase(phaseName, progress, message) {
         this.emit({
             type: 'PHASE',
             phase: phaseName,
             progress: progress || this.getProgressFromPhase(phaseName),
-            content: phaseName
+            content: phaseName,
+            message: message || ''
         });
     }
 
@@ -151,18 +201,28 @@ class SessionTracker {
             session.status = 'completed';
             session.endTime = new Date().toISOString();
             session.workflowLog = workflowLogPath;
+            session.phase = session.phase || 'COMPLETE';
+            session.phaseDisplay = `${session.agent || 'Unknown'} ${session.phase}`.trim();
+            session.phaseAgent = session.agent || 'Unknown';
+            session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress || this.getProgressFromPhase(session.phase)}`;
+            session.awaitingReset = true;
 
-            // Write final state
             fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-
-            // Delete after a short delay to allow extension to capture final state
-            setTimeout(() => {
-                if (fs.existsSync(this.sessionPath)) {
-                    fs.unlinkSync(this.sessionPath);
-                    console.log(`Session tracking file removed: ${SESSION_FILE}`);
-                }
-            }, 3000);
+            console.log('Session completed. Run "node .github/scripts/session-tracker.js reset" after committing to GitHub to clear.');
         }
+    }
+
+    /**
+     * Remove session file after completion/commit
+     */
+    reset() {
+        if (!fs.existsSync(this.sessionPath)) {
+            console.log('No session file to reset.');
+            return;
+        }
+
+        fs.unlinkSync(this.sessionPath);
+        console.log(`Session tracking file removed: ${SESSION_FILE}`);
     }
 
     /**
@@ -208,8 +268,9 @@ if (require.main === module) {
             break;
 
         case 'phase':
-            tracker.phase(args[1], args[2]);
-            console.log(`Phase updated: ${args[1]}`);
+            // Support: phase PHASE progress "message"
+            tracker.phase(args[1], args[2], args.slice(3).join(' '));
+            console.log(`Phase updated: ${args[1]}${args[3] ? ' - ' + args.slice(3).join(' ') : ''}`);
             break;
 
         case 'decision':
@@ -232,6 +293,10 @@ if (require.main === module) {
             console.log('Session completed');
             break;
 
+        case 'reset':
+            tracker.reset();
+            break;
+
         case 'get':
             console.log(JSON.stringify(tracker.get(), null, 2));
             break;
@@ -242,18 +307,21 @@ AKIS Session Tracker
 
 Usage:
   node session-tracker.js start <task> <agent>
-  node session-tracker.js phase <PHASE_NAME> [progress]
+  node session-tracker.js phase <PHASE_NAME> [progress] [message...]
   node session-tracker.js decision <description>
   node session-tracker.js delegate <agent> <task>
   node session-tracker.js skills <skill1, skill2, ...>
   node session-tracker.js complete [workflow_log_path]
+  node session-tracker.js reset
   node session-tracker.js get
 
 Example:
   node session-tracker.js start "Add new feature" "_DevTeam"
-  node session-tracker.js phase CONTEXT "1/0"
+  node session-tracker.js phase CONTEXT "1/7" "Examining codebase structure"
+  node session-tracker.js phase PLAN "2/7" "Designing API endpoints"
   node session-tracker.js decision "Use session tracking file"
   node session-tracker.js complete "log/workflow/2026-01-01_163900_task.md"
+  node session-tracker.js reset
             `);
     }
 }

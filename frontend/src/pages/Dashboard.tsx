@@ -19,7 +19,7 @@ const formatTimeAgo = (timestamp: string): string => {
   return 'just now';
 };
 
-// Combined Stat Card with dual values
+// Combined Stat Card with dual values - Compact version
 const CombinedStatCard: React.FC<{ 
   title: string; 
   value1: number;
@@ -31,20 +31,20 @@ const CombinedStatCard: React.FC<{
   onClick?: () => void;
 }> = ({ title, value1, value2, icon, color1, color2, glowColor, onClick }) => (
   <div 
-    className={`dashboard-card p-4 hover:border-opacity-100 transition-all duration-300 ${onClick ? 'cursor-pointer hover:scale-105' : ''}`}
+    className={`dashboard-card p-2 hover:border-opacity-100 transition-all duration-300 ${onClick ? 'cursor-pointer hover:scale-105' : ''}`}
     onClick={onClick}
   >
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-cyber-gray-light text-xs font-mono uppercase tracking-wider mb-1">{title}</p>
-        <p className="text-xl font-bold font-mono">
+        <p className="text-cyber-gray-light text-[10px] font-mono uppercase tracking-wider">{title}</p>
+        <p className="text-lg font-bold font-mono">
           <span className={color1}>{value1}</span>
           <span className="text-cyber-gray-light mx-1">/</span>
           <span className={color2}>{value2}</span>
         </p>
       </div>
-      <div className={`w-10 h-10 border flex items-center justify-center ${glowColor}`}>
-        <span className="text-lg">{icon}</span>
+      <div className={`w-8 h-8 border flex items-center justify-center ${glowColor}`}>
+        <span className="text-sm">{icon}</span>
       </div>
     </div>
   </div>
@@ -282,12 +282,12 @@ const Dashboard: React.FC = () => {
           <h3 className="text-sm font-semibold text-cyber-purple mb-4 uppercase tracking-wider font-mono">
             &gt; Network Topology
           </h3>
-          <div ref={topologyRef} className="h-48 relative overflow-hidden border border-cyber-gray rounded">
+          <div ref={topologyRef} className="h-64 relative overflow-hidden border border-cyber-gray rounded">
             {graphData.nodes.length > 0 ? (
               <ForceGraph2D
                 graphData={graphData}
                 width={topologyRef.current?.clientWidth || 400}
-                height={192}
+                height={256}
                 backgroundColor="transparent"
                 nodeColor={(node: any) => node.color || '#00ff88'}
                 nodeVal={(node: any) => node.val || 2}
