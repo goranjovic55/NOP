@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
+import { CyberTabs } from '../components/CyberUI';
 
 interface Packet {
   id: string;
@@ -535,48 +536,16 @@ const Traffic: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
       {/* Tab Navigation */}
-      <div className="flex gap-2 bg-cyber-darker p-2 border border-cyber-gray">
-        <button
-          onClick={() => setActiveTab('capture')}
-          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
-            activeTab === 'capture'
-              ? 'bg-cyber-blue text-black border-2 border-cyber-blue'
-              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue'
-          }`}
-        >
-          Packet Capture
-        </button>
-        <button
-          onClick={() => setActiveTab('ping')}
-          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
-            activeTab === 'ping'
-              ? 'bg-cyber-green text-black border-2 border-cyber-green'
-              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green'
-          }`}
-        >
-          Advanced Ping
-        </button>
-        <button
-          onClick={() => setActiveTab('craft')}
-          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
-            activeTab === 'craft'
-              ? 'bg-cyber-purple text-white border-2 border-cyber-purple'
-              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple'
-          }`}
-        >
-          Craft Packet
-        </button>
-        <button
-          onClick={() => setActiveTab('storm')}
-          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
-            activeTab === 'storm'
-              ? 'bg-red-600 text-white border-2 border-red-600'
-              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-red-600 hover:text-red-500'
-          }`}
-        >
-          Storm
-        </button>
-      </div>
+      <CyberTabs 
+        tabs={[
+          { id: 'capture', label: 'Packet Capture', color: 'blue' },
+          { id: 'ping', label: 'Advanced Ping', color: 'green' },
+          { id: 'craft', label: 'Craft Packet', color: 'purple' },
+          { id: 'storm', label: 'Storm', color: 'red' }
+        ]}
+        activeTab={activeTab}
+        onChange={(tabId) => setActiveTab(tabId as any)}
+      />
 
       {/* Capture Tab Content */}
       {activeTab === 'capture' && (

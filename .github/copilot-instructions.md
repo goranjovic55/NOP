@@ -4,67 +4,59 @@
 
 ---
 
-## 🔵 MANDATORY: Every Task
+## Every Task Flow
 
-### 1. Start - Load Knowledge
-```
-Read project_knowledge.json → Understand project entities
-Query knowledge during work → Check existing patterns
-```
+### Start
+`Read project_knowledge.json` → Load entities, check existing patterns
 
-### 2. Todo Phases (Use Copilot's todo list)
-Create todos with these phase names for tracking:
+### Todo Phases
 
-| Phase | Todo Title Format | When |
-|-------|-------------------|------|
-| CONTEXT | `[CONTEXT] Load knowledge for X` | Start - always |
+| Phase | Title Format | When |
+|-------|--------------|------|
+| CONTEXT | `[CONTEXT] Load knowledge for X` | Always (start) |
 | PLAN | `[PLAN] Design approach for X` | Complex tasks |
 | IMPLEMENT | `[IMPLEMENT] Build X` | Main work |
 | VERIFY | `[VERIFY] Test X` | Always |
-| LEARN | `[LEARN] Update knowledge & skills` | After user approval - MANDATORY |
-| COMPLETE | `[COMPLETE] Create workflow log & commit` | End - always |
+| LEARN | `[LEARN] Update knowledge & skills` | Always (after approval) |
+| COMPLETE | `[COMPLETE] Log & commit` | Always (end) |
 
-### 3. End - Before Commit (MANDATORY)
+### End (LEARN → COMPLETE)
 
-**⚠️ CRITICAL: LEARN phase must complete BEFORE any commit!**
+**LEARN:**
+1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
+2. Pattern emerged? → `python .github/scripts/extract_skill.py "name" "desc"`
+3. Pattern improved? → Update `.github/skills/{name}.md`
+4. Pattern obsolete? → Delete skill file
 
-**LEARN Phase:**
-1. **Update Knowledge**: Run `python .github/scripts/generate_codemap.py` + add entities
-2. **Update Skills**: Analyze session for patterns:
-   - New reusable pattern? → `python .github/scripts/extract_skill.py "name" "desc"`
-   - Improved existing pattern? → Update the skill file
-   - Outdated skill? → Remove or archive it
-
-**COMPLETE Phase:**
-3. **Create Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task.md` using template
-4. **Commit**: Stage and commit all changes
+**COMPLETE:**
+1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
+2. Commit all changes
 
 ---
 
-## 📚 Knowledge System
+## Knowledge System
 
-### Format: `project_knowledge.json`
-JSONL file with three entry types:
+**Format:** `project_knowledge.json` (JSONL)
 
 ```json
-{"type":"entity","name":"Module.Component","entityType":"service","observations":["description","upd:YYYY-MM-DD"]}
-{"type":"relation","from":"ComponentA","to":"ComponentB","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
+{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
+{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
 {"type":"codegraph","name":"file.ext","nodeType":"module","dependencies":["X"],"dependents":["Y"]}
 ```
 
-### Workflow
-1. **Load at Start**: Read project_knowledge.json to understand existing entities
-2. **Query During Work**: Search knowledge before implementing (avoid duplicates)
-3. **Update Before Commit**: Run codemap generator + add new entities manually
+**Workflow:**
+- Load at start → Understand existing entities
+- Query during work → Avoid duplicates
+- Update before commit → Codemap + manual entities
 
 ---
 
-## 🛠️ Skills (Load When Relevant)
+## Skills
 
-Skills are reusable pattern libraries. Load from `.github/skills/` when task matches.
+Load from `.github/skills/` when task matches:
 
-| Task Type | Skill File |
-|-----------|------------|
+| Task | Skill |
+|------|-------|
 | API endpoints, REST | `backend-api.md` |
 | React components, UI | `frontend-react.md` |
 | Unit/integration tests | `testing.md` |
@@ -72,99 +64,49 @@ Skills are reusable pattern libraries. Load from `.github/skills/` when task mat
 | Docker, deployment | `infrastructure.md` |
 | Git, commits, PRs | `git-workflow.md` |
 
-### Skill Lifecycle (During LEARN phase)
-| Action | When | Command |
-|--------|------|---------|
-| **Create** | New reusable pattern emerged | `python .github/scripts/extract_skill.py "name" "desc"` |
-| **Update** | Improved/extended pattern | Edit `.github/skills/skill-name.md` directly |
-| **Remove** | Outdated or project-specific | Delete the skill file |
+---
 
-### Using Skills
-1. Check if skill exists for your task type
-2. Read the skill file for patterns and examples
-3. Follow the checklist in the skill
+## Workflow Logs
+
+**Required:** Tasks >15 min  
+**Location:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`  
+**Template:** `.github/templates/workflow-log.md`  
+**Purpose:** Historical record (search to understand past changes)
 
 ---
 
-## 📝 Workflow Log (MANDATORY)
+## Quick Workflows
 
-Every significant task (>15 min) MUST end with a workflow log.
+**Simple (<5 min):**
+```
+CONTEXT → IMPLEMENT → VERIFY → Commit (no log)
+```
 
-**Location**: `log/workflow/YYYY-MM-DD_HHMMSS_task-name.md`
+**Feature (>15 min):**
+```
+CONTEXT → PLAN → IMPLEMENT → VERIFY
+↓ (wait for user approval)
+LEARN → COMPLETE
+```
 
-**Template**: `.github/templates/workflow-log.md`
-
-**Purpose**: Workflow logs are the historical record of all work done. They document:
-- What was accomplished and why
-- Files changed and decisions made
-- Knowledge updates and skills used
-- Search `log/workflow/` to understand past changes
+**Review Gate:** After VERIFY, show results and wait for user approval before LEARN/COMPLETE
 
 ---
 
-## ⚡ Quick Reference
+## Standards
 
-### Simple Fix (< 5 min)
-```
-1. [CONTEXT] Check knowledge
-2. [IMPLEMENT] Fix it  
-3. [VERIFY] Test it
-4. Commit (no workflow log needed)
-```
-
-### Feature (> 15 min)
-```
-1. [CONTEXT] Load knowledge, understand scope
-2. [PLAN] Design approach, list files
-3. [IMPLEMENT] Build feature
-4. [VERIFY] Test, check errors
-5. [LEARN] Update knowledge, check for skill patterns
-6. [COMPLETE] Create workflow log, commit
-```
-
-### ⚠️ REVIEW GATE (After VERIFY)
-**STOP and present results to user. Do NOT proceed to LEARN/COMPLETE until user approves.**
-
-Show:
-- What was done
-- Files changed
-- Tests/verification results
-
-Wait for user to say "ok", "looks good", "wrap up", etc. before continuing.
-
----
-
-## 📏 Standards
-
-- Files < 500 lines
-- Functions < 50 lines  
+- Files <500 lines, functions <50 lines
 - Type hints required (Python/TypeScript)
 - Tests for new features
 - Descriptive commit messages
 
 ---
 
-## � Project Organization
+## Folders
 
-### `.project/` Folder
-Location for project planning documents:
-- Blueprints and architecture plans
-- Roadmaps and milestones
-- Project specifications
-- Design decisions and ADRs
-
-### `log/workflow/` Folder
-Historical record of all work done (search here to understand past changes)
+- `.project/` → Planning docs, blueprints, ADRs
+- `log/workflow/` → Historical work record
 
 ---
 
-## 🚀 Setup for New Project
-
-1. Copy `.github/` folder to new project
-2. Create empty `project_knowledge.json` in root
-3. Create `log/workflow/` and `.project/` directories
-4. Run `python .github/scripts/generate_codemap.py` to populate initial knowledge
-
----
-
-*AKIS v2: Context over Process. Knowledge over Ceremony.*
+*Context over Process. Knowledge over Ceremony.*

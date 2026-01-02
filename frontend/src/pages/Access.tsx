@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
+import { CyberPageTitle } from '../components/CyberUI';
 
 type AccessMode = 'login' | 'exploit';
 
@@ -884,10 +885,10 @@ const Access: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red flex items-center">
+            <CyberPageTitle color="red" className="flex items-center">
               <span className="mr-3 text-3xl">◆</span>
               Access Control
-            </h2>
+            </CyberPageTitle>
             <p className="text-cyber-gray-light text-sm mt-1">Connect to assets via login or exploit vulnerabilities</p>
           </div>
           

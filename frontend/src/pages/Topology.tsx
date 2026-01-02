@@ -3,6 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { CyberPageTitle } from '../components/CyberUI';
 
 interface GraphNode {
   id: string;
@@ -319,7 +320,7 @@ const Topology: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
       <div className="flex justify-between items-center bg-cyber-darker p-4 border border-cyber-gray">
-        <h2 className="text-2xl font-bold text-cyber-blue uppercase tracking-wider cyber-glow">Network Topology</h2>
+        <CyberPageTitle color="blue">Network Topology</CyberPageTitle>
         
         <div className="flex items-center space-x-4">
           <div className="flex space-x-2 bg-cyber-dark p-1 rounded border border-cyber-gray">

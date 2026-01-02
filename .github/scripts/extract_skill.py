@@ -23,53 +23,43 @@ SKILL_TEMPLATE = '''# {title}
 
 {description}
 
----
-
 ## When to Use
 
 - {use_case_1}
 - {use_case_2}
 - {use_case_3}
 
-## Pattern
-
-{pattern_description}
-
 ## Checklist
 
 - [ ] Step 1
 - [ ] Step 2
 - [ ] Step 3
-- [ ] Verify result
 
 ## Examples
 
-### Example 1: {example_name}
+### {example_name}
 
 ```{lang}
-# TODO: Add code example from your implementation
+# Code example from implementation
 ```
 
 ### Common Variations
 
-| Variation | When | Key Difference |
-|-----------|------|----------------|
-| Basic | Simple cases | Minimal setup |
-| Advanced | Complex cases | Full features |
+| Variation | When |
+|-----------|------|
+| Basic | Simple cases |
+| Advanced | Complex scenarios |
 
 ## Anti-Patterns
 
-❌ **Don't**: {anti_pattern}
+- ❌ {anti_pattern} → ✅ {correct_pattern}
 
-✅ **Do**: {correct_pattern}
-
-## Related Skills
+## Related
 
 - `related-skill-1`
 - `related-skill-2`
 
 ---
-
 *Created: {date}*
 '''
 

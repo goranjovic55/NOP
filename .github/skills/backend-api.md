@@ -1,11 +1,6 @@
 # Backend API Patterns
 
-FastAPI patterns with layered architecture, typing, and dependency injection.
-
-## When to Use
-- Creating new API endpoints
-- Implementing REST APIs
-- Structuring service layers
+FastAPI layered architecture with typing and dependency injection.
 
 ## Checklist
 - [ ] Endpoint → Service → Model separation
@@ -30,7 +25,6 @@ async def list_items(
     limit: int = Query(100, le=1000),
     db: AsyncSession = Depends(get_db)
 ) -> list[ItemResponse]:
-    """List items with pagination."""
     result = await db.execute(select(Item).offset(skip).limit(limit))
     return result.scalars().all()
 

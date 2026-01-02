@@ -1,12 +1,6 @@
 # Infrastructure Patterns
 
-Docker, container orchestration, and deployment patterns.
-
-## When to Use
-- Creating Dockerfiles
-- Configuring docker-compose
-- Setting up CI/CD
-- Managing container resources
+Docker and deployment patterns.
 
 ## Checklist
 - [ ] Multi-stage Dockerfile (build → runtime)

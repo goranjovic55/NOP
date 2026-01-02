@@ -1,11 +1,6 @@
 # Git Workflow Patterns
 
-Git workflow and deployment patterns using conventional commits.
-
-## When to Use
-- Making commits
-- Creating branches
-- Opening pull requests
+Conventional commits and branch naming.
 
 ## Branch Naming
 ```bash

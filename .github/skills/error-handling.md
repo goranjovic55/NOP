@@ -1,11 +1,6 @@
 # Error Handling Patterns
 
-Exception handling and JSON error response patterns.
-
-## When to Use
-- Implementing API error handling
-- Creating custom exception classes
-- Standardizing error responses
+Exception handling with JSON error responses.
 
 ## Checklist
 - [ ] No unhandled exceptions
@@ -18,7 +13,6 @@ Exception handling and JSON error response patterns.
 ### Custom Exception Classes
 ```python
 class AppError(Exception):
-    """Base application error."""
     def __init__(self, message: str, code: str = "ERROR", details: dict = None):
         self.message = message
         self.code = code

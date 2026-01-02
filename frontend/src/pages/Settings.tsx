@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { CyberPageTitle } from '../components/CyberUI';
 
 interface ScanSettings {
   profile_name: string;
@@ -257,9 +258,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-widest cyber-glow-red">
-          System Configuration
-        </h2>
+        <CyberPageTitle color="red">System Configuration</CyberPageTitle>
         {message && (
           <div className={`px-4 py-2 border ${message.type === 'success' ? 'border-green-500 text-green-500' : 'border-cyber-red text-cyber-red'} bg-cyber-darker`}>
             {message.text}
@@ -1129,8 +1128,8 @@ const SettingsSlider: React.FC<{
   return (
     <div className="space-y-2">
       <div className="flex justify-between">
-        <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
-        <span className="text-cyber-purple font-mono">{value} {unit || ''}</span>
+        <label className="cyber-section-title">{label}</label>
+        <span className="text-cyber-purple font-mono text-sm">{value} {unit || ''}</span>
       </div>
       <input
         type="range"
@@ -1138,7 +1137,7 @@ const SettingsSlider: React.FC<{
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-2 bg-cyber-darker rounded-none appearance-none cursor-pointer [&::-webkit-slider-track]:bg-cyber-gray [&::-webkit-slider-track]:h-0.5 [&::-webkit-slider-track]:border [&::-webkit-slider-track]:border-cyber-purple [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-cyber-red [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyber-red [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,0,102,0.6)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(255,0,102,0.9)] [&::-moz-range-track]:bg-cyber-gray [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:border [&::-moz-range-track]:border-cyber-purple [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-cyber-red [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyber-red [&::-moz-range-thumb]:rounded-none"
+        className="cyber-slider"
       />
       {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
     </div>

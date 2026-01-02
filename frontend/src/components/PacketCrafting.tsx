@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Asset } from '../services/assetService';
+import { CyberSectionHeader } from './CyberUI';
 
 interface PacketCraftingProps {
   onBack?: () => void;
@@ -202,10 +203,8 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
         <div className="w-1/2 border-r border-cyber-gray overflow-y-auto custom-scrollbar">
           <div className="p-6 space-y-4">
             {/* Basic Parameters */}
-            <div className="bg-cyber-dark border border-cyber-gray">
-              <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
-                <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Basic Parameters</span>
-              </div>
+            <div className="cyber-panel">
+              <CyberSectionHeader title="Basic Parameters" />
               <div className="p-4 space-y-4">
                 <div>
                   <label className="text-xs text-cyber-gray-light font-bold uppercase block mb-1">Protocol</label>
@@ -329,10 +328,8 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
             </div>
 
             {/* Send Controls */}
-            <div className="bg-cyber-dark border border-cyber-gray">
-              <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
-                <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Send Control</span>
-              </div>
+            <div className="cyber-panel">
+              <CyberSectionHeader title="Send Control" />
               <div className="p-4 flex gap-4 items-end">
                 <div className="flex-1 grid grid-cols-2 gap-4">
                   <div>
@@ -358,9 +355,9 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
         {/* RIGHT: Response & Trace */}
         <div className="w-1/2 overflow-y-auto custom-scrollbar bg-black">
           <div className="p-4 space-y-4">
-            <div className="bg-cyber-dark border border-cyber-gray">
-              <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex items-center gap-2">
-                <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Terminal Output</span>
+            <div className="cyber-panel">
+              <div className="cyber-section-header flex items-center gap-2">
+                <span className="cyber-section-title">Terminal Output</span>
                 {response?.success !== undefined && (
                   <span className={`text-xs px-2 py-0.5 ${response.success ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
                     {response.success ? 'SUCCESS' : 'FAILED'}

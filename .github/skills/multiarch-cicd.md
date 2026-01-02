@@ -1,50 +1,24 @@
-# Skill: Multi-Arch CI/CD
+# Multi-Arch CI/CD
 
-**Description**: Multi-arch Docker CI/CD with GitHub Actions and GHCR deployment
+Multi-arch Docker builds with GitHub Actions and GHCR.
 
-**When to Use**: 
-- Setting up Docker-based projects for multiple architectures (amd64/arm64)
-- Supporting ARM devices (Raspberry Pi, Radxa Rock, AWS Graviton, Apple Silicon)
-- Creating production-ready deployment with pre-built images
-- Enabling instant `git clone && docker compose up` deployment
+## Pattern
 
-**Tags**: `docker`, `ci-cd`, `github-actions`, `multi-arch`, `arm64`, `ghcr`
+1. Dockerfiles are architecture-agnostic
+2. GitHub Actions builds for amd64/arm64 using Buildx
+3. Images pushed to GHCR with multi-arch manifests
+4. Production uses GHCR images, dev builds locally
+5. Deploy script auto-detects architecture
 
----
+## Anti-Patterns
 
-## Pattern Overview
+- ❌ Arch-specific base images → ✅ Official multi-arch images
+- ❌ Hardcoded platform → ✅ Auto-detect
+- ❌ Local ARM builds → ✅ CI/CD builds
 
-1. **Dockerfiles** are written to be architecture-agnostic (avoid arch-specific dependencies)
-2. **GitHub Actions** builds images for multiple platforms using Docker Buildx
-3. **Images pushed to GHCR** (GitHub Container Registry) with multi-arch manifests
-4. **Production compose** uses pre-built images from GHCR
-5. **Development compose** builds locally for development/testing
-6. **Deploy script** auto-detects architecture and pulls correct images
+## Examples
 
-## Key Principles
-
-- **Separation of concerns**: Production (pull images) vs Development (build locally)
-- **Architecture transparency**: Docker automatically selects correct image variant
-- **Native builds preferred**: Avoid QEMU emulation when possible for better performance
-- **Cache optimization**: Use GitHub Actions cache to speed up repeated builds
-- **Documentation**: Provide clear deployment instructions for both architectures
-
-## Common Pitfalls
-
-- ❌ Using architecture-specific base images (e.g., `amd64/python`)
-- ❌ Hardcoding platform in docker-compose.yml (forces emulation)
-- ❌ Forgetting to test on actual ARM hardware
-- ❌ Not setting up GHCR permissions correctly
-- ❌ Building locally instead of using CI/CD (slow on ARM)
-- ✅ Use official multi-arch images (alpine, slim, etc.)
-- ✅ Let Docker auto-detect platform
-- ✅ Test deployment script on both architectures
-- ✅ Use GitHub Actions secrets for GITHUB_TOKEN
-- ✅ Pull pre-built images for production
-
-## Code Examples
-
-### Example 1: GitHub Actions Multi-Arch Workflow
+### GitHub Actions Multi-Arch Workflow
 
 \`\`\`yaml
 name: Build Multi-Arch Images
@@ -92,7 +66,7 @@ jobs:
           cache-to: type=gha,mode=max
 \`\`\`
 
-### Example 2: Production docker-compose.yml
+### Production Compose
 
 \`\`\`yaml
 services:
@@ -109,7 +83,7 @@ services:
     image: postgres:15-alpine  # Multi-arch official image
 \`\`\`
 
-### Example 3: Development docker-compose.dev.yml
+### Development Compose
 
 \`\`\`yaml
 services:
@@ -125,7 +99,7 @@ services:
       context: ./frontend
 \`\`\`
 
-### Example 4: Deployment Script
+### Deploy Script
 
 \`\`\`bash
 #!/bin/bash
@@ -152,11 +126,7 @@ docker compose up -d
 - [ ] Documentation updated
 - [ ] Tested on both architectures
 
-## Related Skills
+## Related
 
-- [infrastructure.md](infrastructure.md)
-- [git-workflow.md](git-workflow.md)
-
----
-
-*Last Updated: 2026-01-02*
+- `infrastructure`
+- `git-workflow`
