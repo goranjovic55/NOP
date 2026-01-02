@@ -1,48 +1,35 @@
-import * as vscode from 'vscode';
-import { LiveSessionParser, LiveSession, MultiSessionData, SessionAction } from '../parsers/LiveSessionParser';
-import { RefreshableProvider } from '../watchers/WorkflowWatcher';
-
-export class LiveSessionViewProvider implements vscode.WebviewViewProvider, RefreshableProvider {
-    private view?: vscode.WebviewView;
-    private refreshInterval?: NodeJS.Timeout;
-    private lastRenderHash: string = '';
-
-    constructor(
-        private readonly extensionUri: vscode.Uri,
-        private readonly workspaceFolder: vscode.WorkspaceFolder
-    ) {}
-
-    public resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        token: vscode.CancellationToken
-    ) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LiveSessionViewProvider = void 0;
+const LiveSessionParser_1 = require("../parsers/LiveSessionParser");
+class LiveSessionViewProvider {
+    constructor(extensionUri, workspaceFolder) {
+        this.extensionUri = extensionUri;
+        this.workspaceFolder = workspaceFolder;
+        this.lastRenderHash = '';
+    }
+    resolveWebviewView(webviewView, context, token) {
         this.view = webviewView;
-
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this.extensionUri]
         };
-
         webviewView.webview.html = this.getHtmlContent(webviewView.webview);
-
         // Auto-refresh every 2 seconds for live updates
         this.refreshInterval = setInterval(() => {
             this.refresh();
         }, 2000);
-
         webviewView.onDidDispose(() => {
             if (this.refreshInterval) {
                 clearInterval(this.refreshInterval);
             }
         });
     }
-
     /**
      * Compute hash of session data to detect changes
      * Only re-render when data actually changed (reduces DOM thrashing)
      */
-    private computeDataHash(data: MultiSessionData): string {
+    computeDataHash(data) {
         return JSON.stringify({
             count: data.sessions.length,
             lastUpdate: data.lastUpdate?.getTime() || 0,
@@ -51,12 +38,10 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             statuses: data.sessions.map(s => s.status)
         });
     }
-
-    public refresh() {
+    refresh() {
         if (this.view) {
-            const data = LiveSessionParser.parseAllSessions(this.workspaceFolder);
+            const data = LiveSessionParser_1.LiveSessionParser.parseAllSessions(this.workspaceFolder);
             const newHash = this.computeDataHash(data);
-            
             // Only re-render if data changed (reduces DOM updates by ~70%)
             if (newHash !== this.lastRenderHash) {
                 this.view.webview.html = this.getHtmlContent(this.view.webview);
@@ -64,11 +49,9 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             }
         }
     }
-
-    private getHtmlContent(webview: vscode.Webview): string {
-        const data = LiveSessionParser.parseAllSessions(this.workspaceFolder);
+    getHtmlContent(webview) {
+        const data = LiveSessionParser_1.LiveSessionParser.parseAllSessions(this.workspaceFolder);
         const hasActiveSessions = data.sessions.some(s => s.isActive);
-
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -689,61 +672,51 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
 </body>
 </html>`;
     }
-
     /**
      * Build hierarchical tree of sessions with sub-sessions nested under parents
      */
-    private renderSessionHierarchy(sessions: LiveSession[], currentSessionId: string | null): string {
+    renderSessionHierarchy(sessions, currentSessionId) {
         // Build parent->children map
-        const childrenMap = new Map<string, LiveSession[]>();
-        const mainSessions: LiveSession[] = [];
-        
+        const childrenMap = new Map();
+        const mainSessions = [];
         sessions.forEach(session => {
             if (session.parentSessionId) {
                 if (!childrenMap.has(session.parentSessionId)) {
                     childrenMap.set(session.parentSessionId, []);
                 }
-                childrenMap.get(session.parentSessionId)!.push(session);
-            } else {
+                childrenMap.get(session.parentSessionId).push(session);
+            }
+            else {
                 mainSessions.push(session);
             }
         });
-        
         let idx = 0;
-        const renderWithChildren = (session: LiveSession, depth: number = 0): string => {
+        const renderWithChildren = (session, depth = 0) => {
             const sessionIdx = idx++;
             const isCurrent = session.id === currentSessionId;
             const children = childrenMap.get(session.id) || [];
-            
             let html = this.renderSession(session, sessionIdx, isCurrent, depth);
-            
             // Render children recursively
             if (children.length > 0) {
                 html += children.map(child => renderWithChildren(child, depth + 1)).join('');
             }
-            
             return html;
         };
-        
         return mainSessions.map(session => renderWithChildren(session, 0)).join('');
     }
-
-    private renderSession(session: LiveSession, idx: number, isCurrent: boolean, depth: number = 0): string {
+    renderSession(session, idx, isCurrent, depth = 0) {
         // Activity indicator: show timing but session stays active until COMPLETE
         const now = new Date();
         const lastUpdate = new Date(session.lastUpdate);
         const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
         const isCompleted = session.status === 'completed' || session.phase === 'COMPLETE';
         const isIdle = secondsSinceUpdate > 30; // Just for UI indicator
-        
         const statusClass = isCompleted ? 'completed' : (session.status === 'active' ? 'active' : 'idle');
         const statusLabel = isCompleted ? 'DONE' : (session.status === 'active' ? 'ACTIVE' : 'IDLE');
         const depthClass = depth > 0 ? 'sub-session' : '';
         const depthPrefix = depth > 0 ? '└─ ' : '';
-        
         // Reverse actions for stack-based ordering (last action on top)
         const reversedActions = session.actions.length > 0 ? [...session.actions].reverse() : [];
-        
         return `
         <div class="session-item ${depthClass} ${isCurrent ? 'current' : ''}" id="session-${idx}" data-session-id="${session.id || idx}" data-depth="${depth}">
             <div class="session-header ${statusClass}" onclick="toggleSession(${idx})">
@@ -788,21 +761,18 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 ` : ''}
                 
                 <div class="actions-tree" id="actions-tree-${idx}">
-                    ${session.actions.length > 0 ? 
-                        session.actions.slice(-20).reverse().map((action, displayIdx) => {
-                            const actualIdx = session.actions.length - 1 - displayIdx;
-                            return this.renderAction(action, idx, actualIdx);
-                        }).join('') 
-                        : '<div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; padding: 8px;">No actions recorded yet</div>'
-                    }
+                    ${session.actions.length > 0 ?
+            session.actions.slice(-20).reverse().map((action, displayIdx) => {
+                const actualIdx = session.actions.length - 1 - displayIdx;
+                return this.renderAction(action, idx, actualIdx);
+            }).join('')
+            : '<div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; padding: 8px;">No actions recorded yet</div>'}
                 </div>
             </div>
         </div>`;
     }
-
-    private renderAction(action: SessionAction, sessionIdx: number, actionIdx: number): string {
+    renderAction(action, sessionIdx, actionIdx) {
         const typeIcon = this.getActionIcon(action.type);
-        
         return `
         <div class="action-item ${action.type}" onclick="showActionDetail(${sessionIdx}, ${actionIdx})">
             <div class="action-header">
@@ -813,9 +783,8 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             ${action.reason ? `<div class="action-reason">${this.escapeHtml(action.reason.substring(0, 60))}${action.reason.length > 60 ? '...' : ''}</div>` : ''}
         </div>`;
     }
-
-    private getActionIcon(type: string): string {
-        const icons: Record<string, string> = {
+    getActionIcon(type) {
+        const icons = {
             'SESSION_START': '🚀',
             'PHASE_CHANGE': '📍',
             'DECISION': '💡',
@@ -829,25 +798,24 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         };
         return icons[type] || '•';
     }
-
-    private formatTime(date: Date): string {
+    formatTime(date) {
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffSec = Math.floor(diffMs / 1000);
-        
-        if (diffSec < 10) return 'just now';
-        if (diffSec < 60) return `${diffSec}s ago`;
-        
+        if (diffSec < 10)
+            return 'just now';
+        if (diffSec < 60)
+            return `${diffSec}s ago`;
         const diffMin = Math.floor(diffSec / 60);
-        if (diffMin < 60) return `${diffMin}m ago`;
-        
+        if (diffMin < 60)
+            return `${diffMin}m ago`;
         const diffHour = Math.floor(diffMin / 60);
         return `${diffHour}h ago`;
     }
-
-    private escapeHtml(text: string): string {
-        if (!text) return '';
-        const map: { [key: string]: string } = {
+    escapeHtml(text) {
+        if (!text)
+            return '';
+        const map = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
@@ -857,3 +825,5 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         return text.replace(/[&<>"']/g, m => map[m]);
     }
 }
+exports.LiveSessionViewProvider = LiveSessionViewProvider;
+//# sourceMappingURL=LiveSessionViewProvider.js.map

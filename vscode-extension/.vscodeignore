@@ -1,0 +1,17 @@
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+.eslintrc.json
+**/*.map
+**/*.ts
+!out/**/*.js
+tsconfig.json
+create-icon.js
+node_modules/**
+!node_modules/d3/**
+!node_modules/@types/d3/**
+akis-monitor-*.vsix
+akis-monitor-*.tgz
+*.vsix
+*.tgz

@@ -1,0 +1,502 @@
+{
+  "sessions": [
+    {
+      "id": "1767352032702",
+      "name": "fix-icon-test-extension",
+      "startTime": "2026-01-02T11:07:12.702Z",
+      "task": "fix-icon-test-extension",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:07:12.702Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started fix-icon-test-extension with _DevTeam (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "fix-icon-test-extension",
+            "agent": "_DevTeam",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:07:12.702Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:07:12.702Z",
+      "endTime": "2026-01-02T11:10:02.860Z",
+      "workflowLog": "EXTENSION_TEST_RESULTS.md"
+    },
+    {
+      "id": "1767352251817",
+      "name": "rebuild-test-extension",
+      "startTime": "2026-01-02T11:10:51.817Z",
+      "task": "rebuild-test-extension",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:10:51.817Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started rebuild-test-extension with _DevTeam (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "rebuild-test-extension",
+            "agent": "_DevTeam",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T11:13:18.351Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: fix-icon-display",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "fix-icon-display"
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T11:13:59.368Z",
+          "type": "RESUME",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "RESUME",
+          "description": "Session resumed",
+          "reason": "Continuing work",
+          "details": {}
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T11:15:48.440Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: fix-icon-cache",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "fix-icon-cache"
+          }
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-01-02T11:35:09.860Z",
+          "type": "RESUME",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "RESUME",
+          "description": "Session resumed",
+          "reason": "Continuing work",
+          "details": {}
+        }
+      ],
+      "decisions": [],
+      "emissions": [
+        {
+          "timestamp": "2026-01-02T11:13:59.367Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "RESUME",
+          "content": "Session resumed",
+          "reason": "Continuing work"
+        },
+        {
+          "timestamp": "2026-01-02T11:35:09.860Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "RESUME",
+          "content": "Session resumed",
+          "reason": "Continuing work"
+        }
+      ],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:10:51.817Z",
+          "message": "",
+          "actionIds": [
+            "0",
+            "2",
+            "4"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:35:09.860Z",
+      "endTime": "2026-01-02T11:35:14.923Z",
+      "workflowLog": "All extension and AKIS updates done"
+    },
+    {
+      "id": "1767352398351",
+      "name": "fix-icon-display",
+      "startTime": "2026-01-02T11:13:18.351Z",
+      "task": "fix-icon-display",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767352251817",
+      "isMainSession": false,
+      "depth": 1,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:13:18.351Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started fix-icon-display with _DevTeam (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "fix-icon-display",
+            "agent": "_DevTeam",
+            "isMainSession": false,
+            "parentSessionId": "1767352251817",
+            "depth": 1
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:13:18.351Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:13:18.351Z",
+      "endTime": "2026-01-02T11:13:59.358Z",
+      "workflowLog": "Extension rebuilt and reinstalled"
+    },
+    {
+      "id": "1767352548440",
+      "name": "fix-icon-cache",
+      "startTime": "2026-01-02T11:15:48.440Z",
+      "task": "fix-icon-cache",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767352251817",
+      "isMainSession": false,
+      "depth": 1,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:15:48.440Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started fix-icon-cache with _DevTeam (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "fix-icon-cache",
+            "agent": "_DevTeam",
+            "isMainSession": false,
+            "parentSessionId": "1767352251817",
+            "depth": 1
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T11:18:17.920Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: indent-subsessions",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "indent-subsessions"
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T11:18:57.382Z",
+          "type": "RESUME",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "RESUME",
+          "description": "Session resumed",
+          "reason": "Continuing work",
+          "details": {}
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T11:31:42.952Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: update-akis-session-docs",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "update-akis-session-docs"
+          }
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-01-02T11:34:17.160Z",
+          "type": "RESUME",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "RESUME",
+          "description": "Session resumed",
+          "reason": "Continuing work",
+          "details": {}
+        }
+      ],
+      "decisions": [],
+      "emissions": [
+        {
+          "timestamp": "2026-01-02T11:18:57.382Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "RESUME",
+          "content": "Session resumed",
+          "reason": "Continuing work"
+        },
+        {
+          "timestamp": "2026-01-02T11:34:17.159Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "RESUME",
+          "content": "Session resumed",
+          "reason": "Continuing work"
+        }
+      ],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:15:48.440Z",
+          "message": "",
+          "actionIds": [
+            "0",
+            "2",
+            "4"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:34:17.160Z",
+      "endTime": "2026-01-02T11:35:09.851Z",
+      "workflowLog": "Extension fixes and AKIS framework updates complete"
+    },
+    {
+      "id": "1767352697920",
+      "name": "indent-subsessions",
+      "startTime": "2026-01-02T11:18:17.920Z",
+      "task": "indent-subsessions",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767352548440",
+      "isMainSession": false,
+      "depth": 2,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:18:17.920Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started indent-subsessions with _DevTeam (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "indent-subsessions",
+            "agent": "_DevTeam",
+            "isMainSession": false,
+            "parentSessionId": "1767352548440",
+            "depth": 2
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:18:17.920Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:18:17.920Z",
+      "endTime": "2026-01-02T11:18:57.370Z",
+      "workflowLog": "Subsession indentation updated"
+    },
+    {
+      "id": "1767353502953",
+      "name": "update-akis-session-docs",
+      "startTime": "2026-01-02T11:31:42.953Z",
+      "task": "update-akis-session-docs",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "_DevTeam CONTEXT",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "",
+      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767352548440",
+      "isMainSession": false,
+      "depth": 2,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T11:31:42.953Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started update-akis-session-docs with _DevTeam (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "update-akis-session-docs",
+            "agent": "_DevTeam",
+            "isMainSession": false,
+            "parentSessionId": "1767352548440",
+            "depth": 2
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T11:31:42.953Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T11:31:42.953Z",
+      "endTime": "2026-01-02T11:34:17.150Z",
+      "workflowLog": "Updated AKIS framework with session file docs"
+    }
+  ],
+  "currentSessionId": "1767352251817",
+  "lastUpdate": "2026-01-02T11:35:14.923Z"
+}

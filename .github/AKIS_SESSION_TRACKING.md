@@ -1,12 +1,15 @@
-# AKIS Session Tracking Integration Guide
+# AKIS Session Tracking Integration Guide - Multi-Session Support
 
 ## Overview
 
-This document describes how agents should integrate with the session tracking system to enable real-time monitoring in the VSCode AKIS Monitor extension.
+This document describes how agents should integrate with the **multi-session tracking system** to enable real-time monitoring of multiple concurrent sessions in the VSCode AKIS Monitor extension.
 
-## Session Tracking File: `.akis-session.json`
+## Session Tracking Files
 
-The session tracking file is a temporary JSON file that agents write to during execution. It enables the VSCode extension to monitor live sessions without waiting for workflow logs (which are only created at the end).
+- **`.akis-session.json`** - Current/active session (backwards compatible, single session view)
+- **`.akis-sessions.json`** - **Multi-session tracking file** (all sessions in current chat conversation) **← Extension should monitor this**
+
+**Important**: The VSCode AKIS Monitor extension must watch `.akis-sessions.json` to display multiple concurrent sessions. Watching only `.akis-session.json` will show only the current session.
 
 ## Integration Steps
 
@@ -196,25 +199,109 @@ node .github/scripts/session-tracker.js complete "$WORKFLOW_LOG"
 
 ## VSCode Extension Integration
 
+**File to Monitor**: `.akis-sessions.json` (not `.akis-session.json`)
+
 The VSCode AKIS Monitor extension:
 
-1. Watches `.akis-session.json` for changes (file system watcher)
-2. Parses the JSON data
-3. Updates the Live Session panel in real-time
-4. Shows current phase, progress, decisions, and emissions
-5. Displays interactive decision tree
+1. Watches `.akis-sessions.json` for multi-session tracking (file system watcher)
+2. Falls back to `.akis-session.json` for single session view (backwards compatible)
+3. Parses the JSON data: `{ sessions: [...], currentSessionId: "...", lastUpdate: "..." }`
+4. Updates the Live Session panel in real-time showing **all sessions** in current chat
+5. Shows current phase, progress, decisions, and emissions for each session
+6. Groups completed and active sessions under "Current Session" view
+7. Provides export button to combine all sessions into workflow log
+
+### Multi-Session Display
+
+The extension should display each session as a separate expandable tree node:
+
+```
+Current Session (3 sessions)
+├── 📦 Session 1: docker-cleanup-rebuild [COMPLETED]
+│   ├── _DevTeam COMPLETE | progress=7/7
+│   └── Actions (12)
+│       ├── [SESSION_START] Session Started
+│       ├── [PHASE_CHANGE] Phase: CONTEXT - Checking containers
+│       ├── [DECISION] Remove all containers and rebuild
+│       ├── [FILE_CHANGE] Modified docker-compose.yml
+│       └── ...
+│
+├── 📦 Session 2: fix-502-errors [COMPLETED]  
+│   ├── _DevTeam VERIFY | progress=5/7
+│   └── Actions (8)
+│       ├── [SESSION_START] Session Started
+│       ├── [PHASE_CHANGE] Phase: CONTEXT - Investigating errors
+│       ├── [DECISION] Fix nginx backend port configuration
+│       └── ...
+│
+└── 📦 Session 3: test-extension-visibility [ACTIVE] ✨
+    ├── _DevTeam CONTEXT | progress=1/7
+    └── Actions (5)
+        ├── [SESSION_START] Session Started
+        ├── [PHASE_CHANGE] Phase: CONTEXT
+        ├── [DETAIL] Added file change tracking
+        ├── [DECISION] Verify extension reading files
+        └── [FILE_CHANGE] Modified .akis-sessions.json
+```
+
+Each action should be clickable to show:
+- **Title**: Brief action description
+- **Description**: Full action details
+- **Reason**: Why this action was taken
+- **Timestamp**: When it occurred
+- **Phase**: Which phase it belongs to
+
+## Multi-Session Workflow
+
+### During Chat (Multiple Mini-Sessions)
+
+```bash
+# Session 1
+node .github/scripts/session-tracker.js start "task-1" "Agent"
+# ... work ...
+node .github/scripts/session-tracker.js complete "log/workflow/task-1.md"
+
+# Session 2 (still in same chat)
+node .github/scripts/session-tracker.js start "task-2" "Agent"
+# ... work ...
+node .github/scripts/session-tracker.js complete "log/workflow/task-2.md"
+
+# View all sessions
+node .github/scripts/session-tracker.js all-status
+```
+
+### At End of Chat
+
+```bash
+# Export all sessions to combined workflow log
+node .github/scripts/session-tracker.js export "log/workflow/2026-01-02_combined.md"
+
+# Commit workflow log
+git add log/workflow/2026-01-02_combined.md
+git commit -m "Add combined session workflow log"
+git push
+
+# Clear session tracking files
+node .github/scripts/session-tracker.js reset
+```
 
 ## Benefits
 
 - **Real-time monitoring**: See agent progress without waiting for workflow logs
+- **Multi-session support**: Track multiple tasks in one conversation
 - **Live decisions**: View decisions as they're made during execution
-- **Phase tracking**: Monitor which phase the agent is currently in
-- **No workflow log dependency**: Workflow logs are only created at the end
-- **Minimal overhead**: Simple JSON file writes, auto-cleaned after completion
+- **Phase tracking**: Monitor which phase each agent is currently in
+- **Combined logs**: Export all sessions together for complete context
+- **Clean separation**: Reset after commit for next conversation
+- **Minimal overhead**: Simple JSON file writes, auto-cleaned after reset
 
 ## Backwards Compatibility
 
-The VSCode extension falls back to monitoring workflow logs if `.akis-session.json` doesn't exist. This ensures compatibility with agents that haven't integrated session tracking yet.
+The VSCode extension and session tracker maintain full backwards compatibility:
+- Single session workflows continue to work with `.akis-session.json`
+- Multi-session tracking is opt-in via `.akis-sessions.json`
+- Old workflow logs are still supported
+- Extension gracefully handles both single and multi-session files
 
 ## Troubleshooting
 
@@ -232,19 +319,64 @@ Verify:
 1. VSCode extension is installed and active
 2. Workspace folder is open (not just files)
 3. Auto-refresh is enabled in extension settings
-4. `.akis-session.json` exists in workspace root
+4. `.akis-sessions.json` exists in workspace root (for multi-session view)
 
-### Session file not deleted after completion
+### Sessions not cleared after reset
 
-The file is auto-deleted 3 seconds after calling `complete`. If it persists:
-1. Check the console for errors
-2. Manually delete with: `rm .akis-session.json`
-3. Ensure the complete command was called with a valid workflow log path
+If tracking files persist after `reset`:
+1. Check console for errors
+2. Manually delete: `rm .akis-session.json .akis-sessions.json`
+3. Ensure all sessions are completed before reset
+
+### Export not including all sessions
+
+Verify:
+1. All sessions have been started with `start` command
+2. Sessions are tracked in `.akis-sessions.json`
+3. No JSON parsing errors in session file
+4. Output path is writable
+
+## Advanced Usage
+
+### View All Sessions
+
+```bash
+node .github/scripts/session-tracker.js all-status
+```
+
+Output:
+```json
+{
+  "active": true,
+  "count": 3,
+  "currentSessionId": "1735876543210",
+  "sessions": [
+    {
+      "id": "1735876543100",
+      "task": "docker-cleanup-rebuild",
+      "status": "completed",
+      "phase": "COMPLETE",
+      "progress": "7/7",
+      "isCurrent": false
+    },
+    ...
+  ]
+}
+```
+
+### Export with Custom Path
+
+```bash
+node .github/scripts/session-tracker.js export "log/workflow/my-custom-log.md"
+```
 
 ## Future Enhancements
 
-- Interactive decision tree with zoom/pan
-- Decision branching visualization
+- Interactive decision tree with zoom/pan across all sessions
+- Decision branching visualization for multi-session context
 - Time-travel debugging (replay session history)
+- Session comparison view
+- Merge and split session capabilities
+```
 - Multi-agent session coordination
 - Session analytics and metrics

@@ -201,9 +201,10 @@ const Scans: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-4 items-stretch h-[calc(100vh-160px)]">
-        <div className="dashboard-card p-4 space-y-4 h-full flex flex-col">
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 h-[calc(100vh-160px)]">
+        <div className="dashboard-card flex flex-col h-full overflow-hidden">
+          <div className="p-4 border-b border-cyber-gray shrink-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               {['all', 'online', 'offline'].map((f) => (
                 <button
                   key={f}
@@ -213,6 +214,8 @@ const Scans: React.FC = () => {
                   {f}
                 </button>
               ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               {['all', 'scanned', 'unscanned'].map((f) => (
                 <button
                   key={f}
@@ -222,33 +225,34 @@ const Scans: React.FC = () => {
                   {f}
                 </button>
               ))}
-              <input
-                type="text"
-                value={ipFilter}
-                onChange={(e) => { setIpFilter(e.target.value); localStorage.setItem('nop_scans_ip_filter', e.target.value); }}
-                placeholder="Filter by IP"
-                className="bg-cyber-dark border border-cyber-gray px-3 py-2 text-sm font-mono text-cyber-blue outline-none focus:border-cyber-red flex-1"
-              />
             </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-              {loadingAssets ? (
-                <div className="text-cyber-gray-light text-sm">Loading assets…</div>
-              ) : filteredAssets.length === 0 ? (
-                <p className="text-cyber-gray-light text-sm">No assets match the filters.</p>
-              ) : (
-                filteredAssets.map((asset) => (
-                  <AssetListItem
-                    key={asset.id}
-                    asset={asset}
-                    isActive={asset.ip_address === activeTab?.ip}
-                    scanStatus={getScanStatus(asset.ip_address)}
-                    onOpen={handleOpenAsset}
-                  />
-                ))
-              )}
-            </div>
+            <input
+              type="text"
+              value={ipFilter}
+              onChange={(e) => { setIpFilter(e.target.value); localStorage.setItem('nop_scans_ip_filter', e.target.value); }}
+              placeholder="Filter by IP"
+              className="w-full bg-cyber-dark border border-cyber-gray px-3 py-2 text-sm font-mono text-cyber-blue outline-none focus:border-cyber-red"
+            />
           </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1 min-h-0">
+            {loadingAssets ? (
+              <div className="text-cyber-gray-light text-sm">Loading assets…</div>
+            ) : filteredAssets.length === 0 ? (
+              <p className="text-cyber-gray-light text-sm">No assets match the filters.</p>
+            ) : (
+              filteredAssets.map((asset) => (
+                <AssetListItem
+                  key={asset.id}
+                  asset={asset}
+                  isActive={asset.ip_address === activeTab?.ip}
+                  scanStatus={getScanStatus(asset.ip_address)}
+                  onOpen={handleOpenAsset}
+                />
+              ))
+            )}
+          </div>
+        </div>
 
         <div className="dashboard-card p-4 h-full flex flex-col">
           {!activeTab && <p className="text-cyber-gray-light text-sm">Select or create a scan to view details.</p>}

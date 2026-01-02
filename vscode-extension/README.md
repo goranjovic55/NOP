@@ -1,23 +1,35 @@
 # AKIS Monitor - VSCode Extension
 
+![AKIS Monitor Icon](resources/akis-icon-128.png)
+
 Monitor and visualize AKIS (Agents, Knowledge, Instructions, Skills) system workflows, decisions, and knowledge graphs directly in Visual Studio Code.
 
 ## Features
 
-- **Live Session Monitoring**: Real-time view of the currently active AKIS agent session
+✨ **Live Session Monitoring**: Real-time view of the currently active AKIS agent session
   - Reads from `.akis-session.json` (written by agents during execution)
-  - Current phase and progress tracking
+  - Current phase and progress tracking (7-phase workflow)
   - Decisions made so far in the session
   - Session timeline with emissions
   - Auto-refreshes every 2 seconds
   - Fallback to workflow log monitoring if session file doesn't exist
-- **Workflow History**: Complete history of all agent workflows from `log/workflow/` directory
-- **Decision Diagram**: Interactive Mermaid diagrams showing decision points and delegations
-- **Knowledge Graph**: D3.js force-directed graph of entities from `project_knowledge.json`
-- **Auto-refresh**: Automatically updates when files change
-- **Cyberpunk Theme**: Matches the NOP platform aesthetic
+
+📊 **Historical Diagram**: Interactive Mermaid diagrams showing decision points and delegations
+
+🕸️ **Knowledge Graph**: D3.js force-directed graph of entities from `project_knowledge.json`
+  - Entity nodes with relationships
+  - Interactive zoom and pan
+  - Code graph dependencies visualization
+
+🎨 **Cyberpunk Theme**: Matches the NOP platform aesthetic with cyan/dark colors
+
+⚡ **Auto-refresh**: Automatically updates when files change (configurable interval)
 
 ## Installation
+
+### From VS Code Marketplace (Coming Soon)
+
+Search for "AKIS Monitor" in the Extensions view (Ctrl+Shift+X).
 
 ### From VSIX (Recommended)
 

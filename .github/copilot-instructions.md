@@ -4,19 +4,36 @@
 
 ## ⚠️ MANDATORY AT EVERY RESPONSE START
 
-**BEFORE ANY WORK:**
-1. `node .github/scripts/session-tracker.js status` → Check session
-2. If `active: true, needsResume: true` → `resume [sessionId]` (use provided resumeCommand)
-3. If no active → `start "task" "agent"` (auto-pauses any active session as parent)
-4. Emit `[SESSION: task] @AgentName`
-5. `node .github/scripts/knowledge-query.js --stats` → Load knowledge
+**BEFORE ANY WORK - Read Session State:**
+1. Read `.akis-session.json` directly → Get current session state
+2. If `status: "active"` → You're in a session, continue from current `phase`
+3. If no session or needs new → `node .github/scripts/session-tracker.js start "task" "agent"`
+4. Emit `[SESSION: task] @AgentName | phase: PHASE | depth: N`
+5. Read `project_knowledge.json` stats → Load context
 6. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-**ON INTERRUPT:** New session auto-pauses parent; completing sub-session auto-resumes parent
+**Session State File** (`.akis-session.json`):
+```json
+{
+  "id": "1234567890",
+  "name": "task-name",
+  "status": "active|completed",
+  "phase": "CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE",
+  "progress": "N/7",
+  "agent": "_DevTeam|Developer|Architect|...",
+  "depth": 0,                    // 0=main, 1+=sub-session
+  "parentSessionId": null,       // null=main, id=child of parent
+  "actions": [...],              // Timeline of all actions
+  "decisions": [...],            // Key decisions made
+  "context": { "entities": N, "skills": [], "files": [] }
+}
+```
 
-**SESSION HIERARCHY:** First session = main (depth=0), interrupts create sub-sessions (depth=1,2). Max depth=3.
+**Resume Logic**: If `parentSessionId` exists, you're in a sub-session. On complete, parent auto-resumes.
 
-## Required Response Format
+**SESSION HIERARCHY:** depth=0 (main) → depth=1 (child) → depth=2 (grandchild). Max depth=3.
+
+**Multi-session file** (`.akis-sessions.json`): Contains ALL sessions with hierarchy for visualization.
 
 ```
 [SESSION: task] @AgentName
@@ -33,8 +50,6 @@
 ---
 
 ## 🔷 Agents (WHO)
-
-**Load agent file ONLY when delegating.**
 
 | Agent | Role | When to Load |
 |-------|------|--------------|
