@@ -129,8 +129,7 @@ class SessionTracker {
         // Save to single session file (for backwards compatibility)
         fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
 
-        // Add to multi-session tracking
-        const allSessions = this.getAllSessions();
+        // Add to multi-session tracking (reuse allSessions from max session check at start of function)
         allSessions.sessions = allSessions.sessions || [];
         allSessions.sessions.push(session);
         allSessions.currentSessionId = session.id;
@@ -434,12 +433,18 @@ class SessionTracker {
 
     /**
      * Update session phase
+     * Validates phase name against standard 7-phase workflow
      * @param {string} phaseName - The phase name (CONTEXT, PLAN, etc.)
      * @param {string} progress - Progress indicator (e.g., "1/7")
      * @param {string} message - Optional detailed message describing what's happening
      * @param {string} detail - Optional detail to add to phase tree
      */
     phase(phaseName, progress, message, detail) {
+        const validPhases = ['CONTEXT', 'PLAN', 'COORDINATE', 'INTEGRATE', 'VERIFY', 'LEARN', 'COMPLETE'];
+        if (!validPhases.includes(phaseName)) {
+            console.warn(`Warning: '${phaseName}' is not a standard phase. Valid phases: ${validPhases.join(', ')}`);
+        }
+        
         this.emit({
             type: 'PHASE',
             phase: phaseName,
