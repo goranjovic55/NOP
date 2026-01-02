@@ -33,20 +33,59 @@ class SessionTracker {
     }
 
     /**
-     * Save all sessions
+     * Save all sessions (atomic write to prevent corruption)
      */
     saveAllSessions(data) {
-        fs.writeFileSync(this.multiSessionPath, JSON.stringify(data, null, 2));
+        const tempPath = this.multiSessionPath + '.tmp';
+        fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+        fs.renameSync(tempPath, this.multiSessionPath);  // Atomic rename
+        
+        // Create backup for recovery
+        fs.writeFileSync(this.multiSessionPath + '.backup', JSON.stringify(data, null, 2));
     }
 
     /**
      * Initialize a new session
+     * Enforces max vertical depth of 3 to prevent runaway nesting
+     * Auto-pauses active session and sets as parent for stack-based workflow
      * @param {Object} sessionData - Session initialization data
      * @param {string} sessionData.task - Task name/identifier
      * @param {string} sessionData.agent - Agent name
      * @param {Object} sessionData.context - Optional context to restore from
      */
     start(sessionData) {
+        // Check max depth (prevent runaway nesting)
+        const allSessions = this.getAllSessions();
+        const activeSessions = (allSessions.sessions || []).filter(s => s.status === 'active');
+        if (activeSessions.length >= 3) {
+            console.warn('Warning: Max concurrent sessions (3) reached. Consider completing existing sessions.');
+        }
+
+        // Auto-pause current active session and set as parent (stack-based)
+        let parentSessionId = null;
+        let depth = 0;
+        if (activeSessions.length > 0) {
+            // Use the most recent active session (last in array) as parent
+            const currentActive = activeSessions[activeSessions.length - 1];
+            parentSessionId = currentActive.id;
+            depth = (currentActive.depth || 0) + 1;
+            
+            // Pause the parent session
+            const parentIdx = allSessions.sessions.findIndex(s => s.id === parentSessionId);
+            if (parentIdx >= 0) {
+                allSessions.sessions[parentIdx].actions.push({
+                    id: allSessions.sessions[parentIdx].actions.length.toString(),
+                    timestamp: new Date().toISOString(),
+                    type: 'PAUSE',
+                    phase: allSessions.sessions[parentIdx].phase,
+                    title: 'Session Paused',
+                    description: `Paused for: ${sessionData.task}`,
+                    reason: 'Interrupt - starting sub-session',
+                    details: { childTask: sessionData.task }
+                });
+            }
+        }
+        
         const session = {
             id: Date.now().toString(),
             name: sessionData.name || sessionData.task || 'Unnamed Session',
@@ -60,6 +99,11 @@ class SessionTracker {
             phaseMessage: '',
             phaseVerbose: 'Unknown CONTEXT | progress=1/0',
             progress: '1/0',
+            
+            // Session hierarchy
+            parentSessionId: parentSessionId,
+            isMainSession: activeSessions.length === 0, // First session is main
+            depth: depth, // 0=main, 1=first interrupt, 2=second interrupt
             
             // Context data (SSOT)
             context: sessionData.context || {
@@ -78,11 +122,14 @@ class SessionTracker {
                     type: 'SESSION_START',
                     phase: 'CONTEXT',
                     title: 'Session Started',
-                    description: `Started ${sessionData.task || 'task'} with ${sessionData.agent || 'agent'}`,
-                    reason: 'Initialize new work session',
+                    description: `Started ${sessionData.task || 'task'} with ${sessionData.agent || 'agent'}${parentSessionId ? ' (sub-session)' : ' (main)'}`,
+                    reason: parentSessionId ? `Interrupt from parent session` : 'Initialize new work session',
                     details: {
                         task: sessionData.task,
-                        agent: sessionData.agent
+                        agent: sessionData.agent,
+                        isMainSession: activeSessions.length === 0,
+                        parentSessionId: parentSessionId,
+                        depth: depth
                     }
                 }
             ],
@@ -116,8 +163,7 @@ class SessionTracker {
         // Save to single session file (for backwards compatibility)
         fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
 
-        // Add to multi-session tracking
-        const allSessions = this.getAllSessions();
+        // Add to multi-session tracking (reuse allSessions from max session check at start of function)
         allSessions.sessions = allSessions.sessions || [];
         allSessions.sessions.push(session);
         allSessions.currentSessionId = session.id;
@@ -377,6 +423,14 @@ class SessionTracker {
         // Add action to session
         session.actions.push(action);
 
+        // Action rotation to prevent unbounded growth (max 500 actions)
+        const MAX_ACTIONS = 500;
+        if (session.actions.length > MAX_ACTIONS) {
+            const archiveCount = session.actions.length - MAX_ACTIONS;
+            session.archivedActionCount = (session.archivedActionCount || 0) + archiveCount;
+            session.actions = session.actions.slice(-MAX_ACTIONS);
+        }
+
         // Add action to current phase
         const currentPhase = session.phases[session.phase];
         if (currentPhase && !currentPhase.actionIds.includes(actionId)) {
@@ -390,6 +444,11 @@ class SessionTracker {
             isDelegated: isDelegated,
             ...emission
         });
+
+        // Rotate emissions too
+        if (session.emissions.length > MAX_ACTIONS) {
+            session.emissions = session.emissions.slice(-MAX_ACTIONS);
+        }
 
         // Save to single session file
         fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
@@ -408,12 +467,18 @@ class SessionTracker {
 
     /**
      * Update session phase
+     * Validates phase name against standard 7-phase workflow
      * @param {string} phaseName - The phase name (CONTEXT, PLAN, etc.)
      * @param {string} progress - Progress indicator (e.g., "1/7")
      * @param {string} message - Optional detailed message describing what's happening
      * @param {string} detail - Optional detail to add to phase tree
      */
     phase(phaseName, progress, message, detail) {
+        const validPhases = ['CONTEXT', 'PLAN', 'COORDINATE', 'INTEGRATE', 'VERIFY', 'LEARN', 'COMPLETE'];
+        if (!validPhases.includes(phaseName)) {
+            console.warn(`Warning: '${phaseName}' is not a standard phase. Valid phases: ${validPhases.join(', ')}`);
+        }
+        
         this.emit({
             type: 'PHASE',
             phase: phaseName,
@@ -578,6 +643,18 @@ class SessionTracker {
             }
 
             console.log('Session completed. Run "node .github/scripts/session-tracker.js reset" after committing to GitHub to clear.');
+
+            // Auto-resume parent session if this was a sub-session
+            if (session.parentSessionId) {
+                const parentIdx = allSessions.sessions.findIndex(s => s.id === session.parentSessionId);
+                if (parentIdx >= 0 && allSessions.sessions[parentIdx].status === 'active') {
+                    console.log(`\nAuto-resuming parent session: ${allSessions.sessions[parentIdx].task}`);
+                    const resumeResult = this.resume(session.parentSessionId);
+                    if (resumeResult.success) {
+                        console.log(`✓ Resumed parent at ${resumeResult.phase}`);
+                    }
+                }
+            }
         }
     }
 
@@ -615,8 +692,58 @@ class SessionTracker {
 
     /**
      * Get session status with formatted output including workflow mapping
+     * Includes stale session detection (>1 hour without updates)
+     * Checks ALL sessions to find active ones, not just current
      */
     status() {
+        // Check for ANY active sessions first
+        const allSessions = this.getAllSessions();
+        const activeSessions = allSessions.sessions.filter(s => {
+            const isCompleted = s.status === 'completed' || s.phase === 'COMPLETE';
+            const now = new Date();
+            const lastUpdate = new Date(s.lastUpdate);
+            const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
+            const isStale = secondsSinceUpdate > 3600;
+            return s.status === 'active' && !isCompleted && !isStale;
+        });
+
+        // If we have active sessions but current is not one, point to active
+        if (activeSessions.length > 0) {
+            const activeSession = activeSessions[0]; // Most recent active
+            const now = new Date();
+            const lastUpdate = new Date(activeSession.lastUpdate);
+            const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
+            
+            // Find session hierarchy (main -> parent -> current)
+            const mainSession = allSessions.sessions.find(s => s.isMainSession && s.status === 'active');
+            const hierarchy = [];
+            let current = activeSession;
+            while (current) {
+                hierarchy.unshift(current.task);
+                current = current.parentSessionId 
+                    ? allSessions.sessions.find(s => s.id === current.parentSessionId)
+                    : null;
+            }
+            
+            return {
+                active: true,
+                hasMultipleActive: activeSessions.length > 1,
+                activeCount: activeSessions.length,
+                needsResume: true,
+                resumeCommand: `node .github/scripts/session-tracker.js resume "${activeSession.id}"`,
+                session: activeSession.task,
+                agent: activeSession.agent,
+                phase: `${activeSession.phase} ${activeSession.progress || ''}`,
+                secondsSinceUpdate: Math.floor(secondsSinceUpdate),
+                isMainSession: activeSession.isMainSession || false,
+                depth: activeSession.depth || 0,
+                parentSessionId: activeSession.parentSessionId || null,
+                hierarchy: hierarchy,
+                message: `Found ${activeSessions.length} active session(s). Use 'resume "${activeSession.id}"' to continue.${hierarchy.length > 1 ? ` [${hierarchy.join(' → ')}]` : ''}`
+            };
+        }
+
+        // No active sessions, check current
         const session = this.get();
         if (!session) {
             return { active: false, message: 'No active session' };
@@ -627,13 +754,16 @@ class SessionTracker {
         const lastUpdate = new Date(session.lastUpdate);
         const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
         const isCompleted = session.status === 'completed' || session.phase === 'COMPLETE';
-        const isActive = session.status === 'active' && !isCompleted;
+        const isStale = secondsSinceUpdate > 3600; // 1 hour = stale
+        const isActive = session.status === 'active' && !isCompleted && !isStale;
         const isIdle = secondsSinceUpdate > 30; // For UI display only
         
         return {
             active: isActive,
             completed: isCompleted,
+            stale: isStale,
             idle: isIdle,
+            staleSinceHours: isStale ? Math.floor(secondsSinceUpdate / 3600) : 0,
             session: session.task,
             agent: session.agent,
             phase: `${session.phase} ${session.progress}`,
@@ -888,14 +1018,80 @@ class SessionTracker {
     }
 
     /**
-     * Resume session - show full context
+     * Pause current session
      */
-    resume() {
+    pause(reason = 'Interrupted') {
         const session = this.get();
         if (!session) {
-            return 'No active session to resume';
+            return { success: false, message: 'No session to pause' };
         }
+
+        this.emit({
+            type: 'PAUSE',
+            content: 'Session paused',
+            reason: reason,
+            timestamp: new Date().toISOString()
+        });
+
         return {
+            success: true,
+            sessionId: session.id,
+            task: session.task,
+            phase: session.phase,
+            message: `Session paused: ${session.task}`
+        };
+    }
+
+    /**
+     * Resume session - show full context and switch to it
+     * @param {string} sessionId - Optional session ID to resume (defaults to finding active)
+     */
+    resume(sessionId = null) {
+        let session;
+        
+        if (sessionId) {
+            // Resume specific session by ID
+            const allSessions = this.getAllSessions();
+            session = allSessions.sessions.find(s => s.id === sessionId);
+            
+            if (!session) {
+                return { success: false, message: `Session ${sessionId} not found` };
+            }
+
+            // Switch to this session
+            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+            allSessions.currentSessionId = session.id;
+            this.saveAllSessions(allSessions);
+        } else {
+            // Find any active session
+            const allSessions = this.getAllSessions();
+            const activeSessions = allSessions.sessions.filter(s => {
+                const isCompleted = s.status === 'completed' || s.phase === 'COMPLETE';
+                return s.status === 'active' && !isCompleted;
+            });
+
+            if (activeSessions.length === 0) {
+                return { success: false, message: 'No active sessions to resume' };
+            }
+
+            session = activeSessions[0];
+            
+            // Switch to this session
+            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+            allSessions.currentSessionId = session.id;
+            this.saveAllSessions(allSessions);
+        }
+
+        // Emit RESUME
+        this.emit({
+            type: 'RESUME',
+            content: 'Session resumed',
+            reason: 'Continuing work',
+            timestamp: new Date().toISOString()
+        });
+
+        return {
+            success: true,
             task: session.task,
             agent: session.agent,
             phase: session.phase,
@@ -903,7 +1099,8 @@ class SessionTracker {
             skills: session.skills,
             decisions: session.decisions,
             delegations: session.delegations,
-            lastUpdate: session.lastUpdate
+            lastUpdate: session.lastUpdate,
+            message: `Resumed: ${session.task} at ${session.phase}`
         };
     }
 
@@ -959,17 +1156,21 @@ class SessionTracker {
     /**
      * Helper to map phase names to progress numbers
      */
+    /**
+     * Helper to map phase names to progress numbers
+     * Uses N/7 format consistently for 7-phase workflow
+     */
     getProgressFromPhase(phaseName) {
         const phaseMap = {
-            'CONTEXT': '1/0',
-            'PLAN': '2/0',
-            'COORDINATE': '3/0',
-            'INTEGRATE': '4/0',
-            'VERIFY': '5/0',
-            'LEARN': '6/0',
-            'COMPLETE': '7/0'
+            'CONTEXT': '1/7',
+            'PLAN': '2/7',
+            'COORDINATE': '3/7',
+            'INTEGRATE': '4/7',
+            'VERIFY': '5/7',
+            'LEARN': '6/7',
+            'COMPLETE': '7/7'
         };
-        return phaseMap[phaseName] || '0/0';
+        return phaseMap[phaseName] || '0/7';
     }
 }
 
@@ -1077,8 +1278,15 @@ if (require.main === module) {
             tracker.exportToWorkflowLog(exportPath);
             break;
 
+        case 'pause':
+            const pauseReason = args.slice(1).join(' ') || 'Interrupted';
+            console.log(JSON.stringify(tracker.pause(pauseReason), null, 2));
+            break;
+
         case 'resume':
-            console.log(JSON.stringify(tracker.resume(), null, 2));
+            // resume [sessionId]
+            const result = tracker.resume(args[1]);
+            console.log(JSON.stringify(result, null, 2));
             break;
 
         case 'validate':

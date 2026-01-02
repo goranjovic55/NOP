@@ -5,29 +5,30 @@
 ## ⚠️ MANDATORY AT EVERY RESPONSE START
 
 **BEFORE ANY WORK:**
-1. `node .github/scripts/session-tracker.js status` → Check active session
-2. If no session → `node .github/scripts/session-tracker.js start "task" "agent"`
-3. Emit `[SESSION: task] @AgentName`
-4. Load entities from `project_knowledge.json`
-5. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
+1. `node .github/scripts/session-tracker.js status` → Check session
+2. If `active: true, needsResume: true` → `resume [sessionId]` (use provided resumeCommand)
+3. If no active → `start "task" "agent"` (auto-pauses any active session as parent)
+4. Emit `[SESSION: task] @AgentName`
+5. `node .github/scripts/knowledge-query.js --stats` → Load knowledge
+6. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-**ON INTERRUPT/RESUME:**
-- Call `node .github/scripts/session-tracker.js resume` to restore context
-- Continue from last known phase
+**ON INTERRUPT:** New session auto-pauses parent; completing sub-session auto-resumes parent
+
+**SESSION HIERARCHY:** First session = main (depth=0), interrupts create sub-sessions (depth=1,2). Max depth=3.
 
 ## Required Response Format
 
 ```
 [SESSION: task] @AgentName
 [AKIS] entities=N | skills=X,Y | patterns=Z
-[PHASE: NAME | progress=N/7]
+[PHASE: NAME | N/7]
 <work>
 [COMPLETE] result | files: changed
 ```
 
-**Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
+**Blocking**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
 
-**Session Tracking (REQUIRED)**: Call `node .github/scripts/session-tracker.js` at every phase/decision/delegation. Start: `start "task" "agent"`. Phase: `phase NAME "N/0"` (live monitor shows `Agent PHASE`; if another agent emits, it shows `[SUBAGENT] Agent`). Decision: `decision "desc"`. Delegate: `delegate Agent "task"`. Complete: `complete "log/workflow/file.md"`. Reset only after GitHub commit: `reset`. See `.github/AKIS_SESSION_TRACKING.md`.
+**Session Tracking**: `start "task" "agent"` | `phase NAME "N/7"` | `decision "desc"` | `delegate Agent "task"` | `complete "log/file.md"` | `reset` (after commit only)
 
 ---
 

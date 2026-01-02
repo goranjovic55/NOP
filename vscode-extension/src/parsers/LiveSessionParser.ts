@@ -4,7 +4,7 @@ import * as fs from 'fs';
 export interface SessionAction {
     id: string;
     timestamp: Date;
-    type: 'SESSION_START' | 'PHASE_CHANGE' | 'DECISION' | 'DETAIL' | 'FILE_CHANGE' | 'CONTEXT' | 'DELEGATE' | 'COMPLETE';
+    type: 'SESSION_START' | 'PHASE_CHANGE' | 'DECISION' | 'DETAIL' | 'FILE_CHANGE' | 'CONTEXT' | 'DELEGATE' | 'PAUSE' | 'RESUME' | 'COMPLETE';
     description: string;
     reason?: string;
     details?: any;
@@ -32,6 +32,10 @@ export interface LiveSession {
         files: string[];
         changes: string[];
     };
+    // Session hierarchy
+    parentSessionId?: string | null;
+    isMainSession?: boolean;
+    depth?: number;
 }
 
 export interface Delegation {
@@ -56,6 +60,7 @@ export interface MultiSessionData {
 export class LiveSessionParser {
     /**
      * Parse all sessions from .akis-sessions.json (multi-session support)
+     * Includes JSON validation and backup recovery for corrupted files
      */
     static parseAllSessions(workspaceFolder: vscode.WorkspaceFolder): MultiSessionData {
         const defaultData: MultiSessionData = {
@@ -69,7 +74,23 @@ export class LiveSessionParser {
             const multiSessionFilePath = `${workspaceFolder.uri.fsPath}/.akis-sessions.json`;
             
             if (fs.existsSync(multiSessionFilePath)) {
-                const data = JSON.parse(fs.readFileSync(multiSessionFilePath, 'utf-8'));
+                const content = fs.readFileSync(multiSessionFilePath, 'utf-8');
+                
+                // Validate JSON structure before parsing
+                let data;
+                try {
+                    data = JSON.parse(content);
+                } catch (parseError) {
+                    console.error('Corrupted session file, attempting backup recovery');
+                    return this.recoverFromBackup(workspaceFolder);
+                }
+                
+                // Validate required structure
+                if (!data.sessions || !Array.isArray(data.sessions)) {
+                    console.error('Invalid session structure, using default');
+                    return defaultData;
+                }
+                
                 return this.parseMultiSessionFile(data);
             }
 
@@ -77,7 +98,16 @@ export class LiveSessionParser {
             const sessionFilePath = `${workspaceFolder.uri.fsPath}/.akis-session.json`;
             
             if (fs.existsSync(sessionFilePath)) {
-                const sessionData = JSON.parse(fs.readFileSync(sessionFilePath, 'utf-8'));
+                const content = fs.readFileSync(sessionFilePath, 'utf-8');
+                
+                let sessionData;
+                try {
+                    sessionData = JSON.parse(content);
+                } catch (parseError) {
+                    console.error('Corrupted single session file');
+                    return defaultData;
+                }
+                
                 const session = this.parseSessionFile(sessionData);
                 return {
                     sessions: [session],
@@ -88,6 +118,47 @@ export class LiveSessionParser {
 
         } catch (error) {
             console.error('Error parsing sessions:', error);
+        }
+
+        return defaultData;
+    }
+
+    /**
+     * Attempt to recover from backup file if main file is corrupted
+     * Made public for testability and external recovery scenarios
+     */
+    public static recoverFromBackup(workspaceFolder: vscode.WorkspaceFolder): MultiSessionData {
+        const backupPath = `${workspaceFolder.uri.fsPath}/.akis-sessions.json.backup`;
+        const defaultData: MultiSessionData = {
+            sessions: [],
+            currentSessionId: null,
+            lastUpdate: new Date()
+        };
+
+        try {
+            if (fs.existsSync(backupPath)) {
+                const content = fs.readFileSync(backupPath, 'utf-8');
+                
+                // Validate backup JSON structure
+                let backup;
+                try {
+                    backup = JSON.parse(content);
+                } catch (parseError) {
+                    console.error('Backup file also corrupted');
+                    return defaultData;
+                }
+                
+                // Validate required structure
+                if (!backup.sessions || !Array.isArray(backup.sessions)) {
+                    console.error('Invalid backup structure');
+                    return defaultData;
+                }
+                
+                console.log('Recovered session from backup');
+                return this.parseMultiSessionFile(backup);
+            }
+        } catch (error) {
+            console.error('Backup recovery failed:', error);
         }
 
         return defaultData;

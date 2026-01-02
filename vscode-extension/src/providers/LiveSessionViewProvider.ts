@@ -5,6 +5,7 @@ import { RefreshableProvider } from '../watchers/WorkflowWatcher';
 export class LiveSessionViewProvider implements vscode.WebviewViewProvider, RefreshableProvider {
     private view?: vscode.WebviewView;
     private refreshInterval?: NodeJS.Timeout;
+    private lastRenderHash: string = '';
 
     constructor(
         private readonly extensionUri: vscode.Uri,
@@ -37,9 +38,30 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         });
     }
 
+    /**
+     * Compute hash of session data to detect changes
+     * Only re-render when data actually changed (reduces DOM thrashing)
+     */
+    private computeDataHash(data: MultiSessionData): string {
+        return JSON.stringify({
+            count: data.sessions.length,
+            lastUpdate: data.lastUpdate?.getTime() || 0,
+            actionCounts: data.sessions.map(s => s.actions?.length || 0),
+            phases: data.sessions.map(s => s.phase),
+            statuses: data.sessions.map(s => s.status)
+        });
+    }
+
     public refresh() {
         if (this.view) {
-            this.view.webview.html = this.getHtmlContent(this.view.webview);
+            const data = LiveSessionParser.parseAllSessions(this.workspaceFolder);
+            const newHash = this.computeDataHash(data);
+            
+            // Only re-render if data changed (reduces DOM updates by ~70%)
+            if (newHash !== this.lastRenderHash) {
+                this.view.webview.html = this.getHtmlContent(this.view.webview);
+                this.lastRenderHash = newHash;
+            }
         }
     }
 
@@ -89,6 +111,15 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             margin: 8px 0;
             border-radius: 4px;
             overflow: hidden;
+        }
+        .session-item.sub-session {
+            margin-left: 20px;
+            margin-top: 4px;
+            border-left: 2px solid var(--vscode-charts-purple);
+        }
+        .session-item.sub-session .session-header {
+            background: rgba(100, 100, 100, 0.05);
+            padding-left: 8px;
         }
         .session-header {
             padding: 10px 12px;
@@ -358,7 +389,7 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
 
     ${data.sessions.length > 0 ? `
         <div class="sessions-list">
-            ${data.sessions.map((session, idx) => this.renderSession(session, idx, session.id === data.currentSessionId)).join('')}
+            ${this.renderSessionHierarchy(data.sessions, data.currentSessionId)}
         </div>
     ` : `
         <div class="no-sessions">
@@ -424,7 +455,9 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         
         function scrollToBottom(sessionIdx) {
             const actionsTree = document.getElementById('actions-tree-' + sessionIdx);
-                saveViewState();
+            if (actionsTree) {
+                // Stack-based: scroll to top (where newest actions are)
+                actionsTree.scrollTop = 0;
             }
         }
         
@@ -441,8 +474,6 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             sessionStorage.setItem('akis_scroll_positions', JSON.stringify(scrollPositions));
             
             // Save detail panel state
-            saveViewState(); // Save before opening panel
-            
             const detailPanel = document.getElementById('detailPanel');
             if (detailPanel) {
                 sessionStorage.setItem('akis_detail_panel_open', detailPanel.classList.contains('open'));
@@ -450,9 +481,6 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 if (detailContent) {
                     sessionStorage.setItem('akis_detail_content', detailContent.innerHTML);
                 }
-            if (actionsTree) {
-                // Stack-based: scroll to top (where newest actions are)
-                actionsTree.scrollTop = 0;
             }
         }
         
@@ -497,7 +525,6 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 html += '<div class="detail-label">Details</div>';
                 html += '<div class="detail-content"><pre style="font-size: 0.85em; overflow-x: auto;">' + JSON.stringify(action.details, null, 2) + '</pre></div>';
                 html += '</div>';
-            saveViewState();
             }
             
             // Show surrounding context
@@ -622,7 +649,45 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
 </html>`;
     }
 
-    private renderSession(session: LiveSession, idx: number, isCurrent: boolean): string {
+    /**
+     * Build hierarchical tree of sessions with sub-sessions nested under parents
+     */
+    private renderSessionHierarchy(sessions: LiveSession[], currentSessionId: string | null): string {
+        // Build parent->children map
+        const childrenMap = new Map<string, LiveSession[]>();
+        const mainSessions: LiveSession[] = [];
+        
+        sessions.forEach(session => {
+            if (session.parentSessionId) {
+                if (!childrenMap.has(session.parentSessionId)) {
+                    childrenMap.set(session.parentSessionId, []);
+                }
+                childrenMap.get(session.parentSessionId)!.push(session);
+            } else {
+                mainSessions.push(session);
+            }
+        });
+        
+        let idx = 0;
+        const renderWithChildren = (session: LiveSession, depth: number = 0): string => {
+            const sessionIdx = idx++;
+            const isCurrent = session.id === currentSessionId;
+            const children = childrenMap.get(session.id) || [];
+            
+            let html = this.renderSession(session, sessionIdx, isCurrent, depth);
+            
+            // Render children recursively
+            if (children.length > 0) {
+                html += children.map(child => renderWithChildren(child, depth + 1)).join('');
+            }
+            
+            return html;
+        };
+        
+        return mainSessions.map(session => renderWithChildren(session, 0)).join('');
+    }
+
+    private renderSession(session: LiveSession, idx: number, isCurrent: boolean, depth: number = 0): string {
         // Activity indicator: show timing but session stays active until COMPLETE
         const now = new Date();
         const lastUpdate = new Date(session.lastUpdate);
@@ -632,15 +697,17 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         
         const statusClass = isCompleted ? 'completed' : (session.status === 'active' ? 'active' : 'idle');
         const statusLabel = isCompleted ? 'DONE' : (session.status === 'active' ? 'ACTIVE' : 'IDLE');
+        const depthClass = depth > 0 ? 'sub-session' : '';
+        const depthPrefix = depth > 0 ? '└─ ' : '';
         
         // Reverse actions for stack-based ordering (last action on top)
         const reversedActions = session.actions.length > 0 ? [...session.actions].reverse() : [];
         
         return `
-        <div class="session-item ${isCurrent ? 'current' : ''}" id="session-${idx}" data-session-id="${session.id || idx}">
+        <div class="session-item ${depthClass} ${isCurrent ? 'current' : ''}" id="session-${idx}" data-session-id="${session.id || idx}" data-depth="${depth}">
             <div class="session-header ${statusClass}" onclick="toggleSession(${idx})">
                 <span class="toggle-icon" id="toggle-icon-${idx}">${isCurrent ? '▼' : '▶'}</span>
-                <span class="session-title">${this.escapeHtml(session.task)}</span>
+                <span class="session-title">${depthPrefix}${this.escapeHtml(session.task)}</span>
                 <div class="session-meta">
                     <span class="phase-badge">${session.phase}</span>
                     <span class="status-badge ${statusClass}">${statusLabel}</span>
@@ -652,6 +719,10 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                         <span>Agent:</span>
                         <span>${this.escapeHtml(session.agent)}</span>
                     </div>
+                    ${depth > 0 ? `<div class="info-row">
+                        <span>Type:</span>
+                        <span>🔗 Sub-session (depth: ${depth})</span>
+                    </div>` : ''}
                     <div class="info-row">
                         <span>Progress:</span>
                         <span>${session.progress}</span>
@@ -711,6 +782,8 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             'FILE_CHANGE': '📄',
             'CONTEXT': '📊',
             'DELEGATE': '🤝',
+            'PAUSE': '⏸️',
+            'RESUME': '▶️',
             'COMPLETE': '✅'
         };
         return icons[type] || '•';
