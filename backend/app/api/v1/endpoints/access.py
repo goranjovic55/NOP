@@ -364,8 +364,8 @@ async def guacamole_tunnel(
     logger.debug(f"[ACCESS-TUNNEL] WebSocket accepted")
     
     # Get guacd connection details from environment
-    guacd_host = os.getenv("GUACD_HOST", "guacd")
-    guacd_port = int(os.getenv("GUACD_PORT", "4822"))
+    guacd_host = os.getenv("GUACD_HOST", "127.0.0.1")
+    guacd_port = int(os.getenv("GUACD_PORT", "14822"))
     tunnel = GuacamoleTunnel(guacd_host, guacd_port)
     
     connection_args = {
@@ -468,8 +468,8 @@ async def http_tunnel_connect(
     logger.info(f"[HTTP-TUNNEL] Creating session {session_id} for {protocol}://{host}:{port}")
     
     # Get guacd connection details from environment
-    guacd_host = os.getenv("GUACD_HOST", "guacd")
-    guacd_port = int(os.getenv("GUACD_PORT", "4822"))
+    guacd_host = os.getenv("GUACD_HOST", "127.0.0.1")
+    guacd_port = int(os.getenv("GUACD_PORT", "14822"))
     tunnel = GuacamoleTunnel(guacd_host, guacd_port)
     
     connection_args = {
