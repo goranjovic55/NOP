@@ -10,26 +10,40 @@ interface LoginForm {
 
 const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [globalError, setGlobalError] = useState('');
   const { login } = useAuthStore();
   
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setError: setFormError,
+    clearErrors,
   } = useForm<LoginForm>();
+
+  const usernameValue = watch('username', '');
+  const passwordValue = watch('password', '');
+  const isSubmitDisabled = isLoading || !usernameValue.trim() || !passwordValue.trim();
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    setError('');
+    setGlobalError('');
+    clearErrors();
+
+    const username = data.username.trim();
+    const password = data.password.trim();
     
     try {
-      const response = await authService.login(data.username, data.password);
+      const response = await authService.login(username, password);
       const userResponse = await authService.getCurrentUser(response.access_token);
       
       login(response.access_token, userResponse);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
+      const backendMessage = err.response?.data?.detail || 'Login failed';
+      setGlobalError(backendMessage);
+      setFormError('username', { type: 'server', message: backendMessage });
+      setFormError('password', { type: 'server', message: backendMessage });
     } finally {
       setIsLoading(false);
     }
@@ -83,15 +97,15 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {error && (
+          {globalError && (
             <div className="bg-cyber-darker border border-cyber-red text-cyber-red px-4 py-3 cyber-glow">
-              &gt; ERROR: {error}
+              &gt; ERROR: {globalError}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitDisabled}
             className="btn-cyber w-full py-3 px-4 text-sm font-medium uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '&gt; Authenticating...' : '&gt; Access System'}

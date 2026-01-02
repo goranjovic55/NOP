@@ -1,0 +1,103 @@
+version: '3.8'
+
+# Development compose file - builds from source
+# Usage: docker-compose -f docker-compose.dev.yml up -d --build
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "12000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - nop-internal
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    network_mode: host
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
+      - REDIS_URL=redis://172.28.0.11:6379/0
+      - GUACD_HOST=127.0.0.1
+      - GUACD_PORT=14822
+      - SECRET_KEY=your-secret-key-change-this
+      - ADMIN_PASSWORD=admin123
+      - VNC_HOST=172.21.0.51
+      - RDP_HOST=172.21.0.50
+    depends_on:
+      - postgres
+      - redis
+      - guacd
+    volumes:
+      - ./volumes/evidence:/app/evidence
+      - ./volumes/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: nop-postgres
+    environment:
+      - POSTGRES_DB=nop
+      - POSTGRES_USER=nop
+      - POSTGRES_PASSWORD=nop_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      nop-internal:
+        ipv4_address: 172.28.0.10
+    restart: unless-stopped
+
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: nop-guacd
+    network_mode: host
+    environment:
+      - GUACD_LOG_LEVEL=info
+    entrypoint: ["/usr/local/guacamole/sbin/guacd", "-b", "127.0.0.1", "-l", "24822", "-f"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 24822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: nop-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      nop-internal:
+        ipv4_address: 172.28.0.11
+    restart: unless-stopped
+
+networks:
+  nop-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+  test-network:
+    external: true
+    name: nop_test-network
+
+volumes:
+  postgres_data:
+  redis_data:

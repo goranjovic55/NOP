@@ -56,7 +56,7 @@ class Asset(Base):
     
     # Network information
     open_ports = Column(JSON, nullable=True)  # List of open ports
-    services = Column(JSON, nullable=True)    # Service information
+    services = Column(JSON, nullable=True)    # Service version information from nmap -sV
     
     # Discovery information
     first_seen = Column(DateTime(timezone=True), server_default=func.now())

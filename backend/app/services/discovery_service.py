@@ -12,6 +12,7 @@ import ipaddress
 
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.event import Event, EventType, EventSeverity
+from app.models.vulnerability import Vulnerability, VulnerabilitySeverity
 from app.services.scanner import scanner
 from app.schemas.asset import AssetCreate
 
@@ -148,6 +149,16 @@ class DiscoveryService:
                 )
                 self.db.add(event)
 
+            # Process vulnerability scan results (if any)
+            if "scripts" in host_data:
+                await self._process_vulnerabilities(asset, host_data["scripts"])
+            
+            # Also check for port-level scripts
+            for port in host_data.get("ports", []):
+                if "scripts" in port:
+                    port_num = port.get("portid")
+                    await self._process_vulnerabilities(asset, port["scripts"], port_num)
+
         # Mark assets that were NOT found in this scan as OFFLINE
         # ONLY if this was a full network scan.
         # If it was a manual single-host scan, we don't want to mark other assets as offline.
@@ -159,3 +170,77 @@ class DiscoveryService:
 
         await self.db.commit()
         logger.info("Committed all asset updates and events to database")
+
+    async def _process_vulnerabilities(self, asset: Asset, scripts: List[Dict], port: str = None):
+        """Process nmap vulnerability scan scripts and create Vulnerability records"""
+        from sqlalchemy import delete
+        
+        for script in scripts:
+            script_id = script.get("id", "")
+            output = script.get("output", "")
+            
+            # Skip non-vulnerability scripts
+            if not any(vuln_keyword in script_id.lower() for vuln_keyword in ["vuln", "cve", "exploit", "dos", "xss", "sql"]):
+                continue
+            
+            # Parse severity from output
+            severity = VulnerabilitySeverity.MEDIUM
+            if any(word in output.lower() for word in ["critical", "severe"]):
+                severity = VulnerabilitySeverity.CRITICAL
+            elif any(word in output.lower() for word in ["high", "dangerous"]):
+                severity = VulnerabilitySeverity.HIGH
+            elif any(word in output.lower() for word in ["low", "minor"]):
+                severity = VulnerabilitySeverity.LOW
+            elif any(word in output.lower() for word in ["info", "informational"]):
+                severity = VulnerabilitySeverity.INFO
+            
+            # Try to extract CVE IDs
+            import re
+            cve_pattern = r'CVE-\d{4}-\d{4,7}'
+            cve_matches = re.findall(cve_pattern, output)
+            cve_id = cve_matches[0] if cve_matches else None
+            
+            # Build vulnerability title
+            title = script_id.replace("-", " ").title()
+            if cve_id:
+                title = f"{cve_id}: {title}"
+            elif port:
+                title = f"Port {port}: {title}"
+            
+            # Check if this vulnerability already exists for this asset
+            existing = await self.db.execute(
+                select(Vulnerability).where(
+                    Vulnerability.asset_id == asset.id,
+                    Vulnerability.title == title
+                )
+            )
+            if existing.scalar_one_or_none():
+                continue  # Skip duplicates
+            
+            # Create vulnerability record
+            vuln = Vulnerability(
+                asset_id=asset.id,
+                title=title,
+                description=output[:500] if output else "Vulnerability detected by nmap script",
+                severity=severity.value,
+                cve_id=cve_id,
+                cvss_score=self._estimate_cvss(severity),
+                service=asset.services.get(port, {}).get('name') if port and asset.services else None,
+                port=str(port) if port else None,
+                discovered_by="nmap",
+                status="new"
+            )
+            self.db.add(vuln)
+            logger.info(f"Created vulnerability for {asset.ip_address}: {title} ({severity.value})")
+    
+    def _estimate_cvss(self, severity: VulnerabilitySeverity) -> float:
+        """Estimate CVSS score from severity"""
+        mapping = {
+            VulnerabilitySeverity.CRITICAL: 9.0,
+            VulnerabilitySeverity.HIGH: 7.5,
+            VulnerabilitySeverity.MEDIUM: 5.0,
+            VulnerabilitySeverity.LOW: 3.0,
+            VulnerabilitySeverity.INFO: 0.0
+        }
+        return mapping.get(severity, 5.0)
+

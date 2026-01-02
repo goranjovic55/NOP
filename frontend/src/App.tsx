@@ -7,7 +7,7 @@ import Assets from './pages/Assets';
 import Topology from './pages/Topology';
 import Traffic from './pages/Traffic';
 import Scans from './pages/Scans';
-import AccessHub from './pages/AccessHub';
+import Access from './pages/Access';
 import Host from './pages/Host';
 import Settings from './pages/Settings';
 import Agents from './pages/Agents';
@@ -44,7 +44,7 @@ function App() {
                 <Route path="/topology" element={<Topology />} />
                 <Route path="/traffic" element={<Traffic />} />
                 <Route path="/scans" element={<Scans />} />
-                <Route path="/access" element={<AccessHub />} />
+                <Route path="/access" element={<Access />} />
                 <Route path="/host" element={<Host />} />
                 <Route path="/agents" element={<Agents />} />
                 <Route path="/settings" element={<Settings />} />

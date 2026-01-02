@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { useTrafficStore } from '../store/trafficStore';
+import PacketCrafting from '../components/PacketCrafting';
+import Storm from './Storm';
 
 interface Packet {
   id: string;
@@ -68,8 +71,39 @@ interface Packet {
       target_mac: string;
       target_ip: string;
     };
+    dns?: {
+      id: number;
+      qr: string;
+      opcode: number;
+      qdcount: number;
+      ancount: number;
+      nscount: number;
+      arcount: number;
+      queries?: Array<{ name: string; type: number; class: number }>;
+    };
+    http?: {
+      type: string;
+      method?: string;
+      path?: string;
+      host?: string;
+      user_agent?: string;
+      status_code?: string;
+      reason?: string;
+    };
+    tls?: {
+      type: string;
+      version: string;
+    };
+    application?: {
+      protocol: string;
+      details?: {
+        description?: string;
+        port?: number;
+      };
+    };
     payload?: {
       length: number;
+      hex: string;
       preview: string;
     };
   };
@@ -92,6 +126,12 @@ interface PingResult {
   http_code?: string;
   error?: string;
   note?: string;
+  ttl?: number;
+  flags?: string;
+  ip_id?: number;
+  window?: number;
+  tcp_seq?: number;
+  tcp_ack?: number;
 }
 
 interface PingResponse {
@@ -133,8 +173,8 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping'>(() => {
-    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping') || 'capture';
+  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
+    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
   });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
@@ -155,9 +195,14 @@ const Traffic: React.FC = () => {
   const [pingTimeout, setPingTimeout] = useState('5');
   const [pingPacketSize, setPingPacketSize] = useState('56');
   const [pingUseHttps, setPingUseHttps] = useState(false);
+  const [pingShowRoute, setPingShowRoute] = useState(false);  // Enable parallel traceroute + probe
+  const [pingRoute, setPingRoute] = useState<Array<{hop: number, ip: string | null, rtt_ms: number | null, status: string}>>([]);
   const [pingInProgress, setPingInProgress] = useState(false);
   const [pingResults, setPingResults] = useState<PingResponse | null>(null);
   const [pingError, setPingError] = useState<string>('');
+  const [selectedFlow, setSelectedFlow] = useState<Stream | null>(null);
+  const [sortColumn, setSortColumn] = useState<'time' | 'source' | 'destination' | 'protocol' | 'length' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
   const assetDropdownRef = useRef<HTMLDivElement>(null);
@@ -165,6 +210,7 @@ const Traffic: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
+  const { setIsPinging, setIsCapturing, setIsCrafting, setIsStorming } = useTrafficStore();
 
   useEffect(() => {
     fetchInterfaces();
@@ -177,8 +223,8 @@ const Traffic: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch online assets when ping tab is active
-    if (activeTab === 'ping') {
+    // Fetch online assets when ping or craft tab is active
+    if (activeTab === 'ping' || activeTab === 'craft') {
       fetchOnlineAssets();
     }
   }, [activeTab, token]);
@@ -245,6 +291,7 @@ const Traffic: React.FC = () => {
     if (isSniffing) {
       if (wsRef.current) wsRef.current.close();
       setIsSniffing(false);
+      setIsCapturing(false);  // Update global store
     } else {
       setPackets([]);
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -255,6 +302,7 @@ const Traffic: React.FC = () => {
       ws.onopen = () => {
         ws.send(JSON.stringify({ interface: selectedIface, filter }));
         setIsSniffing(true);
+        setIsCapturing(true);  // Update global store
       };
 
       ws.onmessage = (event) => {
@@ -262,7 +310,10 @@ const Traffic: React.FC = () => {
         setPackets(prev => [...prev.slice(-499), packet]);
       };
 
-      ws.onclose = () => setIsSniffing(false);
+      ws.onclose = () => {
+        setIsSniffing(false);
+        setIsCapturing(false);  // Update global store
+      };
       ws.onerror = (err) => console.error('WS Error:', err);
       wsRef.current = ws;
     }
@@ -314,6 +365,54 @@ const Traffic: React.FC = () => {
     return Object.values(streamMap).sort((a, b) => b.lastSeen - a.lastSeen);
   }, [packets]);
 
+  // Filter packets by selected flow
+  const filteredPackets = useMemo(() => {
+    if (!selectedFlow) return packets;
+    return packets.filter(p => {
+      const matchForward = p.source === selectedFlow.source && p.destination === selectedFlow.destination && p.protocol === selectedFlow.protocol;
+      const matchReverse = p.source === selectedFlow.destination && p.destination === selectedFlow.source && p.protocol === selectedFlow.protocol;
+      return matchForward || matchReverse;
+    });
+  }, [packets, selectedFlow]);
+
+  // Sort filtered packets
+  const displayedPackets = useMemo(() => {
+    if (!sortColumn) return filteredPackets;
+    return [...filteredPackets].sort((a, b) => {
+      let comparison = 0;
+      switch (sortColumn) {
+        case 'time': comparison = a.timestamp - b.timestamp; break;
+        case 'source': comparison = a.source.localeCompare(b.source); break;
+        case 'destination': comparison = a.destination.localeCompare(b.destination); break;
+        case 'protocol': comparison = a.protocol.localeCompare(b.protocol); break;
+        case 'length': comparison = a.length - b.length; break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredPackets, sortColumn, sortDirection]);
+
+  const handleSort = (column: 'time' | 'source' | 'destination' | 'protocol' | 'length') => {
+    if (sortColumn === column) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <span className="opacity-30">↕</span>;
+    return <span className="text-cyber-blue">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  const handleFlowClick = (stream: Stream) => {
+    if (selectedFlow?.id === stream.id) {
+      setSelectedFlow(null); // Deselect if clicking the same flow
+    } else {
+      setSelectedFlow(stream);
+    }
+  };
+
   const getProtocolColor = (proto: string) => {
     switch (proto) {
       case 'TCP': return 'text-cyber-blue';
@@ -352,26 +451,39 @@ const Traffic: React.FC = () => {
 
     setPingError('');
     setPingInProgress(true);
-    setPingResults(null);
+    setIsPinging(true);  // Update global store
+    setPingRoute([]); // Clear previous route
+    setPingResults({
+      protocol: pingProtocol,
+      target: pingTarget,
+      count: parseInt(pingCount),
+      successful: 0,
+      failed: 0,
+      packet_loss: 0,
+      results: [],
+      timestamp: new Date().toISOString(),
+    });
+
+    const requestBody: any = {
+      target: pingTarget,
+      protocol: pingProtocol,
+      count: parseInt(pingCount),
+      timeout: parseInt(pingTimeout),
+      packet_size: parseInt(pingPacketSize),
+      include_route: pingShowRoute,  // Enable parallel: traceroute + probe
+    };
+
+    if (pingProtocol !== 'icmp' && pingPort) {
+      requestBody.port = parseInt(pingPort);
+    }
+
+    if (pingProtocol === 'http') {
+      requestBody.use_https = pingUseHttps;
+    }
 
     try {
-      const requestBody: any = {
-        target: pingTarget,
-        protocol: pingProtocol,
-        count: parseInt(pingCount),
-        timeout: parseInt(pingTimeout),
-        packet_size: parseInt(pingPacketSize),
-      };
-
-      if (pingProtocol !== 'icmp' && pingPort) {
-        requestBody.port = parseInt(pingPort);
-      }
-
-      if (pingProtocol === 'http') {
-        requestBody.use_https = pingUseHttps;
-      }
-
-      const response = await fetch('/api/v1/traffic/ping', {
+      // Use new parallel ping endpoint (runs traceroute and probe concurrently)
+      const response = await fetch('/api/v1/traffic/ping/advanced', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -381,12 +493,32 @@ const Traffic: React.FC = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Ping failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to perform ping');
       }
 
-      const result = await response.json();
-      setPingResults(result);
+      const data = await response.json();
+
+      // Set route if available (when include_route=true)
+      if (data.hops && data.hops.length > 0) {
+        setPingRoute(data.hops);
+      }
+
+      // Set ping results
+      setPingResults({
+        protocol: data.protocol || pingProtocol,
+        target: data.target || pingTarget,
+        count: data.count || parseInt(pingCount),
+        successful: data.successful || 0,
+        failed: data.failed || 0,
+        packet_loss: data.packet_loss || 0,
+        min_ms: data.min_ms,
+        max_ms: data.max_ms,
+        avg_ms: data.avg_ms,
+        results: data.packets || [],
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+
     } catch (err: any) {
       setPingResults({
         error: err.message || 'Failed to perform ping',
@@ -396,6 +528,7 @@ const Traffic: React.FC = () => {
       });
     } finally {
       setPingInProgress(false);
+      setIsPinging(false);  // Update global store
     }
   };
 
@@ -422,6 +555,26 @@ const Traffic: React.FC = () => {
           }`}
         >
           Advanced Ping
+        </button>
+        <button
+          onClick={() => setActiveTab('craft')}
+          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
+            activeTab === 'craft'
+              ? 'bg-cyber-purple text-white border-2 border-cyber-purple'
+              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple'
+          }`}
+        >
+          Craft Packet
+        </button>
+        <button
+          onClick={() => setActiveTab('storm')}
+          className={`px-6 py-2 font-bold uppercase text-xs transition-all ${
+            activeTab === 'storm'
+              ? 'bg-red-600 text-white border-2 border-red-600'
+              : 'border-2 border-cyber-gray text-cyber-gray-light hover:border-red-600 hover:text-red-500'
+          }`}
+        >
+          Storm
         </button>
       </div>
 
@@ -504,23 +657,45 @@ const Traffic: React.FC = () => {
         {/* Left Part: Live Packet Capture */}
         <div className={`${selectedPacket ? 'w-1/2' : 'w-2/3'} bg-black border border-cyber-gray flex flex-col min-h-0 transition-all`}>
           <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
-            <span className="text-[10px] text-cyber-gray-light opacity-50">{packets.length} Packets in Buffer</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
+              {selectedFlow && (
+                <button
+                  onClick={() => setSelectedFlow(null)}
+                  className="text-[10px] text-cyber-red border border-cyber-red px-2 py-0.5 hover:bg-cyber-red hover:text-white transition-all"
+                >
+                  ✕ Clear Filter
+                </button>
+              )}
+            </div>
+            <span className="text-xs text-cyber-gray-light opacity-50">
+              {selectedFlow ? `${displayedPackets.length} / ${packets.length}` : packets.length} Packets
+            </span>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[10px]">
+          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-xs">
             <table className="min-w-full">
               <thead className="bg-cyber-darker sticky top-0">
                 <tr className="text-cyber-gray-light uppercase">
-                  <th className="px-2 py-2 text-left w-20">Time</th>
-                  <th className="px-2 py-2 text-left w-28">Source</th>
-                  <th className="px-2 py-2 text-left w-28">Destination</th>
-                  <th className="px-2 py-2 text-left w-14">Proto</th>
-                  <th className="px-2 py-2 text-left w-12">Len</th>
+                  <th className="px-2 py-2 text-left w-20 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('time')}>
+                    <div className="flex items-center gap-1">Time <SortIcon column="time" /></div>
+                  </th>
+                  <th className="px-2 py-2 text-left w-28 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('source')}>
+                    <div className="flex items-center gap-1">Source <SortIcon column="source" /></div>
+                  </th>
+                  <th className="px-2 py-2 text-left w-28 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('destination')}>
+                    <div className="flex items-center gap-1">Dest <SortIcon column="destination" /></div>
+                  </th>
+                  <th className="px-2 py-2 text-left w-14 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('protocol')}>
+                    <div className="flex items-center gap-1">Proto <SortIcon column="protocol" /></div>
+                  </th>
+                  <th className="px-2 py-2 text-left w-12 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('length')}>
+                    <div className="flex items-center gap-1">Len <SortIcon column="length" /></div>
+                  </th>
                   <th className="px-2 py-2 text-left">Info</th>
                 </tr>
               </thead>
               <tbody>
-                {packets.map((p, i) => (
+                {displayedPackets.map((p, i) => (
                   <tr
                     key={p.id || i}
                     onClick={() => setSelectedPacket(p)}
@@ -543,11 +718,11 @@ const Traffic: React.FC = () => {
         {/* Right Part: Streams / Flow */}
         <div className={`${selectedPacket ? 'w-1/2' : 'w-1/3'} bg-cyber-dark border border-cyber-gray flex flex-col min-h-0 transition-all`}>
           <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
-            <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
-            <span className="text-[10px] text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
+            <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
+            <span className="text-xs text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <table className="min-w-full text-[10px] font-mono">
+            <table className="min-w-full text-xs font-mono">
               <thead className="bg-cyber-darker sticky top-0">
                 <tr className="text-cyber-gray-light uppercase">
                   <th className="px-2 py-2 text-left">Source</th>
@@ -559,7 +734,13 @@ const Traffic: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-cyber-gray/30">
                 {streams.map((stream) => (
-                  <tr key={stream.id} className="hover:bg-cyber-blue/10 transition-colors">
+                  <tr
+                    key={stream.id}
+                    onClick={() => handleFlowClick(stream)}
+                    className={`hover:bg-cyber-blue/10 cursor-pointer transition-colors ${
+                      selectedFlow?.id === stream.id ? 'bg-cyber-purple/20 border-l-2 border-cyber-purple' : ''
+                    }`}
+                  >
                     <td className="px-2 py-1 text-cyber-blue truncate max-w-[100px]">{stream.source}</td>
                     <td className="px-2 py-1 text-cyber-red truncate max-w-[100px]">{stream.destination}</td>
                     <td className="px-2 py-1">{stream.protocol}</td>
@@ -581,7 +762,7 @@ const Traffic: React.FC = () => {
           {/* Left Part: Advanced Ping Configuration */}
           <div className="w-1/2 bg-cyber-dark border border-cyber-gray flex flex-col min-h-0">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
-              <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Advanced Ping Configuration</span>
+              <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Advanced Ping Configuration</span>
             </div>
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
               <div className="flex flex-col gap-4">
@@ -616,7 +797,7 @@ const Traffic: React.FC = () => {
                         return filtered.length > 0 ? (
                           <div className="absolute top-full left-0 mt-1 w-full bg-cyber-darker border border-cyber-green z-50 shadow-xl max-h-[250px] overflow-y-auto custom-scrollbar">
                             <div className="p-2 bg-cyber-darker border-b border-cyber-gray flex justify-between items-center">
-                              <span className="text-[10px] text-cyber-purple font-bold uppercase">Assets ({filtered.length})</span>
+                              <span className="text-xs text-cyber-purple font-bold uppercase">Assets ({filtered.length})</span>
                               <span className="text-[9px] text-cyber-gray-light">
                                 <span className="text-cyber-green">{onlineCount} online</span> / <span className="text-cyber-gray">{offlineCount} offline</span>
                               </span>
@@ -699,17 +880,33 @@ const Traffic: React.FC = () => {
 
                   {/* HTTPS Toggle (for HTTP) */}
                   {pingProtocol === 'http' && (
-                    <div className="flex items-center space-x-3">
+                    <label className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        id="use-https"
                         checked={pingUseHttps}
                         onChange={(e) => setPingUseHttps(e.target.checked)}
-                        className="w-4 h-4"
+                        className="sr-only peer"
                       />
-                      <label htmlFor="use-https" className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</label>
-                    </div>
+                      <div className="w-4 h-4 border-2 border-cyber-blue flex items-center justify-center peer-checked:bg-cyber-blue transition-all">
+                        {pingUseHttps && <span className="text-white text-xs">◆</span>}
+                      </div>
+                      <span className="text-xs text-cyber-blue font-bold uppercase">Use HTTPS</span>
+                    </label>
                   )}
+
+                  {/* Show Route Toggle - runs traceroute before probe */}
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pingShowRoute}
+                      onChange={(e) => setPingShowRoute(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all">
+                      {pingShowRoute && <span className="text-white text-xs">◆</span>}
+                    </div>
+                    <span className="text-xs text-cyber-purple font-bold uppercase">Show Route (Traceroute)</span>
+                  </label>
 
                   {/* Advanced Options */}
                   <div className="grid grid-cols-3 gap-2">
@@ -814,7 +1011,7 @@ const Traffic: React.FC = () => {
           {/* Right Part: Ping Response */}
           <div className="w-1/2 bg-black border border-cyber-gray flex flex-col min-h-0">
             <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
-              <span className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest">Ping Response</span>
+              <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Ping Response</span>
               {pingResults && !pingResults.error && (
                 <span className="text-[10px] text-cyber-green">
                   {pingResults.packet_loss !== undefined 
@@ -834,7 +1031,9 @@ const Traffic: React.FC = () => {
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
                     <div className="text-cyber-green text-4xl animate-pulse">⟳</div>
-                    <p className="text-cyber-green text-sm">Executing ping...</p>
+                    <p className="text-cyber-green text-sm">
+                      {pingShowRoute ? 'Running traceroute and probe in parallel...' : 'Executing ping...'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -920,43 +1119,109 @@ const Traffic: React.FC = () => {
                         )}
                       </div>
 
+                      {/* Network Route (Traceroute) */}
+                      {pingRoute.length > 0 && (
+                        <div className="bg-cyber-darker border border-cyber-purple p-4">
+                          <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Route</h4>
+                          <div className="space-y-1">
+                            {pingRoute.filter(h => h.status !== 'destination').map((hop, idx) => (
+                              <div key={idx} className="flex items-center gap-3 text-[11px] font-mono">
+                                <span className="text-cyber-gray-light w-8">#{hop.hop}</span>
+                                {hop.status === 'timeout' ? (
+                                  <span className="text-cyber-yellow">* * * (no response)</span>
+                                ) : hop.ip ? (
+                                  <>
+                                    <span className="text-cyber-cyan w-36">{hop.ip}</span>
+                                    {hop.rtt_ms !== null && (
+                                      <span className="text-cyber-green w-20">{hop.rtt_ms} ms</span>
+                                    )}
+                                    {hop.status === 'transit' && (
+                                      <span className="text-cyber-yellow text-[10px]">(TTL expired)</span>
+                                    )}
+                                    {hop.status === 'success' && (
+                                      <span className="text-cyber-green text-[10px]">✓</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-cyber-yellow">* timeout *</span>
+                                )}
+                              </div>
+                            ))}
+                            {/* Show destination */}
+                            {pingRoute.find(h => h.status === 'destination') && (
+                              <div className="flex items-center gap-3 text-[11px] font-mono mt-2 pt-2 border-t border-cyber-gray/30">
+                                <span className="text-cyber-gray-light w-8">→</span>
+                                <span className="text-cyber-green font-bold w-36">{pingResults.target}</span>
+                                <span className="text-cyber-gray-light">(destination)</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Individual Results */}
                       {pingResults.results && pingResults.results.length > 0 && (
                         <div className="bg-cyber-darker border border-cyber-blue p-4">
-                          <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Individual Results</h4>
+                          <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Packet Traversal Details</h4>
                           <div className="space-y-2">
                             {pingResults.results.map((result: PingResult, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between py-1 border-b border-cyber-gray/20">
-                                <span className="text-cyber-gray-light">
-                                  Seq {result.seq}:
-                                </span>
-                                <div className="flex items-center gap-4">
-                                  {result.status === 'success' && (
-                                    <>
-                                      <span className="text-cyber-green">✓ Success</span>
-                                      {result.time_ms !== undefined && (
-                                        <span className="text-cyber-blue">{result.time_ms} ms</span>
-                                      )}
-                                      {result.http_code && (
-                                        <span className="text-cyber-cyan">HTTP {result.http_code}</span>
-                                      )}
-                                    </>
-                                  )}
-                                  {result.status === 'sent' && (
-                                    <>
-                                      <span className="text-cyber-blue">→ Sent</span>
-                                      {result.time_ms !== undefined && (
-                                        <span className="text-cyber-blue">{result.time_ms} ms</span>
-                                      )}
-                                    </>
-                                  )}
-                                  {result.status === 'timeout' && (
-                                    <span className="text-cyber-yellow">⏱ Timeout</span>
-                                  )}
-                                  {result.status === 'failed' && (
-                                    <span className="text-cyber-red">✗ Failed</span>
-                                  )}
+                              <div key={idx} className="border border-cyber-gray/30 p-2 bg-black/30">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-cyber-gray-light font-bold">
+                                    Seq {result.seq}
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    {result.status === 'success' && (
+                                      <span className="text-cyber-green">✓</span>
+                                    )}
+                                    {result.time_ms !== undefined && (
+                                      <span className="text-cyber-blue font-bold">{result.time_ms} ms</span>
+                                    )}
+                                  </div>
                                 </div>
+                                {result.status === 'success' && (
+                                  <div className="grid grid-cols-3 gap-2 text-[10px] mt-2">
+                                    {result.ttl !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">TTL:</span>
+                                        <span className="text-cyber-cyan ml-1 font-bold">{result.ttl}</span>
+                                      </div>
+                                    )}
+                                    {result.flags && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">Flags:</span>
+                                        <span className="text-cyber-purple ml-1 font-bold">{result.flags}</span>
+                                      </div>
+                                    )}
+                                    {result.ip_id !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">IP ID:</span>
+                                        <span className="text-cyber-blue ml-1">{result.ip_id}</span>
+                                      </div>
+                                    )}
+                                    {result.window !== undefined && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">Window:</span>
+                                        <span className="text-cyber-blue ml-1">{result.window}</span>
+                                      </div>
+                                    )}
+                                    {result.http_code && (
+                                      <div>
+                                        <span className="text-cyber-gray-light">HTTP:</span>
+                                        <span className="text-cyber-cyan ml-1">{result.http_code}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {result.status === 'sent' && (
+                                  <span className="text-cyber-blue text-[10px]">→ Sent (UDP no ack)</span>
+                                )}
+                                {result.status === 'timeout' && (
+                                  <span className="text-cyber-yellow text-[10px]">⏱ Timeout</span>
+                                )}
+                                {result.status === 'failed' && (
+                                  <span className="text-cyber-red text-[10px]">✗ Failed {result.error}</span>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -979,20 +1244,34 @@ const Traffic: React.FC = () => {
         </div>
       )}
 
-      {/* Packet Inspector Sidebar - Slides in from right */}
+      {/* Craft Packet Tab Content */}
+      {activeTab === 'craft' && (
+        <div className="flex-1 overflow-hidden">
+          <PacketCrafting assets={onlineAssets as any} />
+        </div>
+      )}
+
+      {/* Storm Tab Content */}
+      {activeTab === 'storm' && (
+        <div className="flex-1 overflow-hidden">
+          <Storm />
+        </div>
+      )}
+
+      {/* Packet Inspector Sidebar - Slides in from right, covers streams */}
       {activeTab === 'capture' && selectedPacket && (
-        <div className="fixed right-0 top-0 h-full w-[450px] bg-cyber-darker border-l border-cyber-red shadow-[-10px_0_30px_rgba(255,10,84,0.2)] z-50 flex flex-col animate-slideInRight">
+        <div className="fixed right-0 top-0 h-full w-[600px] bg-cyber-darker border-l border-cyber-red shadow-[-10px_0_30px_rgba(255,10,84,0.2)] z-50 flex flex-col animate-slideInRight">
           <div className="p-3 border-b border-cyber-gray flex justify-between items-center bg-cyber-dark">
-            <h3 className="text-cyber-red font-bold uppercase tracking-widest text-sm">Packet Inspector</h3>
-            <button onClick={() => setSelectedPacket(null)} className="text-cyber-gray-light hover:text-cyber-red text-xl">&times;</button>
+            <h3 className="text-cyber-red font-bold uppercase tracking-widest text-base">Packet Inspector</h3>
+            <button onClick={() => setSelectedPacket(null)} className="text-cyber-gray-light hover:text-cyber-red text-2xl leading-none">&times;</button>
           </div>
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
             {/* Frame Info */}
             <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-green font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+              <h4 className="text-xs text-cyber-green font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                 <span className="mr-2">▸</span> Frame
               </h4>
-              <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+              <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                 <span className="text-cyber-gray-light">Timestamp:</span>
                 <span className="text-cyber-blue">{new Date(selectedPacket.timestamp * 1000).toISOString()}</span>
                 <span className="text-cyber-gray-light">Frame Length:</span>
@@ -1003,10 +1282,10 @@ const Traffic: React.FC = () => {
             {/* Ethernet Layer */}
             {selectedPacket.layers?.ethernet && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-cyber-purple font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> Ethernet II
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Source MAC:</span>
                   <span className="text-cyber-blue">{selectedPacket.layers.ethernet.src_mac}</span>
                   <span className="text-cyber-gray-light">Destination MAC:</span>
@@ -1020,10 +1299,10 @@ const Traffic: React.FC = () => {
             {/* ARP Layer */}
             {selectedPacket.layers?.arp && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-orange-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-orange-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> ARP (Address Resolution Protocol)
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Hardware Type:</span>
                   <span className="text-cyber-blue">{selectedPacket.layers.arp.hardware_type}</span>
                   <span className="text-cyber-gray-light">Protocol Type:</span>
@@ -1045,10 +1324,10 @@ const Traffic: React.FC = () => {
             {/* IP Layer */}
             {selectedPacket.layers?.ip && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-cyan-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-cyan-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> Internet Protocol Version {selectedPacket.layers.ip.version}
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Source:</span>
                   <span className="text-cyber-blue">{selectedPacket.layers.ip.src}</span>
                   <span className="text-cyber-gray-light">Destination:</span>
@@ -1076,10 +1355,10 @@ const Traffic: React.FC = () => {
             {/* TCP Layer */}
             {selectedPacket.layers?.tcp && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-yellow-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-yellow-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> Transmission Control Protocol
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Source Port:</span>
                   <span className="text-cyber-blue">{selectedPacket.layers.tcp.src_port}</span>
                   <span className="text-cyber-gray-light">Destination Port:</span>
@@ -1105,10 +1384,10 @@ const Traffic: React.FC = () => {
             {/* UDP Layer */}
             {selectedPacket.layers?.udp && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-pink-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-pink-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> User Datagram Protocol
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Source Port:</span>
                   <span className="text-cyber-blue">{selectedPacket.layers.udp.src_port}</span>
                   <span className="text-cyber-gray-light">Destination Port:</span>
@@ -1124,10 +1403,10 @@ const Traffic: React.FC = () => {
             {/* ICMP Layer */}
             {selectedPacket.layers?.icmp && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-lime-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-lime-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> Internet Control Message Protocol
                 </h4>
-                <div className="pl-4 grid grid-cols-2 gap-1 text-[10px] font-mono">
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
                   <span className="text-cyber-gray-light">Type:</span>
                   <span className="text-cyber-green font-bold">{selectedPacket.layers.icmp.type_name} ({selectedPacket.layers.icmp.type})</span>
                   <span className="text-cyber-gray-light">Code:</span>
@@ -1150,13 +1429,213 @@ const Traffic: React.FC = () => {
               </div>
             )}
 
+            {/* DNS Layer */}
+            {selectedPacket.layers?.dns && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-cyan-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Domain Name System ({selectedPacket.layers.dns.qr})
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Transaction ID:</span>
+                  <span className="text-cyber-blue">0x{selectedPacket.layers.dns.id?.toString(16).padStart(4, '0')}</span>
+                  <span className="text-cyber-gray-light">Type:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.dns.qr}</span>
+                  <span className="text-cyber-gray-light">Questions:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.dns.qdcount}</span>
+                  <span className="text-cyber-gray-light">Answers:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.dns.ancount}</span>
+                  {selectedPacket.layers.dns.queries?.map((q: any, i: number) => (
+                    <React.Fragment key={i}>
+                      <span className="text-cyber-gray-light">Query {i + 1}:</span>
+                      <span className="text-cyber-yellow">{q.name}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* HTTP Layer */}
+            {selectedPacket.layers?.http && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-emerald-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Hypertext Transfer Protocol ({selectedPacket.layers.http.type})
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  {selectedPacket.layers.http.method && (
+                    <>
+                      <span className="text-cyber-gray-light">Method:</span>
+                      <span className="text-cyber-green font-bold">{selectedPacket.layers.http.method}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.path && (
+                    <>
+                      <span className="text-cyber-gray-light">Path:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.http.path}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.host && (
+                    <>
+                      <span className="text-cyber-gray-light">Host:</span>
+                      <span className="text-cyber-yellow">{selectedPacket.layers.http.host}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.status_code && (
+                    <>
+                      <span className="text-cyber-gray-light">Status:</span>
+                      <span className="text-cyber-green font-bold">{selectedPacket.layers.http.status_code} {selectedPacket.layers.http.reason}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Application Layer Detection */}
+            {selectedPacket.layers?.application && selectedPacket.layers.application.protocol !== 'Unknown' && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-violet-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Application Layer
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Protocol:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.application.protocol}</span>
+                  {selectedPacket.layers.application.details?.description && (
+                    <>
+                      <span className="text-cyber-gray-light">Description:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.application.details.description}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.application.details?.port && (
+                    <>
+                      <span className="text-cyber-gray-light">Port:</span>
+                      <span className="text-cyber-yellow">{selectedPacket.layers.application.details.port}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TLS/SSL Layer */}
+            {selectedPacket.layers?.tls && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-amber-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Transport Layer Security
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Protocol:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.tls.type}</span>
+                  <span className="text-cyber-gray-light">Version:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tls.version}</span>
+                </div>
+              </div>
+            )}
+
+            {/* DNS Layer */}
+            {selectedPacket.layers?.dns && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-cyan-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Domain Name System ({selectedPacket.layers.dns.qr})
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Transaction ID:</span>
+                  <span className="text-cyber-blue">0x{selectedPacket.layers.dns.id?.toString(16).padStart(4, '0')}</span>
+                  <span className="text-cyber-gray-light">Type:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.dns.qr}</span>
+                  <span className="text-cyber-gray-light">Questions:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.dns.qdcount}</span>
+                  <span className="text-cyber-gray-light">Answers:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.dns.ancount}</span>
+                  {selectedPacket.layers.dns.queries?.map((q: any, i: number) => (
+                    <React.Fragment key={i}>
+                      <span className="text-cyber-gray-light">Query {i + 1}:</span>
+                      <span className="text-cyber-yellow">{q.name}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* HTTP Layer */}
+            {selectedPacket.layers?.http && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-emerald-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Hypertext Transfer Protocol ({selectedPacket.layers.http.type})
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  {selectedPacket.layers.http.method && (
+                    <>
+                      <span className="text-cyber-gray-light">Method:</span>
+                      <span className="text-cyber-green font-bold">{selectedPacket.layers.http.method}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.path && (
+                    <>
+                      <span className="text-cyber-gray-light">Path:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.http.path}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.host && (
+                    <>
+                      <span className="text-cyber-gray-light">Host:</span>
+                      <span className="text-cyber-yellow">{selectedPacket.layers.http.host}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.http.status_code && (
+                    <>
+                      <span className="text-cyber-gray-light">Status:</span>
+                      <span className="text-cyber-green font-bold">{selectedPacket.layers.http.status_code} {selectedPacket.layers.http.reason}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Application Layer Detection */}
+            {selectedPacket.layers?.application && selectedPacket.layers.application.protocol !== 'Unknown' && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-violet-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Application Layer
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Protocol:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.application.protocol}</span>
+                  {selectedPacket.layers.application.details?.description && (
+                    <>
+                      <span className="text-cyber-gray-light">Description:</span>
+                      <span className="text-cyber-blue">{selectedPacket.layers.application.details.description}</span>
+                    </>
+                  )}
+                  {selectedPacket.layers.application.details?.port && (
+                    <>
+                      <span className="text-cyber-gray-light">Port:</span>
+                      <span className="text-cyber-yellow">{selectedPacket.layers.application.details.port}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TLS/SSL Layer */}
+            {selectedPacket.layers?.tls && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-amber-400 font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Transport Layer Security
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Protocol:</span>
+                  <span className="text-cyber-green font-bold">{selectedPacket.layers.tls.type}</span>
+                  <span className="text-cyber-gray-light">Version:</span>
+                  <span className="text-cyber-blue">{selectedPacket.layers.tls.version}</span>
+                </div>
+              </div>
+            )}
+
             {/* Payload */}
             {selectedPacket.layers?.payload && (
               <div className="space-y-2">
-                <h4 className="text-[10px] text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                <h4 className="text-xs text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                   <span className="mr-2">▸</span> Payload ({selectedPacket.layers.payload.length} bytes)
                 </h4>
-                <div className="pl-4 p-2 bg-black border border-cyber-gray text-cyber-blue text-[10px] font-mono break-all">
+                <div className="pl-4 p-2 bg-black border border-cyber-gray text-cyber-blue text-xs font-mono break-all">
                   {selectedPacket.layers.payload.preview}
                 </div>
               </div>
@@ -1164,10 +1643,10 @@ const Traffic: React.FC = () => {
 
             {/* Raw Hex Dump */}
             <div className="space-y-2">
-              <h4 className="text-[10px] text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+              <h4 className="text-xs text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
                 <span className="mr-2">▸</span> Raw Data (Hex Dump)
               </h4>
-              <div className="p-2 bg-black border border-cyber-gray text-cyber-blue text-[9px] font-mono leading-tight whitespace-pre overflow-x-auto max-h-[200px]">
+              <div className="p-2 bg-black border border-cyber-gray text-cyber-blue text-xs font-mono leading-tight whitespace-pre overflow-x-auto max-h-[200px]">
                 {formatHex(selectedPacket.raw)}
               </div>
             </div>

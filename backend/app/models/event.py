@@ -24,6 +24,10 @@ class EventType(str, enum.Enum):
     ERROR_OCCURRED = "error_occurred"
     SYSTEM_STARTUP = "system_startup"
     SYSTEM_SHUTDOWN = "system_shutdown"
+    EXPLOIT_ATTEMPT = "exploit_attempt"
+    EXPLOIT_SUCCESS = "exploit_success"
+    REMOTE_ACCESS_START = "remote_access_start"
+    REMOTE_ACCESS_END = "remote_access_end"
 
 
 class EventSeverity(str, enum.Enum):

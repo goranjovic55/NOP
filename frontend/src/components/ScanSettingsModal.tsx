@@ -61,7 +61,7 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
                 step="10"
                 value={localSettings.pps}
                 onChange={(e) => setLocalSettings({ ...localSettings, pps: parseInt(e.target.value) })}
-                className="flex-1 accent-cyber-red"
+                className="flex-1 h-2 bg-cyber-darker rounded-none appearance-none cursor-pointer [&::-webkit-slider-track]:bg-cyber-gray [&::-webkit-slider-track]:h-0.5 [&::-webkit-slider-track]:border [&::-webkit-slider-track]:border-cyber-purple [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-cyber-red [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyber-red [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,0,102,0.6)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(255,0,102,0.9)] [&::-moz-range-track]:bg-cyber-gray [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:border [&::-moz-range-track]:border-cyber-purple [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-cyber-red [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyber-red [&::-moz-range-thumb]:rounded-none"
               />
               <span className="text-cyber-blue font-mono w-16 text-right">{localSettings.pps}</span>
             </div>
@@ -87,24 +87,34 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({ isOpen, onClose, 
                 <label className="text-xs text-cyber-purple uppercase font-bold">Enable Passive Discovery</label>
                 <p className="text-[10px] text-cyber-gray-light italic mt-1">Discover hosts from network traffic (less intrusive)</p>
               </div>
-              <input
-                type="checkbox"
-                checked={localSettings.passiveDiscoveryEnabled}
-                onChange={(e) => setLocalSettings({ ...localSettings, passiveDiscoveryEnabled: e.target.checked })}
-                className="w-5 h-5 accent-cyber-green"
-              />
+              <label className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localSettings.passiveDiscoveryEnabled}
+                  onChange={(e) => setLocalSettings({ ...localSettings, passiveDiscoveryEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-5 h-5 border-2 border-cyber-green flex items-center justify-center peer-checked:bg-cyber-green transition-all">
+                  {localSettings.passiveDiscoveryEnabled && <span className="text-white text-sm">◆</span>}
+                </div>
+              </label>
             </div>
           </div>
 
           <div className="border-t border-cyber-gray pt-4">
             <div className="flex items-center justify-between mb-4">
               <label className="text-xs text-cyber-purple uppercase font-bold">Enable Auto-Discovery</label>
-              <input
-                type="checkbox"
-                checked={localSettings.autoScanEnabled}
-                onChange={(e) => setLocalSettings({ ...localSettings, autoScanEnabled: e.target.checked })}
-                className="w-5 h-5 accent-cyber-red"
-              />
+              <label className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localSettings.autoScanEnabled}
+                  onChange={(e) => setLocalSettings({ ...localSettings, autoScanEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-5 h-5 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red transition-all">
+                  {localSettings.autoScanEnabled && <span className="text-white text-sm">◆</span>}
+                </div>
+              </label>
             </div>
 
             {localSettings.autoScanEnabled && (

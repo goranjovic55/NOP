@@ -67,6 +67,13 @@ class DiscoverySettingsConfig(BaseModel):
     enable_os_detection: bool = Field(default=False, description="Enable OS detection")
     enable_service_detection: bool = Field(default=False, description="Enable service detection")
     passive_discovery: bool = Field(default=True, description="Enable passive discovery")
+    track_source_only: bool = Field(default=True, description="Track only source IPs (safer, no false positives). When disabled, tracks both source and destination IPs with filtering options below")
+    
+    # Granular filtering options (only used when track_source_only=False)
+    filter_unicast: bool = Field(default=False, description="Filter unicast destination IPs. When False, can detect hosts receiving unicast traffic (passive listeners)")
+    filter_multicast: bool = Field(default=True, description="Filter multicast destination IPs (224.0.0.0/4). Recommended: True")
+    filter_broadcast: bool = Field(default=True, description="Filter broadcast destination IPs (255.255.255.255 and network broadcasts). Recommended: True")
+    
     fingerprint_os: bool = Field(default=False, description="Perform OS fingerprinting")
     detect_vpn: bool = Field(default=False, description="Attempt to detect VPN connections")
     

@@ -5,6 +5,8 @@ import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
 import { useAgentStore } from '../store/agentStore';
+import { useExploitStore } from '../store/exploitStore';
+import { useTrafficStore } from '../store/trafficStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,10 +19,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
-  const { activeAgent, connectedCount } = useAgentStore();
+  const { activeAgent, connectedCount: agentCount } = useAgentStore();
+  const { getActiveSessionCount } = useExploitStore();
+  const { isPinging, isCapturing, isCrafting, isStorming } = useTrafficStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
-  const connectedAccessCount = accessTabs.filter(tab => tab.status === 'connected').length;
+  const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
+  const activeExploitCount = getActiveSessionCount();
+  const isTrafficActive = isPinging || isCapturing || isCrafting || isStorming;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -28,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Topology', href: '/topology', icon: '◎', symbol: '⬟' },
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
-    { name: 'Access Hub', href: '/access', icon: '⬡', symbol: '◉' },
+    { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
     { name: 'Agents', href: '/agents', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
@@ -87,17 +93,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {item.name === 'Assets' && isDiscovering && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-blue rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
+                  {item.name === 'Traffic' && isTrafficActive && (
+                    <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {isCapturing && <div className="w-2 h-2 bg-cyber-green rounded-full animate-pulse" title="Capturing"></div>}
+                      {isPinging && <div className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" title="Pinging"></div>}
+                      {isCrafting && <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse" title="Sending"></div>}
+                      {isStorming && <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Storming"></div>}
+                    </div>
+                  )}
                   {item.name === 'Scans' && isAnyScanRunning && (
                     <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
                   )}
-                  {item.name === 'Access Hub' && connectedAccessCount > 0 && (
-                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-green text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
-                      {connectedAccessCount}
+                  {item.name === 'ACCESS' && (connectedCount > 0 || activeExploitCount > 0) && (
+                    <div className={`absolute right-2 flex items-center justify-center ${
+                      activeExploitCount > 0 ? 'bg-cyber-red' : 'bg-cyber-green'
+                    } text-black text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {activeExploitCount || connectedCount}
                     </div>
                   )}
-                  {item.name === 'Agents' && connectedCount > 0 && (
+                  {item.name === 'Agents' && agentCount > 0 && (
                     <div className={`absolute right-2 flex items-center justify-center bg-cyber-purple text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
-                      {connectedCount}
+                      {agentCount}
                     </div>
                   )}
                 </Link>

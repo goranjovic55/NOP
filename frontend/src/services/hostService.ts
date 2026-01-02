@@ -12,6 +12,10 @@ export interface SystemInfo {
   processor: string;
   python_version: string;
   boot_time: string;
+  network_interfaces?: Array<{
+    name: string;
+    address: string;
+  }>;
 }
 
 export interface SystemMetrics {
@@ -69,6 +73,27 @@ export interface Process {
   status: string;
 }
 
+export interface NetworkConnection {
+  local_address: string;
+  remote_address: string;
+  status: string;
+  pid: number | null;
+  process: string;
+  family: string;
+  type: string;
+}
+
+export interface DiskIO {
+  [disk: string]: {
+    read_count: number;
+    write_count: number;
+    read_bytes: number;
+    write_bytes: number;
+    read_time: number;
+    write_time: number;
+  };
+}
+
 export interface FileSystemItem {
   name: string;
   path: string;
@@ -117,6 +142,21 @@ export const hostService = {
     const response = await axios.get(`${API_URL}/system/processes`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { limit },
+    });
+    return response.data;
+  },
+
+  getNetworkConnections: async (token: string, limit: number = 50): Promise<NetworkConnection[]> => {
+    const response = await axios.get(`${API_URL}/system/connections`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  getDiskIO: async (token: string): Promise<DiskIO> => {
+    const response = await axios.get(`${API_URL}/system/disk-io`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   },

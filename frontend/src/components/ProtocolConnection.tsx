@@ -358,20 +358,10 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       token: token || ''
     });
 
-    // Use WebSocket tunnel - construct URL based on environment
-    // In Codespaces, we need to use the forwarded port URL directly
-    let wsUrl: string;
+    // Use WebSocket tunnel through nginx proxy
+    // Nginx proxies /api/v1/access/tunnel to backend WebSocket
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-    // Check if we're in Codespaces (GitHub dev URL pattern)
-    if (window.location.host.includes('.app.github.dev')) {
-      // Replace frontend port (12000) with backend port (12001) in the URL
-      const backendHost = window.location.host.replace('-12000.', '-12001.');
-      wsUrl = `${wsProtocol}//${backendHost}/api/v1/access/tunnel?${params.toString()}`;
-    } else {
-      // Local development - use same host
-      wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
-    }
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
     
     console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/password=[^&]*/, 'password=***'));
     console.log('[GUACAMOLE-CLIENT] Display dimensions:', displayRef.current?.clientWidth, 'x', displayRef.current?.clientHeight);
@@ -639,7 +629,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
                <input 
                  type="text" 
                  defaultValue={`http://${tab.ip}`}
-                 className="bg-black border border-cyber-gray text-cyber-green px-2 py-1 w-full text-xs font-mono focus:border-cyber-blue outline-none"
+                 className="bg-cyber-dark border border-cyber-gray text-cyber-green px-2 py-1 w-full text-xs font-mono focus:border-cyber-blue outline-none"
                  onKeyDown={(e) => {
                    if (e.key === 'Enter') {
                      const iframe = document.getElementById(`iframe-${tab.id}`) as HTMLIFrameElement;
@@ -717,7 +707,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
                   {ftpFiles.map((file, i) => (
                     <tr key={i} className="hover:bg-cyber-darker border-b border-cyber-gray border-opacity-20">
                       <td className="py-2 cursor-pointer" onClick={() => file.type === 'directory' ? handleFtpNavigate(file.name) : null}>
-                        <span className="mr-2">{file.type === 'directory' ? '📁' : '📄'}</span>
+                        <span className="mr-2">{file.type === 'directory' ? '◈' : '◆'}</span>
                         {file.name}
                       </td>
                       <td className="py-2">{file.size}</td>
@@ -775,21 +765,29 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-cyber-dark border border-cyber-gray rounded-lg shadow-xl">
-      <h3 className="text-xl font-bold text-cyber-blue uppercase mb-6 flex items-center">
-        <span className="mr-2">
-          {tab.protocol === 'ssh' && '🔒'}
-          {tab.protocol === 'rdp' && '🖥️'}
-          {tab.protocol === 'vnc' && '👁️'}
-          {tab.protocol === 'telnet' && '📟'}
-          {tab.protocol === 'exploit' && '💀'}
+    <div className="max-w-md mx-auto mt-10 p-6 bg-cyber-darker border-2 border-cyber-gray rounded-lg shadow-xl shadow-cyber-blue/10">
+      <h3 className="text-xl font-bold uppercase mb-6 flex items-center">
+        <span className="mr-3 text-2xl">
+          {tab.protocol === 'ssh' && <span className="text-cyber-green">◉</span>}
+          {tab.protocol === 'rdp' && <span className="text-cyber-blue">◉</span>}
+          {tab.protocol === 'vnc' && <span className="text-cyber-purple">◉</span>}
+          {tab.protocol === 'telnet' && <span className="text-cyber-blue">◉</span>}
+          {tab.protocol === 'exploit' && <span className="text-cyber-red">◆</span>}
         </span>
-        {tab.protocol.toUpperCase()} Connection
+        <span className={
+          tab.protocol === 'ssh' ? 'text-cyber-green' :
+          tab.protocol === 'rdp' ? 'text-cyber-blue' :
+          tab.protocol === 'vnc' ? 'text-cyber-purple' :
+          tab.protocol === 'telnet' ? 'text-cyber-blue' :
+          'text-cyber-red'
+        }>
+          {tab.protocol.toUpperCase()} Connection
+        </span>
       </h3>
 
       {savedCredentials.length > 0 && (
         <div className="mb-6">
-          <label className="block text-[10px] font-bold text-cyber-gray-light uppercase mb-2">Saved Credentials</label>
+          <label className="block text-[10px] font-bold text-cyber-gray-light uppercase mb-2 tracking-wider">◆ Saved Credentials</label>
           <div className="flex flex-wrap gap-2">
             {savedCredentials.map(cred => (
               <button
@@ -806,38 +804,40 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
       <form onSubmit={handleConnect} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1">Username</label>
+          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none transition-colors"
+            className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
             placeholder="admin"
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1">Password</label>
+          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-cyber-darker border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none transition-colors"
+            className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
             placeholder="••••••••"
           />
         </div>
 
-        <div className="flex items-center">
+        <label className="flex items-center cursor-pointer">
           <input
             type="checkbox"
-            id="remember"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
-            className="mr-2"
+            className="sr-only peer"
           />
-          <label htmlFor="remember" className="text-xs text-cyber-gray-light uppercase cursor-pointer">Remember Credentials</label>
-        </div>
+          <div className="w-4 h-4 border-2 border-cyber-purple flex items-center justify-center peer-checked:bg-cyber-purple transition-all mr-2">
+            {remember && <span className="text-white text-xs">◆</span>}
+          </div>
+          <span className="text-xs text-cyber-gray-light uppercase tracking-wide">◇ Remember Credentials</span>
+        </label>
 
           <div className="flex space-x-2">
             <button

@@ -10,10 +10,13 @@ import logging
 import os
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, AsyncSessionLocal
 from app.api.v1.router import api_router
 from app.api.websockets.router import websocket_router
 from app.services.SnifferService import sniffer_service
+from app.models.settings import Settings
+from sqlalchemy import select
+import psutil
 
 # Configure logging
 logging.basicConfig(
@@ -38,12 +41,48 @@ async def lifespan(app: FastAPI):
     
     logger.info("Database tables created")
 
-    # Start sniffing in background
+    # Load discovery settings and apply to sniffer service
     try:
-        sniffer_service.start_sniffing(settings.NETWORK_INTERFACE, lambda x: None)
-        logger.info(f"Traffic sniffer started on {settings.NETWORK_INTERFACE}")
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Settings).where(Settings.category == "discovery")
+            )
+            discovery_settings = result.scalar_one_or_none()
+            
+            if discovery_settings and discovery_settings.config:
+                track_source_only = discovery_settings.config.get("track_source_only", True)
+                sniffer_service.set_track_source_only(track_source_only)
+                
+                # Apply granular filtering settings
+                filter_unicast = discovery_settings.config.get("filter_unicast", False)
+                filter_multicast = discovery_settings.config.get("filter_multicast", True)
+                filter_broadcast = discovery_settings.config.get("filter_broadcast", True)
+                sniffer_service.set_filter_unicast(filter_unicast)
+                sniffer_service.set_filter_multicast(filter_multicast)
+                sniffer_service.set_filter_broadcast(filter_broadcast)
+                
+                logger.info(f"Passive discovery mode: {'source-only' if track_source_only else 'source + destination'}")
+                logger.info(f"Filters - unicast:{filter_unicast}, multicast:{filter_multicast}, broadcast:{filter_broadcast}")
+            else:
+                # Default to safer source-only mode
+                sniffer_service.set_track_source_only(True)
+                logger.info("Passive discovery mode: source-only (default)")
     except Exception as e:
-        logger.error(f"Failed to start traffic sniffer: {e}")
+        logger.warning(f"Failed to load discovery settings, using defaults: {e}")
+        sniffer_service.set_track_source_only(True)
+
+    # Detect available network interfaces (don't auto-start sniffing)
+    try:
+        interfaces = sniffer_service.get_interfaces()
+        available_ifaces = [i['name'] for i in interfaces if i['name'] != 'lo']
+        
+        if available_ifaces:
+            logger.info(f"Detected network interfaces: {', '.join(available_ifaces)}")
+            logger.info("Traffic sniffer ready. Select interface from Settings or Traffic page to start.")
+        else:
+            logger.warning("No network interfaces detected. Check network configuration.")
+    except Exception as e:
+        logger.warning(f"Could not detect network interfaces: {e}")
 
     
     yield

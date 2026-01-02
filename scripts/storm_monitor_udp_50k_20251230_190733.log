@@ -1,0 +1,61 @@
+==========================================
+STORM MONITOR - Auto-Shutdown on High PPS
+==========================================
+Target Container: nop-custom-web
+Target Port: 80
+PPS Threshold: 2000
+Monitoring Interface: any
+Sample Interval: 1s
+Log File: storm_monitor_udp_50k_20251230_190733.log
+Started: Tue Dec 30 19:07:33 UTC 2025
+==========================================
+
+📍 Container IP: 172.19.0.5
+
+🔧 Installing tcpdump in container...
+✓ tcpdump ready
+
+🔍 Starting packet monitoring...
+⚠️  Will shutdown port 80 when PPS exceeds 2000
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[19:07:35] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 0s
+[19:07:36] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 2s
+[19:07:38] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 4s
+[19:07:39] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 5s
+[19:07:41] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 7s
+[19:07:42] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 8s
+[19:07:44] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 10s
+[19:07:46] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 12s
+[19:07:47] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 13s
+[19:07:49] 📊 PPS: 1 | Avg: 1 | Peak: 1 | Status: ✓ NORMAL | Elapsed: 15s
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨 STORM DETECTED!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Timestamp: 2025-12-30 19:07:50
+PPS: 38894
+Threshold: 2000
+Exceeded by: 36894 PPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[19:07:50] 🚨 PPS: 38894 | Status: ⚠️  THRESHOLD EXCEEDED! (Detection #1)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛑 INITIATING SHUTDOWN SEQUENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 FINAL STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Monitor Duration: 16s
+Total Samples: 11
+Average PPS: 3536
+Peak PPS: 38894
+Detections: 1
+Shutdown Reason: Storm threshold exceeded
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏸️  Stopping container: nop-custom-web
+✓ Container stopped at 2025-12-30 19:08:00
+📊 Final PPS: 38894
+
+To restart the container, run:
+  docker start nop-custom-web
+

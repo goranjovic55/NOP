@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem } from '../services/hostService';
+import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO } from '../services/hostService';
 import { useAuthStore } from '../store/authStore';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -16,6 +16,8 @@ const Host: React.FC = () => {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [connections, setConnections] = useState<NetworkConnection[]>([]);
+  const [diskIO, setDiskIO] = useState<DiskIO | null>(null);
   const [currentPath, setCurrentPath] = useState('/');
   const [fileItems, setFileItems] = useState<FileSystemItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -53,9 +55,13 @@ const Host: React.FC = () => {
     if (token && activeTab === 'metrics') {
       fetchMetrics();
       fetchProcesses();
+      fetchConnections();
+      fetchDiskIO();
       const interval = setInterval(() => {
         fetchMetrics();
         fetchProcesses();
+        fetchConnections();
+        fetchDiskIO();
       }, 3000);
       return () => clearInterval(interval);
     }
@@ -177,7 +183,8 @@ const Host: React.FC = () => {
 
   const fetchSystemInfo = async () => {
     if (!token) {
-      setError('No authentication token available');
+      // No token - let the app redirect to login
+      logout();
       return;
     }
     setLoading(true);
@@ -190,7 +197,9 @@ const Host: React.FC = () => {
       console.error('Failed to fetch system info:', error);
       setLoading(false);
       if (error?.response?.status === 401) {
-        setError('Session expired. Please log out and log back in.');
+        // Session expired - auto logout and let app redirect to login
+        logout();
+        return;
       } else {
         const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error';
         setError(`Failed to fetch system info: ${errorMessage}`);
@@ -207,7 +216,9 @@ const Host: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to fetch metrics:', error);
       if (error?.response?.status === 401) {
-        setError('Session expired. Please log out and log back in.');
+        // Session expired - auto logout and let app redirect to login
+        logout();
+        return;
       }
     }
   };
@@ -215,10 +226,30 @@ const Host: React.FC = () => {
   const fetchProcesses = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getProcesses(token, 20);
+      const data = await hostService.getProcesses(token, 15);
       setProcesses(data);
     } catch (error) {
       console.error('Failed to fetch processes:', error);
+    }
+  };
+
+  const fetchConnections = async () => {
+    if (!token) return;
+    try {
+      const data = await hostService.getNetworkConnections(token, 20);
+      setConnections(data);
+    } catch (error) {
+      console.error('Failed to fetch connections:', error);
+    }
+  };
+
+  const fetchDiskIO = async () => {
+    if (!token) return;
+    try {
+      const data = await hostService.getDiskIO(token);
+      setDiskIO(data);
+    } catch (error) {
+      console.error('Failed to fetch disk I/O:', error);
     }
   };
 
@@ -556,20 +587,12 @@ const Host: React.FC = () => {
             <span className="text-cyber-red text-xl">⚠</span>
             <span className="text-cyber-red">{error}</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => { setError(null); fetchSystemInfo(); }}
-              className="px-4 py-2 bg-cyber-gray text-white uppercase text-sm font-bold hover:bg-cyber-gray-light transition-colors"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => { logout(); window.location.href = '/login'; }}
-              className="px-4 py-2 bg-cyber-red text-white uppercase text-sm font-bold hover:bg-red-600 transition-colors"
-            >
-              Log Out
-            </button>
-          </div>
+          <button
+            onClick={() => { setError(null); fetchSystemInfo(); }}
+            className="px-4 py-2 bg-cyber-gray text-white uppercase text-sm font-bold hover:bg-cyber-gray-light transition-colors"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -582,25 +605,39 @@ const Host: React.FC = () => {
 
       {/* System Info Header */}
       {systemInfo && (
-        <div className="bg-cyber-dark border border-cyber-gray p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="dashboard-card p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Hostname</div>
-              <div className="text-cyber-green font-mono">{systemInfo.hostname}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Hostname</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.hostname}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Platform</div>
-              <div className="text-cyber-green font-mono">{systemInfo.platform} {systemInfo.platform_release}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Platform</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.platform} {systemInfo.platform_release}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Architecture</div>
-              <div className="text-cyber-green font-mono">{systemInfo.architecture}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Architecture</p>
+              <p className="text-cyber-green font-mono text-sm">{systemInfo.architecture}</p>
             </div>
             <div>
-              <div className="text-cyber-gray-light uppercase text-xs">Uptime</div>
-              <div className="text-cyber-green font-mono">{formatUptime(systemInfo.boot_time)}</div>
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-1">Uptime</p>
+              <p className="text-cyber-green font-mono text-sm">{formatUptime(systemInfo.boot_time)}</p>
             </div>
           </div>
+          {systemInfo.network_interfaces && systemInfo.network_interfaces.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-cyber-gray/50">
+              <p className="text-cyber-gray-light uppercase text-xs font-mono tracking-wider mb-2">Network Interfaces</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {systemInfo.network_interfaces.map((iface: any, idx: number) => (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <span className="text-cyber-purple text-xs">●</span>
+                    <span className="text-cyber-blue font-mono text-xs">{iface.name}:</span>
+                    <span className="text-cyber-green font-mono text-sm">{iface.address}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -608,7 +645,7 @@ const Host: React.FC = () => {
       <div className="flex space-x-2 border-b border-cyber-gray">
         <button
           onClick={() => setActiveTab('metrics')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'metrics'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -618,7 +655,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('terminal')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'terminal'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -628,7 +665,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('filesystem')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'filesystem'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -638,7 +675,7 @@ const Host: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('desktop')}
-          className={`px-4 py-2 uppercase text-sm font-medium transition-colors ${
+          className={`px-4 py-2 uppercase text-xs font-mono tracking-wider font-medium transition-colors ${
             activeTab === 'desktop'
               ? 'text-cyber-red border-b-2 border-cyber-red'
               : 'text-cyber-gray-light hover:text-cyber-purple'
@@ -651,159 +688,221 @@ const Host: React.FC = () => {
       {/* Metrics Tab */}
       {activeTab === 'metrics' && metrics && (
         <div className="space-y-4">
-          {/* CPU and Memory */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Row 1: CPU, Memory, Swap */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* CPU */}
-            <div className="bg-cyber-dark border border-cyber-gray p-4">
-              <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-                <span className="mr-2">⬡</span> CPU Usage
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-cyber-gray-light">Total</span>
-                  <span className="text-cyber-green font-mono">{metrics.cpu.percent_total.toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-cyber-darker h-4 border border-cyber-gray">
-                  <div
-                    className="bg-cyber-red h-full transition-all duration-300"
-                    style={{ width: `${metrics.cpu.percent_total}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  {metrics.cpu.percent_per_core.map((percent, idx) => (
-                    <div key={idx} className="text-xs">
-                      <div className="text-cyber-gray-light">Core {idx}</div>
-                      <div className="text-cyber-green font-mono">{percent.toFixed(0)}%</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-cyber-gray-light mt-2">
-                  {metrics.cpu.core_count} cores, {metrics.cpu.thread_count} threads
-                </div>
+            <div className="dashboard-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-cyber-red uppercase text-xs font-mono tracking-wider flex items-center">
+                  <span className="mr-1">⬡</span> CPU
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.cpu.percent_total.toFixed(1)}%</p>
               </div>
+              <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
+                <div className="bg-cyber-red h-full transition-all" style={{ width: `${metrics.cpu.percent_total}%` }} />
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {metrics.cpu.percent_per_core.map((percent, idx) => (
+                  <div key={idx} className="w-6 h-3 bg-cyber-darker border border-cyber-gray relative" title={`Core ${idx}: ${percent.toFixed(0)}%`}>
+                    <div className="bg-cyber-red/70 h-full" style={{ width: `${percent}%` }} />
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-cyber-gray-light mt-1">{metrics.cpu.core_count}C/{metrics.cpu.thread_count}T</div>
             </div>
 
             {/* Memory */}
-            <div className="bg-cyber-dark border border-cyber-gray p-4">
-              <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-                <span className="mr-2">⬢</span> Memory Usage
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-cyber-gray-light">RAM</span>
-                  <span className="text-cyber-green font-mono">
-                    {formatBytes(metrics.memory.used)} / {formatBytes(metrics.memory.total)}
-                  </span>
-                </div>
-                <div className="w-full bg-cyber-darker h-4 border border-cyber-gray">
-                  <div
-                    className="bg-cyber-purple h-full transition-all duration-300"
-                    style={{ width: `${metrics.memory.percent}%` }}
-                  />
-                </div>
-                <div className="text-xs text-cyber-green font-mono text-right">
-                  {metrics.memory.percent.toFixed(1)}%
-                </div>
-                
-                <div className="flex justify-between text-sm mt-3">
-                  <span className="text-cyber-gray-light">Swap</span>
-                  <span className="text-cyber-green font-mono">
-                    {formatBytes(metrics.memory.swap_used)} / {formatBytes(metrics.memory.swap_total)}
-                  </span>
-                </div>
-                <div className="w-full bg-cyber-darker h-4 border border-cyber-gray">
-                  <div
-                    className="bg-cyber-purple h-full transition-all duration-300"
-                    style={{ width: `${metrics.memory.swap_percent}%` }}
-                  />
-                </div>
+            <div className="dashboard-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-cyber-purple uppercase text-xs font-mono tracking-wider flex items-center">
+                  <span className="mr-1">⬢</span> RAM
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.memory.percent.toFixed(1)}%</p>
+              </div>
+              <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
+                <div className="bg-cyber-purple h-full transition-all" style={{ width: `${metrics.memory.percent}%` }} />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-cyber-gray-light">Used</span>
+                <span className="text-cyber-green font-mono">{formatBytes(metrics.memory.used)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-cyber-gray-light">Total</span>
+                <span className="text-cyber-green font-mono">{formatBytes(metrics.memory.total)}</span>
+              </div>
+            </div>
+
+            {/* Swap */}
+            <div className="dashboard-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-cyber-purple uppercase text-xs font-mono tracking-wider flex items-center">
+                  <span className="mr-1">⇌</span> Swap
+                </p>
+                <p className="text-cyber-green font-mono text-sm">{metrics.memory.swap_percent.toFixed(1)}%</p>
+              </div>
+              <div className="w-full bg-cyber-darker h-2 border border-cyber-gray mb-2">
+                <div className="bg-cyber-purple/70 h-full transition-all" style={{ width: `${metrics.memory.swap_percent}%` }} />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-cyber-gray-light">Used</span>
+                <span className="text-cyber-green font-mono">{formatBytes(metrics.memory.swap_used)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-cyber-gray-light">Total</span>
+                <span className="text-cyber-green font-mono">{formatBytes(metrics.memory.swap_total)}</span>
               </div>
             </div>
           </div>
 
-          {/* Disk Usage */}
-          <div className="bg-cyber-dark border border-cyber-gray p-4">
-            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-              <span className="mr-2">◈</span> Disk Usage
-            </h3>
-            <div className="space-y-3">
+          {/* Row 2: Network I/O, Disk I/O */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Network I/O */}
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
+                <span className="mr-1">⇄</span> Network I/O
+              </p>
+              <div className="grid grid-cols-4 gap-2 text-xs">
+                <div>
+                  <div className="text-cyber-gray-light">TX</div>
+                  <div className="text-cyber-green font-mono">{formatBytes(metrics.network.bytes_sent)}</div>
+                </div>
+                <div>
+                  <div className="text-cyber-gray-light">RX</div>
+                  <div className="text-cyber-green font-mono">{formatBytes(metrics.network.bytes_recv)}</div>
+                </div>
+                <div>
+                  <div className="text-cyber-gray-light">Pkt TX</div>
+                  <div className="text-cyber-green font-mono">{(metrics.network.packets_sent / 1000).toFixed(1)}K</div>
+                </div>
+                <div>
+                  <div className="text-cyber-gray-light">Pkt RX</div>
+                  <div className="text-cyber-green font-mono">{(metrics.network.packets_recv / 1000).toFixed(1)}K</div>
+                </div>
+              </div>
+              {(metrics.network.errin > 0 || metrics.network.errout > 0) && (
+                <div className="flex gap-4 mt-2 text-xs text-cyber-red">
+                  <span>Err In: {metrics.network.errin}</span>
+                  <span>Err Out: {metrics.network.errout}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Disk I/O */}
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
+                <span className="mr-1">◈</span> Disk I/O
+              </p>
+              {diskIO && Object.keys(diskIO).length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 text-xs max-h-20 overflow-y-auto">
+                  {Object.entries(diskIO).slice(0, 4).map(([disk, io]) => (
+                    <div key={disk} className="flex justify-between">
+                      <span className="text-cyber-gray-light truncate max-w-[60px]">{disk}</span>
+                      <span className="text-cyber-green font-mono">
+                        R:{formatBytes(io.read_bytes)} W:{formatBytes(io.write_bytes)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-cyber-gray-light text-xs">No disk I/O data</div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Disk Space */}
+          <div className="dashboard-card p-4">
+            <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center">
+              <span className="mr-1">⛁</span> Disk Space
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {metrics.disk.map((disk, idx) => (
-                <div key={idx} className="border border-cyber-gray p-3">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-cyber-gray-light font-mono">{disk.mountpoint}</span>
-                    <span className="text-cyber-green font-mono">
-                      {formatBytes(disk.used)} / {formatBytes(disk.total)}
+                <div key={idx} className="border border-cyber-gray/50 p-2">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-cyber-gray-light font-mono truncate max-w-[100px]" title={disk.mountpoint}>{disk.mountpoint}</span>
+                    <span className={`font-mono ${disk.percent > 90 ? 'text-cyber-red' : disk.percent > 75 ? 'text-yellow-500' : 'text-cyber-green'}`}>
+                      {disk.percent.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full bg-cyber-darker h-3 border border-cyber-gray">
+                  <div className="w-full bg-cyber-darker h-1.5 border border-cyber-gray">
                     <div
-                      className="bg-cyber-green h-full transition-all duration-300"
+                      className={`h-full transition-all ${disk.percent > 90 ? 'bg-cyber-red' : disk.percent > 75 ? 'bg-yellow-500' : 'bg-cyber-green'}`}
                       style={{ width: `${disk.percent}%` }}
                     />
                   </div>
                   <div className="text-xs text-cyber-gray-light mt-1">
-                    {disk.device} ({disk.fstype}) - {disk.percent.toFixed(1)}%
+                    {formatBytes(disk.free)} free / {formatBytes(disk.total)}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Network */}
-          <div className="bg-cyber-dark border border-cyber-gray p-4">
-            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-              <span className="mr-2">⇄</span> Network I/O
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <div className="text-cyber-gray-light uppercase text-xs">Bytes Sent</div>
-                <div className="text-cyber-green font-mono">{formatBytes(metrics.network.bytes_sent)}</div>
-              </div>
-              <div>
-                <div className="text-cyber-gray-light uppercase text-xs">Bytes Recv</div>
-                <div className="text-cyber-green font-mono">{formatBytes(metrics.network.bytes_recv)}</div>
-              </div>
-              <div>
-                <div className="text-cyber-gray-light uppercase text-xs">Packets Sent</div>
-                <div className="text-cyber-green font-mono">{metrics.network.packets_sent.toLocaleString()}</div>
-              </div>
-              <div>
-                <div className="text-cyber-gray-light uppercase text-xs">Packets Recv</div>
-                <div className="text-cyber-green font-mono">{metrics.network.packets_recv.toLocaleString()}</div>
+          {/* Row 4: Top Processes and Network Connections side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Top Processes */}
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center justify-between">
+                <span className="flex items-center"><span className="mr-1">⧫</span> Top Processes</span>
+                <span className="text-cyber-gray-light font-normal">{metrics.processes} total</span>
+              </p>
+              <div className="overflow-x-auto max-h-48">
+                <table className="w-full text-xs">
+                  <thead className="border-b border-cyber-gray sticky top-0 bg-cyber-dark">
+                    <tr className="text-left text-cyber-gray-light uppercase">
+                      <th className="pb-1 pr-2">PID</th>
+                      <th className="pb-1 pr-2">Name</th>
+                      <th className="pb-1 pr-2">CPU</th>
+                      <th className="pb-1">MEM</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {processes.slice(0, 10).map((proc) => (
+                      <tr key={proc.pid} className="border-b border-cyber-darker/50 hover:bg-cyber-darker">
+                        <td className="py-1 pr-2 text-cyber-green">{proc.pid}</td>
+                        <td className="py-1 pr-2 text-cyber-purple truncate max-w-[100px]" title={proc.name}>{proc.name}</td>
+                        <td className="py-1 pr-2 text-cyber-red">{proc.cpu_percent?.toFixed(1) || 0}%</td>
+                        <td className="py-1 text-cyber-red">{proc.memory_percent?.toFixed(1) || 0}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
 
-          {/* Top Processes */}
-          <div className="bg-cyber-dark border border-cyber-gray p-4">
-            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
-              <span className="mr-2">⧫</span> Top Processes ({metrics.processes} total)
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-cyber-gray">
-                  <tr className="text-left text-cyber-gray-light uppercase text-xs">
-                    <th className="pb-2">PID</th>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">User</th>
-                    <th className="pb-2">CPU %</th>
-                    <th className="pb-2">Memory %</th>
-                    <th className="pb-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="font-mono">
-                  {processes.map((proc) => (
-                    <tr key={proc.pid} className="border-b border-cyber-darker hover:bg-cyber-darker">
-                      <td className="py-2 text-cyber-green">{proc.pid}</td>
-                      <td className="py-2 text-cyber-purple">{proc.name}</td>
-                      <td className="py-2 text-cyber-gray-light">{proc.username}</td>
-                      <td className="py-2 text-cyber-red">{proc.cpu_percent?.toFixed(1) || 0}</td>
-                      <td className="py-2 text-cyber-red">{proc.memory_percent?.toFixed(1) || 0}</td>
-                      <td className="py-2 text-cyber-gray-light">{proc.status}</td>
+            {/* Network Connections */}
+            <div className="dashboard-card p-4">
+              <p className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-2 flex items-center justify-between">
+                <span className="flex items-center"><span className="mr-1">⌘</span> Connections</span>
+                <span className="text-cyber-gray-light font-normal">{connections.length} active</span>
+              </p>
+              <div className="overflow-x-auto max-h-48">
+                <table className="w-full text-xs">
+                  <thead className="border-b border-cyber-gray sticky top-0 bg-cyber-dark">
+                    <tr className="text-left text-cyber-gray-light uppercase">
+                      <th className="pb-1 pr-2">Local</th>
+                      <th className="pb-1 pr-2">Remote</th>
+                      <th className="pb-1 pr-2">State</th>
+                      <th className="pb-1">Proc</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="font-mono">
+                    {connections.slice(0, 10).map((conn, idx) => (
+                      <tr key={idx} className="border-b border-cyber-darker/50 hover:bg-cyber-darker">
+                        <td className="py-1 pr-2 text-cyber-green truncate max-w-[100px]" title={conn.local_address}>
+                          {conn.local_address.split(':').pop()}
+                        </td>
+                        <td className="py-1 pr-2 text-cyber-purple truncate max-w-[100px]" title={conn.remote_address}>
+                          {conn.remote_address === '-' ? '-' : conn.remote_address.length > 15 ? conn.remote_address.substring(0, 15) + '...' : conn.remote_address}
+                        </td>
+                        <td className={`py-1 pr-2 ${conn.status === 'ESTABLISHED' ? 'text-cyber-green' : conn.status === 'LISTEN' ? 'text-cyber-purple' : 'text-cyber-gray-light'}`}>
+                          {conn.status.substring(0, 6)}
+                        </td>
+                        <td className="py-1 text-cyber-gray-light truncate max-w-[60px]" title={conn.process}>{conn.process}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -811,17 +910,17 @@ const Host: React.FC = () => {
 
       {/* Terminal Tab */}
       {activeTab === 'terminal' && (
-        <div className="bg-cyber-dark border border-cyber-green/30 p-4">
-          <div className="text-cyber-green text-sm mb-2 uppercase flex items-center">
+        <div className="dashboard-card p-4">
+          <p className="text-cyber-green text-xs font-mono tracking-wider mb-2 uppercase flex items-center">
             <span className="mr-2">⌬</span> Neural Interface • Shell Access
-          </div>
+          </p>
           <div
             ref={terminalRef}
             className="h-[600px] border border-cyber-green/50 bg-black"
           />
-          <div className="text-cyber-gray-light text-xs mt-2 flex items-center">
+          <p className="text-cyber-gray-light text-xs font-mono mt-2 flex items-center">
             <span className="mr-2 text-cyber-purple">◇</span> WebSocket terminal with PTY support • ESC to detach
-          </div>
+          </p>
         </div>
       )}
 
@@ -1148,9 +1247,9 @@ const Host: React.FC = () => {
 
       {/* Desktop Tab */}
       {activeTab === 'desktop' && (
-        <div className="bg-cyber-dark border border-cyber-gray p-4">
+        <div className="dashboard-card p-4">
           <div className="mb-4">
-            <h3 className="text-cyber-red uppercase font-bold mb-3 flex items-center">
+            <h3 className="text-cyber-red uppercase text-xs font-mono tracking-wider mb-3 flex items-center">
               <span className="mr-2">⬡</span> Remote Desktop Access
             </h3>
             <div className="flex gap-4">
@@ -1166,7 +1265,7 @@ const Host: React.FC = () => {
                     credentials: null,
                   });
                 }}
-                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                className={`px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold transition-all ${
                   desktopProtocol === 'vnc' && desktopConnectionTab
                     ? 'bg-cyber-green text-black'
                     : 'bg-cyber-darker border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
@@ -1186,7 +1285,7 @@ const Host: React.FC = () => {
                     credentials: null,
                   });
                 }}
-                className={`px-6 py-3 uppercase text-sm font-bold transition-all ${
+                className={`px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold transition-all ${
                   desktopProtocol === 'rdp' && desktopConnectionTab
                     ? 'bg-cyber-blue text-black'
                     : 'bg-cyber-darker border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black'
@@ -1197,7 +1296,7 @@ const Host: React.FC = () => {
               {desktopConnectionTab && (
                 <button
                   onClick={() => setDesktopConnectionTab(null)}
-                  className="px-6 py-3 uppercase text-sm font-bold bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-all"
+                  className="px-6 py-3 uppercase text-xs font-mono tracking-wider font-bold bg-cyber-darker border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-all"
                 >
                   ✕ Disconnect
                 </button>
@@ -1213,10 +1312,10 @@ const Host: React.FC = () => {
             <div className="border border-cyber-gray bg-cyber-black min-h-[600px] flex items-center justify-center">
               <div className="text-center text-cyber-gray-light">
                 <div className="text-6xl mb-4">◉</div>
-                <div className="text-lg uppercase mb-2">Host Desktop Access</div>
-                <div className="text-sm">
+                <p className="text-sm font-mono uppercase tracking-wider mb-2">Host Desktop Access</p>
+                <p className="text-xs font-mono">
                   Click VNC or RDP above to connect to the host
-                </div>
+                </p>
               </div>
             </div>
           )}

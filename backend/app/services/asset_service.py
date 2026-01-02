@@ -32,31 +32,74 @@ class AssetService:
         result = await self.db.execute(query)
         assets = result.scalars().all()
 
+        # Get vulnerability counts for all assets
+        from app.models.vulnerability import Vulnerability
+        vuln_counts = {}
+        try:
+            vuln_query = select(
+                Vulnerability.asset_id,
+                func.count(Vulnerability.id).label('count')
+            ).where(
+                Vulnerability.asset_id.in_([a.id for a in assets])
+            ).group_by(Vulnerability.asset_id)
+            vuln_result = await self.db.execute(vuln_query)
+            vuln_counts = {str(row[0]): row[1] for row in vuln_result.all()}
+        except Exception:
+            pass  # Table might not exist
+
+        # Get access/exploit status for all assets
+        from app.models.event import Event, EventType
+        accessed_assets = set()
+        exploited_assets = set()
+        try:
+            # Check for remote access events
+            access_query = select(func.distinct(Event.asset_id)).where(
+                Event.event_type == EventType.REMOTE_ACCESS_START,
+                Event.asset_id.in_([a.id for a in assets])
+            )
+            access_result = await self.db.execute(access_query)
+            accessed_assets = {str(row[0]) for row in access_result.all() if row[0]}
+
+            # Check for exploit success events
+            exploit_query = select(func.distinct(Event.asset_id)).where(
+                Event.event_type == EventType.EXPLOIT_SUCCESS,
+                Event.asset_id.in_([a.id for a in assets])
+            )
+            exploit_result = await self.db.execute(exploit_query)
+            exploited_assets = {str(row[0]) for row in exploit_result.all() if row[0]}
+        except Exception:
+            pass  # Table might not exist
+
         asset_responses = []
         for a in assets:
-            asset_responses.append(AssetResponse(
-                id=str(a.id),
-                ip_address=str(a.ip_address),
-                mac_address=a.mac_address,
-                hostname=a.hostname,
-                asset_type=a.asset_type,
-                status=a.status,
-                confidence_score=a.confidence_score,
-                vendor=a.vendor,
-                model=a.model,
-                os_name=a.os_name,
-                os_version=a.os_version,
-                open_ports=a.open_ports,
-                services=a.services,
-                first_seen=a.first_seen,
-                last_seen=a.last_seen,
-                discovery_method=a.discovery_method,
-                notes=a.notes,
-                tags=a.tags,
-                custom_fields=a.custom_fields,
-                created_at=a.created_at,
-                updated_at=a.updated_at
-            ))
+            asset_id = str(a.id)
+            asset_dict = {
+                "id": asset_id,
+                "ip_address": str(a.ip_address),
+                "mac_address": a.mac_address,
+                "hostname": a.hostname,
+                "asset_type": a.asset_type,
+                "status": a.status,
+                "confidence_score": a.confidence_score,
+                "vendor": a.vendor,
+                "model": a.model,
+                "os_name": a.os_name,
+                "os_version": a.os_version,
+                "open_ports": a.open_ports,
+                "services": a.services,
+                "first_seen": a.first_seen,
+                "last_seen": a.last_seen,
+                "discovery_method": a.discovery_method,
+                "notes": a.notes,
+                "tags": a.tags,
+                "custom_fields": a.custom_fields,
+                "created_at": a.created_at,
+                "updated_at": a.updated_at,
+                "vulnerable_count": vuln_counts.get(asset_id, 0),
+                "has_been_accessed": asset_id in accessed_assets,
+                "has_been_exploited": asset_id in exploited_assets
+            }
+            asset_responses.append(AssetResponse(**asset_dict))
 
         return AssetList(
             assets=asset_responses,
@@ -173,13 +216,67 @@ class AssetService:
         recent_result = await self.db.execute(recent_query)
         recently_discovered = recent_result.scalar() or 0
 
+        # Scanned assets (assets with open_ports set, indicating a port scan was performed)
+        scanned_query = select(func.count(Asset.id)).where(Asset.open_ports != None)
+        scanned_result = await self.db.execute(scanned_query)
+        scanned_assets = scanned_result.scalar() or 0
+
+        # Accessed assets - count distinct assets with remote access events
+        accessed_assets = 0  # Initialize with default
+        try:
+            from app.models.event import Event, EventType
+            accessed_query = select(func.count(func.distinct(Event.asset_id))).where(
+                Event.event_type == EventType.REMOTE_ACCESS_START,
+                Event.asset_id.isnot(None)
+            )
+            accessed_result = await self.db.execute(accessed_query)
+            accessed_assets = accessed_result.scalar() or 0
+        except Exception as e:
+            # If events table doesn't exist yet
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get accessed_assets: {e}")
+            accessed_assets = 0
+
+        # Vulnerable assets - count distinct assets that have vulnerabilities
+        vulnerable_assets = 0  # Initialize with default
+        try:
+            from app.models.vulnerability import Vulnerability
+            vulnerable_query = select(func.count(func.distinct(Vulnerability.asset_id))).where(
+                Vulnerability.asset_id.isnot(None)
+            )
+            vulnerable_result = await self.db.execute(vulnerable_query)
+            vulnerable_assets = vulnerable_result.scalar() or 0
+        except Exception:
+            # If vulnerabilities table doesn't exist yet
+            vulnerable_assets = 0
+        
+        # Exploited assets - count distinct assets with exploit success events
+        exploited_assets = 0  # Initialize with default
+        try:
+            from app.models.event import Event, EventType
+            exploited_query = select(func.count(func.distinct(Event.asset_id))).where(
+                Event.event_type == EventType.EXPLOIT_SUCCESS,
+                Event.asset_id.isnot(None)
+            )
+            exploited_result = await self.db.execute(exploited_query)
+            exploited_assets = exploited_result.scalar() or 0
+        except Exception:
+            # If events table doesn't exist yet
+            exploited_assets = 0
+
         return AssetStats(
             total_assets=total_assets,
             online_assets=online_assets,
             offline_assets=offline_assets,
+            scanned_assets=scanned_assets,
+            accessed_assets=accessed_assets,
+            vulnerable_assets=vulnerable_assets,
+            exploited_assets=exploited_assets,
             active_scans=active_scans_count,
             active_connections=active_connections_count,
             by_type=by_type,
             by_vendor=by_vendor,
             recently_discovered=recently_discovered
         )
+

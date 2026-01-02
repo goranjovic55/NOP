@@ -2,13 +2,18 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPExce
 from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
-from app.services.PingService import ping_service
-from app.schemas.traffic import PingRequest, PingResponse
+from app.schemas.traffic import StormConfig
+from pydantic import BaseModel
 import asyncio
 import json
 import os
+import subprocess
+import time
 
 router = APIRouter()
+
+class PingRequest(BaseModel):
+    host: str
 
 @router.get("/interfaces")
 async def get_interfaces():
@@ -77,31 +82,68 @@ async def get_traffic_stats():
     """Get traffic statistics"""
     return sniffer_service.get_stats()
 
-
-@router.post("/ping", response_model=PingResponse)
-async def advanced_ping(request: PingRequest):
-    """
-    Perform advanced ping with support for multiple protocols.
-    Similar to hping3 functionality for testing firewall rules and services.
-    
-    Supported protocols:
-    - ICMP: Standard ping
-    - TCP: TCP connection ping to specific port
-    - UDP: UDP packet ping to specific port
-    - HTTP: HTTP/HTTPS request ping
-    """
+@router.post("/craft")
+async def craft_packet(packet_config: Dict):
+    """Craft and send a custom packet"""
     try:
-        result = await ping_service.advanced_ping(
-            target=request.target,
-            protocol=request.protocol,
-            port=request.port,
-            count=request.count,
-            timeout=request.timeout,
-            packet_size=request.packet_size,
-            use_https=request.use_https
-        )
+        result = sniffer_service.craft_and_send_packet(packet_config)
         return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ping failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/start")
+async def start_storm(storm_config: StormConfig):
+    """Start packet storm"""
+    try:
+        result = sniffer_service.start_storm(storm_config.dict())
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/stop")
+async def stop_storm():
+    """Stop packet storm"""
+    try:
+        result = sniffer_service.stop_storm()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/storm/metrics")
+async def get_storm_metrics():
+    """Get current storm metrics"""
+    try:
+        return sniffer_service.get_storm_metrics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ping")
+async def ping_host(request: PingRequest):
+    """Ping a host to check reachability"""
+    try:
+        start_time = time.time()
+        result = subprocess.run(
+            ['ping', '-c', '1', '-W', '1', request.host],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        latency = (time.time() - start_time) * 1000  # Convert to ms
+        
+        reachable = result.returncode == 0
+        
+        return {
+            "host": request.host,
+            "reachable": reachable,
+            "latency": latency if reachable else None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "host": request.host,
+            "reachable": False,
+            "latency": None,
+            "last_check": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

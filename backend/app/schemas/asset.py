@@ -62,6 +62,9 @@ class AssetResponse(BaseModel):
     custom_fields: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    vulnerable_count: int = 0
+    has_been_accessed: bool = False
+    has_been_exploited: bool = False
 
 
 class AssetList(BaseModel):
@@ -78,6 +81,10 @@ class AssetStats(BaseModel):
     total_assets: int
     online_assets: int
     offline_assets: int
+    scanned_assets: int = 0
+    accessed_assets: int = 0
+    vulnerable_assets: int = 0
+    exploited_assets: int = 0
     active_scans: int
     active_connections: int
     by_type: Dict[str, int]

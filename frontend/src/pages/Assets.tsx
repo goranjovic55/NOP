@@ -17,8 +17,9 @@ interface ScanSettings {
   passiveDiscoveryEnabled: boolean;
 }
 
-type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time';
+type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time' | 'port_count';
 type SortOrder = 'asc' | 'desc';
+type FilterTab = 'all' | 'scanned' | 'vulnerable';
 
 const Assets: React.FC = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -26,6 +27,9 @@ const Assets: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filterTab, setFilterTab] = useState<FilterTab>(() => {
+    return (localStorage.getItem('nop_assets_filter_tab') as FilterTab) || 'all';
+  });
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     return localStorage.getItem('nop_assets_status_filter') || 'all';
   });
@@ -53,6 +57,10 @@ const Assets: React.FC = () => {
   });
 
   // Persist filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('nop_assets_filter_tab', filterTab);
+  }, [filterTab]);
+
   useEffect(() => {
     localStorage.setItem('nop_assets_status_filter', statusFilter);
   }, [statusFilter]);
@@ -261,6 +269,13 @@ const Assets: React.FC = () => {
   const filteredAndSortedAssets = useMemo(() => {
     let result = assets;
 
+    // Filter Tab
+    if (filterTab === 'scanned') {
+      result = result.filter(a => (a as any).has_been_scanned || (a.open_ports && a.open_ports.length > 0));
+    } else if (filterTab === 'vulnerable') {
+      result = result.filter(a => a.vulnerable_count && a.vulnerable_count > 0);
+    }
+
     // Subnet Filter
     if (subnetFilter) {
       result = result.filter(a => a.ip_address.startsWith(subnetFilter));
@@ -277,10 +292,12 @@ const Assets: React.FC = () => {
         comparison = new Date(a.last_detailed_scan || 0).getTime() - new Date(b.last_detailed_scan || 0).getTime();
       } else if (sortField === 'first_seen') {
         comparison = a.id.localeCompare(b.id);
+      } else if (sortField === 'port_count') {
+        comparison = (a.open_ports?.length || 0) - (b.open_ports?.length || 0);
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [assets, subnetFilter, sortField, sortOrder]);
+  }, [assets, filterTab, subnetFilter, sortField, sortOrder]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -323,7 +340,14 @@ const Assets: React.FC = () => {
         </div>
       </div>
 
-      <div className={`space-y-6 transition-all duration-300 ${selectedAsset ? 'mr-96' : ''}`}>
+      <div 
+        className={`space-y-6 transition-all duration-300 ${selectedAsset ? 'mr-96' : ''}`}
+        onClick={(e) => {
+          if (selectedAsset && e.target === e.currentTarget) {
+            setSelectedAsset(null);
+          }
+        }}
+      >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Assets</h2>
 
@@ -339,8 +363,42 @@ const Assets: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
-              <span className="text-xs text-cyber-purple uppercase font-bold">Filter:</span>
+            {/* Filter Tabs */}
+          <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray">
+            <button
+              onClick={() => setFilterTab('all')}
+              className={`px-3 py-1 text-xs uppercase font-bold transition-colors ${
+                filterTab === 'all'
+                  ? 'bg-cyber-blue text-cyber-darker border-r border-cyber-gray'
+                  : 'text-cyber-gray-light hover:text-cyber-blue'
+              }`}
+            >
+              ◈ All
+            </button>
+            <button
+              onClick={() => setFilterTab('scanned')}
+              className={`px-3 py-1 text-xs uppercase font-bold transition-colors border-r border-cyber-gray ${
+                filterTab === 'scanned'
+                  ? 'bg-cyber-purple text-cyber-darker'
+                  : 'text-cyber-gray-light hover:text-cyber-purple'
+              }`}
+            >
+              ◉ Scanned
+            </button>
+            <button
+              onClick={() => setFilterTab('vulnerable')}
+              className={`px-3 py-1 text-xs uppercase font-bold transition-colors ${
+                filterTab === 'vulnerable'
+                  ? 'bg-cyber-red text-cyber-darker'
+                  : 'text-cyber-gray-light hover:text-cyber-red'
+              }`}
+            >
+              ⚠ Vulnerable
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
+              <span className="text-xs text-cyber-purple uppercase font-bold">Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -418,14 +476,20 @@ const Assets: React.FC = () => {
                   Intel {sortField === 'scanned_time' && (sortOrder === 'asc' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Discovery</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
+                  onClick={() => toggleSort('port_count')}
+                >
+                  Ports {sortField === 'port_count' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Services</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+                <tr><td colSpan={8} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
               ) : filteredAndSortedAssets.length === 0 && !error ? (
-                <tr><td colSpan={7} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 filteredAndSortedAssets.map((asset: any) => {
                   const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
@@ -439,10 +503,16 @@ const Assets: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-cyber-blue font-mono flex items-center space-x-2">
                         <span>{asset.ip_address}</span>
                         {isScanningThis && (
-                          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Detailed Scan Underway"></span>
+                          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Scan Underway"></span>
                         )}
                         {isConnectedThis && (
                           <span className="w-2 h-2 bg-cyber-green rounded-full animate-pulse shadow-[0_0_5px_#00ff41]" title="Active Connection"></span>
+                        )}
+                        {asset.has_been_accessed && (
+                          <span className="text-[9px] font-bold uppercase border border-cyber-green text-cyber-green px-1 shadow-[0_0_3px_#00ff41]" title="Previously Accessed">LOGIN</span>
+                        )}
+                        {asset.has_been_exploited && (
+                          <span className="text-[9px] font-bold uppercase border border-cyber-red text-cyber-red px-1 shadow-[0_0_3px_#ff0040]" title="Previously Exploited">EXPLOIT</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-cyber-gray-light">{asset.hostname || 'N/A'}</td>
@@ -466,6 +536,11 @@ const Assets: React.FC = () => {
                           ) : (
                             <span className="text-cyber-gray-light text-[10px] font-bold uppercase border border-cyber-gray px-1 opacity-40 w-fit">Unscanned</span>
                           )}
+                          {asset.vulnerable_count > 0 && (
+                            <span className="text-cyber-red text-[9px] font-bold uppercase border border-cyber-red px-1 shadow-[0_0_3px_#ff0040] w-fit mt-1">
+                              ⚠ {asset.vulnerable_count} VULN
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
@@ -481,6 +556,17 @@ const Assets: React.FC = () => {
                           </span>
                         ) : (
                           <span className="text-cyber-gray-light text-[10px] opacity-40">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {asset.open_ports && asset.open_ports.length > 0 && (
+                          <span className={`font-mono text-sm ${
+                            asset.open_ports.length > 10 ? 'text-cyber-red font-bold' :
+                            asset.open_ports.length > 5 ? 'text-yellow-400' :
+                            'text-cyber-blue'
+                          }`}>
+                            {asset.open_ports.length}
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm">

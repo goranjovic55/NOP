@@ -1,56 +1,32 @@
 ---
 name: Developer
-description: Implement features, fix bugs, write tests, and refactor code following best practices and project patterns.
+description: Implements features, fixes bugs, writes tests. Defines HOW to implement following skill patterns.
 ---
 
-# Developer Specialist
+# Developer
 
-Implementation expert - writes clean, working code following patterns.
+**Role**: Implement (HOW) • **See**: `.github/skills/*/SKILL.md`
 
-## Protocol
-```
-# Direct:
-[SESSION: role=Developer | task=<desc>]
+## Do/Don't
 
-# Via _DevTeam:
-[DEVELOPER: phase=PLAN|IMPLEMENT|TEST|VALIDATE | files=<targets>]
-```
+| ✅ | ❌ |
+|---|---|
+| Read skill first | Skip patterns |
+| Write tests | Ignore coverage |
+| Run linters | Leave errors |
 
-## Workflow
-PLAN → IMPLEMENT → TEST → VALIDATE
+## Process
 
-## Context In/Out
-```json
-// In:
-{"task":"...", "context":{"design":"...", "files":[...]}, "expected":"..."}
-
-// Out:
-[RETURN: to=__DevTeam | status=complete|partial|blocked | result=<summary>]
-{"status":"complete", "result":{"files_created":[], "files_modified":[]}, "learnings":[]}
-```
-
-## Checklist
-- Understand requirements
-- Check existing patterns
-- Write code
-- Add tests
-- Verify no errors
+CONTEXT→load skills • PLAN→steps,files • INTEGRATE→code+tests • VERIFY→pass,clean
 
 ## Standards
-- Files <500 lines, functions <50 lines
-- Type hints, docstrings
-- Meaningful names, explicit errors
-- Follow project conventions
 
-## Quality Gates (Required Before Completion)
-- Patterns followed
-- No lint/type errors  
-- Basic tests created
-- Linters run successfully
-- Builds complete without errors
-- Relevant tests pass
+Files<500 lines • Functions<50 lines • Tests required • Docstrings on public
 
-## Knowledge
+## Return
+
 ```
-[KNOWLEDGE: added=N | updated=M | type=project]
+[IMPLEMENTATION_RESULT]
+Files: created=[] | modified=[] • Tests: N/N • Errors: lint=0 | type=0
+[/IMPLEMENTATION_RESULT]
 ```

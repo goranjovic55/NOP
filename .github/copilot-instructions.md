@@ -1,143 +1,91 @@
-# Universal Agent Framework
+# AKIS Framework
 
-> **Format**: GitHub Official Custom Agents | **Docs**: https://gh.io/customagents/config
+**A**gents • **K**nowledge • **I**nstructions • **S**kills
 
-## Hierarchy
+## Required Response Format
+
 ```
-_DevTeam (Orchestrator)
-├── Architect  → Design, patterns
-├── Developer  → Code, debug
-├── Reviewer   → Test, validate
-└── Researcher → Investigate, document
-```
-
-## Session Start
-
-**Always emit at beginning of task**:
-```
-[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
-```
-Load: `project_knowledge.json` → `.github/global_knowledge.json` → detect type
-
-## Phase Flow
-
-**Track progress throughout session**:
-```
-[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7]
+[SESSION: task] @AgentName
+[AKIS] entities=N | skills=X,Y | patterns=Z
+[PHASE: NAME | progress=N/7]
+<work>
+[COMPLETE] result | files: changed
 ```
 
-## Delegation
-```
-[DELEGATE: agent=<Architect|Developer|Reviewer|Researcher> | task=<desc>]
-Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
+**Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
 
-[INTEGRATE: from=<agent> | status=complete|partial|blocked | result=<summary>]
-```
+**Session Tracking (REQUIRED)**: Call `node .github/scripts/session-tracker.js` at every phase/decision/delegation. Start: `start "task" "agent"`. Phase: `phase NAME "N/0"` (live monitor shows `Agent PHASE`; if another agent emits, it shows `[SUBAGENT] Agent`). Decision: `decision "desc"`. Delegate: `delegate Agent "task"`. Complete: `complete "log/workflow/file.md"`. Reset only after GitHub commit: `reset`. See `.github/AKIS_SESSION_TRACKING.md`.
 
-**Use #runSubagent for all specialist work**:
-| Situation | Agent |
-|-----------|-------|
-| Design decision | #runSubagent Architect |
-| Code implementation | #runSubagent Developer |
-| Testing/validation | #runSubagent Reviewer |
-| Investigation | #runSubagent Researcher |
+---
 
-**Don't delegate**: Simple edits, clarifications, knowledge updates
+## 🔷 Agents (WHO)
 
-## Nesting
-```
-[NEST: parent=<main> | child=<sub> | reason=<why>]
-[RETURN: to=<main> | result=<findings>]
+**Load agent file ONLY when delegating.**
 
-# Multi-level:
-[STACK: push | task=<sub> | depth=N | parent=<main>]
-[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
-```
+| Agent | Role | When to Load |
+|-------|------|--------------|
+| _DevTeam | Orchestrator (delegates, never implements) | Complex tasks >30min |
+| Architect | Design, alternatives, trade-offs | Design decisions |
+| Developer | Code, tests, skill patterns | Implementation |
+| Reviewer | Validate, security, quality | Testing/validation |
+| Researcher | Investigate, document | Research tasks |
 
-## Knowledge
-```
-[KNOWLEDGE: added=N | updated=M | type=project|global]
-```
-| File | Location | Contents |
-|------|----------|----------|
-| project_knowledge.json | Root | Entities + Codegraph + Relations |
-| global_knowledge.json | .github/ | Universal patterns |
+**Path**: `.github/agents/{Name}.agent.md`
 
-### Format (JSONL)
+**Delegation**: `#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
+
+---
+
+## 🔷 Knowledge (WHAT)
+
+**Load at session start**, query as needed.
+
+| File | Content |
+|------|---------|
+| `project_knowledge.json` | Entities, relations, codegraph (JSONL) |
+| `.github/global_knowledge.json` | Cross-project patterns |
+
+**Format**:
 ```json
-{"type":"entity","name":"Project.Domain.Name","entityType":"Type","observations":["desc","upd:YYYY-MM-DD"]}
-{"type":"codegraph","name":"Component","nodeType":"class","dependencies":[],"dependents":[]}
-{"type":"relation","from":"A","to":"B","relationType":"USES"}
+{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc, upd:YYYY-MM-DD"]}
+{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
+{"type":"codegraph","name":"file.ext","dependencies":["X"],"dependents":["Y"]}
 ```
 
-## Completion
-```
-[COMPLETE: task=<desc> | result=<summary> | learnings=N]
+**Emit**: `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-[WORKFLOW_LOG: task=<desc>]
-Summary | Agent Interactions | Files | Quality Gates | Learnings
-[/WORKFLOW_LOG]
-```
+---
 
-## Quality Gates
-| Gate | Owner | Check |
-|------|-------|-------|
-| Context | Orchestrator | Knowledge loaded |
-| Design | Architect | Alternatives considered |
-| Code | Developer | Tests pass, linters pass, builds succeed |
-| Quality | Reviewer | Standards met |
+## 🔷 Instructions (HOW)
 
-**Phase 5 (VERIFY) Requirements**:
-- All linters pass
-- All builds succeed
-- All relevant tests pass
+**Load instruction file ONLY when relevant.**
 
-## Workflows
-| Workflow | Purpose | Agents |
-|----------|---------|--------|
-| init_project | New project | Architect→Developer→Reviewer |
-| import_project | Adopt existing | Researcher→Developer→Reviewer |
-| refactor_code | Improve quality | Researcher→Developer→Reviewer |
-| update_knowledge | Sync knowledge | Researcher→Developer |
-| update_documents | Sync docs | Researcher→Developer→Reviewer |
-| update_tests | Improve coverage | Researcher→Developer→Reviewer |
+| File | When to Load |
+|------|--------------|
+| `phases.md` | Every task (7-phase flow) |
+| `protocols.md` | Delegation, interrupts |
+| `templates.md` | Output formatting |
+| `todo-list.md` | Creating/managing todos |
+| `structure.md` | Architecture tasks |
 
-## Project Detection
-| File | Type |
-|------|------|
-| package.json | Node/JS/TS |
-| requirements.txt | Python |
-| docker-compose.yml | Containerized |
-| tsconfig.json | TypeScript |
+**Path**: `.github/instructions/{file}.md`
+
+**Phases**: CONTEXT(1) → PLAN(2) → COORDINATE(3) → INTEGRATE(4) → VERIFY(5) → LEARN(6) → COMPLETE(7)
+
+**Skip**: Quick fix (1→4→5→7), Q&A (1→7)
+
+**Todo Format**: `[PHASE: NAME | N/7] Description` - Always create all 7 phases in todo list
+
+---
+
+## 🔷 Skills (PATTERNS)
+
+**Load skill when task matches**: API/REST → `backend-api` | React/UI → `frontend-react` | Tests → `testing` | Auth/secrets → `security` | Errors → `error-handling` | Docker → `infrastructure` | Git → `git-deploy`
+
+**Path**: `.github/skills/{name}/SKILL.md` (When to Use, Pattern, Checklist, Examples)
+
+---
 
 ## Portability
-Copy `.github/` to any project. Create empty `project_knowledge.json` in root.
 
-## Quick Reference
-```
-[SESSION: role=Lead | task=<desc> | phase=CONTEXT]
-[PHASE: CONTEXT | progress=1/7 | next=PLAN]
-#runSubagent Architect --task "Design"
-[INTEGRATE: from=Architect | result="Design complete"]
-#runSubagent Developer --task "Implement"]
-[INTEGRATE: from=Developer | result="Implementation complete"]
-#runSubagent Reviewer --task "Validate"]
-[INTEGRATE: from=Reviewer | result="Validation complete"]
-[NEST: parent=main | child=sub | reason=why]
-[STACK: push | task=sub | depth=1 | parent=main]
-[KNOWLEDGE: added=3 | updated=1 | type=project]
-[COMPLETE: task=<desc> | result=<summary> | learnings=3]
-[WORKFLOW_LOG: task=<desc>]...[/WORKFLOW_LOG]
-```
-
-## Session Tracking Checklist
-
-When starting a task with _DevTeam orchestrator:
-- [ ] Emit `[SESSION:]` at start
-- [ ] Emit `[PHASE: CONTEXT | progress=1/7]`
-- [ ] Emit `[PHASE: PLAN | progress=2/7]`
-- [ ] Use `#runSubagent` for all specialist delegation
-- [ ] Emit `[PHASE: INTEGRATE | progress=4/7]`
-- [ ] Emit `[PHASE: VERIFY | progress=5/7]` with validation
-- [ ] Emit `[KNOWLEDGE:]` for learnings captured
-- [ ] Emit `[COMPLETE:]` with workflow log
+Copy `.github/` + empty `project_knowledge.json`. **Limits**: instructions <50, agents <50, skills <100 lines

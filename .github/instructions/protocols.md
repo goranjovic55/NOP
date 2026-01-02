@@ -1,3 +1,4 @@
+```markdown
 ---
 applyTo: '**'
 ---
@@ -5,67 +6,50 @@ applyTo: '**'
 # Protocols
 
 ## Session
-```
-[SESSION: role=Lead|Architect|Developer|Reviewer|Researcher | task=<desc> | phase=CONTEXT]
-```
 
-## Delegation
-```
-[DELEGATE: agent=<specialist> | task=<desc>]
-Context: {"task":"...", "context":{"problem":"...", "files":[]}, "expected":"..."}
+**Start**: `[SESSION: task] @AgentName` + `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-[RETURN: to=_DevTeam | status=complete|partial|blocked | result=<summary>]
-Artifacts: [files] | Learnings: [patterns]
-```
+**End**: `[COMPLETE] outcome | changed: files`
 
-## Return Contract
-```json
-{"status":"complete", "result":"...", "artifacts":[], "learnings":[], "blockers":[]}
-```
+## Delegation (_DevTeam only)
 
-## Nesting
-```
-# Simple:
-[NEST: parent=<main> | child=<sub> | reason=<why>]
-[RETURN: to=<main> | result=<findings>]
+`#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
 
-# Multi-level stack:
-[STACK: push | task=<sub> | depth=N | parent=<main>]
-[STACK: pop | task=<sub> | depth=N-1 | result=<findings>]
-```
-
-## Phases (Horizontal)
-```
-[PHASE: CONTEXT|PLAN|COORDINATE|INTEGRATE|VERIFY|LEARN|COMPLETE | progress=N/7 | next=<phase>]
-```
-
-## Knowledge
-```
-[KNOWLEDGE: added=N | updated=M | type=project|global]
-```
-| Type | Target | Examples |
-|------|--------|----------|
-| entity | project_knowledge.json | Domain concepts |
-| codegraph | project_knowledge.json | Code structure |
-| relation | project_knowledge.json | Connections |
-| pattern | global_knowledge.json | Universal patterns |
-
-## Completion
-```
-[COMPLETE: task=<desc> | result=<summary> | learnings=N]
-[SESSION: end | knowledge_updated=bool]
-```
-
-## Workflow Log (Significant Work)
-```
-[WORKFLOW_LOG: task=<desc>]
-## Summary | Agent Interactions | Files | Quality Gates | Learnings
-[/WORKFLOW_LOG]
-```
-
-## Error Recovery
-| Error | Action |
+| Agent | Return |
 |-------|--------|
-| Knowledge corrupt | Backup, create fresh |
-| Specialist blocked | Escalate to orchestrator |
-| Context lost | Re-emit SESSION |
+| Architect | `[DESIGN_DECISION]` |
+| Developer | `[IMPLEMENTATION_RESULT]` |
+| Reviewer | `[VALIDATION_REPORT]` |
+| Researcher | `[FINDINGS]` |
+
+## Interrupts
+
+`[PAUSE]` → `[STACK: push]` → work → `[STACK: pop]` → `[RESUME]`
+
+**Max depth**: 3
+
+## Todo List Format
+
+**REQUIRED**: All todos MUST use PHASE format for tracking workflow progress.
+
+**Format**: `[PHASE: NAME | N/7] Description`
+
+**Example**:
+```json
+[
+  {"id": 1, "status": "completed", "title": "[PHASE: CONTEXT | 1/7] Load knowledge and analyze requirements"},
+  {"id": 2, "status": "in-progress", "title": "[PHASE: PLAN | 2/7] Design approach and select skills"},
+  {"id": 3, "status": "not-started", "title": "[PHASE: COORDINATE | 3/7] Delegate or prepare tools"},
+  {"id": 4, "status": "not-started", "title": "[PHASE: INTEGRATE | 4/7] Execute implementation"},
+  {"id": 5, "status": "not-started", "title": "[PHASE: VERIFY | 5/7] Test and validate"},
+  {"id": 6, "status": "not-started", "title": "[PHASE: LEARN | 6/7] Update project knowledge"},
+  {"id": 7, "status": "not-started", "title": "[PHASE: COMPLETE | 7/7] Finalize and emit results"}
+]
+```
+
+**Rules**:
+- Always create all 7 phases (skip phases only in execution, not in todo creation)
+- Use exact phase names: CONTEXT, PLAN, COORDINATE, INTEGRATE, VERIFY, LEARN, COMPLETE
+- Progress format: `N/7` where N is phase number (1-7)
+- For quick fixes, still create all phases but mark some as completed immediately
+```

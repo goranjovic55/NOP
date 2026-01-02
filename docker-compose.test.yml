@@ -1,10 +1,50 @@
-version: '3.8'
-
 services:
-  # Test Environment Services
-  # Port forwards removed - services accessible via Docker network only
-  # This reduces port conflicts and resource usage
-  
+  # Vulnerable test applications
+  vulnerable-web:
+    image: vulnerables/web-dvwa:latest
+    container_name: nop-vulnerable-web
+    environment:
+      - MYSQL_HOST=vulnerable-db
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    depends_on:
+      - vulnerable-db
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  vulnerable-db:
+    image: mariadb:10.1
+    container_name: nop-vulnerable-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.11
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # Custom test environment services
   custom-web-server:
     build: ./test-environment/web-server
     container_name: nop-custom-web
@@ -12,6 +52,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.42
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
   custom-ssh-server:
     build: ./test-environment/ssh-server
@@ -20,6 +68,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.69
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
   custom-db-server:
     build: ./test-environment/database-server
@@ -28,6 +84,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.123
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
   custom-file-server:
     build: ./test-environment/file-server
@@ -36,6 +100,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.200
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
   custom-rdp-server:
     build: ./test-environment/rdp-server
@@ -44,6 +116,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.50
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
   custom-vnc-server:
     build: ./test-environment/vnc-server
@@ -52,6 +132,14 @@ services:
       test-network:
         ipv4_address: 172.21.0.51
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
   custom-ftp-server:
     build: ./test-environment/ftp-server
@@ -60,8 +148,18 @@ services:
       test-network:
         ipv4_address: 172.21.0.52
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
 networks:
   test-network:
-    name: nop_test-network
-    external: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

@@ -27,3 +27,9 @@ frontend/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs - workflow logs are tracked in git for session history
+# log/**/*.md  # Removed - workflow logs should be committed
+
+# AKIS session tracking (temporary file for VSCode extension)
+.akis-session.json

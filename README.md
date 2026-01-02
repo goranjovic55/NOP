@@ -1,6 +1,56 @@
-# NOP - Network Operations Platform
+# NOP - Network Observatory Platform
 
-A comprehensive network operations and security management platform with advanced credential vaulting, network monitoring, and remote access capabilities.
+A comprehensive, self-contained network assessment platform designed for deployment as a network monitoring appliance. Provides complete visibility into LAN environments through passive discovery, real-time traffic analysis, and intelligent topology mapping.
+
+## Core Value Proposition
+
+- **Single-pane visibility** into all network assets and traffic
+- **Zero-configuration discovery** of network devices
+- **Browser-based remote access** eliminating the need for multiple client tools
+- **Operator-controlled escalation** for security testing when needed
+- **SBC-optimized** for efficient edge deployment
+
+## Key Differentiators
+
+Unlike existing solutions (NetAlertX, ntopng, Security Onion), NOP uniquely combines:
+- Automatic topology inference with confidence scoring
+- Integrated credential vault with browser-based access
+- Unified monitoring and optional security testing
+- Single Docker Compose deployment on ARM64
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   User Interface                         │
+│  ┌──────────┬──────────┬──────────┬──────────┬────────┐ │
+│  │Topology  │ Traffic  │ Assets   │ Access   │ Tools  │ │
+│  └──────────┴──────────┴──────────┴──────────┴────────┘ │
+└────────────────────────┬────────────────────────────────┘
+                         │ REST API / WebSocket
+┌────────────────────────▼────────────────────────────────┐
+│            Backend Orchestrator (FastAPI)                │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ Auth │ Config │ Jobs │ Docker Control │ Crypto  │   │
+│  └──────────────────────────────────────────────────┘   │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│                    Data Layer                            │
+│  ┌─────────────────┬──────────────────┬──────────────┐  │
+│  │   PostgreSQL    │      Redis       │   Volumes    │  │
+│  │  (State/Config) │  (Cache/Queues)  │  (Evidence)  │  │
+│  └─────────────────┴──────────────────┴──────────────┘  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│            Discovery & Analysis Plane                    │
+│  ┌─────────────┬──────────────┬────────────────────┐    │
+│  │  Passive    │    ntopng    │    Topology        │    │
+│  │  Discovery  │   (Traffic)  │    Inference       │    │
+│  └─────────────┴──────────────┴────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## 🏗️ Repository Structure
 
@@ -55,9 +105,12 @@ NOP/
 │   └── update_memory.py      # Knowledge update script
 │
 ├── docs/                      # Documentation
-│   ├── FEATURE_MOCKUP_VAULT_AND_RECENT_ACCESS.md
-│   ├── IMPLEMENTATION_SUMMARY.md
-│   └── TOPOLOGY_IMPROVEMENTS.md
+│   ├── architecture/          # System architecture docs
+│   ├── technical/             # API specs and technical details
+│   ├── guides/                # Configuration and deployment guides
+│   ├── features/              # Implemented and proposed features
+│   ├── development/           # Development docs (roadmap, contributing)
+│   └── design/                # UI/UX specifications
 │
 ├── volumes/                   # Persistent data
 │   ├── evidence/             # Captured network data
@@ -90,14 +143,26 @@ This project follows the **Universal Agent Framework** for AI-assisted developme
 - Docker & Docker Compose
 - Git
 
-### Start Main Services
+### Production Deployment (Multi-Arch Images)
 ```bash
-docker-compose up -d --build
+# Pull and run pre-built multi-arch images (auto-detects amd64/arm64)
+git clone https://github.com/goranjovic55/NOP.git
+cd NOP
+docker compose up -d
 ```
 
-### Start Test Environment
+Images are automatically built for **amd64** and **arm64** via GitHub Actions and published to GHCR. Docker automatically pulls the correct architecture for your system.
+
+### Development (Build Locally)
 ```bash
-docker-compose -f docker-compose.test.yml up -d --build
+# Build from source
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### Test Environment
+```bash
+# Start test targets (SSH, VNC, RDP, FTP, Web servers)
+docker compose -f docker-compose.test.yml up -d --build
 ```
 
 ### Access Points
@@ -107,18 +172,19 @@ docker-compose -f docker-compose.test.yml up -d --build
 
 ## 🔑 Key Features
 
+### Network Monitoring & Analysis
+- **Real-time Traffic Analysis** - Powered by ntopng with protocol detection
+- **Automatic Asset Discovery** - Passive and active discovery modes
+- **Interactive Topology** - EtherApe-style visualization with protocol coloring
+- **Vulnerability Scanning** - Integrated scanning capabilities
+- **Advanced Ping Tools** - Multi-protocol connectivity testing (ICMP, TCP, UDP, HTTP/HTTPS)
+
 ### Access Hub
 - **Credential Vault** - Password-protected storage with group management
 - **Quick Connect** - One-click access to saved hosts
 - **Sorting** - Recent, Frequent, or Name-based organization
 - **Fullscreen Mode** - Resizable connection area
 - **Multiple Protocols** - SSH, VNC, RDP, FTP, Telnet, Web
-
-### Network Monitoring
-- Real-time traffic analysis
-- Asset discovery
-- Vulnerability scanning
-- Topology visualization
 
 ### Security
 - JWT authentication
@@ -187,3 +253,28 @@ For detailed agent documentation, see `.github/agents/`.
 ## 👥 Contributors
 
 [Add Contributors]
+
+## 📚 Documentation
+
+**[📖 Complete Documentation Index](docs/INDEX.md)** - Navigate all documentation
+
+### Quick Links
+- **[Quick Start](docs/guides/QUICK_START.md)** - Get started in 5 minutes
+- **[Architecture](docs/architecture/ARCH_system_v1.md)** - System design and components
+- **[API Reference](docs/technical/API_rest_v1.md)** - REST API specification
+- **[Deployment](docs/guides/DEPLOYMENT.md)** - Production deployment guide
+- **[Contributing](docs/development/CONTRIBUTING.md)** - How to contribute
+
+### Documentation Structure
+- **Architecture** - System design and technical architecture
+- **Technical** - API references and specifications
+- **Guides** - Quick start, configuration, deployment
+- **Development** - Contributing, testing, roadmap
+- **Design** - UI/UX specifications
+- **Features** - Implemented and proposed features
+
+### Agent Framework Documentation
+- **Skills**: `.github/skills/*/SKILL.md` - 17 skills with progressive disclosure
+- **Agents**: `.github/agents/` - Agent definitions (Architect, Developer, Reviewer, Researcher)
+- **Knowledge Graph**: `project_knowledge.json` - Entity-relation model
+- **Instructions**: `.github/instructions/` - Framework protocols and templates

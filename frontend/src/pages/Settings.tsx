@@ -42,6 +42,10 @@ interface DiscoverySettings {
   enable_os_detection: boolean;
   enable_service_detection: boolean;
   passive_discovery: boolean;
+  track_source_only: boolean;
+  filter_unicast: boolean;
+  filter_multicast: boolean;
+  filter_broadcast: boolean;
   fingerprint_os: boolean;
   detect_vpn: boolean;
   interface_name: string;
@@ -100,10 +104,23 @@ const Settings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [interfaces, setInterfaces] = useState<Array<{ name: string; ip: string; status: string }>>([]);
 
   useEffect(() => {
     fetchSettings();
+    fetchInterfaces();
+    const interval = setInterval(fetchInterfaces, 5000); // Poll interfaces every 5 seconds
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchInterfaces = async () => {
+    try {
+      const response = await axios.get('/api/v1/traffic/interfaces');
+      setInterfaces(response.data);
+    } catch (error) {
+      console.error('Error fetching interfaces:', error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -271,7 +288,7 @@ const Settings: React.FC = () => {
       {/* Content */}
       <div className="dashboard-card p-6">
         {activeTab === 'scan' && <ScanSettingsPanel settings={settings.scan} onChange={updateSetting} />}
-        {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} />}
+        {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} interfaces={interfaces} />}
         {activeTab === 'access' && <AccessSettingsPanel settings={settings.access} onChange={updateSetting} />}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
       </div>
@@ -300,7 +317,7 @@ const Settings: React.FC = () => {
 // Scan Settings Panel
 const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -527,9 +544,13 @@ const ScanSettingsPanel: React.FC<{ settings: ScanSettings; onChange: (key: stri
     </div>
   );
 };
-const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
+const DiscoverySettingsPanel: React.FC<{ 
+  settings: DiscoverySettings; 
+  onChange: (key: string, value: string | number | boolean) => void;
+  interfaces: Array<{ name: string; ip: string; status: string }>;
+}> = ({ settings, onChange, interfaces }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Profile Configuration */}
       <SettingsSection title="Profile Configuration">
         <SettingsInput
@@ -646,7 +667,42 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
             label="Passive Discovery"
             value={settings.passive_discovery}
             onChange={(val) => onChange('passive_discovery', val)}
+            description="Discover hosts from network traffic"
           />
+          
+          <SettingsToggle
+            label="Source Only"
+            value={settings.track_source_only}
+            onChange={(val) => onChange('track_source_only', val)}
+            description="Safe mode: only track senders. Disable to track receivers with filters below"
+          />
+          
+          {!settings.track_source_only && (
+            <div className="ml-6 space-y-3 border-l-2 border-cyber-purple pl-4">
+              <p className="text-xs text-cyber-purple mb-1">Destination Filters:</p>
+              
+              <SettingsToggle
+                label="Unicast"
+                value={settings.filter_unicast}
+                onChange={(val) => onChange('filter_unicast', val)}
+                description="Filter point-to-point traffic"
+              />
+              
+              <SettingsToggle
+                label="Multicast"
+                value={settings.filter_multicast}
+                onChange={(val) => onChange('filter_multicast', val)}
+                description="Filter group traffic (224.0.0.0/4)"
+              />
+              
+              <SettingsToggle
+                label="Broadcast"
+                value={settings.filter_broadcast}
+                onChange={(val) => onChange('filter_broadcast', val)}
+                description="Filter network-wide traffic"
+              />
+            </div>
+          )}
           
           <SettingsToggle
             label="OS Fingerprinting"
@@ -664,12 +720,28 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
 
       {/* Network Interface */}
       <SettingsSection title="Network Interface">
-        <SettingsInput
-          label="Interface Name"
-          value={settings.interface_name}
-          onChange={(val) => onChange('interface_name', val)}
-          placeholder="eth0"
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-cyber-blue uppercase">
+            Interface Name
+          </label>
+          <select
+            value={settings.interface_name}
+            onChange={(e) => onChange('interface_name', e.target.value)}
+            className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue focus:border-cyber-red outline-none"
+          >
+            {interfaces.map((iface) => (
+              <option key={iface.name} value={iface.name} className="bg-cyber-darker text-cyber-blue">
+                {iface.name} - {iface.ip} ({iface.status})
+              </option>
+            ))}
+            {interfaces.length === 0 && (
+              <option value={settings.interface_name} className="bg-cyber-darker text-cyber-blue">
+                {settings.interface_name} (loading...)
+              </option>
+            )}
+          </select>
+          <p className="text-xs text-cyber-gray-light">Select network interface for passive discovery</p>
+        </div>
         
         <SettingsToggle
           label="Promiscuous Mode"
@@ -724,7 +796,7 @@ const DiscoverySettingsPanel: React.FC<{ settings: DiscoverySettings; onChange: 
 // Access Settings Panel
 const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* Authentication */}
       <SettingsSection title="Authentication">
         <SettingsSlider
@@ -835,7 +907,7 @@ const AccessSettingsPanel: React.FC<{ settings: AccessSettings; onChange: (key: 
 // System Settings Panel
 const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: string, value: string | number | boolean) => void }> = ({ settings, onChange }) => {
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-6">
       {/* General */}
       <SettingsSection title="General">
         <SettingsInput
@@ -1030,12 +1102,17 @@ const SettingsToggle: React.FC<{
         <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
         {description && <p className="text-xs text-cyber-gray-light mt-1">{description}</p>}
       </div>
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 accent-cyber-red mt-1"
-      />
+      <label className="cursor-pointer mt-1">
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-5 h-5 border-2 border-cyber-red flex items-center justify-center peer-checked:bg-cyber-red transition-all">
+          {value && <span className="text-white text-sm">◆</span>}
+        </div>
+      </label>
     </div>
   );
 };
@@ -1061,7 +1138,7 @@ const SettingsSlider: React.FC<{
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full accent-cyber-red"
+        className="w-full h-2 bg-cyber-darker rounded-none appearance-none cursor-pointer [&::-webkit-slider-track]:bg-cyber-gray [&::-webkit-slider-track]:h-0.5 [&::-webkit-slider-track]:border [&::-webkit-slider-track]:border-cyber-purple [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-cyber-red [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyber-red [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,0,102,0.6)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(255,0,102,0.9)] [&::-moz-range-track]:bg-cyber-gray [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:border [&::-moz-range-track]:border-cyber-purple [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-cyber-red [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyber-red [&::-moz-range-thumb]:rounded-none"
       />
       {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
     </div>
