@@ -24,6 +24,17 @@ applyTo: '**'
 
 ## Interrupts
 
+**ON INTERRUPT:**
+1. `node .github/scripts/session-tracker.js checkpoint` - Auto-save state
+2. Preserve: task, agent, phase, progress, decisions
+
+**ON RESUME:**
+1. `node .github/scripts/session-tracker.js status` - Check active session
+2. `node .github/scripts/session-tracker.js resume` - Get full context
+3. Continue from last phase
+4. Re-emit `[SESSION:]` and `[AKIS]` headers
+
+**INTERRUPT STACK:**
 `[PAUSE]` → `[STACK: push]` → work → `[STACK: pop]` → `[RESUME]`
 
 **Max depth**: 3
