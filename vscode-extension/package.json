@@ -1,0 +1,143 @@
+{
+  "name": "akis-monitor",
+  "displayName": "AKIS Monitor",
+  "description": "Monitor and visualize AKIS agent workflows, decisions, and knowledge graphs",
+  "version": "0.1.0",
+  "publisher": "nop-team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goranjovic55/NOP"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "akis-monitor",
+          "title": "AKIS Monitor",
+          "icon": "resources/akis-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "akis-monitor": [
+        {
+          "id": "akis-live-session-view",
+          "name": "Live Session",
+          "type": "webview"
+        },
+        {
+          "id": "akis-decisions-view",
+          "name": "Historical Diagram",
+          "type": "webview"
+        },
+        {
+          "id": "akis-knowledge-view",
+          "name": "Knowledge Graph",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "akis-monitor.refreshLiveSession",
+        "title": "AKIS: Refresh Live Session",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "akis-monitor.refreshDecisions",
+        "title": "AKIS: Refresh Decisions",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "akis-monitor.refreshKnowledge",
+        "title": "AKIS: Refresh Knowledge Graph",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "akis-monitor.exportDiagram",
+        "title": "AKIS: Export Current Diagram"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "akis-monitor.refreshLiveSession",
+          "when": "view == akis-live-session-view",
+          "group": "navigation"
+        },
+        {
+          "command": "akis-monitor.refreshWorkflow",
+          "when": "view == akis-workflow-view",
+          "group": "navigation"
+        },
+        {
+          "command": "akis-monitor.refreshDecisions",
+          "when": "view == akis-decisions-view",
+          "group": "navigation"
+        },
+        {
+          "command": "akis-monitor.refreshKnowledge",
+          "when": "view == akis-knowledge-view",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AKIS Monitor",
+      "properties": {
+        "akisMonitor.workflowLogsPath": {
+          "type": "string",
+          "default": "log/workflow",
+          "description": "Path to workflow logs directory relative to workspace root"
+        },
+        "akisMonitor.knowledgeFilePath": {
+          "type": "string",
+          "default": "project_knowledge.json",
+          "description": "Path to project knowledge file relative to workspace root"
+        },
+        "akisMonitor.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh visualizations when files change"
+        },
+        "akisMonitor.refreshInterval": {
+          "type": "number",
+          "default": 2000,
+          "description": "Auto-refresh interval in milliseconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "d3": "^7.8.5",
+    "@types/d3": "^7.4.3"
+  }
+}
