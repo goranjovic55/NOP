@@ -1,520 +1,27 @@
 {
   "sessions": [
     {
-      "id": "1767352032702",
-      "name": "fix-icon-test-extension",
-      "startTime": "2026-01-02T11:07:12.702Z",
-      "task": "fix-icon-test-extension",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": null,
-      "isMainSession": true,
-      "depth": 0,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:07:12.702Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started fix-icon-test-extension with _DevTeam (main)",
-          "reason": "Initialize new work session",
-          "details": {
-            "task": "fix-icon-test-extension",
-            "agent": "_DevTeam",
-            "isMainSession": true,
-            "parentSessionId": null,
-            "depth": 0
-          }
-        }
-      ],
-      "decisions": [],
-      "emissions": [],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:07:12.702Z",
-          "message": "",
-          "actionIds": [
-            "0"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:07:12.702Z",
-      "endTime": "2026-01-02T11:10:02.860Z",
-      "workflowLog": "EXTENSION_TEST_RESULTS.md"
-    },
-    {
-      "id": "1767352251817",
-      "name": "rebuild-test-extension",
-      "startTime": "2026-01-02T11:10:51.817Z",
-      "task": "rebuild-test-extension",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": null,
-      "isMainSession": true,
-      "depth": 0,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:10:51.817Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started rebuild-test-extension with _DevTeam (main)",
-          "reason": "Initialize new work session",
-          "details": {
-            "task": "rebuild-test-extension",
-            "agent": "_DevTeam",
-            "isMainSession": true,
-            "parentSessionId": null,
-            "depth": 0
-          }
-        },
-        {
-          "id": "1",
-          "timestamp": "2026-01-02T11:13:18.351Z",
-          "type": "PAUSE",
-          "phase": "CONTEXT",
-          "title": "Session Paused",
-          "description": "Paused for: fix-icon-display",
-          "reason": "Interrupt - starting sub-session",
-          "details": {
-            "childTask": "fix-icon-display"
-          }
-        },
-        {
-          "id": "2",
-          "timestamp": "2026-01-02T11:13:59.368Z",
-          "type": "RESUME",
-          "phase": "CONTEXT",
-          "agent": "_DevTeam",
-          "title": "RESUME",
-          "description": "Session resumed",
-          "reason": "Continuing work",
-          "details": {}
-        },
-        {
-          "id": "3",
-          "timestamp": "2026-01-02T11:15:48.440Z",
-          "type": "PAUSE",
-          "phase": "CONTEXT",
-          "title": "Session Paused",
-          "description": "Paused for: fix-icon-cache",
-          "reason": "Interrupt - starting sub-session",
-          "details": {
-            "childTask": "fix-icon-cache"
-          }
-        },
-        {
-          "id": "4",
-          "timestamp": "2026-01-02T11:35:09.860Z",
-          "type": "RESUME",
-          "phase": "CONTEXT",
-          "agent": "_DevTeam",
-          "title": "RESUME",
-          "description": "Session resumed",
-          "reason": "Continuing work",
-          "details": {}
-        }
-      ],
-      "decisions": [],
-      "emissions": [
-        {
-          "timestamp": "2026-01-02T11:13:59.367Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "RESUME",
-          "content": "Session resumed",
-          "reason": "Continuing work"
-        },
-        {
-          "timestamp": "2026-01-02T11:35:09.860Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "RESUME",
-          "content": "Session resumed",
-          "reason": "Continuing work"
-        }
-      ],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:10:51.817Z",
-          "message": "",
-          "actionIds": [
-            "0",
-            "2",
-            "4"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:35:09.860Z",
-      "endTime": "2026-01-02T11:35:14.923Z",
-      "workflowLog": "All extension and AKIS updates done"
-    },
-    {
-      "id": "1767352398351",
-      "name": "fix-icon-display",
-      "startTime": "2026-01-02T11:13:18.351Z",
-      "task": "fix-icon-display",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": "1767352251817",
-      "isMainSession": false,
-      "depth": 1,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:13:18.351Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started fix-icon-display with _DevTeam (sub-session)",
-          "reason": "Interrupt from parent session",
-          "details": {
-            "task": "fix-icon-display",
-            "agent": "_DevTeam",
-            "isMainSession": false,
-            "parentSessionId": "1767352251817",
-            "depth": 1
-          }
-        }
-      ],
-      "decisions": [],
-      "emissions": [],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:13:18.351Z",
-          "message": "",
-          "actionIds": [
-            "0"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:13:18.351Z",
-      "endTime": "2026-01-02T11:13:59.358Z",
-      "workflowLog": "Extension rebuilt and reinstalled"
-    },
-    {
-      "id": "1767352548440",
-      "name": "fix-icon-cache",
-      "startTime": "2026-01-02T11:15:48.440Z",
-      "task": "fix-icon-cache",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": "1767352251817",
-      "isMainSession": false,
-      "depth": 1,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:15:48.440Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started fix-icon-cache with _DevTeam (sub-session)",
-          "reason": "Interrupt from parent session",
-          "details": {
-            "task": "fix-icon-cache",
-            "agent": "_DevTeam",
-            "isMainSession": false,
-            "parentSessionId": "1767352251817",
-            "depth": 1
-          }
-        },
-        {
-          "id": "1",
-          "timestamp": "2026-01-02T11:18:17.920Z",
-          "type": "PAUSE",
-          "phase": "CONTEXT",
-          "title": "Session Paused",
-          "description": "Paused for: indent-subsessions",
-          "reason": "Interrupt - starting sub-session",
-          "details": {
-            "childTask": "indent-subsessions"
-          }
-        },
-        {
-          "id": "2",
-          "timestamp": "2026-01-02T11:18:57.382Z",
-          "type": "RESUME",
-          "phase": "CONTEXT",
-          "agent": "_DevTeam",
-          "title": "RESUME",
-          "description": "Session resumed",
-          "reason": "Continuing work",
-          "details": {}
-        },
-        {
-          "id": "3",
-          "timestamp": "2026-01-02T11:31:42.952Z",
-          "type": "PAUSE",
-          "phase": "CONTEXT",
-          "title": "Session Paused",
-          "description": "Paused for: update-akis-session-docs",
-          "reason": "Interrupt - starting sub-session",
-          "details": {
-            "childTask": "update-akis-session-docs"
-          }
-        },
-        {
-          "id": "4",
-          "timestamp": "2026-01-02T11:34:17.160Z",
-          "type": "RESUME",
-          "phase": "CONTEXT",
-          "agent": "_DevTeam",
-          "title": "RESUME",
-          "description": "Session resumed",
-          "reason": "Continuing work",
-          "details": {}
-        }
-      ],
-      "decisions": [],
-      "emissions": [
-        {
-          "timestamp": "2026-01-02T11:18:57.382Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "RESUME",
-          "content": "Session resumed",
-          "reason": "Continuing work"
-        },
-        {
-          "timestamp": "2026-01-02T11:34:17.159Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "RESUME",
-          "content": "Session resumed",
-          "reason": "Continuing work"
-        }
-      ],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:15:48.440Z",
-          "message": "",
-          "actionIds": [
-            "0",
-            "2",
-            "4"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:34:17.160Z",
-      "endTime": "2026-01-02T11:35:09.851Z",
-      "workflowLog": "Extension fixes and AKIS framework updates complete"
-    },
-    {
-      "id": "1767352697920",
-      "name": "indent-subsessions",
-      "startTime": "2026-01-02T11:18:17.920Z",
-      "task": "indent-subsessions",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": "1767352548440",
-      "isMainSession": false,
-      "depth": 2,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:18:17.920Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started indent-subsessions with _DevTeam (sub-session)",
-          "reason": "Interrupt from parent session",
-          "details": {
-            "task": "indent-subsessions",
-            "agent": "_DevTeam",
-            "isMainSession": false,
-            "parentSessionId": "1767352548440",
-            "depth": 2
-          }
-        }
-      ],
-      "decisions": [],
-      "emissions": [],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:18:17.920Z",
-          "message": "",
-          "actionIds": [
-            "0"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:18:17.920Z",
-      "endTime": "2026-01-02T11:18:57.370Z",
-      "workflowLog": "Subsession indentation updated"
-    },
-    {
-      "id": "1767353502953",
-      "name": "update-akis-session-docs",
-      "startTime": "2026-01-02T11:31:42.953Z",
-      "task": "update-akis-session-docs",
-      "agent": "_DevTeam",
-      "status": "completed",
-      "phase": "CONTEXT",
-      "phaseDisplay": "_DevTeam CONTEXT",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "",
-      "phaseVerbose": "_DevTeam CONTEXT | progress=1/0",
-      "progress": "1/0",
-      "parentSessionId": "1767352548440",
-      "isMainSession": false,
-      "depth": 2,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
-        {
-          "id": "0",
-          "timestamp": "2026-01-02T11:31:42.953Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started update-akis-session-docs with _DevTeam (sub-session)",
-          "reason": "Interrupt from parent session",
-          "details": {
-            "task": "update-akis-session-docs",
-            "agent": "_DevTeam",
-            "isMainSession": false,
-            "parentSessionId": "1767352548440",
-            "depth": 2
-          }
-        }
-      ],
-      "decisions": [],
-      "emissions": [],
-      "delegations": [],
-      "skills": [],
-      "phases": {
-        "CONTEXT": {
-          "name": "CONTEXT",
-          "status": "active",
-          "startTime": "2026-01-02T11:31:42.953Z",
-          "message": "",
-          "actionIds": [
-            "0"
-          ]
-        }
-      },
-      "awaitingReset": true,
-      "lastUpdate": "2026-01-02T11:31:42.953Z",
-      "endTime": "2026-01-02T11:34:17.150Z",
-      "workflowLog": "Updated AKIS framework with session file docs"
-    },
-    {
-      "id": "1767356393369",
-      "name": "edge-case-simulation-session-resilience",
-      "startTime": "2026-01-02T12:19:53.369Z",
-      "task": "edge-case-simulation-session-resilience",
-      "agent": "_DevTeam",
+      "id": "1767356801493",
+      "name": "main",
+      "startTime": "2026-01-02T12:26:41.493Z",
+      "task": "main",
+      "agent": "Developer",
       "status": "active",
-      "phase": "PLAN",
-      "phaseDisplay": "_DevTeam PLAN",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "Creating edge case simulation test suite for session resilience",
-      "phaseVerbose": "_DevTeam PLAN - Creating edge case simulation test suite for session resilience | progress=2/7",
-      "progress": "2/7",
+      "phase": "INTEGRATE",
+      "phaseDisplay": "Developer INTEGRATE",
+      "phaseAgent": "Developer",
+      "phaseMessage": "Implemented comprehensive test suites",
+      "phaseVerbose": "Developer INTEGRATE - Implemented comprehensive test suites | progress=4/7",
+      "progress": "4/7",
       "parentSessionId": null,
       "isMainSession": true,
       "depth": 0,
       "context": {
         "entities": [],
-        "skills": [],
+        "skills": [
+          "backend-api",
+          "testing"
+        ],
         "patterns": [],
         "files": [],
         "changes": []
@@ -522,15 +29,15 @@
       "actions": [
         {
           "id": "0",
-          "timestamp": "2026-01-02T12:19:53.370Z",
+          "timestamp": "2026-01-02T12:26:41.493Z",
           "type": "SESSION_START",
           "phase": "CONTEXT",
           "title": "Session Started",
-          "description": "Started edge-case-simulation-session-resilience with _DevTeam (main)",
+          "description": "Started main with Developer (main)",
           "reason": "Initialize new work session",
           "details": {
-            "task": "edge-case-simulation-session-resilience",
-            "agent": "_DevTeam",
+            "task": "main",
+            "agent": "Developer",
             "isMainSession": true,
             "parentSessionId": null,
             "depth": 0
@@ -538,62 +45,246 @@
         },
         {
           "id": "1",
-          "timestamp": "2026-01-02T12:20:48.933Z",
+          "timestamp": "2026-01-02T12:26:41.539Z",
+          "type": "DECISION",
+          "phase": "CONTEXT",
+          "agent": "Developer",
+          "title": "Decision Made",
+          "description": "Decision 1",
+          "reason": "Strategic choice point",
+          "details": {
+            "decision": "Decision 1",
+            "alternatives": [],
+            "rationale": ""
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T12:26:41.585Z",
+          "type": "DECISION",
+          "phase": "CONTEXT",
+          "agent": "Developer",
+          "title": "Decision Made",
+          "description": "Decision 2",
+          "reason": "Strategic choice point",
+          "details": {
+            "decision": "Decision 2",
+            "alternatives": [],
+            "rationale": ""
+          }
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T12:26:41.633Z",
+          "type": "SKILL",
+          "phase": "CONTEXT",
+          "agent": "Developer",
+          "title": "Skills Applied",
+          "description": "Using: backend-api, testing",
+          "reason": "Technical pattern implementation",
+          "details": {
+            "skills": [
+              "backend-api",
+              "testing"
+            ],
+            "patterns": []
+          }
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-01-02T12:26:41.680Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: interrupt",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "interrupt",
+            "progress": "1/0",
+            "pausedPhase": "CONTEXT"
+          }
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-01-02T12:26:41.732Z",
+          "type": "RESUME",
+          "phase": "CONTEXT",
+          "agent": "Developer",
+          "title": "RESUME",
+          "description": "Session resumed at CONTEXT",
+          "reason": "Continuing work from interruption",
+          "details": {
+            "resumedFrom": "CONTEXT",
+            "progress": "1/0"
+          }
+        },
+        {
+          "id": "6",
+          "timestamp": "2026-01-02T12:28:14.473Z",
           "type": "PHASE_CHANGE",
-          "phase": "PLAN",
-          "agent": "_DevTeam",
-          "title": "Phase: PLAN",
-          "description": "Creating edge case simulation test suite for session resilience",
+          "phase": "INTEGRATE",
+          "agent": "Developer",
+          "title": "Phase: INTEGRATE",
+          "description": "Implemented comprehensive test suites",
           "reason": "Phase transition in workflow",
           "details": {
             "from": "NONE",
-            "to": "PLAN",
-            "progress": "2/7",
-            "message": "Creating edge case simulation test suite for session resilience"
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": "Implemented comprehensive test suites"
           }
         }
       ],
-      "decisions": [],
+      "decisions": [
+        {
+          "description": "Decision 1",
+          "timestamp": "2026-01-02T12:26:41.539Z"
+        },
+        {
+          "description": "Decision 2",
+          "timestamp": "2026-01-02T12:26:41.585Z"
+        }
+      ],
       "emissions": [
         {
-          "timestamp": "2026-01-02T12:20:48.933Z",
-          "agent": "_DevTeam",
+          "timestamp": "2026-01-02T12:26:41.539Z",
+          "agent": "Developer",
+          "isDelegated": false,
+          "type": "DECISION",
+          "content": "Decision 1"
+        },
+        {
+          "timestamp": "2026-01-02T12:26:41.585Z",
+          "agent": "Developer",
+          "isDelegated": false,
+          "type": "DECISION",
+          "content": "Decision 2"
+        },
+        {
+          "timestamp": "2026-01-02T12:26:41.633Z",
+          "agent": "Developer",
+          "isDelegated": false,
+          "type": "SKILL",
+          "content": "backend-api,testing"
+        },
+        {
+          "timestamp": "2026-01-02T12:26:41.731Z",
+          "agent": "Developer",
+          "isDelegated": false,
+          "type": "RESUME",
+          "content": "Session resumed at CONTEXT",
+          "reason": "Continuing work from interruption",
+          "details": {
+            "resumedFrom": "CONTEXT",
+            "progress": "1/0"
+          }
+        },
+        {
+          "timestamp": "2026-01-02T12:28:14.473Z",
+          "agent": "Developer",
           "isDelegated": false,
           "type": "PHASE",
-          "phase": "PLAN",
-          "progress": "2/7",
-          "content": "PLAN",
-          "message": "Creating edge case simulation test suite for session resilience",
-          "detail": "Creating edge case simulation test suite for session resilience"
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "Implemented comprehensive test suites",
+          "detail": "Implemented comprehensive test suites"
         }
       ],
       "delegations": [],
-      "skills": [],
+      "skills": [
+        "backend-api",
+        "testing"
+      ],
       "phases": {
         "CONTEXT": {
           "name": "CONTEXT",
           "status": "completed",
-          "startTime": "2026-01-02T12:19:53.370Z",
+          "startTime": "2026-01-02T12:26:41.493Z",
           "message": "",
           "actionIds": [
-            "0"
+            "0",
+            "1",
+            "2",
+            "3",
+            "5"
           ],
-          "endTime": "2026-01-02T12:20:48.933Z"
+          "endTime": "2026-01-02T12:28:14.473Z"
         },
-        "PLAN": {
-          "name": "PLAN",
+        "INTEGRATE": {
+          "name": "INTEGRATE",
           "status": "active",
-          "startTime": "2026-01-02T12:20:48.933Z",
-          "message": "Creating edge case simulation test suite for session resilience",
+          "startTime": "2026-01-02T12:28:14.473Z",
+          "message": "Implemented comprehensive test suites",
           "actionIds": [
-            "1"
+            "6"
           ]
         }
       },
       "awaitingReset": false,
-      "lastUpdate": "2026-01-02T12:20:48.933Z"
+      "lastUpdate": "2026-01-02T12:28:14.473Z"
+    },
+    {
+      "id": "1767356801680",
+      "name": "interrupt",
+      "startTime": "2026-01-02T12:26:41.680Z",
+      "task": "interrupt",
+      "agent": "Developer",
+      "status": "completed",
+      "phase": "CONTEXT",
+      "phaseDisplay": "Developer CONTEXT",
+      "phaseAgent": "Developer",
+      "phaseMessage": "",
+      "phaseVerbose": "Developer CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767356801493",
+      "isMainSession": false,
+      "depth": 1,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T12:26:41.680Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started interrupt with Developer (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "interrupt",
+            "agent": "Developer",
+            "isMainSession": false,
+            "parentSessionId": "1767356801493",
+            "depth": 1
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T12:26:41.680Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T12:26:41.680Z",
+      "endTime": "2026-01-02T12:26:41.726Z"
     }
   ],
-  "currentSessionId": "1767356393369",
-  "lastUpdate": "2026-01-02T12:20:48.933Z"
+  "currentSessionId": "1767356801493",
+  "lastUpdate": "2026-01-02T12:28:14.473Z"
 }
