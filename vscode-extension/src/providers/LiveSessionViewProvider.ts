@@ -840,6 +840,7 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             'DELEGATE': '🤝',
             'PAUSE': '⏸️',
             'RESUME': '▶️',
+            'INTERRUPT': '⚠️',
             'COMPLETE': '✅'
         };
         return icons[type] || '•';

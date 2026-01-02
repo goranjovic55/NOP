@@ -43,25 +43,17 @@ services:
       - "21100-21110:21100-21110"
     restart: unless-stopped
 
-  # Metasploitable2 - Real vulnerable target with vsftpd 2.3.4 backdoor
-  metasploitable2:
-    image: tleemcjr/metasploitable2:latest
-    container_name: metasploitable2
-    hostname: metasploitable2
+  # vsftpd 2.3.4 BACKDOOR - CVE-2011-2523 (VULNERABLE TARGET FOR TESTING)
+  vsftpd-backdoor:
+    build: ./vsftpd-vulnerable
+    container_name: vsftpd-2.3.4-backdoor
+    hostname: vsftpd-vulnerable
     networks:
       test-network:
         ipv4_address: 172.21.0.25
     ports:
-      - "21021:21"      # FTP (vsftpd 2.3.4 with backdoor)
-      - "22022:22"      # SSH
-      - "23023:23"      # Telnet
-      - "8880:80"      # HTTP
-      - "44443:443"     # HTTPS
-      - "33306:3306"    # MySQL
-      - "55432:5432"    # PostgreSQL
-      - "6200:6200"    # Backdoor port
-    stdin_open: true
-    tty: true
+      - "2121:21"
+      - "6200:6200"
     restart: unless-stopped
 
   database-server:
@@ -116,16 +108,16 @@ services:
       - "1139:139"
     restart: unless-stopped
 
-  # apache-server:
-  #   image: httpd:2.4.18  # Deprecated image format - disabled
-  #   container_name: vulnerable-apache
-  #   hostname: apache-server
-  #   networks:
-  #     test-network:
-  #       ipv4_address: 172.21.0.80
-  #   ports:
-  #     - "8081:80"
-  #   restart: unless-stopped
+  apache-server:
+    image: httpd:2.4.18  # Old Apache with CVE-2017-7668, CVE-2017-7679
+    container_name: vulnerable-apache
+    hostname: apache-server
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.80
+    ports:
+      - "8081:80"
+    restart: unless-stopped
 
 volumes:
   jenkins_home:

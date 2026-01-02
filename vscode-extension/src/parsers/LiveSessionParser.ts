@@ -4,7 +4,7 @@ import * as fs from 'fs';
 export interface SessionAction {
     id: string;
     timestamp: Date;
-    type: 'SESSION_START' | 'PHASE_CHANGE' | 'DECISION' | 'DETAIL' | 'FILE_CHANGE' | 'CONTEXT' | 'DELEGATE' | 'PAUSE' | 'RESUME' | 'COMPLETE';
+    type: 'SESSION_START' | 'PHASE_CHANGE' | 'DECISION' | 'DETAIL' | 'FILE_CHANGE' | 'CONTEXT' | 'DELEGATE' | 'PAUSE' | 'RESUME' | 'INTERRUPT' | 'COMPLETE';
     description: string;
     reason?: string;
     details?: any;

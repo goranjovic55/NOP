@@ -50,24 +50,22 @@ class WorkflowWatcher {
         if (!autoRefresh) {
             return;
         }
-        const workspaceRoot = this.workspaceFolder.uri.fsPath;
-        // Watch .akis-sessions.json (multi-session file - primary)
+        // Watch .akis-session.json (primary live session source)
+        const sessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-session.json');
+        const sessionDir = path.dirname(sessionPath);
+        // Watch the workspace root for .akis-session.json
         try {
-            this.multiSessionWatcher = fs.watch(workspaceRoot, (eventType, filename) => {
-                if (filename === '.akis-sessions.json') {
-                    console.log('Multi-session file changed');
+            // Use both fs.watch and fs.watchFile for better cross-platform support
+            this.sessionWatcher = fs.watch(sessionDir, { persistent: false }, (eventType, filename) => {
+                if (filename === '.akis-session.json') {
+                    console.log(`Session file changed (${eventType}):`, filename);
                     this.notifyProviders();
                 }
             });
-        }
-        catch (error) {
-            console.error('Could not watch multi-session file:', error);
-        }
-        // Watch .akis-session.json (single session - backwards compatible)
-        try {
-            this.sessionWatcher = fs.watch(workspaceRoot, (eventType, filename) => {
-                if (filename === '.akis-session.json') {
-                    console.log('Session file changed');
+            // Also use polling as fallback
+            fs.watchFile(sessionPath, { interval: 1000 }, (curr, prev) => {
+                if (curr.mtime !== prev.mtime) {
+                    console.log('Session file modified (polling)');
                     this.notifyProviders();
                 }
             });
@@ -96,8 +94,8 @@ class WorkflowWatcher {
     }
     notifyProviders() {
         const config = vscode.workspace.getConfiguration('akisMonitor');
-        const interval = config.get('refreshInterval', 2000);
-        // Debounce rapid changes
+        const interval = config.get('refreshInterval', 500);
+        // Debounce rapid changes (reduced from 2000ms to 500ms for faster updates)
         setTimeout(() => {
             this.providers.forEach(provider => provider.refresh());
         }, interval);
@@ -111,9 +109,6 @@ class WorkflowWatcher {
         }
         if (this.sessionWatcher) {
             this.sessionWatcher.close();
-        }
-        if (this.multiSessionWatcher) {
-            this.multiSessionWatcher.close();
         }
         this.disposables.forEach(d => d.dispose());
     }

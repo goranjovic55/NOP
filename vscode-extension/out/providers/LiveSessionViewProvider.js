@@ -435,7 +435,7 @@ class LiveSessionViewProvider {
 
     <script>
         const sessionsData = ${JSON.stringify(data.sessions)};
-        let autoScroll = ${JSON.stringify(data.autoScroll !== false)}; // Default true
+        let autoScroll = true; // Always on by default
         let expandedSessions = new Set();
         
         // Restore state from previous refresh
@@ -465,9 +465,8 @@ class LiveSessionViewProvider {
                 
                 if (isExpanding) {
                     expandedSessions.add(sessionId);
-                    if (autoScroll) {
-                        scrollToBottom(idx);
-                    }
+                    // Always scroll to latest when expanding
+                    setTimeout(() => scrollToBottom(idx), 50);
                 } else {
                     expandedSessions.delete(sessionId);
                 }
@@ -591,13 +590,29 @@ class LiveSessionViewProvider {
             previousActionCounts[session.id || idx] = session.actions?.length || 0;
         });
         
-        // Auto-expand current session
-        document.querySelectorAll('.session-item.current').forEach((el, idx) => {
-            const body = el.querySelector('.session-body');
-            const icon = el.querySelector('.toggle-icon');
-            if (body && icon) {
-                body.classList.add('expanded');
-                icon.textContent = '▼';
+        // Auto-expand only ACTIVE sessions, collapse completed ones
+        sessionsData.forEach((session, idx) => {
+            const isActive = session.status === 'active' && session.phase !== 'COMPLETE';
+            const body = document.getElementById('session-body-' + idx);
+            const icon = document.getElementById('toggle-icon-' + idx);
+            const sessionItem = document.getElementById('session-' + idx);
+            
+            if (body && icon && sessionItem) {
+                const sessionId = sessionItem.dataset.sessionId;
+                
+                if (isActive) {
+                    // Auto-expand active sessions
+                    body.classList.add('expanded');
+                    icon.textContent = '▼';
+                    expandedSessions.add(sessionId);
+                    // Scroll to latest action
+                    setTimeout(() => scrollToBottom(idx), 100);
+                } else {
+                    // Auto-collapse completed sessions
+                    body.classList.remove('expanded');
+                    icon.textContent = '▶';
+                    expandedSessions.delete(sessionId);
+                }
             }
         });
         
@@ -644,21 +659,21 @@ class LiveSessionViewProvider {
                 const sessionId = session.id || idx;
                 const oldCount = oldCounts[sessionId] || 0;
                 const newCount = session.actions?.length || 0;
+                const isActive = session.status === 'active' && session.phase !== 'COMPLETE';
                 
-                // New action detected and session was collapsed
-                if (newCount > oldCount && !expandedSessions.has(sessionId)) {
+                // New action detected on ACTIVE session
+                if (newCount > oldCount && isActive && !expandedSessions.has(sessionId)) {
                     const body = document.getElementById('session-body-' + idx);
                     const icon = document.getElementById('toggle-icon-' + idx);
                     
                     if (body && icon && !body.classList.contains('expanded')) {
-                        // Auto-expand on new action
+                        // Auto-expand on new action (active only)
                         body.classList.add('expanded');
                         icon.textContent = '▼';
                         expandedSessions.add(sessionId);
                         
-                        if (autoScroll) {
-                            scrollToBottom(idx);
-                        }
+                        // Always scroll to latest on new action
+                        setTimeout(() => scrollToBottom(idx), 100);
                     }
                 }
             });
@@ -794,6 +809,7 @@ class LiveSessionViewProvider {
             'DELEGATE': '🤝',
             'PAUSE': '⏸️',
             'RESUME': '▶️',
+            'INTERRUPT': '⚠️',
             'COMPLETE': '✅'
         };
         return icons[type] || '•';

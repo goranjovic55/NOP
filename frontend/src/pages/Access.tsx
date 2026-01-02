@@ -154,6 +154,37 @@ const Access: React.FC = () => {
       // Set vulnerability if provided (for exploit mode)
       if (state.vulnerability) {
         setSelectedVulnerability(state.vulnerability);
+        
+        // Auto-populate exploit builder form fields
+        const vuln = state.vulnerability;
+        
+        // Set port and service
+        setTargetPort(vuln.affected_port?.toString() || '');
+        setTargetService(vuln.affected_service || '');
+        
+        // Set exploit name and description
+        setExploitName(vuln.cve_id ? `Exploit for ${vuln.cve_id}` : vuln.title || 'Custom Exploit');
+        setExploitDescription(vuln.description || '');
+        
+        // Intelligently set payload type based on service
+        const service = vuln.affected_service?.toLowerCase() || '';
+        if (service.includes('ssh') || service.includes('telnet') || service.includes('ftp')) {
+          setPayloadType('reverse_shell');
+          setPayloadVariant('bash');
+        } else if (service.includes('http') || service.includes('web') || service.includes('apache') || service.includes('nginx')) {
+          setPayloadType('web_shell');
+          setPayloadVariant('php');
+        } else if (service.includes('smb') || service.includes('rdp') || service.includes('windows')) {
+          setPayloadType('reverse_shell');
+          setPayloadVariant('powershell');
+        } else if (service.includes('mysql') || service.includes('postgres') || service.includes('mssql')) {
+          setPayloadType('reverse_shell');
+          setPayloadVariant('python');
+        } else {
+          // Default for unknown services
+          setPayloadType('reverse_shell');
+          setPayloadVariant('bash');
+        }
       }
     }
   }, [location.state, assets]);

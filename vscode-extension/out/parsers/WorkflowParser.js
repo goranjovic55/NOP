@@ -83,6 +83,20 @@ class WorkflowParser {
     }
     static extractDecisions(content) {
         const decisions = [];
+        // New format: ### Key Decisions section
+        const keyDecisionsSection = content.match(/###\s+Key Decisions([\s\S]+?)(?=###|##|$)/);
+        if (keyDecisionsSection) {
+            const lines = keyDecisionsSection[1].split('\n').filter(line => line.trim());
+            lines.forEach(line => {
+                if (line.match(/^\d+\.\s+/)) {
+                    decisions.push({
+                        description: line.replace(/^\d+\.\s*/, '').trim(),
+                        rationale: ''
+                    });
+                }
+            });
+        }
+        // Old format: [DECISIONS] section
         const decisionsSection = content.match(/\[DECISIONS\]([\s\S]+?)(?=\[|##|$)/);
         if (decisionsSection) {
             const lines = decisionsSection[1].split('\n').filter(line => line.trim());
@@ -93,6 +107,14 @@ class WorkflowParser {
                         rationale: ''
                     });
                 }
+            });
+        }
+        // Also extract [DECISION] actions from Actions section
+        const actionMatches = content.matchAll(/\*\*\[DECISION\]\*\*\s+([^\n]+)/g);
+        for (const match of actionMatches) {
+            decisions.push({
+                description: match[1].trim(),
+                rationale: ''
             });
         }
         return decisions;
@@ -157,6 +179,22 @@ class WorkflowParser {
     }
     static extractPhases(content) {
         const phases = [];
+        // New format: Phase Breakdown section
+        const phaseBreakdownSection = content.match(/###\s+Phase Breakdown([\s\S]+?)(?=###|##|---*|$)/);
+        if (phaseBreakdownSection) {
+            const lines = phaseBreakdownSection[1].split('\n').filter(line => line.trim());
+            lines.forEach(line => {
+                const phaseMatch = line.match(/^-\s*\*\*([A-Z]+)\*\*:\s*(\w+)/);
+                if (phaseMatch) {
+                    phases.push({
+                        phase: phaseMatch[1],
+                        progress: '0/0',
+                        timestamp: phaseMatch[2]
+                    });
+                }
+            });
+        }
+        // Old format: [PHASE:] emissions
         const phaseMatches = content.matchAll(/\[PHASE:\s*([A-Z]+)\s*\|?\s*progress=(\d+\/\d+)?\]/g);
         for (const match of phaseMatches) {
             phases.push({
@@ -171,10 +209,23 @@ class WorkflowParser {
         // Look for [AKIS] emissions with skills
         const akisMatches = content.matchAll(/\[AKIS\].*?skills=([^|\]]+)/g);
         for (const match of akisMatches) {
-            const skillList = match[1].split(',').map(s => s.trim()).filter(s => s);
+            const skillList = match[1].split(',').map(s => s.trim()).filter(s => s && s !== '[]');
             skills.push(...skillList);
         }
-        // Also look for explicit skills section
+        // New format: Skills Used section
+        const skillsUsedSection = content.match(/###\s+Skills Used([\s\S]+?)(?=###|##|---*|$)/);
+        if (skillsUsedSection) {
+            const lines = skillsUsedSection[1].split('\n').filter(line => line.trim());
+            lines.forEach(line => {
+                if (line.match(/^-\s*\*\*(.+?)\*\*/)) {
+                    const skillMatch = line.match(/^-\s*\*\*(.+?)\*\*/);
+                    if (skillMatch) {
+                        skills.push(skillMatch[1].trim());
+                    }
+                }
+            });
+        }
+        // Old format: [SKILLS] section
         const skillsSection = content.match(/\[SKILLS\]([\s\S]+?)(?=\[|##|$)/i);
         if (skillsSection) {
             const lines = skillsSection[1].split('\n').filter(line => line.trim());
