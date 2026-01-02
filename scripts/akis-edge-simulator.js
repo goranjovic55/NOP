@@ -475,14 +475,14 @@ simulate('8.1 100 rapid emissions', () => {
 });
 
 simulate('8.2 Large workflow log', () => {
-    // Simulate large log handling
-    const largeLog = 'X'.repeat(1024 * 100);  // 100KB log
+    // Simulate realistic large log with actual newlines
+    const largeLog = Array(2000).fill('[PHASE: INTEGRATE | 4/7] Working on implementation...').join('\n');
     const parseStart = Date.now();
     const lines = largeLog.split('\n').length;
     const parseDuration = Date.now() - parseStart;
     return {
         status: parseDuration < 50 ? 'PASS' : 'WARN',
-        details: `100KB log processed in ${parseDuration}ms`,
+        details: `${lines} lines processed in ${parseDuration}ms`,
         prevention: 'Stream-parse large logs instead of full load',
         solution: 'Use readline interface for log parsing'
     };

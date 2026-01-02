@@ -30,9 +30,14 @@ class SessionTracker {
             const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
             const lastUpdate = new Date(session.lastUpdate || session.startTime);
             const ageHours = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
-            return ageHours > this.maxAgeHours;
-        } catch {
-            return true; // Treat corrupt files as stale
+            // Check for valid positive age (protects against clock skew)
+            return ageHours > this.maxAgeHours && ageHours > 0;
+        } catch (e) {
+            // Log error type for debugging but treat corrupt/unreadable files as stale
+            if (e instanceof SyntaxError) {
+                console.log('Treating corrupt session file as stale');
+            }
+            return true;
         }
     }
 
@@ -53,7 +58,12 @@ class SessionTracker {
                 if (existing.status === 'active') {
                     console.log(`Warning: Overwriting active session "${existing.task}" by ${existing.agent}`);
                 }
-            } catch {}
+            } catch (e) {
+                // File exists but can't be parsed - warn and proceed
+                if (e instanceof SyntaxError) {
+                    console.log('Warning: Replacing corrupt session file');
+                }
+            }
         }
 
         const session = {

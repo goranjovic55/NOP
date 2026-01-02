@@ -116,8 +116,8 @@ echo -e "\n${CYAN}=== CATEGORY 3: Knowledge Loading ===${NC}"
 
 log_test "3.1 Knowledge file exists and is valid JSON"
 if [ -f "project_knowledge.json" ]; then
-    # Check if it's valid JSONL (each line is JSON)
-    if head -5 project_knowledge.json | while read -r line; do echo "$line" | python3 -c "import json,sys;json.load(sys.stdin)" 2>/dev/null || exit 1; done; then
+    # Check if it's valid JSONL using simple python approach
+    if python3 -c 'import json; [json.loads(line) for line in open("project_knowledge.json") if line.strip()]' 2>/dev/null; then
         log_pass "project_knowledge.json is valid JSONL"
     else
         log_fail "3.1 project_knowledge.json has invalid JSON lines"
@@ -389,9 +389,11 @@ partial_comp=$(echo "$compliance_output" | grep -oP "Partial compliance.*: \K\d+
 no_comp=$(echo "$compliance_output" | grep -oP "No/Low compliance.*: \K\d+" || echo 0)
 rate=$(echo "$compliance_output" | grep -oP "Overall compliance rate: \K[0-9.]+" || echo 0)
 
-if [ "$(echo "$rate >= 80" | bc -l)" = "1" ]; then
+# Use awk for floating point comparison
+rate_int=$(echo "$rate" | awk '{print int($1)}')
+if [ "$rate_int" -ge 80 ]; then
     log_pass "Compliance rate: $rate% (meets 80% target)"
-elif [ "$(echo "$rate >= 50" | bc -l)" = "1" ]; then
+elif [ "$rate_int" -ge 50 ]; then
     log_warn "10.1 Compliance rate: $rate% (below 80% target)"
 else
     log_fail "10.1 Compliance rate: $rate% (critical: below 50%)"
