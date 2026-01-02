@@ -1,0 +1,207 @@
+{
+  "sessions": [
+    {
+      "id": "1767388639192",
+      "name": "Task 1",
+      "startTime": "2026-01-02T21:17:19.192Z",
+      "task": "Task 1",
+      "agent": "Agent 1",
+      "status": "active",
+      "phase": "CONTEXT",
+      "phaseDisplay": "Agent 1 CONTEXT",
+      "phaseAgent": "Agent 1",
+      "phaseMessage": "",
+      "phaseVerbose": "Agent 1 CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T21:17:19.192Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started Task 1 with Agent 1 (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "Task 1",
+            "agent": "Agent 1",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T21:17:19.197Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: Task 2",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "Task 2"
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T21:17:19.192Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T21:17:19.192Z"
+    },
+    {
+      "id": "1767388639197",
+      "name": "Task 2",
+      "startTime": "2026-01-02T21:17:19.197Z",
+      "task": "Task 2",
+      "agent": "Agent 2",
+      "status": "active",
+      "phase": "CONTEXT",
+      "phaseDisplay": "Agent 2 CONTEXT",
+      "phaseAgent": "Agent 2",
+      "phaseMessage": "",
+      "phaseVerbose": "Agent 2 CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767388639192",
+      "isMainSession": false,
+      "depth": 1,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T21:17:19.197Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started Task 2 with Agent 2 (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "Task 2",
+            "agent": "Agent 2",
+            "isMainSession": false,
+            "parentSessionId": "1767388639192",
+            "depth": 1
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T21:17:19.198Z",
+          "type": "PAUSE",
+          "phase": "CONTEXT",
+          "title": "Session Paused",
+          "description": "Paused for: Task 3",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "Task 3"
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T21:17:19.197Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T21:17:19.197Z"
+    },
+    {
+      "id": "1767388639198",
+      "name": "Task 3",
+      "startTime": "2026-01-02T21:17:19.198Z",
+      "task": "Task 3",
+      "agent": "Agent 3",
+      "status": "active",
+      "phase": "CONTEXT",
+      "phaseDisplay": "Agent 3 CONTEXT",
+      "phaseAgent": "Agent 3",
+      "phaseMessage": "",
+      "phaseVerbose": "Agent 3 CONTEXT | progress=1/0",
+      "progress": "1/0",
+      "parentSessionId": "1767388639197",
+      "isMainSession": false,
+      "depth": 2,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T21:17:19.198Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started Task 3 with Agent 3 (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "Task 3",
+            "agent": "Agent 3",
+            "isMainSession": false,
+            "parentSessionId": "1767388639197",
+            "depth": 2
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "active",
+          "startTime": "2026-01-02T21:17:19.198Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T21:17:19.198Z"
+    }
+  ],
+  "currentSessionId": "1767388639198",
+  "lastUpdate": "2026-01-02T21:17:19.198Z"
+}

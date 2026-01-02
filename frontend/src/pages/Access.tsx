@@ -689,17 +689,65 @@ const Access: React.FC = () => {
       '[*] Waiting for connection...'
     ]);
 
-    setTimeout(() => {
-      updateSessionStatus(newSession.id, 'connected');
-      setOutput(prev => [
-        ...prev,
-        `[+] Exploit successful!`,
-        `[+] Shell session ${newSession.id} opened`,
-        `[+] Connected to ${selectedAsset.ip_address}`,
-        `[*] You now have ${payloadType === 'bind_shell' ? 'bind' : 'reverse'} shell access`,
-        `[*] Type commands below...`
-      ]);
-    }, 2000);
+    // Real exploit execution for vsftpd backdoor
+    if (selectedVulnerability?.cve_id === 'CVE-2011-2523' || targetService.toLowerCase().includes('vsftpd')) {
+      try {
+        const response = await fetch('/api/v1/vulnerabilities/exploit/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            target_ip: selectedAsset.ip_address,
+            target_port: 21, // FTP port to trigger backdoor
+            exploit_type: 'vsftpd_backdoor'
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          updateSessionStatus(newSession.id, 'connected');
+          setOutput(prev => [
+            ...prev,
+            `[+] Exploit successful!`,
+            `[+] Shell session ${newSession.id} opened on port ${result.shell_port}`,
+            `[+] Connected to ${selectedAsset.ip_address}`,
+            `[*] Initial output:`,
+            result.output,
+            `[*] You now have root shell access. Type commands below...`
+          ]);
+        } else {
+          updateSessionStatus(newSession.id, 'failed');
+          setOutput(prev => [
+            ...prev,
+            `[-] Exploit failed: ${result.output}`,
+            `[*] Try verifying the target is vulnerable`
+          ]);
+        }
+      } catch (error: any) {
+        updateSessionStatus(newSession.id, 'failed');
+        setOutput(prev => [
+          ...prev,
+          `[-] Connection error: ${error.message}`,
+          `[*] Check that the target is reachable and the backend is running`
+        ]);
+      }
+    } else {
+      // Simulated mode for other exploits
+      setTimeout(() => {
+        updateSessionStatus(newSession.id, 'connected');
+        setOutput(prev => [
+          ...prev,
+          `[+] Exploit successful!`,
+          `[+] Shell session ${newSession.id} opened`,
+          `[+] Connected to ${selectedAsset.ip_address}`,
+          `[*] You now have ${payloadType === 'bind_shell' ? 'bind' : 'reverse'} shell access`,
+          `[*] Type commands below...`
+        ]);
+      }, 2000);
+    }
   };
 
   const handleSendCommand = async (e: React.FormEvent) => {
@@ -715,27 +763,56 @@ const Access: React.FC = () => {
     setCommand('');
     setOutput(prev => [...prev, `root@${selectedAsset?.hostname || selectedAsset?.ip_address}:~# ${currentCommand}`]);
 
-    setTimeout(() => {
-      let response = '';
-      if (currentCommand === 'whoami') {
-        response = 'root';
-      } else if (currentCommand === 'pwd') {
-        response = '/root';
-      } else if (currentCommand.startsWith('ls')) {
-        response = 'Desktop\nDocuments\nDownloads\nflag.txt\nexploit.sh';
-      } else if (currentCommand === 'id') {
-        response = 'uid=0(root) gid=0(root) groups=0(root)';
-      } else if (currentCommand === 'uname -a') {
-        response = 'Linux target 5.15.0-56-generic #62-Ubuntu SMP x86_64 GNU/Linux';
-      } else if (currentCommand.startsWith('cat flag.txt')) {
-        response = 'FLAG{pwn3d_by_exploit_framework}';
-      } else if (currentCommand === 'ifconfig' || currentCommand === 'ip a') {
-        response = `eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet ${selectedAsset?.ip_address}  netmask 255.255.255.0  broadcast 192.168.1.255`;
-      } else {
-        response = `[*] Command executed: ${currentCommand}`;
+    // Real command execution for vsftpd backdoor
+    if (selectedVulnerability?.cve_id === 'CVE-2011-2523' || targetService.toLowerCase().includes('vsftpd')) {
+      try {
+        const response = await fetch('/api/v1/vulnerabilities/exploit/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            target_ip: selectedAsset?.ip_address,
+            target_port: 21,
+            exploit_type: 'shell_command',
+            command: currentCommand
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          setOutput(prev => [...prev, result.output]);
+        } else {
+          setOutput(prev => [...prev, `Error: ${result.output}`]);
+        }
+      } catch (error: any) {
+        setOutput(prev => [...prev, `Error: ${error.message}`]);
       }
-      setOutput(prev => [...prev, response]);
-    }, 500);
+    } else {
+      // Simulated mode for other exploits
+      setTimeout(() => {
+        let response = '';
+        if (currentCommand === 'whoami') {
+          response = 'root';
+        } else if (currentCommand === 'pwd') {
+          response = '/root';
+        } else if (currentCommand.startsWith('ls')) {
+          response = 'Desktop\nDocuments\nDownloads\nflag.txt\nexploit.sh';
+        } else if (currentCommand === 'id') {
+          response = 'uid=0(root) gid=0(root) groups=0(root)';
+        } else if (currentCommand === 'uname -a') {
+          response = 'Linux target 5.15.0-56-generic #62-Ubuntu SMP x86_64 GNU/Linux';
+        } else if (currentCommand.startsWith('cat flag.txt')) {
+          response = 'FLAG{pwn3d_by_exploit_framework}';
+        } else if (currentCommand === 'ifconfig' || currentCommand === 'ip a') {
+          response = `eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet ${selectedAsset?.ip_address}  netmask 255.255.255.0  broadcast 192.168.1.255`;
+        } else {
+          response = `[*] Command executed: ${currentCommand}`;
+        }
+        setOutput(prev => [...prev, response]);
+      }, 500);
+    }
   };
 
   const handleCloseSession = (sessionId: string) => {

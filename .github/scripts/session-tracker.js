@@ -2,7 +2,7 @@
 /**
  * AKIS Session Tracker
  * 
- * Utility for agents to emit real-time session state to .akis-session.json
+ * Utility for agents to emit real-time session state to .akis-sessions.json
  * This enables the VSCode extension to monitor live sessions without waiting for workflow logs.
  * 
  * Usage in agent responses:
@@ -13,12 +13,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const SESSION_FILE = '.akis-session.json';
 const MULTI_SESSION_FILE = '.akis-sessions.json';
 
 class SessionTracker {
     constructor() {
-        this.sessionPath = path.join(process.cwd(), SESSION_FILE);
         this.multiSessionPath = path.join(process.cwd(), MULTI_SESSION_FILE);
     }
 
@@ -160,10 +158,7 @@ class SessionTracker {
         session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress}`;
         session.lastUpdate = session.startTime;
 
-        // Save to single session file (for backwards compatibility)
-        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-
-        // Add to multi-session tracking (reuse allSessions from max session check at start of function)
+        // Add to multi-session tracking
         allSessions.sessions = allSessions.sessions || [];
         allSessions.sessions.push(session);
         allSessions.currentSessionId = session.id;
@@ -196,11 +191,6 @@ class SessionTracker {
         allSessions.lastUpdate = session.lastUpdate;
         this.saveAllSessions(allSessions);
 
-        // Update single session file if this is current session
-        if (allSessions.currentSessionId === sessionId) {
-            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-        }
-
         return session;
     }
 
@@ -219,12 +209,20 @@ class SessionTracker {
      * Update session with new emission
      */
     emit(emission) {
-        if (!fs.existsSync(this.sessionPath)) {
+        const allSessions = this.getAllSessions();
+        
+        if (!allSessions.currentSessionId || allSessions.sessions.length === 0) {
             console.error('No active session. Call start() first.');
             return;
         }
 
-        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        const sessionIndex = allSessions.sessions.findIndex(s => s.id === allSessions.currentSessionId);
+        if (sessionIndex < 0) {
+            console.error('Current session not found in sessions list.');
+            return;
+        }
+
+        const session = allSessions.sessions[sessionIndex];
         session.lastUpdate = new Date().toISOString();
         
         // Mark session as active on any emission (unless it's a COMPLETE emission)
@@ -450,17 +448,10 @@ class SessionTracker {
             session.emissions = session.emissions.slice(-MAX_ACTIONS);
         }
 
-        // Save to single session file
-        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
-
         // Update in multi-session tracking
-        const allSessions = this.getAllSessions();
-        const sessionIndex = allSessions.sessions.findIndex(s => s.id === session.id);
-        if (sessionIndex >= 0) {
-            allSessions.sessions[sessionIndex] = session;
-            allSessions.lastUpdate = session.lastUpdate;
-            this.saveAllSessions(allSessions);
-        }
+        allSessions.sessions[sessionIndex] = session;
+        allSessions.lastUpdate = session.lastUpdate;
+        this.saveAllSessions(allSessions);
 
         return session;
     }
@@ -624,40 +615,44 @@ class SessionTracker {
      * Complete the session and clean up
      */
     complete(workflowLogPath) {
-        if (fs.existsSync(this.sessionPath)) {
-            const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
-            session.status = 'completed';
-            session.endTime = new Date().toISOString();
-            session.workflowLog = workflowLogPath;
-            session.phase = session.phase || 'COMPLETE';
-            session.phaseDisplay = `${session.agent || 'Unknown'} ${session.phase}`.trim();
-            session.phaseAgent = session.agent || 'Unknown';
-            session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress || this.getProgressFromPhase(session.phase)}`;
-            session.awaitingReset = true;
+        const allSessions = this.getAllSessions();
+        
+        if (!allSessions.currentSessionId) {
+            console.error('No active session to complete.');
+            return;
+        }
 
-            // Save to single session file
-            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+        const sessionIndex = allSessions.sessions.findIndex(s => s.id === allSessions.currentSessionId);
+        if (sessionIndex < 0) {
+            console.error('Current session not found.');
+            return;
+        }
 
-            // Update in multi-session tracking
-            const allSessions = this.getAllSessions();
-            const sessionIndex = allSessions.sessions.findIndex(s => s.id === session.id);
-            if (sessionIndex >= 0) {
-                allSessions.sessions[sessionIndex] = session;
-                allSessions.lastUpdate = session.endTime;
-                this.saveAllSessions(allSessions);
-            }
+        const session = allSessions.sessions[sessionIndex];
+        session.status = 'completed';
+        session.endTime = new Date().toISOString();
+        session.workflowLog = workflowLogPath;
+        session.phase = session.phase || 'COMPLETE';
+        session.phaseDisplay = `${session.agent || 'Unknown'} ${session.phase}`.trim();
+        session.phaseAgent = session.agent || 'Unknown';
+        session.phaseVerbose = `${session.phaseDisplay} | progress=${session.progress || this.getProgressFromPhase(session.phase)}`;
+        session.awaitingReset = true;
 
-            console.log('Session completed. Run "node .github/scripts/session-tracker.js reset" after committing to GitHub to clear.');
+        // Update in multi-session tracking
+        allSessions.sessions[sessionIndex] = session;
+        allSessions.lastUpdate = session.endTime;
+        this.saveAllSessions(allSessions);
 
-            // Auto-resume parent session if this was a sub-session
-            if (session.parentSessionId) {
-                const parentIdx = allSessions.sessions.findIndex(s => s.id === session.parentSessionId);
-                if (parentIdx >= 0 && allSessions.sessions[parentIdx].status === 'active') {
-                    console.log(`\nAuto-resuming parent session: ${allSessions.sessions[parentIdx].task}`);
-                    const resumeResult = this.resume(session.parentSessionId);
-                    if (resumeResult.success) {
-                        console.log(`✓ Resumed parent at ${resumeResult.phase}`);
-                    }
+        console.log('Session completed. Run "node .github/scripts/session-tracker.js reset" after committing to GitHub to clear.');
+
+        // Auto-resume parent session if this was a sub-session
+        if (session.parentSessionId) {
+            const parentIdx = allSessions.sessions.findIndex(s => s.id === session.parentSessionId);
+            if (parentIdx >= 0 && allSessions.sessions[parentIdx].status === 'active') {
+                console.log(`\nAuto-resuming parent session: ${allSessions.sessions[parentIdx].task}`);
+                const resumeResult = this.resume(session.parentSessionId);
+                if (resumeResult.success) {
+                    console.log(`✓ Resumed parent at ${resumeResult.phase}`);
                 }
             }
         }
@@ -667,32 +662,26 @@ class SessionTracker {
      * Remove session file after completion/commit
      */
     reset() {
-        if (!fs.existsSync(this.sessionPath) && !fs.existsSync(this.multiSessionPath)) {
+        if (!fs.existsSync(this.multiSessionPath)) {
             console.log('No session files to reset.');
             return;
         }
 
-        // Remove single session file
-        if (fs.existsSync(this.sessionPath)) {
-            fs.unlinkSync(this.sessionPath);
-        }
-
         // Remove multi-session file
-        if (fs.existsSync(this.multiSessionPath)) {
-            fs.unlinkSync(this.multiSessionPath);
-        }
+        fs.unlinkSync(this.multiSessionPath);
 
-        console.log(`Session tracking files removed: ${SESSION_FILE}, ${MULTI_SESSION_FILE}`);
+        console.log(`Session tracking file removed: ${MULTI_SESSION_FILE}`);
     }
 
     /**
-     * Get current session data (single session for backwards compatibility)
+     * Get current session data
      */
     get() {
-        if (fs.existsSync(this.sessionPath)) {
-            return JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        const allSessions = this.getAllSessions();
+        if (!allSessions.currentSessionId) {
+            return null;
         }
-        return null;
+        return allSessions.sessions.find(s => s.id === allSessions.currentSessionId) || null;
     }
 
     /**
@@ -1053,10 +1042,10 @@ class SessionTracker {
      */
     resume(sessionId = null) {
         let session;
+        const allSessions = this.getAllSessions();
         
         if (sessionId) {
             // Resume specific session by ID
-            const allSessions = this.getAllSessions();
             session = allSessions.sessions.find(s => s.id === sessionId);
             
             if (!session) {
@@ -1064,12 +1053,10 @@ class SessionTracker {
             }
 
             // Switch to this session
-            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
             allSessions.currentSessionId = session.id;
             this.saveAllSessions(allSessions);
         } else {
             // Find any active session
-            const allSessions = this.getAllSessions();
             const activeSessions = allSessions.sessions.filter(s => {
                 const isCompleted = s.status === 'completed' || s.phase === 'COMPLETE';
                 return s.status === 'active' && !isCompleted;
@@ -1082,7 +1069,6 @@ class SessionTracker {
             session = activeSessions[0];
             
             // Switch to this session
-            fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
             allSessions.currentSessionId = session.id;
             this.saveAllSessions(allSessions);
         }

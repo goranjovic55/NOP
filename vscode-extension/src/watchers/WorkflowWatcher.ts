@@ -27,24 +27,32 @@ export class WorkflowWatcher implements vscode.Disposable {
             return;
         }
 
-        // Watch .akis-session.json (primary live session source)
+        // Watch both .akis-session.json and .akis-sessions.json (multi-session support)
         const sessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-session.json');
+        const multiSessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-sessions.json');
         const sessionDir = path.dirname(sessionPath);
         
-        // Watch the workspace root for .akis-session.json
+        // Watch the workspace root for session files
         try {
             // Use both fs.watch and fs.watchFile for better cross-platform support
             this.sessionWatcher = fs.watch(sessionDir, { persistent: false }, (eventType, filename) => {
-                if (filename === '.akis-session.json') {
+                if (filename === '.akis-session.json' || filename === '.akis-sessions.json') {
                     console.log(`Session file changed (${eventType}):`, filename);
                     this.notifyProviders();
                 }
             });
             
-            // Also use polling as fallback
+            // Also use polling as fallback for both files
             fs.watchFile(sessionPath, { interval: 1000 }, (curr, prev) => {
                 if (curr.mtime !== prev.mtime) {
-                    console.log('Session file modified (polling)');
+                    console.log('Session file modified (polling): .akis-session.json');
+                    this.notifyProviders();
+                }
+            });
+            
+            fs.watchFile(multiSessionPath, { interval: 1000 }, (curr, prev) => {
+                if (curr.mtime !== prev.mtime) {
+                    console.log('Session file modified (polling): .akis-sessions.json');
                     this.notifyProviders();
                 }
             });
@@ -92,6 +100,12 @@ export class WorkflowWatcher implements vscode.Disposable {
     }
 
     dispose() {
+        // Unwatch polling file watchers
+        const sessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-session.json');
+        const multiSessionPath = path.join(this.workspaceFolder.uri.fsPath, '.akis-sessions.json');
+        fs.unwatchFile(sessionPath);
+        fs.unwatchFile(multiSessionPath);
+        
         if (this.watcher) {
             this.watcher.close();
         }

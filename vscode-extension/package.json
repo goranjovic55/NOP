@@ -4,6 +4,7 @@
   "description": "Monitor and visualize AKIS agent workflows, decisions, and knowledge graphs",
   "version": "0.1.0",
   "publisher": "nop-team",
+  "icon": "resources/akis-icon-128.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/goranjovic55/NOP"
@@ -15,6 +16,15 @@
     "Visualization",
     "Other"
   ],
+  "keywords": [
+    "akis",
+    "agent",
+    "workflow",
+    "monitoring",
+    "visualization",
+    "knowledge graph"
+  ],
+  "license": "MIT",
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -25,7 +35,7 @@
         {
           "id": "akis-monitor",
           "title": "AKIS Monitor",
-          "icon": "resources/akis-icon.svg"
+          "icon": "resources/akis-activity-icon.svg"
         }
       ]
     },
@@ -74,11 +84,6 @@
         {
           "command": "akis-monitor.refreshLiveSession",
           "when": "view == akis-live-session-view",
-          "group": "navigation"
-        },
-        {
-          "command": "akis-monitor.refreshWorkflow",
-          "when": "view == akis-workflow-view",
           "group": "navigation"
         },
         {
