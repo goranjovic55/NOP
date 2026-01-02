@@ -137,11 +137,25 @@ Wait for user to say "ok", "looks good", "wrap up", etc. before continuing.
 
 ---
 
+## � Project Organization
+
+### `.project/` Folder
+Location for project planning documents:
+- Blueprints and architecture plans
+- Roadmaps and milestones
+- Project specifications
+- Design decisions and ADRs
+
+### `log/workflow/` Folder
+Historical record of all work done (search here to understand past changes)
+
+---
+
 ## 🚀 Setup for New Project
 
 1. Copy `.github/` folder to new project
 2. Create empty `project_knowledge.json` in root
-3. Create `log/workflow/` directory
+3. Create `log/workflow/` and `.project/` directories
 4. Run `python .github/scripts/generate_codemap.py` to populate initial knowledge
 
 ---

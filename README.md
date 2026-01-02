@@ -142,12 +142,52 @@ This project follows the **Universal Agent Framework** for AI-assisted developme
 ### Prerequisites
 - Docker & Docker Compose
 - Git
+- Supported architectures: **amd64** (x86_64) and **arm64** (Radxa, Raspberry Pi, etc.)
 
-### Production Deployment (Multi-Arch Images)
+### Production Deployment (Recommended)
+
+NOP provides pre-built multi-architecture Docker images via GitHub Container Registry. This is the fastest and recommended way to deploy.
+
 ```bash
-# Pull and run pre-built multi-arch images (auto-detects amd64/arm64)
+# Clone repository
 git clone https://github.com/goranjovic55/NOP.git
 cd NOP
+
+# Run deployment script (auto-detects architecture)
+./deploy.sh
+```
+
+The deployment script will:
+- Detect your system architecture (amd64/arm64)
+- Pull the correct pre-built images from GHCR
+- Create required directories
+- Initialize configuration from .env.example
+- Start all services
+
+**Access Points:**
+- Frontend: http://localhost:12000
+- Backend API: http://localhost:12001
+- API Docs: http://localhost:12001/docs
+
+**Default Credentials:**
+- Username: `admin`
+- Password: Check `.env` file (ADMIN_PASSWORD)
+
+⚠️ **Security:** Change default passwords and SECRET_KEY in `.env` before deploying to production!
+
+### Manual Production Deployment
+
+```bash
+# Clone and configure
+git clone https://github.com/goranjovic55/NOP.git
+cd NOP
+cp .env.example .env
+
+# Edit .env and change passwords
+nano .env
+
+# Pull pre-built multi-arch images and start
+docker compose pull
 docker compose up -d
 ```
 

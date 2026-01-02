@@ -1,6 +1,9 @@
+# Multi-arch Python backend
+# Supports: linux/amd64, linux/arm64
 FROM python:3.11-slim
 
 # Install system dependencies
+# Note: hping3 and some tools may have limited ARM support
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
