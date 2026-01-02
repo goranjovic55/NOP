@@ -495,8 +495,105 @@
       "lastUpdate": "2026-01-02T11:31:42.953Z",
       "endTime": "2026-01-02T11:34:17.150Z",
       "workflowLog": "Updated AKIS framework with session file docs"
+    },
+    {
+      "id": "1767356393369",
+      "name": "edge-case-simulation-session-resilience",
+      "startTime": "2026-01-02T12:19:53.369Z",
+      "task": "edge-case-simulation-session-resilience",
+      "agent": "_DevTeam",
+      "status": "active",
+      "phase": "PLAN",
+      "phaseDisplay": "_DevTeam PLAN",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "Creating edge case simulation test suite for session resilience",
+      "phaseVerbose": "_DevTeam PLAN - Creating edge case simulation test suite for session resilience | progress=2/7",
+      "progress": "2/7",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T12:19:53.370Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started edge-case-simulation-session-resilience with _DevTeam (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "edge-case-simulation-session-resilience",
+            "agent": "_DevTeam",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T12:20:48.933Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Phase: PLAN",
+          "description": "Creating edge case simulation test suite for session resilience",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": "Creating edge case simulation test suite for session resilience"
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [
+        {
+          "timestamp": "2026-01-02T12:20:48.933Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "PLAN",
+          "progress": "2/7",
+          "content": "PLAN",
+          "message": "Creating edge case simulation test suite for session resilience",
+          "detail": "Creating edge case simulation test suite for session resilience"
+        }
+      ],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "completed",
+          "startTime": "2026-01-02T12:19:53.370Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ],
+          "endTime": "2026-01-02T12:20:48.933Z"
+        },
+        "PLAN": {
+          "name": "PLAN",
+          "status": "active",
+          "startTime": "2026-01-02T12:20:48.933Z",
+          "message": "Creating edge case simulation test suite for session resilience",
+          "actionIds": [
+            "1"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T12:20:48.933Z"
     }
   ],
-  "currentSessionId": "1767352251817",
-  "lastUpdate": "2026-01-02T11:35:14.923Z"
+  "currentSessionId": "1767356393369",
+  "lastUpdate": "2026-01-02T12:20:48.933Z"
 }
