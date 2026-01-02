@@ -7,19 +7,18 @@ applyTo: '**'
 
 ## Session Lifecycle
 
-**Start**: Read `.akis-session.json` → If active, continue from `phase` | If none, start new
+| Action | Protocol |
+|--------|----------|
+| Start | Read `.akis-session.json` → Continue or start new |
+| Work | Follow phases → Update session → Deviate → `decision "why"` |
+| Interrupt | `interrupt "reason"` → Auto-pause parent |
+| Complete | `complete "summary"` → Auto-resume parent |
 
-**Work**: Follow phases in session → Update with `phase`, `action`, `skill` | Deviate → `decision "why"`
+**Headers**: `[SESSION: task] @Agent | phase: PHASE | depth: N` + `[AKIS] entities=N | skills=X,Y`
 
-**Interrupt**: User stops → `interrupt "reason"` | Sub-session → Auto-pause parent
+## Delegation
 
-**Complete**: `complete "summary"` → If `parentSessionId` exists, auto-resume parent at paused phase
-
-**Headers**: `[SESSION: task] @AgentName | phase: PHASE | depth: N` + `[AKIS] entities=N | skills=X,Y | patterns=Z`
-
-## Delegation (_DevTeam only)
-
-`#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
+`#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: TYPE"`
 
 | Agent | Return |
 |-------|--------|
@@ -28,20 +27,13 @@ applyTo: '**'
 | Reviewer | `[VALIDATION_REPORT]` |
 | Researcher | `[FINDINGS]` |
 
+**On delegation receive**: Parse → `[PARSED: task="X" | constraints=[...] | output="TYPE"]` → Then work
+
+**Context = CONSTRAINTS**, not suggestions!
+
 ## Interrupts
 
-**ON INTERRUPT:**
-1. `node .github/scripts/session-tracker.js checkpoint` - Auto-save state
-2. Preserve: task, agent, phase, progress, decisions
-
-**ON RESUME:**
-1. `node .github/scripts/session-tracker.js status` - Check active session
-2. `node .github/scripts/session-tracker.js resume` - Get full context
-3. Continue from last phase
-4. Re-emit `[SESSION:]` and `[AKIS]` headers
-
-**INTERRUPT STACK:**
-`[PAUSE]` → `[STACK: push]` → work → `[STACK: pop]` → `[RESUME]`
-
-**Max depth**: 3
+**Save**: `node session-tracker.js checkpoint`  
+**Resume**: `node session-tracker.js resume` → Re-emit headers  
+**Stack**: `[PAUSE]` → work → `[RESUME]` | Max depth: 3
 ```

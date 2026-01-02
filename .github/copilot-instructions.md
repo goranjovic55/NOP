@@ -5,14 +5,16 @@
 ## ⚠️ MANDATORY AT EVERY RESPONSE START
 
 **BEFORE ANY WORK - Read Session State:**
-1. Read `.akis-session.json` directly → Get current session state
-2. If `status: "active"` → You're in a session, continue from current `phase`
-3. If no session or needs new → `node .github/scripts/session-tracker.js start "task" "agent"`
+1. Read `.akis-session.json` → Get current session state
+2. If `status: "active"` → Continue from current `phase`
+3. If no session → `node .github/scripts/session-tracker.js start "task" "agent"`
 4. Emit `[SESSION: task] @AgentName | phase: PHASE | depth: N`
-5. Read `project_knowledge.json` stats → Load context
+5. Read `project_knowledge.json` → **BLOCKING**: Verify entities loaded
 6. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-**Session Commands**: `phase NAME "N/7"` | `action TYPE "desc"` | `skill NAME` | `decision "deviation"` | `interrupt "reason"` | `complete "summary"`
+**Anti-Drift Gates**: [SESSION] before work → [AKIS] before code → [SCOPE] at PLAN → [ANCHOR] mid-task → [COMPLETE] at end
+
+**Session Commands**: `phase NAME "N/7"` | `action TYPE "desc"` | `skill NAME` | `decision "why"` | `complete "summary"`
 
 **Session State File** (`.akis-session.json`):
 ```json
@@ -35,6 +37,8 @@
 **Resume Logic**: If `parentSessionId` exists, you're in a sub-session. On complete, parent auto-resumes.
 
 **SESSION HIERARCHY:** depth=0 (main) → depth=1 (child) → depth=2 (grandchild). Max depth=3.
+
+**Delegation Context**: Parse `Task:` `Context:` (CONSTRAINTS!) `Skills:` `Expect:` → Emit `[PARSED:]` before work
 
 **Multi-session file** (`.akis-sessions.json`): Contains ALL sessions with hierarchy for visualization.
 

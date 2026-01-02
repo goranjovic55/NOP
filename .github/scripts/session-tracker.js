@@ -45,6 +45,65 @@ class SessionTracker {
     }
 
     /**
+     * Build parent chain for context preservation (anti-drift feature)
+     * Returns array of parent tasks from root to immediate parent
+     * @param {Object} allSessions - All sessions data
+     * @param {string} parentId - Immediate parent session ID
+     * @returns {Array} Parent chain array
+     */
+    buildParentChain(allSessions, parentId) {
+        const chain = [];
+        let currentId = parentId;
+        let safety = 0;
+        
+        while (currentId && safety < 10) {
+            const parent = (allSessions.sessions || []).find(s => s.id === currentId);
+            if (!parent) break;
+            
+            chain.unshift({
+                task: parent.task,
+                phase: parent.phase,
+                depth: parent.depth || 0,
+                agent: parent.agent
+            });
+            
+            currentId = parent.parentSessionId;
+            safety++;
+        }
+        
+        return chain;
+    }
+
+    /**
+     * Check parent session health for orphan detection
+     * @param {Object} session - Session to check
+     * @returns {Object} Health status
+     */
+    checkParentHealth(session) {
+        if (!session.parentSessionId) {
+            return { healthy: true, reason: 'MAIN_SESSION' };
+        }
+        
+        const allSessions = this.getAllSessions();
+        const parent = allSessions.sessions.find(s => s.id === session.parentSessionId);
+        
+        if (!parent) {
+            return { healthy: false, reason: 'PARENT_NOT_FOUND' };
+        }
+        
+        const parentAge = Date.now() - new Date(parent.lastUpdate).getTime();
+        if (parentAge > 3600000) { // 1 hour
+            return { healthy: false, reason: 'PARENT_STALE', staleSinceMs: parentAge };
+        }
+        
+        if (parent.status === 'completed') {
+            return { healthy: false, reason: 'PARENT_COMPLETED' };
+        }
+        
+        return { healthy: true };
+    }
+
+    /**
      * Initialize a new session
      * Enforces max vertical depth of 3 to prevent runaway nesting
      * Auto-pauses active session and sets as parent for stack-based workflow
@@ -112,6 +171,9 @@ class SessionTracker {
             isMainSession: activeSessions.length === 0, // First session is main
             depth: depth, // 0=main, 1=first interrupt, 2=second interrupt
             
+            // Parent chain for context preservation (anti-drift)
+            parentChain: this.buildParentChain(allSessions, parentSessionId),
+            
             // Context data (SSOT)
             context: sessionData.context || {
                 entities: [],
@@ -119,6 +181,13 @@ class SessionTracker {
                 patterns: [],
                 files: [],
                 changes: []
+            },
+            
+            // Scope enforcement for anti-drift
+            scope: sessionData.scope || {
+                files: [],
+                maxChanges: 10,
+                boundary: 'Not defined'
             },
             
             // Chronological actions for tree view
