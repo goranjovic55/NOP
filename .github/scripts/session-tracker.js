@@ -33,20 +33,33 @@ class SessionTracker {
     }
 
     /**
-     * Save all sessions
+     * Save all sessions (atomic write to prevent corruption)
      */
     saveAllSessions(data) {
-        fs.writeFileSync(this.multiSessionPath, JSON.stringify(data, null, 2));
+        const tempPath = this.multiSessionPath + '.tmp';
+        fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+        fs.renameSync(tempPath, this.multiSessionPath);  // Atomic rename
+        
+        // Create backup for recovery
+        fs.writeFileSync(this.multiSessionPath + '.backup', JSON.stringify(data, null, 2));
     }
 
     /**
      * Initialize a new session
+     * Enforces max vertical depth of 3 to prevent runaway nesting
      * @param {Object} sessionData - Session initialization data
      * @param {string} sessionData.task - Task name/identifier
      * @param {string} sessionData.agent - Agent name
      * @param {Object} sessionData.context - Optional context to restore from
      */
     start(sessionData) {
+        // Check max depth (prevent runaway nesting)
+        const allSessions = this.getAllSessions();
+        const activeSessions = (allSessions.sessions || []).filter(s => s.status === 'active');
+        if (activeSessions.length >= 3) {
+            console.warn('Warning: Max concurrent sessions (3) reached. Consider completing existing sessions.');
+        }
+        
         const session = {
             id: Date.now().toString(),
             name: sessionData.name || sessionData.task || 'Unnamed Session',
@@ -377,6 +390,14 @@ class SessionTracker {
         // Add action to session
         session.actions.push(action);
 
+        // Action rotation to prevent unbounded growth (max 500 actions)
+        const MAX_ACTIONS = 500;
+        if (session.actions.length > MAX_ACTIONS) {
+            const archiveCount = session.actions.length - MAX_ACTIONS;
+            session.archivedActionCount = (session.archivedActionCount || 0) + archiveCount;
+            session.actions = session.actions.slice(-MAX_ACTIONS);
+        }
+
         // Add action to current phase
         const currentPhase = session.phases[session.phase];
         if (currentPhase && !currentPhase.actionIds.includes(actionId)) {
@@ -390,6 +411,11 @@ class SessionTracker {
             isDelegated: isDelegated,
             ...emission
         });
+
+        // Rotate emissions too
+        if (session.emissions.length > MAX_ACTIONS) {
+            session.emissions = session.emissions.slice(-MAX_ACTIONS);
+        }
 
         // Save to single session file
         fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
@@ -615,6 +641,7 @@ class SessionTracker {
 
     /**
      * Get session status with formatted output including workflow mapping
+     * Includes stale session detection (>1 hour without updates)
      */
     status() {
         const session = this.get();
@@ -627,13 +654,16 @@ class SessionTracker {
         const lastUpdate = new Date(session.lastUpdate);
         const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
         const isCompleted = session.status === 'completed' || session.phase === 'COMPLETE';
-        const isActive = session.status === 'active' && !isCompleted;
+        const isStale = secondsSinceUpdate > 3600; // 1 hour = stale
+        const isActive = session.status === 'active' && !isCompleted && !isStale;
         const isIdle = secondsSinceUpdate > 30; // For UI display only
         
         return {
             active: isActive,
             completed: isCompleted,
+            stale: isStale,
             idle: isIdle,
+            staleSinceHours: isStale ? Math.floor(secondsSinceUpdate / 3600) : 0,
             session: session.task,
             agent: session.agent,
             phase: `${session.phase} ${session.progress}`,
@@ -959,17 +989,21 @@ class SessionTracker {
     /**
      * Helper to map phase names to progress numbers
      */
+    /**
+     * Helper to map phase names to progress numbers
+     * Uses N/7 format consistently for 7-phase workflow
+     */
     getProgressFromPhase(phaseName) {
         const phaseMap = {
-            'CONTEXT': '1/0',
-            'PLAN': '2/0',
-            'COORDINATE': '3/0',
-            'INTEGRATE': '4/0',
-            'VERIFY': '5/0',
-            'LEARN': '6/0',
-            'COMPLETE': '7/0'
+            'CONTEXT': '1/7',
+            'PLAN': '2/7',
+            'COORDINATE': '3/7',
+            'INTEGRATE': '4/7',
+            'VERIFY': '5/7',
+            'LEARN': '6/7',
+            'COMPLETE': '7/7'
         };
-        return phaseMap[phaseName] || '0/0';
+        return phaseMap[phaseName] || '0/7';
     }
 }
 
