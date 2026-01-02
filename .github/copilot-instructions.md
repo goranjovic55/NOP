@@ -87,6 +87,12 @@ Every significant task (>15 min) MUST end with a workflow log.
 
 **Template**: `.github/templates/workflow-log.md`
 
+**Purpose**: Workflow logs are the historical record of all work done. They document:
+- What was accomplished and why
+- Files changed and decisions made
+- Knowledge updates and skills used
+- Search `log/workflow/` to understand past changes
+
 ---
 
 ## ⚡ Quick Reference
