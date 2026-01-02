@@ -24,7 +24,7 @@ class AgentCreate(BaseModel):
     obfuscate: bool = Field(default=True, description="Use Garble obfuscation for Go agents")
     startup_mode: StartupMode = Field(default=StartupMode.AUTO, description="Auto-startup or single run")
     persistence_level: PersistenceLevel = Field(default=PersistenceLevel.MEDIUM, description="Persistence and stealth level")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    agent_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class AgentUpdate(BaseModel):
@@ -33,7 +33,7 @@ class AgentUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     connection_url: Optional[str] = Field(None, min_length=1, max_length=255)
     capabilities: Optional[Dict[str, bool]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    agent_metadata: Optional[Dict[str, Any]] = None
     status: Optional[AgentStatus] = None
 
 
@@ -52,7 +52,7 @@ class AgentResponse(BaseModel):
     obfuscate: bool
     startup_mode: StartupMode
     persistence_level: PersistenceLevel
-    metadata: Optional[Dict[str, Any]] = None
+    agent_metadata: Optional[Dict[str, Any]] = None
     last_seen: Optional[datetime] = None
     connected_at: Optional[datetime] = None
     created_at: datetime

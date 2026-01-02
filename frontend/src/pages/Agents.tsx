@@ -71,7 +71,7 @@ const Agents: React.FC = () => {
   };
 
   const handleDeleteAgent = async (agentId: string) => {
-    if (!token || !confirm('Are you sure you want to delete this agent?')) return;
+    if (!token || !window.confirm('Are you sure you want to delete this agent?')) return;
     try {
       await agentService.deleteAgent(token, agentId);
       removeAgent(agentId);

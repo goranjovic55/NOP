@@ -66,7 +66,7 @@ class Agent(Base):
     
     # Agent metadata - flexible JSON storage
     # Example: {"subnet": "192.168.1.0/24", "location": "Remote Office", "tags": ["production"]}
-    metadata = Column(JSON, nullable=True, default=dict)
+    agent_metadata = Column(JSON, nullable=True, default=dict)
     
     # Statistics
     last_seen = Column(DateTime(timezone=True), nullable=True)
