@@ -11,7 +11,7 @@
       "phaseDisplay": "Developer COMPLETE",
       "phaseAgent": "Developer",
       "phaseMessage": "Session resilience edge case testing complete",
-      "phaseVerbose": "Developer COMPLETE - Session resilience edge case testing complete | progress=7/7",
+      "phaseVerbose": "Developer COMPLETE | progress=7/7",
       "progress": "7/7",
       "parentSessionId": null,
       "isMainSession": true,
@@ -295,8 +295,9 @@
           ]
         }
       },
-      "awaitingReset": false,
-      "lastUpdate": "2026-01-02T12:30:56.370Z"
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T12:30:56.370Z",
+      "endTime": "2026-01-02T12:31:40.396Z"
     },
     {
       "id": "1767356969226",
@@ -360,5 +361,5 @@
     }
   ],
   "currentSessionId": "1767356969040",
-  "lastUpdate": "2026-01-02T12:30:56.370Z"
+  "lastUpdate": "2026-01-02T12:31:40.396Z"
 }
