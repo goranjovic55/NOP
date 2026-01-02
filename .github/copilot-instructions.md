@@ -21,16 +21,23 @@ Create todos with these phase names for tracking:
 | PLAN | `[PLAN] Design approach for X` | Complex tasks |
 | IMPLEMENT | `[IMPLEMENT] Build X` | Main work |
 | VERIFY | `[VERIFY] Test X` | Always |
-| LEARN | `[LEARN] Update knowledge & skills` | Before commit |
-| COMPLETE | `[COMPLETE] Create workflow log` | End - always |
+| LEARN | `[LEARN] Update knowledge & skills` | After user approval - MANDATORY |
+| COMPLETE | `[COMPLETE] Create workflow log & commit` | End - always |
 
 ### 3. End - Before Commit (MANDATORY)
+
+**⚠️ CRITICAL: LEARN phase must complete BEFORE any commit!**
+
+**LEARN Phase:**
 1. **Update Knowledge**: Run `python .github/scripts/generate_codemap.py` + add entities
 2. **Update Skills**: Analyze session for patterns:
    - New reusable pattern? → `python .github/scripts/extract_skill.py "name" "desc"`
    - Improved existing pattern? → Update the skill file
    - Outdated skill? → Remove or archive it
+
+**COMPLETE Phase:**
 3. **Create Workflow Log**: `log/workflow/YYYY-MM-DD_HHMMSS_task.md` using template
+4. **Commit**: Stage and commit all changes
 
 ---
 
