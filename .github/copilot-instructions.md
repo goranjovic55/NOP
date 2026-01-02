@@ -12,6 +12,8 @@
 5. Read `project_knowledge.json` stats → Load context
 6. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
+**Session Commands**: `phase NAME "N/7"` | `action TYPE "desc"` | `skill NAME` | `decision "deviation"` | `interrupt "reason"` | `complete "summary"`
+
 **Session State File** (`.akis-session.json`):
 ```json
 {
@@ -23,8 +25,9 @@
   "agent": "_DevTeam|Developer|Architect|...",
   "depth": 0,                    // 0=main, 1+=sub-session
   "parentSessionId": null,       // null=main, id=child of parent
-  "actions": [...],              // Timeline of all actions
-  "decisions": [...],            // Key decisions made
+  "actions": [...],              // Timeline: FILE_CHANGE, DECISION, DELEGATION, etc
+  "decisions": [...],            // Deviations from standard workflow
+  "skills": [],                  // Active skills for this session
   "context": { "entities": N, "skills": [], "files": [] }
 }
 ```
@@ -36,16 +39,20 @@
 **Multi-session file** (`.akis-sessions.json`): Contains ALL sessions with hierarchy for visualization.
 
 ```
-[SESSION: task] @AgentName
+[SESSION: task] @AgentName | phase: PHASE | depth: N
 [AKIS] entities=N | skills=X,Y | patterns=Z
 [PHASE: NAME | N/7]
-<work>
+<work - update session state as you go>
 [COMPLETE] result | files: changed
 ```
 
-**Blocking**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
+**Workflow**: Session file IS the plan. Read → Continue from `phase` → Update as you work → Log deviations as `decisions`
 
-**Session Tracking**: `start "task" "agent"` | `phase NAME "N/7"` | `decision "desc"` | `delegate Agent "task"` | `complete "log/file.md"` | `reset` (after commit only)
+**Deviation Protocol**: If you deviate from standard phases → `decision "why deviated"` → Continue
+
+**Session Complete**: Auto-resumes parent session at paused phase if `parentSessionId` exists
+
+**Session Commands**: `start "task" "agent"` | `phase NAME "N/7"` | `action TYPE "desc"` | `decision "deviation"` | `skill NAME` | `complete "summary"`
 
 ---
 
@@ -94,7 +101,7 @@
 | `phases.md` | Every task (7-phase flow) |
 | `protocols.md` | Delegation, interrupts |
 | `templates.md` | Output formatting |
-| `todo-list.md` | Creating/managing todos |
+
 | `structure.md` | Architecture tasks |
 
 **Path**: `.github/instructions/{file}.md`
@@ -102,8 +109,6 @@
 **Phases**: CONTEXT(1) → PLAN(2) → COORDINATE(3) → INTEGRATE(4) → VERIFY(5) → LEARN(6) → COMPLETE(7)
 
 **Skip**: Quick fix (1→4→5→7), Q&A (1→7)
-
-**Todo Format**: `[PHASE: NAME | N/7] Description` - Always create all 7 phases in todo list
 
 ---
 

@@ -70,19 +70,26 @@ class SessionTracker {
             parentSessionId = currentActive.id;
             depth = (currentActive.depth || 0) + 1;
             
-            // Pause the parent session
+            // Pause the parent session with current state
             const parentIdx = allSessions.sessions.findIndex(s => s.id === parentSessionId);
             if (parentIdx >= 0) {
+                const parent = allSessions.sessions[parentIdx];
                 allSessions.sessions[parentIdx].actions.push({
                     id: allSessions.sessions[parentIdx].actions.length.toString(),
                     timestamp: new Date().toISOString(),
                     type: 'PAUSE',
-                    phase: allSessions.sessions[parentIdx].phase,
+                    phase: parent.phase,
                     title: 'Session Paused',
                     description: `Paused for: ${sessionData.task}`,
                     reason: 'Interrupt - starting sub-session',
-                    details: { childTask: sessionData.task }
+                    details: { 
+                        childTask: sessionData.task,
+                        progress: parent.progress, // Save current progress
+                        pausedPhase: parent.phase  // Save exact phase
+                    }
                 });
+                // Save parent session state
+                this.saveAllSessions(allSessions);
             }
         }
         
@@ -1043,11 +1050,43 @@ class SessionTracker {
     }
 
     /**
+     * Record user interrupt (explicit user action like cancellation)
+     */
+    interrupt(reason = 'User interrupted workflow') {
+        const session = this.get();
+        if (!session) {
+            return { success: false, message: 'No session to record interrupt' };
+        }
+
+        this.emit({
+            type: 'INTERRUPT',
+            content: reason,
+            reason: 'User action',
+            details: {
+                interruptedAt: new Date().toISOString(),
+                phase: session.phase,
+                progress: session.progress
+            }
+        });
+
+        return {
+            success: true,
+            sessionId: session.id,
+            task: session.task,
+            phase: session.phase,
+            message: `Interrupt recorded: ${reason}`
+        };
+    }
+
+    /**
      * Resume session - show full context and switch to it
+     * Restores exact phase and progress where session was paused
      * @param {string} sessionId - Optional session ID to resume (defaults to finding active)
      */
     resume(sessionId = null) {
         let session;
+        let pausedPhase = null;
+        let pausedProgress = null;
         
         if (sessionId) {
             // Resume specific session by ID
@@ -1056,6 +1095,13 @@ class SessionTracker {
             
             if (!session) {
                 return { success: false, message: `Session ${sessionId} not found` };
+            }
+
+            // Find PAUSE action to get exact phase where paused
+            const pauseAction = session.actions?.slice().reverse().find(a => a.type === 'PAUSE');
+            if (pauseAction) {
+                pausedPhase = pauseAction.phase;
+                pausedProgress = pauseAction.details?.progress || session.progress;
             }
 
             // Switch to this session
@@ -1076,31 +1122,52 @@ class SessionTracker {
 
             session = activeSessions[0];
             
+            // Find PAUSE action
+            const pauseAction = session.actions?.slice().reverse().find(a => a.type === 'PAUSE');
+            if (pauseAction) {
+                pausedPhase = pauseAction.phase;
+                pausedProgress = pauseAction.details?.progress || session.progress;
+            }
+            
             // Switch to this session
             fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
             allSessions.currentSessionId = session.id;
             this.saveAllSessions(allSessions);
         }
 
-        // Emit RESUME
+        // Restore phase to where it was paused (if found)
+        const resumePhase = pausedPhase || session.phase;
+        const resumeProgress = pausedProgress || session.progress;
+
+        // Emit RESUME with restored phase
         this.emit({
             type: 'RESUME',
-            content: 'Session resumed',
-            reason: 'Continuing work',
-            timestamp: new Date().toISOString()
+            content: `Session resumed at ${resumePhase}`,
+            reason: 'Continuing work from interruption',
+            timestamp: new Date().toISOString(),
+            details: {
+                resumedFrom: pausedPhase || 'unknown',
+                progress: resumeProgress
+            }
         });
+
+        // Restore the phase explicitly if we found where it was paused
+        if (pausedPhase && pausedPhase !== session.phase) {
+            this.phase(pausedPhase, pausedProgress, 'Restored from interruption');
+        }
 
         return {
             success: true,
             task: session.task,
             agent: session.agent,
-            phase: session.phase,
-            progress: session.progress,
+            phase: resumePhase,
+            progress: resumeProgress,
             skills: session.skills,
             decisions: session.decisions,
             delegations: session.delegations,
             lastUpdate: session.lastUpdate,
-            message: `Resumed: ${session.task} at ${session.phase}`
+            pausedAt: pausedPhase,
+            message: `Resumed: ${session.task} at ${resumePhase} (${resumeProgress})`
         };
     }
 
@@ -1249,6 +1316,11 @@ if (require.main === module) {
         case 'skills':
             tracker.skills(args.slice(1).join(', '));
             console.log('Skills recorded');
+            break;
+
+        case 'interrupt':
+            const interruptReason = args.slice(1).join(' ') || 'User interrupted workflow';
+            console.log(JSON.stringify(tracker.interrupt(interruptReason), null, 2));
             break;
 
         case 'complete':
