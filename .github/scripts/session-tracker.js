@@ -18,12 +18,44 @@ const SESSION_FILE = '.akis-session.json';
 class SessionTracker {
     constructor() {
         this.sessionPath = path.join(process.cwd(), SESSION_FILE);
+        this.maxAgeHours = 24; // Auto-expire sessions older than this
     }
 
     /**
-     * Initialize a new session
+     * Check if existing session is stale (older than maxAgeHours)
+     */
+    isStale() {
+        if (!fs.existsSync(this.sessionPath)) return false;
+        try {
+            const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+            const lastUpdate = new Date(session.lastUpdate || session.startTime);
+            const ageHours = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+            return ageHours > this.maxAgeHours;
+        } catch {
+            return true; // Treat corrupt files as stale
+        }
+    }
+
+    /**
+     * Initialize a new session (with stale session auto-cleanup)
      */
     start(sessionData) {
+        // Auto-cleanup stale sessions
+        if (this.isStale()) {
+            console.log('Auto-expiring stale session (>24h)');
+            this.reset();
+        }
+
+        // Warn if active session exists (but allow override for flexibility)
+        if (fs.existsSync(this.sessionPath)) {
+            try {
+                const existing = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+                if (existing.status === 'active') {
+                    console.log(`Warning: Overwriting active session "${existing.task}" by ${existing.agent}`);
+                }
+            } catch {}
+        }
+
         const session = {
             id: Date.now().toString(),
             startTime: new Date().toISOString(),
@@ -40,6 +72,7 @@ class SessionTracker {
             emissions: [],
             delegations: [],
             skills: [],
+            pauseStack: [], // Track PAUSE/RESUME balance
             awaitingReset: false,
             ...sessionData
         };
@@ -193,6 +226,52 @@ class SessionTracker {
     }
 
     /**
+     * Record a PAUSE (interrupt handling)
+     */
+    pause(task, phase) {
+        if (!fs.existsSync(this.sessionPath)) {
+            console.error('No active session to pause');
+            return;
+        }
+        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        session.pauseStack = session.pauseStack || [];
+        session.pauseStack.push({ task, phase, timestamp: new Date().toISOString() });
+        session.lastUpdate = new Date().toISOString();
+        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+        this.emit({ type: 'PAUSE', content: `${task} at ${phase}` });
+    }
+
+    /**
+     * Record a RESUME (return from interrupt)
+     */
+    resume() {
+        if (!fs.existsSync(this.sessionPath)) {
+            console.error('No active session to resume');
+            return;
+        }
+        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        session.pauseStack = session.pauseStack || [];
+        const resumed = session.pauseStack.pop();
+        session.lastUpdate = new Date().toISOString();
+        fs.writeFileSync(this.sessionPath, JSON.stringify(session, null, 2));
+        if (resumed) {
+            this.emit({ type: 'RESUME', content: `${resumed.task} at ${resumed.phase}` });
+        } else {
+            console.warn('No paused task to resume');
+        }
+    }
+
+    /**
+     * Check PAUSE/RESUME balance
+     */
+    checkBalance() {
+        if (!fs.existsSync(this.sessionPath)) return { balanced: true, depth: 0 };
+        const session = JSON.parse(fs.readFileSync(this.sessionPath, 'utf-8'));
+        const depth = (session.pauseStack || []).length;
+        return { balanced: depth === 0, depth };
+    }
+
+    /**
      * Complete the session and clean up
      */
     complete(workflowLogPath) {
@@ -301,6 +380,25 @@ if (require.main === module) {
             console.log(JSON.stringify(tracker.get(), null, 2));
             break;
 
+        case 'pause':
+            tracker.pause(args[1] || 'current', args[2] || 'INTEGRATE');
+            console.log('Session paused');
+            break;
+
+        case 'resume':
+            tracker.resume();
+            console.log('Session resumed');
+            break;
+
+        case 'check':
+            const balance = tracker.checkBalance();
+            console.log(`PAUSE/RESUME balance: ${balance.balanced ? 'OK' : 'IMBALANCED'}, depth: ${balance.depth}`);
+            break;
+
+        case 'stale':
+            console.log(`Session stale: ${tracker.isStale()}`);
+            break;
+
         default:
             console.log(`
 AKIS Session Tracker
@@ -311,6 +409,10 @@ Usage:
   node session-tracker.js decision <description>
   node session-tracker.js delegate <agent> <task>
   node session-tracker.js skills <skill1, skill2, ...>
+  node session-tracker.js pause <task> <phase>
+  node session-tracker.js resume
+  node session-tracker.js check
+  node session-tracker.js stale
   node session-tracker.js complete [workflow_log_path]
   node session-tracker.js reset
   node session-tracker.js get
@@ -318,8 +420,9 @@ Usage:
 Example:
   node session-tracker.js start "Add new feature" "_DevTeam"
   node session-tracker.js phase CONTEXT "1/7" "Examining codebase structure"
-  node session-tracker.js phase PLAN "2/7" "Designing API endpoints"
-  node session-tracker.js decision "Use session tracking file"
+  node session-tracker.js pause "main-task" "INTEGRATE"
+  node session-tracker.js resume
+  node session-tracker.js check
   node session-tracker.js complete "log/workflow/2026-01-01_163900_task.md"
   node session-tracker.js reset
             `);

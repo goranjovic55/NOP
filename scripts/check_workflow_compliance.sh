@@ -81,6 +81,18 @@ else
     issues+=("[COMPLETE] emission required at end of workflow")
 fi
 
+# Bonus check: PAUSE/RESUME balance (informational)
+pause_count=$(grep -c "\[PAUSE" "$log_file" 2>/dev/null || echo 0)
+resume_count=$(grep -c "\[RESUME" "$log_file" 2>/dev/null || echo 0)
+if [ "$pause_count" -gt 0 ] || [ "$resume_count" -gt 0 ]; then
+    if [ "$pause_count" -eq "$resume_count" ]; then
+        echo -e "${GREEN}✅ PAUSE/RESUME balanced ($pause_count/$resume_count)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  PAUSE/RESUME imbalanced ($pause_count PAUSE, $resume_count RESUME)${NC}"
+        issues+=("PAUSE/RESUME should be balanced for context preservation")
+    fi
+fi
+
 # Calculate percentage
 compliance_percent=$((compliance_score * 100 / total_checks))
 
