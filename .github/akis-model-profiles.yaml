@@ -1,0 +1,99 @@
+# AKIS Model Profiles Configuration
+#
+# Defines behavior profiles for different LLM architectures
+# to optimize AKIS framework compatibility across models.
+
+model_profiles:
+  # Tier 1: Enterprise-grade models with full AKIS support
+  tier1_enterprise:
+    models:
+      - gpt-4
+      - gpt-4-turbo
+      - gpt-4o
+      - claude-3-opus
+      - claude-3-sonnet
+      - claude-3.5-sonnet
+    settings:
+      max_depth: 3
+      anchor_frequency: 3          # phases between anchors
+      gate_complexity: full        # all gates with full format
+      context_checkpoint: 10000    # tokens between checkpoints
+      stale_threshold_min: 60      # minutes before stale
+      instruction_verbosity: full  # complete instructions
+    gates:
+      session: "[SESSION: task] @Agent | phase: PHASE | depth: N"
+      akis: "[AKIS] entities=N | skills=X,Y | patterns=Z"
+      scope: "[SCOPE: files=[...] | max=N | boundary=desc]"
+      anchor: "[ANCHOR: task=X | progress=N/7 | on_track=yes/no]"
+      complete: "[COMPLETE] summary | files: N changed"
+
+  # Tier 2: Capable models with reduced complexity
+  tier2_capable:
+    models:
+      - gemini-pro
+      - gemini-ultra
+      - codex
+      - starcoder
+      - deepseek-coder
+    settings:
+      max_depth: 2
+      anchor_frequency: 2          # more frequent anchoring
+      gate_complexity: reduced     # simplified gates
+      context_checkpoint: 5000     # more frequent checkpoints
+      stale_threshold_min: 45      # shorter stale threshold
+      instruction_verbosity: reduced
+    gates:
+      session: "[SESSION: task] @Agent | depth: N"
+      akis: "[AKIS] entities=N | skills=X,Y"
+      scope: "[SCOPE: files=N | max=N]"
+      anchor: "[ANCHOR: task=X | on_track=yes/no]"
+      complete: "[COMPLETE] summary"
+
+  # Tier 3: Efficient models with minimal protocol
+  tier3_efficient:
+    models:
+      - llama-2
+      - llama-3
+      - mistral
+      - mixtral
+      - phi-2
+      - phi-3
+    settings:
+      max_depth: 2                 # reduced max depth
+      anchor_frequency: 1          # anchor every phase
+      gate_complexity: minimal     # essential gates only
+      context_checkpoint: 2000     # aggressive checkpointing
+      stale_threshold_min: 30      # short stale threshold
+      instruction_verbosity: minimal
+    gates:
+      session: "[SESSION: task]"
+      akis: "[AKIS: loaded]"
+      scope: "[SCOPE: N files]"
+      anchor: "[ANCHOR: ok/drift]"
+      complete: "[DONE]"
+
+# Default settings (used when model not detected)
+default_profile: tier2_capable
+
+# Model detection patterns (regex)
+model_detection:
+  - pattern: "gpt-4"
+    tier: tier1_enterprise
+  - pattern: "claude"
+    tier: tier1_enterprise
+  - pattern: "gemini"
+    tier: tier2_capable
+  - pattern: "llama"
+    tier: tier3_efficient
+  - pattern: "mistral|mixtral"
+    tier: tier3_efficient
+  - pattern: "codex|starcoder|deepseek"
+    tier: tier2_capable
+
+# Fallback behavior when emission format not recognized
+fallback_behavior:
+  retry_with_example: true
+  accept_simplified: true
+  infer_from_context: true
+  log_gaps: true
+  continue_on_failure: true

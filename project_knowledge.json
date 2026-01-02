@@ -304,3 +304,8 @@
 {"type":"entity","name":"AKIS.Interruption.OrphanProtection","entityType":"protocol","observations":["Orphan sessions detected via checkParentHealth()","Results saved to .akis-orphan-{id}.json on completion","Prevents data loss when parent expires","upd:2026-01-02"]}
 {"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.Interruption.HardDepthLimit","relationType":"INCLUDES"}
 {"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.Interruption.StaleCheck","relationType":"INCLUDES"}
+{"type":"entity","name":"AKIS.CrossLLM.ModelProfiles","entityType":"configuration","observations":["Tier1 (GPT-4,Claude): full AKIS, depth 3, anchor every 3 phases","Tier2 (Gemini,CodeSpec): reduced complexity, depth 2, anchor every 2 phases","Tier3 (Llama,Mistral): minimal protocol, depth 2, anchor every phase","upd:2026-01-02"]}
+{"type":"entity","name":"AKIS.CrossLLM.GateAdaptation","entityType":"protocol","observations":["Gates adapt based on model tier","Tier1: full format with all fields","Tier2: reduced format, essential fields","Tier3: minimal format, yes/no style","upd:2026-01-02"]}
+{"type":"entity","name":"AKIS.CrossLLM.ContextStrategy","entityType":"protocol","observations":["Limited context (<32K): aggressive summarization, frequent checkpoints","Large context (>100K): full protocol, complete parent chain","Checkpoint frequency: Tier1=10K tokens, Tier2=5K, Tier3=2K","upd:2026-01-02"]}
+{"type":"relation","from":"AKIS.CrossLLM.ModelProfiles","to":"AKIS.CrossLLM.GateAdaptation","relationType":"CONFIGURES"}
+{"type":"relation","from":"AKIS.CrossLLM.ModelProfiles","to":"AKIS.CrossLLM.ContextStrategy","relationType":"CONFIGURES"}
