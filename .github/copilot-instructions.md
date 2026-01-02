@@ -14,6 +14,10 @@
 
 **Anti-Drift Gates**: [SESSION] before work → [AKIS] before code → [SCOPE] at PLAN → [ANCHOR] mid-task → [COMPLETE] at end
 
+**Interrupt Protocol**: Active session? → `[PAUSE]` first → Then new task → Never skip PAUSE
+
+**Stale Session**: If session age > 30min → `[STALE: task=X | age=Ym]` → Ask user: resume/abandon/new
+
 **Session Commands**: `phase NAME "N/7"` | `action TYPE "desc"` | `skill NAME` | `decision "why"` | `complete "summary"`
 
 **Session State File** (`.akis-session.json`):

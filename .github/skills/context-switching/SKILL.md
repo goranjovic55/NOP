@@ -12,13 +12,22 @@ description: Handling user interrupts and task switching with state preservation
 - Preserving work state
 
 ## Pattern
-[PAUSE] → Handle Interrupt → [RESUME]
+[PAUSE] → `checkpoint` → Handle Interrupt → [RESUME]
 
 ## Checklist
-- [ ] Emit [PAUSE: task=<current> | phase=<phase>]
-- [ ] Handle interruption
-- [ ] Emit [RESUME: task=<original> | phase=<phase>]
+- [ ] `node session-tracker.js checkpoint` before interrupt
+- [ ] Emit `[PAUSE: task=<current> | phase=<phase>]`
+- [ ] Handle interruption (max depth: 3)
+- [ ] Emit `[RESUME: task=<original> | phase=<phase>]`
 - [ ] Continue from saved state
+
+## Hard Limits
+
+| Limit | Value | Behavior if Exceeded |
+|-------|-------|---------------------|
+| Max depth | 3 | Session creation BLOCKED |
+| Stale threshold | 30min | Ask user: resume/new? |
+| Orphan threshold | 1hr | Persist to recovery file |
 
 ## Example Flow
 ```markdown
@@ -26,55 +35,28 @@ description: Handling user interrupts and task switching with state preservation
 [PHASE: INTEGRATE | progress=4/0]
 Working on feature implementation...
 
-# User interrupts with urgent bug fix
+# User interrupts - MUST pause first
 [PAUSE: task=feature-implementation | phase=INTEGRATE]
-[STACK: push | task=bug-fix | depth=1 | parent=feature-implementation]
+node session-tracker.js checkpoint
 
-# Work on interrupt
-[SESSION: Fix critical auth bug] @Developer
-[PHASE: CONTEXT | progress=1/1]
-[PHASE: INTEGRATE | progress=4/1]
+# Start interrupt task (depth=1)
+[SESSION: Fix critical bug] @Developer | depth=1
 [PHASE: COMPLETE | progress=7/1]
 
-# Return to original task
-[STACK: pop | task=bug-fix | depth=0 | result=auth-fixed]
+# Auto-resume parent
 [RESUME: task=feature-implementation | phase=INTEGRATE]
+```
 
-# Continue original work
-[PHASE: INTEGRATE | progress=4/0]
-Continuing feature implementation...
+## Stale Session Recovery
+```
+node session-tracker.js stale-check
+# Returns: { stale: true, age: 45, recommendation: "ask_user" }
 ```
 
 ## Stack Depth
 ```
-progress=4/0  → Main thread, phase 4, no stack
-progress=1/1  → Interrupted at depth 1, phase 1 of nested task
-progress=3/2  → Interrupted at depth 2, phase 3 of nested-nested task
-```
-
-**Max depth**: 3 levels
-
-## State Preservation
-```python
-class TaskContext:
-    def __init__(self, task_name: str, phase: str):
-        self.task_name = task_name
-        self.phase = phase
-        self.data = {}
-        self.timestamp = datetime.now()
-    
-    def pause(self) -> dict:
-        """Save current state."""
-        return {
-            "task": self.task_name,
-            "phase": self.phase,
-            "data": self.data,
-            "paused_at": self.timestamp
-        }
-    
-    def resume(self, saved_state: dict):
-        """Restore saved state."""
-        self.task_name = saved_state["task"]
-        self.phase = saved_state["phase"]
-        self.data = saved_state["data"]
+progress=4/0  → Main thread, phase 4
+progress=1/1  → Depth 1 (first interrupt)
+progress=3/2  → Depth 2 (nested interrupt)
+# Depth 3 is HARD LIMIT - blocked beyond this
 ```

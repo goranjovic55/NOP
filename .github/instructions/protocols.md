@@ -35,5 +35,23 @@ applyTo: '**'
 
 **Save**: `node session-tracker.js checkpoint`  
 **Resume**: `node session-tracker.js resume` → Re-emit headers  
-**Stack**: `[PAUSE]` → work → `[RESUME]` | Max depth: 3
+**Stack**: `[PAUSE]` → work → `[RESUME]` | Max depth: 3 (HARD LIMIT)
+
+## Stale Session Recovery
+
+| Age | Action |
+|-----|--------|
+| < 30min | Auto-resume from checkpoint |
+| 30min-1hr | `[STALE: task=X]` → Ask user |
+| > 1hr | Mark abandoned, start fresh |
+
+## Checkpoint Protocol
+
+Every phase transition → `node session-tracker.js checkpoint`  
+Recovery: `node session-tracker.js recover` → Restore last state
+
+## Orphan Protection
+
+Before child work: Check `checkParentHealth()`  
+If orphaned: Persist to `.akis-orphan-{id}.json` for recovery
 ```

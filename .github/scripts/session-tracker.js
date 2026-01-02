@@ -16,12 +16,54 @@ const path = require('path');
 const SESSION_FILE = '.akis-session.json';
 const MULTI_SESSION_FILE = '.akis-sessions.json';
 const PARENT_STALE_THRESHOLD_MS = 3600000; // 1 hour
+const SESSION_STALE_THRESHOLD_MS = 1800000; // 30 minutes
 const MAX_PARENT_CHAIN_DEPTH = 10;
+const MAX_SESSION_DEPTH = 3;
 
 class SessionTracker {
     constructor() {
         this.sessionPath = path.join(process.cwd(), SESSION_FILE);
         this.multiSessionPath = path.join(process.cwd(), MULTI_SESSION_FILE);
+    }
+
+    /**
+     * Check if current session is stale (for resume prompting)
+     * @returns {Object} Stale status with age and recommendation
+     */
+    checkSessionStale() {
+        const session = this.get();
+        if (!session) {
+            return { stale: false, exists: false };
+        }
+        
+        const age = Date.now() - new Date(session.lastUpdate).getTime();
+        const ageMinutes = Math.floor(age / 60000);
+        
+        if (age > PARENT_STALE_THRESHOLD_MS) {
+            return { 
+                stale: true, 
+                exists: true,
+                age: ageMinutes,
+                recommendation: 'abandon',
+                message: `Session "${session.task}" is ${ageMinutes}min old. Recommend: start fresh.`
+            };
+        } else if (age > SESSION_STALE_THRESHOLD_MS) {
+            return { 
+                stale: true, 
+                exists: true,
+                age: ageMinutes,
+                recommendation: 'ask_user',
+                message: `Session "${session.task}" is ${ageMinutes}min old. Ask user: resume or new?`
+            };
+        }
+        
+        return { 
+            stale: false, 
+            exists: true,
+            age: ageMinutes,
+            recommendation: 'resume',
+            message: `Session "${session.task}" is ${ageMinutes}min old. Auto-resume.`
+        };
     }
 
     /**
@@ -118,18 +160,33 @@ class SessionTracker {
         // Check max depth (prevent runaway nesting)
         const allSessions = this.getAllSessions();
         const activeSessions = (allSessions.sessions || []).filter(s => s.status === 'active');
-        if (activeSessions.length >= 3) {
-            console.warn('Warning: Max concurrent sessions (3) reached. Consider completing existing sessions.');
+        
+        // Calculate what depth the new session would be
+        let proposedDepth = 0;
+        if (activeSessions.length > 0) {
+            const currentActive = activeSessions[activeSessions.length - 1];
+            proposedDepth = (currentActive.depth || 0) + 1;
+        }
+        
+        // HARD LIMIT: Block session creation if depth >= MAX_SESSION_DEPTH
+        if (proposedDepth >= MAX_SESSION_DEPTH) {
+            console.error(`ERROR: Max depth (${MAX_SESSION_DEPTH}) exceeded. Cannot create session at depth ${proposedDepth}.`);
+            console.error('Complete existing sessions before starting new ones.');
+            return { 
+                error: 'DEPTH_EXCEEDED', 
+                maxDepth: MAX_SESSION_DEPTH, 
+                proposedDepth: proposedDepth,
+                message: `Max session depth (${MAX_SESSION_DEPTH}) reached. Complete existing sessions first.`
+            };
         }
 
         // Auto-pause current active session and set as parent (stack-based)
         let parentSessionId = null;
-        let depth = 0;
+        let depth = proposedDepth;
         if (activeSessions.length > 0) {
             // Use the most recent active session (last in array) as parent
             const currentActive = activeSessions[activeSessions.length - 1];
             parentSessionId = currentActive.id;
-            depth = (currentActive.depth || 0) + 1;
             
             // Pause the parent session with current state
             const parentIdx = allSessions.sessions.findIndex(s => s.id === parentSessionId);
@@ -721,6 +778,16 @@ class SessionTracker {
             }
 
             console.log('Session completed. Run "node .github/scripts/session-tracker.js reset" after committing to GitHub to clear.');
+
+            // Check for orphan condition and persist if needed
+            if (session.parentSessionId) {
+                const health = this.checkParentHealth(session);
+                if (!health.healthy) {
+                    const orphanPath = path.join(process.cwd(), `.akis-orphan-${session.id}.json`);
+                    fs.writeFileSync(orphanPath, JSON.stringify(session, null, 2));
+                    console.warn(`WARNING: Orphan session detected (${health.reason}). Results saved to ${orphanPath}`);
+                }
+            }
 
             // Auto-resume parent session if this was a sub-session
             if (session.parentSessionId) {
@@ -1444,6 +1511,11 @@ if (require.main === module) {
         case 'checkpoint':
             tracker.checkpoint();
             console.log('Checkpoint saved to .akis-checkpoint.json');
+            break;
+
+        case 'stale-check':
+        case 'stale':
+            console.log(JSON.stringify(tracker.checkSessionStale(), null, 2));
             break;
 
         default:

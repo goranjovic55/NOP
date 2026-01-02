@@ -299,3 +299,8 @@
 {"type":"entity","name":"AKIS.TerseInstructions","entityType":"pattern","observations":["Instruction files reduced by 38% (391→253 lines)","Tables preferred over prose","Gates as single-line format","upd:2026-01-02"]}
 {"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.AntiDrift.ScopeGate","relationType":"INCLUDES"}
 {"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.AntiDrift.AnchorGate","relationType":"INCLUDES"}
+{"type":"entity","name":"AKIS.Interruption.HardDepthLimit","entityType":"protocol","observations":["Max depth=3 is HARD BLOCK not warning","Session creation returns error if depth>=3","Prevents runaway nesting","upd:2026-01-02"]}
+{"type":"entity","name":"AKIS.Interruption.StaleCheck","entityType":"protocol","observations":["checkSessionStale() detects sessions >30min old","Recommends: resume (<30min), ask_user (30-60min), abandon (>1hr)","CLI: node session-tracker.js stale-check","upd:2026-01-02"]}
+{"type":"entity","name":"AKIS.Interruption.OrphanProtection","entityType":"protocol","observations":["Orphan sessions detected via checkParentHealth()","Results saved to .akis-orphan-{id}.json on completion","Prevents data loss when parent expires","upd:2026-01-02"]}
+{"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.Interruption.HardDepthLimit","relationType":"INCLUDES"}
+{"type":"relation","from":"AKIS.AntiDrift.Gates","to":"AKIS.Interruption.StaleCheck","relationType":"INCLUDES"}
