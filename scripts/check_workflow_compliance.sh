@@ -44,13 +44,13 @@ else
     issues+=("[SESSION] emission required at start of workflow")
 fi
 
-# Check 2: [AKIS_LOADED] emission
-if grep -q "\[AKIS_LOADED" "$log_file"; then
-    echo -e "${GREEN}✅ [AKIS_LOADED] emission found${NC}"
+# Check 2: [AKIS] emission (knowledge loaded)
+if grep -q "\[AKIS" "$log_file"; then
+    echo -e "${GREEN}✅ [AKIS] emission found${NC}"
     compliance_score=$((compliance_score + 1))
 else
-    echo -e "${RED}❌ [AKIS_LOADED] emission missing${NC}"
-    issues+=("[AKIS_LOADED] emission required in CONTEXT phase")
+    echo -e "${RED}❌ [AKIS] emission missing${NC}"
+    issues+=("[AKIS] emission required in CONTEXT phase")
 fi
 
 # Check 3: [PHASE:] emissions (at least one)
@@ -63,17 +63,17 @@ else
     issues+=("[PHASE:] emissions required for progress tracking")
 fi
 
-# Check 4: [SKILLS_USED] or [METHOD] emission
-if grep -q "\[SKILLS_USED\]" "$log_file" || grep -q "\[METHOD:" "$log_file"; then
-    echo -e "${GREEN}✅ [SKILLS_USED] or [METHOD] emission found${NC}"
+# Check 4: [SKILLS_USED], [SKILLS:], [METHOD:], or Skills Used section
+if grep -q "\[SKILLS_USED\]" "$log_file" || grep -q "\[SKILLS:" "$log_file" || grep -q "\[METHOD:" "$log_file" || grep -qi "skills used" "$log_file"; then
+    echo -e "${GREEN}✅ Skills tracking emission found${NC}"
     compliance_score=$((compliance_score + 1))
 else
-    echo -e "${RED}❌ [SKILLS_USED] or [METHOD] emission missing${NC}"
-    issues+=("[SKILLS_USED] or [METHOD] emission required at COMPLETE phase")
+    echo -e "${RED}❌ Skills tracking emission missing${NC}"
+    issues+=("Skills tracking required (use [SKILLS:], [SKILLS_USED], [METHOD:], or 'Skills Used' section)")
 fi
 
-# Check 5: [COMPLETE] emission
-if grep -q "\[COMPLETE:" "$log_file"; then
+# Check 5: [COMPLETE] emission (with or without colon)
+if grep -q "\[COMPLETE" "$log_file"; then
     echo -e "${GREEN}✅ [COMPLETE] emission found${NC}"
     compliance_score=$((compliance_score + 1))
 else

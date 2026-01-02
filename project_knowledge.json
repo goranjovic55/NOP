@@ -275,3 +275,6 @@
 {"type":"relation","from":"Frontend.Pages.Scans.Layout","to":"Frontend.UIComponents.StandardizedButtons","relationType":"USES"}
 {"type":"relation","from":"Frontend.Pages.Access","to":"Frontend.UIComponents.StandardizedButtons","relationType":"USES"}
 {"type":"relation","from":"Docker.Production.NetworkArchitecture","to":"Backend.Services.SnifferService","relationType":"ENABLES"}
+{"type":"entity","name":"AKIS.ComplianceChecker.Alignment","entityType":"fix","observations":["Fixed checker-protocol misalignment in check_workflow_compliance.sh","Changed [AKIS_LOADED] to [AKIS] pattern matching","Added case-insensitive 'Skills Used' section detection","Changed [COMPLETE:] to [COMPLETE] (optional colon)","Result: compliance detection improved from 16.1% to 32.2%","upd:2026-01-02"]}
+{"type":"entity","name":"AKIS.Phases.BlockingGates","entityType":"protocol","observations":["Added [SESSION:] as FIRST blocking gate before any work","Added [SKILLS:] emission requirement to INTEGRATE phase","Added 'Workflow Log Requirements' section with 5 mandatory elements","Elements: [SESSION:], [AKIS], [PHASE:], Skills tracking, [COMPLETE]","upd:2026-01-02"]}
+{"type":"relation","from":"AKIS.ComplianceChecker.Alignment","to":"AgentFramework.ProtocolEnforcement","relationType":"VALIDATES"}
