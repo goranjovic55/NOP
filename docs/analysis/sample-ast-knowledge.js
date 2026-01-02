@@ -169,11 +169,8 @@ function extractBackendKnowledge(srcDir, knowledge) {
   }
 
   // Extract schemas
-  if (fs.existsSync(schemasDir)) {
-    const schemaFiles = fs.existsSync(schemasDir) ? 
-      (fs.statSync(schemasDir).isDirectory() ? 
-        fs.readdirSync(schemasDir).filter(f => f.endsWith('.py')) : 
-        []) : [];
+  if (fs.existsSync(schemasDir) && fs.statSync(schemasDir).isDirectory()) {
+    const schemaFiles = fs.readdirSync(schemasDir).filter(f => f.endsWith('.py'));
     
     schemaFiles.forEach(file => {
       const content = fs.readFileSync(path.join(schemasDir, file), 'utf-8');
@@ -247,7 +244,7 @@ function extractPropsInterface(content) {
     const props = propsMatch[2]
       .split(';')
       .filter(p => p.trim())
-      .map(p => p.trim().split(':')[0]?.trim())
+      .map(p => p.trim().split(':')[0].trim())
       .filter(p => p);
     return { name: propsMatch[1], fields: props };
   }
@@ -260,7 +257,7 @@ function extractZustandState(content) {
     return stateMatch[1]
       .split(';')
       .filter(p => p.trim())
-      .map(p => p.trim().split(':')[0]?.trim())
+      .map(p => p.trim().split(':')[0].trim())
       .filter(p => p && !p.includes('('));
   }
   return [];
