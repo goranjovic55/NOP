@@ -174,6 +174,8 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         }
         .actions-tree {
             margin-top: 8px;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .action-item {
             padding: 6px 10px;
@@ -187,13 +189,38 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
         .action-item:hover {
             background: var(--vscode-list-hoverBackground);
         }
-        .action-item.SESSION_START { border-left-color: var(--vscode-charts-green); }
-        .action-item.PHASE_CHANGE { border-left-color: var(--vscode-charts-cyan); }
-        .action-item.DECISION { border-left-color: var(--vscode-charts-purple); }
-        .action-item.DELEGATE { border-left-color: var(--vscode-charts-orange); }
-        .action-item.FILE_CHANGE { border-left-color: var(--vscode-charts-yellow); }
-        .action-item.COMPLETE { border-left-color: var(--vscode-charts-blue); }
-        .action-item.CONTEXT { border-left-color: var(--vscode-charts-red); }
+        .action-item.SESSION_START { 
+            border-left-color: var(--vscode-charts-green);
+            background: rgba(0, 255, 0, 0.05);
+        }
+        .action-item.PHASE_CHANGE { 
+            border-left-color: var(--vscode-charts-cyan);
+            background: rgba(0, 255, 255, 0.05);
+        }
+        .action-item.DECISION { 
+            border-left-color: var(--vscode-charts-purple);
+            background: rgba(128, 0, 255, 0.05);
+        }
+        .action-item.DELEGATE { 
+            border-left-color: var(--vscode-charts-orange);
+            background: rgba(255, 165, 0, 0.05);
+        }
+        .action-item.FILE_CHANGE { 
+            border-left-color: var(--vscode-charts-yellow);
+            background: rgba(255, 255, 0, 0.05);
+        }
+        .action-item.COMPLETE { 
+            border-left-color: var(--vscode-charts-blue);
+            background: rgba(0, 0, 255, 0.05);
+        }
+        .action-item.CONTEXT { 
+            border-left-color: var(--vscode-charts-red);
+            background: rgba(255, 0, 0, 0.05);
+        }
+        .action-item.DETAIL { 
+            border-left-color: var(--vscode-descriptionForeground);
+            background: rgba(128, 128, 128, 0.03);
+        }
         .action-header {
             display: flex;
             justify-content: space-between;
@@ -206,6 +233,14 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             border-radius: 2px;
             background: rgba(100, 100, 100, 0.2);
         }
+        .action-item.SESSION_START .action-type { color: var(--vscode-charts-green); }
+        .action-item.PHASE_CHANGE .action-type { color: var(--vscode-charts-cyan); }
+        .action-item.DECISION .action-type { color: var(--vscode-charts-purple); }
+        .action-item.DELEGATE .action-type { color: var(--vscode-charts-orange); }
+        .action-item.FILE_CHANGE .action-type { color: var(--vscode-charts-yellow); }
+        .action-item.COMPLETE .action-type { color: var(--vscode-charts-blue); }
+        .action-item.CONTEXT .action-type { color: var(--vscode-charts-red); }
+        .action-item.DETAIL .action-type { color: var(--vscode-descriptionForeground); }
         .action-time {
             font-size: 0.75em;
             color: var(--vscode-descriptionForeground);
@@ -306,7 +341,19 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
 <body>
     <div class="header">
         <span class="header-title">🔄 Live Sessions</span>
-        <span class="session-count">${data.sessions.length} session${data.sessions.length !== 1 ? 's' : ''}</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="auto-scroll-btn" onclick="toggleAutoScroll()" style="
+                background: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                border: none;
+                padding: 4px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.8em;
+                font-family: var(--vscode-font-family);
+            ">📜 Auto-scroll: ON</button>
+            <span class="session-count">${data.sessions.length} session${data.sessions.length !== 1 ? 's' : ''}</span>
+        </div>
     </div>
 
     ${data.sessions.length > 0 ? `
@@ -333,13 +380,88 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
 
     <script>
         const sessionsData = ${JSON.stringify(data.sessions)};
+        let autoScroll = ${JSON.stringify(data.autoScroll !== false)}; // Default true
+        let expandedSessions = new Set();
+        
+        // Restore state from previous refresh
+        const savedScrollPositions = JSON.parse(sessionStorage.getItem('akis_scroll_positions') || '{}');
+        const savedDetailPanelOpen = sessionStorage.getItem('akis_detail_panel_open') === 'true';
+        const savedDetailContent = sessionStorage.getItem('akis_detail_content') || '';
+        
+        // Initialize expanded sessions
+        document.querySelectorAll('.session-body.expanded').forEach((el, idx) => {
+            const sessionItem = el.closest('.session-item');
+            if (sessionItem) {
+                expandedSessions.add(sessionItem.dataset.sessionId);
+            }
+        });
         
         function toggleSession(idx) {
             const body = document.getElementById('session-body-' + idx);
             const icon = document.getElementById('toggle-icon-' + idx);
-            if (body) {
+            const sessionItem = document.getElementById('session-' + idx);
+            
+            if (body && icon && sessionItem) {
+                const sessionId = sessionItem.dataset.sessionId;
+                const isExpanding = !body.classList.contains('expanded');
+                
                 body.classList.toggle('expanded');
                 icon.textContent = body.classList.contains('expanded') ? '▼' : '▶';
+                
+                if (isExpanding) {
+                    expandedSessions.add(sessionId);
+                    if (autoScroll) {
+                        scrollToBottom(idx);
+                    }
+                } else {
+                    expandedSessions.delete(sessionId);
+                }
+                
+                // Save state
+                saveViewState();
+            }
+        }
+        
+        function scrollToBottom(sessionIdx) {
+            const actionsTree = document.getElementById('actions-tree-' + sessionIdx);
+                saveViewState();
+            }
+        }
+        
+        function saveViewState() {
+            // Save scroll positions for all expanded sessions
+            const scrollPositions = {};
+            document.querySelectorAll('.actions-tree').forEach((tree) => {
+                const sessionItem = tree.closest('.session-item');
+                if (sessionItem) {
+                    const sessionId = sessionItem.dataset.sessionId;
+                    scrollPositions[sessionId] = tree.scrollTop;
+                }
+            });
+            sessionStorage.setItem('akis_scroll_positions', JSON.stringify(scrollPositions));
+            
+            // Save detail panel state
+            saveViewState(); // Save before opening panel
+            
+            const detailPanel = document.getElementById('detailPanel');
+            if (detailPanel) {
+                sessionStorage.setItem('akis_detail_panel_open', detailPanel.classList.contains('open'));
+                const detailContent = document.getElementById('detailContent');
+                if (detailContent) {
+                    sessionStorage.setItem('akis_detail_content', detailContent.innerHTML);
+                }
+            if (actionsTree) {
+                // Stack-based: scroll to top (where newest actions are)
+                actionsTree.scrollTop = 0;
+            }
+        }
+        
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('auto-scroll-btn');
+            if (btn) {
+                btn.textContent = autoScroll ? '📜 Auto-scroll: ON' : '📜 Auto-scroll: OFF';
+                btn.style.opacity = autoScroll ? '1' : '0.6';
             }
         }
         
@@ -375,6 +497,7 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 html += '<div class="detail-label">Details</div>';
                 html += '<div class="detail-content"><pre style="font-size: 0.85em; overflow-x: auto;">' + JSON.stringify(action.details, null, 2) + '</pre></div>';
                 html += '</div>';
+            saveViewState();
             }
             
             // Show surrounding context
@@ -409,6 +532,14 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
         
+        // Track previous action counts for auto-expand detection
+        let previousActionCounts = {};
+        
+        // Store current action counts
+        sessionsData.forEach((session, idx) => {
+            previousActionCounts[session.id || idx] = session.actions?.length || 0;
+        });
+        
         // Auto-expand current session
         document.querySelectorAll('.session-item.current').forEach((el, idx) => {
             const body = el.querySelector('.session-body');
@@ -418,17 +549,95 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 icon.textContent = '▼';
             }
         });
+        
+        // On page refresh, detect new actions and auto-expand if needed
+        window.addEventListener('beforeunload', () => {
+            // Save current state to sessionStorage for comparison on next load
+            sessionStorage.setItem('akis_action_counts', JSON.stringify(previousActionCounts));
+            sessionStorage.setItem('akis_expanded_sessions', JSON.stringify([...expandedSessions]));
+        });
+        
+        // Check for new actions on load
+        const savedCounts = sessionStorage.getItem('akis_action_counts');
+        const savedExpanded = sessionStorage.getItem('akis_expanded_sessions');
+        
+        if (savedCounts) {
+            const oldCounts = JSON.parse(savedCounts);
+            sessionsData.forEach((session, idx) => {
+        
+        // Restore scroll positions after DOM is ready
+        setTimeout(() => {
+            Object.keys(savedScrollPositions).forEach(sessionId => {
+                const sessionItem = document.querySelector('[data-session-id="' + sessionId + '"]');
+                if (sessionItem) {
+                    const actionsTree = sessionItem.querySelector('.actions-tree');
+                    if (actionsTree) {
+                        actionsTree.scrollTop = savedScrollPositions[sessionId];
+                    }
+                }
+            });
+            
+            // Restore detail panel
+            if (savedDetailPanelOpen) {
+                const panel = document.getElementById('detailPanel');
+                const content = document.getElementById('detailContent');
+                if (panel && content && savedDetailContent) {
+                    content.innerHTML = savedDetailContent;
+                    panel.classList.add('open');
+                }
+            }
+        }, 50);
+        
+        // Save state periodically to handle user scrolling
+        setInterval(saveViewState, 500);
+                const sessionId = session.id || idx;
+                const oldCount = oldCounts[sessionId] || 0;
+                const newCount = session.actions?.length || 0;
+                
+                // New action detected and session was collapsed
+                if (newCount > oldCount && !expandedSessions.has(sessionId)) {
+                    const body = document.getElementById('session-body-' + idx);
+                    const icon = document.getElementById('toggle-icon-' + idx);
+                    
+                    if (body && icon && !body.classList.contains('expanded')) {
+                        // Auto-expand on new action
+                        body.classList.add('expanded');
+                        icon.textContent = '▼';
+                        expandedSessions.add(sessionId);
+                        
+                        if (autoScroll) {
+                            scrollToBottom(idx);
+                        }
+                    }
+                }
+            });
+        }
+        
+        if (savedExpanded) {
+            const restored = JSON.parse(savedExpanded);
+            restored.forEach(id => expandedSessions.add(id));
+        }
     </script>
 </body>
 </html>`;
     }
 
     private renderSession(session: LiveSession, idx: number, isCurrent: boolean): string {
-        const statusClass = session.isActive ? 'active' : (session.phase === 'COMPLETE' ? 'completed' : 'idle');
-        const statusLabel = session.isActive ? 'ACTIVE' : (session.phase === 'COMPLETE' ? 'DONE' : 'IDLE');
+        // Activity indicator: show timing but session stays active until COMPLETE
+        const now = new Date();
+        const lastUpdate = new Date(session.lastUpdate);
+        const secondsSinceUpdate = (now.getTime() - lastUpdate.getTime()) / 1000;
+        const isCompleted = session.status === 'completed' || session.phase === 'COMPLETE';
+        const isIdle = secondsSinceUpdate > 30; // Just for UI indicator
+        
+        const statusClass = isCompleted ? 'completed' : (session.status === 'active' ? 'active' : 'idle');
+        const statusLabel = isCompleted ? 'DONE' : (session.status === 'active' ? 'ACTIVE' : 'IDLE');
+        
+        // Reverse actions for stack-based ordering (last action on top)
+        const reversedActions = session.actions.length > 0 ? [...session.actions].reverse() : [];
         
         return `
-        <div class="session-item ${isCurrent ? 'current' : ''}" id="session-${idx}">
+        <div class="session-item ${isCurrent ? 'current' : ''}" id="session-${idx}" data-session-id="${session.id || idx}">
             <div class="session-header ${statusClass}" onclick="toggleSession(${idx})">
                 <span class="toggle-icon" id="toggle-icon-${idx}">${isCurrent ? '▼' : '▶'}</span>
                 <span class="session-title">${this.escapeHtml(session.task)}</span>
@@ -451,6 +660,10 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                         <span>Last Update:</span>
                         <span>${this.formatTime(session.lastUpdate)}</span>
                     </div>
+                    <div class="info-row">
+                        <span>Activity:</span>
+                        <span>${isCompleted ? '🔵 Complete' : (isIdle ? '🟡 Idle (' + Math.floor(secondsSinceUpdate) + 's)' : '🟢 Active')}</span>
+                    </div>
                 </div>
                 
                 ${session.context ? `
@@ -462,11 +675,12 @@ export class LiveSessionViewProvider implements vscode.WebviewViewProvider, Refr
                 </div>
                 ` : ''}
                 
-                <div class="actions-tree">
+                <div class="actions-tree" id="actions-tree-${idx}">
                     ${session.actions.length > 0 ? 
-                        session.actions.slice(-20).map((action, actionIdx) => 
-                            this.renderAction(action, idx, actionIdx)
-                        ).join('') 
+                        session.actions.slice(-20).reverse().map((action, displayIdx) => {
+                            const actualIdx = session.actions.length - 1 - displayIdx;
+                            return this.renderAction(action, idx, actualIdx);
+                        }).join('') 
                         : '<div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; padding: 8px;">No actions recorded yet</div>'
                     }
                 </div>

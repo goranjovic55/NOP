@@ -13,6 +13,7 @@ export interface SessionAction {
 export interface LiveSession {
     id: string;
     isActive: boolean;
+    status: 'active' | 'completed' | 'idle';
     task: string;
     phase: string;
     progress: string;
@@ -49,6 +50,7 @@ export interface MultiSessionData {
     sessions: LiveSession[];
     currentSessionId: string | null;
     lastUpdate: Date;
+    autoScroll?: boolean;
 }
 
 export class LiveSessionParser {
@@ -167,6 +169,7 @@ export class LiveSessionParser {
         return {
             id: data.id || `session-${Date.now()}`,
             isActive: data.status === 'active',
+            status: data.status || 'active',
             task: data.task || 'Unknown task',
             phase: data.phase || 'UNKNOWN',
             progress: data.progress || '0/0',
@@ -186,6 +189,7 @@ export class LiveSessionParser {
         return {
             id: 'default',
             isActive: false,
+            status: 'idle',
             task: 'No active session',
             phase: 'IDLE',
             progress: '0/0',
@@ -247,6 +251,7 @@ export class LiveSessionParser {
             return {
                 id: `workflow-${filename}`,
                 isActive: status.toLowerCase().includes('progress') || status.toLowerCase() === 'unknown',
+                status: status.toLowerCase().includes('complete') ? 'completed' : 'active',
                 task,
                 phase,
                 progress,

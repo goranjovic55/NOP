@@ -61,7 +61,6 @@ const Topology: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
-  const [filterMode, setFilterMode] = useState<'subnet' | 'all'>('subnet');
   const [trafficThreshold, setTrafficThreshold] = useState<number>(0); // Minimum bytes to show connection
   const [isPlaying, setIsPlaying] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
@@ -70,11 +69,37 @@ const Topology: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
-  // Get scan settings for subnet filtering
-  const [scanSettings] = useState(() => {
+  // Get scan settings for discovery subnet
+  const [scanSettings, setScanSettings] = useState(() => {
     const saved = localStorage.getItem('nop_scan_settings');
     return saved ? JSON.parse(saved) : { networkRange: '172.21.0.0/24' };
   });
+
+  // Filter mode with localStorage persistence - default to 'subnet' to show discovery subnet
+  const [filterMode, setFilterMode] = useState<'all' | 'subnet'>(() => {
+    const saved = localStorage.getItem('nop_topology_filter');
+    return (saved as 'all' | 'subnet') || 'subnet';
+  });
+
+  // Discovery subnet (editable) - defaults to scan settings
+  const [discoverySubnet, setDiscoverySubnet] = useState<string>(() => {
+    return scanSettings.networkRange;
+  });
+
+  // Available subnets discovered from assets
+  const [availableSubnets, setAvailableSubnets] = useState<string[]>([]);
+
+  // Persist filter mode changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_filter', filterMode);
+  }, [filterMode]);
+
+  // Persist discovery subnet changes to scan settings
+  useEffect(() => {
+    const newSettings = { ...scanSettings, networkRange: discoverySubnet };
+    setScanSettings(newSettings);
+    localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
+  }, [discoverySubnet]);
 
   // Resize observer
   useEffect(() => {
@@ -100,19 +125,35 @@ const Topology: React.FC = () => {
         dashboardService.getTrafficStats(token)
       ]);
 
+      // Extract unique subnets from assets (first 3 octets)
+      const subnetsSet = new Set<string>();
+      assets.forEach(asset => {
+        const parts = asset.ip_address.split('.');
+        if (parts.length === 4) {
+          const subnet = parts.slice(0, 3).join('.') + '.0/24';
+          subnetsSet.add(subnet);
+        }
+      });
+      setAvailableSubnets(Array.from(subnetsSet).sort());
+
       // Process Nodes
       const nodesMap = new Map<string, GraphNode>();
       
-      // Determine subnet prefix from settings (assuming /24 for now)
-      const subnetPrefix = scanSettings.networkRange.split('/')[0].split('.').slice(0, 3).join('.') + '.';
+      // Determine filtering criteria
+      const shouldIncludeNode = (asset: any) => {
+        if (filterMode === 'all') {
+          // Show all subnets
+          return true;
+        } else {
+          // Subnet mode - filter by discovery subnet
+          const subnetPrefix = discoverySubnet.split('/')[0].split('.').slice(0, 3).join('.') + '.';
+          return asset.status === 'online' && asset.ip_address.startsWith(subnetPrefix);
+        }
+      };
 
       // Add assets as nodes
       assets.forEach(asset => {
-        if (filterMode === 'subnet') {
-          // Strict filtering: Online AND in subnet
-          if (asset.status !== 'online') return;
-          if (!asset.ip_address.startsWith(subnetPrefix)) return;
-        }
+        if (!shouldIncludeNode(asset)) return;
         
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
@@ -221,7 +262,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, scanSettings]);
+  }, [token, filterMode, discoverySubnet]);
 
   useEffect(() => {
     fetchData();
@@ -303,22 +344,45 @@ const Topology: React.FC = () => {
           </div>
           <div className="flex space-x-2 bg-cyber-dark p-1 rounded border border-cyber-gray">
             <button
-              onClick={() => setFilterMode('subnet')}
-              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'subnet' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
-              title={`Show only online hosts in ${scanSettings.networkRange}`}
-            >
-              Subnet
-            </button>
-            <button
               onClick={() => setFilterMode('all')}
               className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'all' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
-              title="Show all traffic including external nodes"
+              title="Show all subnets and external traffic"
             >
-              All Traffic
+              All Subnets
+            </button>
+            <button
+              onClick={() => setFilterMode('subnet')}
+              className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'subnet' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
+              title="Filter by discovery subnet"
+            >
+              Discovery Subnet
             </button>
           </div>
 
-          <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-gray">
+          {filterMode === 'subnet' && (
+            <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-green">
+              <label className="text-xs text-cyber-green font-bold whitespace-nowrap">Discovery:</label>
+              <input
+                type="text"
+                value={discoverySubnet}
+                onChange={(e) => setDiscoverySubnet(e.target.value)}
+                placeholder="172.21.0.0/24"
+                className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-blue min-w-[140px] font-mono"
+                title="Edit discovery subnet (syncs with Assets settings)"
+              />
+              <span className="text-xs text-cyber-gray-light">│</span>
+              <button
+                onClick={() => setDiscoverySubnet(scanSettings.networkRange)}
+                className="text-xs text-cyber-blue hover:text-cyber-green transition-colors px-2"
+                title="Reset to Assets settings"
+              >
+                ⟲
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-gray"
+            title="Minimum traffic volume to show connection">
             <label className="text-xs text-cyber-gray-light whitespace-nowrap">Min Traffic:</label>
             <select 
               value={trafficThreshold}
