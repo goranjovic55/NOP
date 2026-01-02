@@ -495,8 +495,105 @@
       "lastUpdate": "2026-01-02T11:31:42.953Z",
       "endTime": "2026-01-02T11:34:17.150Z",
       "workflowLog": "Updated AKIS framework with session file docs"
+    },
+    {
+      "id": "1767367386082",
+      "name": "Analyze AKIS drift",
+      "startTime": "2026-01-02T15:23:06.082Z",
+      "task": "Analyze AKIS drift",
+      "agent": "Developer",
+      "status": "active",
+      "phase": "PLAN",
+      "phaseDisplay": "Developer PLAN",
+      "phaseAgent": "Developer",
+      "phaseMessage": "Plan minimal doc update for AKIS drift scenarios",
+      "phaseVerbose": "Developer PLAN - Plan minimal doc update for AKIS drift scenarios | progress=2/7",
+      "progress": "2/7",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T15:23:06.082Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started Analyze AKIS drift with Developer (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "Analyze AKIS drift",
+            "agent": "Developer",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T15:26:05.989Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "Developer",
+          "title": "Phase: PLAN",
+          "description": "Plan minimal doc update for AKIS drift scenarios",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": "Plan minimal doc update for AKIS drift scenarios"
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [
+        {
+          "timestamp": "2026-01-02T15:26:05.989Z",
+          "agent": "Developer",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "PLAN",
+          "progress": "2/7",
+          "content": "PLAN",
+          "message": "Plan minimal doc update for AKIS drift scenarios",
+          "detail": "Plan minimal doc update for AKIS drift scenarios"
+        }
+      ],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "completed",
+          "startTime": "2026-01-02T15:23:06.082Z",
+          "message": "",
+          "actionIds": [
+            "0"
+          ],
+          "endTime": "2026-01-02T15:26:05.989Z"
+        },
+        "PLAN": {
+          "name": "PLAN",
+          "status": "active",
+          "startTime": "2026-01-02T15:26:05.989Z",
+          "message": "Plan minimal doc update for AKIS drift scenarios",
+          "actionIds": [
+            "1"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T15:26:05.989Z"
     }
   ],
-  "currentSessionId": "1767352251817",
-  "lastUpdate": "2026-01-02T11:35:14.923Z"
+  "currentSessionId": "1767367386082",
+  "lastUpdate": "2026-01-02T15:26:05.989Z"
 }
