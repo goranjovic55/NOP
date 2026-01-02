@@ -2,6 +2,19 @@
 
 **A**gents • **K**nowledge • **I**nstructions • **S**kills
 
+## ⚠️ MANDATORY AT EVERY RESPONSE START
+
+**BEFORE ANY WORK:**
+1. `node .github/scripts/session-tracker.js status` → Check active session
+2. If no session → `node .github/scripts/session-tracker.js start "task" "agent"`
+3. Emit `[SESSION: task] @AgentName`
+4. Load entities from `project_knowledge.json`
+5. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
+
+**ON INTERRUPT/RESUME:**
+- Call `node .github/scripts/session-tracker.js resume` to restore context
+- Continue from last known phase
+
 ## Required Response Format
 
 ```

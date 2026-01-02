@@ -325,6 +325,92 @@ class SessionTracker {
     }
 
     /**
+     * Get session status with formatted output
+     */
+    status() {
+        const session = this.get();
+        if (!session) {
+            return { active: false, message: 'No active session' };
+        }
+        return {
+            active: true,
+            session: session.task,
+            agent: session.agent,
+            phase: `${session.phase} ${session.progress}`,
+            display: session.phaseVerbose
+        };
+    }
+
+    /**
+     * Resume session - show full context
+     */
+    resume() {
+        const session = this.get();
+        if (!session) {
+            return 'No active session to resume';
+        }
+        return {
+            task: session.task,
+            agent: session.agent,
+            phase: session.phase,
+            progress: session.progress,
+            skills: session.skills,
+            decisions: session.decisions,
+            delegations: session.delegations,
+            lastUpdate: session.lastUpdate
+        };
+    }
+
+    /**
+     * Validate response has required AKIS headers
+     */
+    validate(response) {
+        const hasSession = response.includes('[SESSION:');
+        const hasAKIS = response.includes('[AKIS]');
+        const hasPhase = response.includes('[PHASE:');
+        
+        return {
+            valid: hasSession && hasAKIS,
+            hasSession,
+            hasAKIS,
+            hasPhase,
+            message: hasSession && hasAKIS ? 'Valid AKIS response' : 'Missing required headers'
+        };
+    }
+
+    /**
+     * Recover from last known state
+     */
+    recover() {
+        const session = this.get();
+        if (!session) {
+            return null;
+        }
+        
+        // Create checkpoint of current state
+        const checkpoint = {
+            ...session,
+            recoveredAt: new Date().toISOString()
+        };
+        
+        return checkpoint;
+    }
+
+    /**
+     * Create checkpoint of current state
+     */
+    checkpoint() {
+        const session = this.get();
+        if (!session) {
+            return null;
+        }
+        
+        const checkpointPath = path.join(process.cwd(), '.akis-checkpoint.json');
+        fs.writeFileSync(checkpointPath, JSON.stringify(session, null, 2));
+        return session;
+    }
+
+    /**
      * Helper to map phase names to progress numbers
      */
     getProgressFromPhase(phaseName) {
@@ -396,17 +482,42 @@ if (require.main === module) {
             break;
 
         case 'resume':
-            tracker.resume();
-            console.log('Session resumed');
+            // Handle both PAUSE/RESUME balance tracking and context restoration
+            if (typeof tracker.checkBalance === 'function') {
+                tracker.resume();
+            }
+            console.log(JSON.stringify(tracker.get(), null, 2));
             break;
 
         case 'check':
-            const balance = tracker.checkBalance();
-            console.log(`PAUSE/RESUME balance: ${balance.balanced ? 'OK' : 'IMBALANCED'}, depth: ${balance.depth}`);
+            if (typeof tracker.checkBalance === 'function') {
+                const balance = tracker.checkBalance();
+                console.log(`PAUSE/RESUME balance: ${balance.balanced ? 'OK' : 'IMBALANCED'}, depth: ${balance.depth}`);
+            } else {
+                console.log('check command not available');
+            }
             break;
 
         case 'stale':
             console.log(`Session stale: ${tracker.isStale()}`);
+            break;
+
+        case 'status':
+            console.log(JSON.stringify(tracker.status(), null, 2));
+            break;
+
+        case 'validate':
+            const testResponse = args.slice(1).join(' ');
+            console.log(JSON.stringify(tracker.validate(testResponse), null, 2));
+            break;
+
+        case 'recover':
+            console.log(JSON.stringify(tracker.recover(), null, 2));
+            break;
+
+        case 'checkpoint':
+            tracker.checkpoint();
+            console.log('Checkpoint saved to .akis-checkpoint.json');
             break;
 
         default:
@@ -426,6 +537,11 @@ Usage:
   node session-tracker.js complete [workflow_log_path]
   node session-tracker.js reset
   node session-tracker.js get
+  node session-tracker.js status
+  node session-tracker.js resume
+  node session-tracker.js validate <response>
+  node session-tracker.js recover
+  node session-tracker.js checkpoint
 
 Example:
   node session-tracker.js start "Add new feature" "_DevTeam"
