@@ -56,6 +56,8 @@ export interface LiveSession {
     isActive: boolean;
     task: string;
     phase: string;
+    phaseMessage?: string;
+    phaseVerbose?: string;
     progress: string;
     agent: string;
     decisions: string[];

@@ -158,32 +158,117 @@ const Access: React.FC = () => {
         // Auto-populate exploit builder form fields
         const vuln = state.vulnerability;
         
-        // Set port and service
-        setTargetPort(vuln.affected_port?.toString() || '');
-        setTargetService(vuln.affected_service || '');
-        
         // Set exploit name and description
         setExploitName(vuln.cve_id ? `Exploit for ${vuln.cve_id}` : vuln.title || 'Custom Exploit');
         setExploitDescription(vuln.description || '');
         
-        // Intelligently set payload type based on service
-        const service = vuln.affected_service?.toLowerCase() || '';
-        if (service.includes('ssh') || service.includes('telnet') || service.includes('ftp')) {
-          setPayloadType('reverse_shell');
-          setPayloadVariant('bash');
-        } else if (service.includes('http') || service.includes('web') || service.includes('apache') || service.includes('nginx')) {
-          setPayloadType('web_shell');
-          setPayloadVariant('php');
-        } else if (service.includes('smb') || service.includes('rdp') || service.includes('windows')) {
-          setPayloadType('reverse_shell');
-          setPayloadVariant('powershell');
-        } else if (service.includes('mysql') || service.includes('postgres') || service.includes('mssql')) {
-          setPayloadType('reverse_shell');
-          setPayloadVariant('python');
+        // Use exploit-specific metadata if available
+        if (vuln.exploit_data) {
+          const exploit = vuln.exploit_data;
+          const metadata = exploit.exploit_metadata;
+          
+          // Priority 1: Use exploit_metadata if available (most specific)
+          if (metadata) {
+            // Set port based on metadata
+            if (metadata.shell_port) {
+              setTargetPort(metadata.shell_port.toString());
+            } else if (metadata.trigger_port) {
+              setTargetPort(metadata.trigger_port.toString());
+            } else {
+              setTargetPort(vuln.affected_port?.toString() || '');
+            }
+            
+            // Set service description
+            setTargetService(vuln.affected_service || exploit.title || '');
+            
+            // Set payload type based on metadata shell_type
+            if (metadata.shell_type === 'bind_shell') {
+              setPayloadType('bind_shell');
+            } else if (metadata.shell_type === 'reverse_shell') {
+              setPayloadType('reverse_shell');
+            } else if (metadata.payload_type?.includes('web')) {
+              setPayloadType('web_shell');
+            } else if (metadata.payload_type?.includes('meterpreter')) {
+              setPayloadType('meterpreter');
+            } else {
+              setPayloadType('reverse_shell'); // default
+            }
+            
+            // Set payload variant based on metadata
+            if (metadata.default_payload_variant) {
+              setPayloadVariant(metadata.default_payload_variant);
+            } else if (exploit.target_platform?.toLowerCase().includes('windows')) {
+              setPayloadVariant('powershell');
+            } else {
+              setPayloadVariant('bash');
+            }
+          }
+          // Priority 2: Use exploit module info (less specific)
+          else {
+            const moduleId = exploit.module_id?.toLowerCase() || '';
+            const exploitType = exploit.exploit_type?.toLowerCase() || '';
+            const platform = exploit.target_platform?.toLowerCase() || '';
+            
+            // VSFTPD 2.3.4 Backdoor (CVE-2011-2523) fallback
+            if (moduleId.includes('vsftpd') || vuln.cve_id === 'CVE-2011-2523') {
+              setTargetPort('6200'); // Backdoor shell port
+              setTargetService('vsftpd backdoor shell');
+              setPayloadType('bind_shell');
+              setPayloadVariant('bash');
+            }
+            // Generic exploit-based configuration
+            else {
+              setTargetPort(vuln.affected_port?.toString() || '');
+              setTargetService(vuln.affected_service || '');
+              
+              // Determine payload type based on exploit metadata
+              if (exploitType.includes('remote') || exploitType.includes('webapps')) {
+                if (platform.includes('windows')) {
+                  setPayloadType('reverse_shell');
+                  setPayloadVariant('powershell');
+                } else if (platform.includes('php') || vuln.affected_service?.toLowerCase().includes('http')) {
+                  setPayloadType('web_shell');
+                  setPayloadVariant('php');
+                } else {
+                  setPayloadType('reverse_shell');
+                  setPayloadVariant('bash');
+                }
+              } else if (exploitType.includes('local')) {
+                setPayloadType('bind_shell');
+                setPayloadVariant(platform.includes('windows') ? 'powershell' : 'bash');
+              } else {
+                if (platform.includes('windows')) {
+                  setPayloadType('reverse_shell');
+                  setPayloadVariant('powershell');
+                } else {
+                  setPayloadType('reverse_shell');
+                  setPayloadVariant('bash');
+                }
+              }
+            }
+          }
         } else {
-          // Default for unknown services
-          setPayloadType('reverse_shell');
-          setPayloadVariant('bash');
+          // Fallback to generic service-based inference (old behavior)
+          setTargetPort(vuln.affected_port?.toString() || '');
+          setTargetService(vuln.affected_service || '');
+          
+          const service = vuln.affected_service?.toLowerCase() || '';
+          if (service.includes('ssh') || service.includes('telnet') || service.includes('ftp')) {
+            setPayloadType('reverse_shell');
+            setPayloadVariant('bash');
+          } else if (service.includes('http') || service.includes('web') || service.includes('apache') || service.includes('nginx')) {
+            setPayloadType('web_shell');
+            setPayloadVariant('php');
+          } else if (service.includes('smb') || service.includes('rdp') || service.includes('windows')) {
+            setPayloadType('reverse_shell');
+            setPayloadVariant('powershell');
+          } else if (service.includes('mysql') || service.includes('postgres') || service.includes('mssql')) {
+            setPayloadType('reverse_shell');
+            setPayloadVariant('python');
+          } else {
+            setPayloadType('reverse_shell');
+            setPayloadVariant('bash');
+          }
         }
       }
     }

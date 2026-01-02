@@ -195,6 +195,8 @@ class LiveSessionParser {
             status: data.status || 'active',
             task: data.task || data.name || 'Unknown task',
             phase: data.phase || 'UNKNOWN',
+            phaseMessage: data.phaseMessage || '',
+            phaseVerbose: data.phaseVerbose || '',
             progress: data.progress || '0/0',
             agent: data.agent || 'Unknown',
             decisions,

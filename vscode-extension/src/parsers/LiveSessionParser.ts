@@ -16,6 +16,8 @@ export interface LiveSession {
     status: 'active' | 'completed' | 'idle';
     task: string;
     phase: string;
+    phaseMessage?: string;
+    phaseVerbose?: string;
     progress: string;
     agent: string;
     decisions: string[];
@@ -243,6 +245,8 @@ export class LiveSessionParser {
             status: data.status || 'active',
             task: data.task || data.name || 'Unknown task',
             phase: data.phase || 'UNKNOWN',
+            phaseMessage: data.phaseMessage || '',
+            phaseVerbose: data.phaseVerbose || '',
             progress: data.progress || '0/0',
             agent: data.agent || 'Unknown',
             decisions,

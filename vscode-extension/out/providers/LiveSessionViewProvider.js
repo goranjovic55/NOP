@@ -738,7 +738,9 @@ class LiveSessionViewProvider {
                 <span class="toggle-icon" id="toggle-icon-${idx}">${isCurrent ? '▼' : '▶'}</span>
                 <span class="session-title">${depthPrefix}${this.escapeHtml(session.task)}</span>
                 <div class="session-meta">
-                    <span class="phase-badge">${session.phase}</span>
+                    <span class="phase-badge" title="${this.escapeHtml(session.phaseMessage || session.phase)}">
+                        ${session.phase}${session.phaseMessage ? ': ' + this.escapeHtml(session.phaseMessage.substring(0, 30)) + (session.phaseMessage.length > 30 ? '...' : '') : ''}
+                    </span>
                     <span class="status-badge ${statusClass}">${statusLabel}</span>
                 </div>
             </div>

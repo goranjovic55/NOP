@@ -51,6 +51,7 @@ class ExploitModuleResponse(BaseModel):
     verified: bool
     exploit_db_id: Optional[int]
     reference_url: Optional[str]
+    exploit_metadata: Optional[dict] = None  # Additional exploit-specific metadata
 
 
 @router.post("/lookup-cve")

@@ -479,6 +479,11 @@ class SessionTracker {
             console.warn(`Warning: '${phaseName}' is not a standard phase. Valid phases: ${validPhases.join(', ')}`);
         }
         
+        // Require descriptive message for phases
+        if (!message || message.trim() === '') {
+            console.warn(`Warning: Phase '${phaseName}' emitted without descriptive message. Please provide context.`);
+        }
+        
         this.emit({
             type: 'PHASE',
             phase: phaseName,

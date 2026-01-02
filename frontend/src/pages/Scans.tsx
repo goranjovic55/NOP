@@ -300,7 +300,21 @@ const Scans: React.FC = () => {
                 affected_port: service.port,
                 exploit_available: true,
                 exploit_module: exploits[0]?.module_path || exploits[0]?.module_id,
-                source_database: 'cve'
+                source_database: 'cve',
+                // Store full exploit metadata
+                exploit_data: exploits[0] ? {
+                  id: exploits[0].id,
+                  platform: exploits[0].platform,
+                  module_id: exploits[0].module_id,
+                  module_path: exploits[0].module_path,
+                  exploit_type: exploits[0].exploit_type,
+                  target_platform: exploits[0].target_platform,
+                  rank: exploits[0].rank,
+                  verified: exploits[0].verified,
+                  exploit_db_id: exploits[0].exploit_db_id,
+                  reference_url: exploits[0].reference_url,
+                  exploit_metadata: exploits[0].exploit_metadata || undefined
+                } : undefined
               });
             }
           } catch (err) {

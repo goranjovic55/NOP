@@ -12,7 +12,12 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
    1        2         3           4          5        6        7
 ```
 
-**Emit**: `[PHASE: NAME | progress=H/V]` (H=phase 1-7, V=depth 0-3)
+**Emit**: `[PHASE: NAME | N/7 | "what you're doing"]` - Always include descriptive message!
+
+**Examples**:
+- `[PHASE: CONTEXT | 1/7 | "Loading API schema knowledge"]`
+- `[PHASE: PLAN | 2/7 | "Designing database migrations"]`
+- `[PHASE: INTEGRATE | 4/7 | "Implementing JWT auth"]`
 
 ## Phase Actions
 
@@ -22,8 +27,8 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | 2 | PLAN | Design approach, define scope | `[SCOPE]` |
 | 3 | COORDINATE | Delegate OR load skill files | - |
 | 4 | INTEGRATE | Execute work within scope | `[ANCHOR]` |
-| 5 | VERIFY | Test, validate, audit scope | `[SCOPE_AUDIT]` |
-| 6 | LEARN | Update knowledge | - |
+| 5 | VERIFY | Test, validate, audit scope | `[SCOPE_AUDIT]` → **STOP** |
+| 6 | LEARN | Update knowledge (after approval) | - |
 | 7 | COMPLETE | Emit completion | `[COMPLETE]` |
 
 ## Anti-Drift Gates
@@ -34,7 +39,7 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 | `[AKIS]` | CONTEXT | Load knowledge, emit stats |
 | `[SCOPE]` | PLAN | `files=[...] \| max=N` |
 | `[ANCHOR]` | INTEGRATE | `task="X" \| on_track=yes/no` |
-| `[SCOPE_AUDIT]` | VERIFY | `planned=N \| actual=M` |
+| `[SCOPE_AUDIT]` | VERIFY | `planned=N \| actual=M` → **Wait user approval** |
 | `[COMPLETE]` | END | Required for all sessions |
 
 **Drift detected?** → `[DRIFT: should_be="X"]` → Correct before proceed
@@ -50,6 +55,8 @@ CONTEXT → PLAN → COORDINATE → INTEGRATE → VERIFY → LEARN → COMPLETE
 6. Phase progress automatic from session state
 
 **Phase Completion**: On `complete` → Auto-resumes parent at paused phase
+
+**Review Gate**: After VERIFY → Present results → Wait user OK → Proceed LEARN
 
 ## Skip Phases
 

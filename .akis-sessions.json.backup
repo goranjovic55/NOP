@@ -1,63 +1,305 @@
 {
   "sessions": [
     {
-      "id": "1767381372815",
-      "startTime": "2026-01-02T19:16:12.815Z",
-      "task": "fix-exploit-builder-params",
+      "id": "1767382521141",
+      "name": "fix-exploit-builder-integration",
+      "startTime": "2026-01-02T19:35:21.141Z",
+      "task": "fix-exploit-builder-integration",
       "agent": "_DevTeam",
       "status": "completed",
-      "phase": "COMPLETE",
-      "progress": "7/7",
-      "decisions": [],
+      "phase": "LEARN",
+      "phaseDisplay": "_DevTeam LEARN",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "Documenting findings and creating workflow log",
+      "phaseVerbose": "_DevTeam LEARN | progress=6/7",
+      "progress": "6/7",
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T19:35:21.141Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started fix-exploit-builder-integration with _DevTeam (main)",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "fix-exploit-builder-integration",
+            "agent": "_DevTeam",
+            "isMainSession": true,
+            "parentSessionId": null,
+            "depth": 0
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T19:35:54.814Z",
+          "type": "PHASE_CHANGE",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "Phase: CONTEXT",
+          "description": "Entered CONTEXT phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "CONTEXT",
+            "to": "CONTEXT",
+            "progress": "1/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T19:37:05.880Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Phase: PLAN",
+          "description": "Entered PLAN phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T19:37:33.325Z",
+          "type": "DECISION",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Decision Made",
+          "description": "Found root cause: Exploit metadata (ports, payload types, etc) from CVE lookup not passed to builder. Only module_id stored. Need to: 1) Extend Vulnerability interface with exploit metadata, 2) Store full exploit data from API, 3) Create static mappings for known exploits with specific parameters",
+          "reason": "Strategic choice point",
+          "details": {
+            "decision": "Found root cause: Exploit metadata (ports, payload types, etc) from CVE lookup not passed to builder. Only module_id stored. Need to: 1) Extend Vulnerability interface with exploit metadata, 2) Store full exploit data from API, 3) Create static mappings for known exploits with specific parameters",
+            "alternatives": [],
+            "rationale": ""
+          }
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-01-02T19:37:33.657Z",
+          "type": "PHASE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "Phase: INTEGRATE",
+          "description": "Entered INTEGRATE phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-01-02T19:39:59.215Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Phase: PLAN",
+          "description": "Entered PLAN phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "PLAN",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "6",
+          "timestamp": "2026-01-02T19:40:14.240Z",
+          "type": "PHASE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "Phase: INTEGRATE",
+          "description": "Entered INTEGRATE phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "INTEGRATE",
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "7",
+          "timestamp": "2026-01-02T19:44:40.626Z",
+          "type": "PHASE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "Phase: INTEGRATE",
+          "description": "Adding descriptive phase messages to AKIS",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "INTEGRATE",
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": "Adding descriptive phase messages to AKIS"
+          }
+        },
+        {
+          "id": "8",
+          "timestamp": "2026-01-02T19:45:00.915Z",
+          "type": "PHASE_CHANGE",
+          "phase": "VERIFY",
+          "agent": "_DevTeam",
+          "title": "Phase: VERIFY",
+          "description": "Verifying exploit builder integration",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "VERIFY",
+            "progress": "5/7",
+            "message": "Verifying exploit builder integration"
+          }
+        },
+        {
+          "id": "9",
+          "timestamp": "2026-01-02T19:45:41.442Z",
+          "type": "PAUSE",
+          "phase": "VERIFY",
+          "title": "Session Paused",
+          "description": "Paused for: add-descriptive-phase-messages",
+          "reason": "Interrupt - starting sub-session",
+          "details": {
+            "childTask": "add-descriptive-phase-messages"
+          }
+        },
+        {
+          "id": "10",
+          "timestamp": "2026-01-02T19:46:24.199Z",
+          "type": "RESUME",
+          "phase": "VERIFY",
+          "agent": "_DevTeam",
+          "title": "RESUME",
+          "description": "Session resumed",
+          "reason": "Continuing work",
+          "details": {}
+        },
+        {
+          "id": "11",
+          "timestamp": "2026-01-02T19:50:49.811Z",
+          "type": "PHASE_CHANGE",
+          "phase": "LEARN",
+          "agent": "_DevTeam",
+          "title": "Phase: LEARN",
+          "description": "Documenting findings and creating workflow log",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "LEARN",
+            "progress": "6/7",
+            "message": "Documenting findings and creating workflow log"
+          }
+        }
+      ],
+      "decisions": [
+        {
+          "description": "Found root cause: Exploit metadata (ports, payload types, etc) from CVE lookup not passed to builder. Only module_id stored. Need to: 1) Extend Vulnerability interface with exploit metadata, 2) Store full exploit data from API, 3) Create static mappings for known exploits with specific parameters",
+          "timestamp": "2026-01-02T19:37:33.325Z"
+        }
+      ],
       "emissions": [
         {
-          "timestamp": "2026-01-02T19:17:02.041Z",
+          "timestamp": "2026-01-02T19:35:54.814Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
           "type": "PHASE",
-          "phase": "COORDINATE",
-          "progress": "3/7",
-          "content": "COORDINATE"
+          "phase": "CONTEXT",
+          "progress": "1/7",
+          "content": "CONTEXT",
+          "message": "",
+          "detail": ""
         },
         {
-          "timestamp": "2026-01-02T19:18:59.766Z",
-          "type": "FILE_CHANGE",
-          "content": "Added action command to session tracker"
-        },
-        {
-          "timestamp": "2026-01-02T19:20:39.573Z",
-          "type": "FILE_CHANGE",
-          "content": "Updated session tracker to populate actions array"
-        },
-        {
-          "timestamp": "2026-01-02T19:21:45.911Z",
+          "timestamp": "2026-01-02T19:37:05.880Z",
           "agent": "_DevTeam",
           "isDelegated": false,
-          "type": "FILE_CHANGE",
-          "file": ".github/scripts/session-tracker.js",
-          "changeType": "modified"
+          "type": "PHASE",
+          "phase": "PLAN",
+          "progress": "2/7",
+          "content": "PLAN",
+          "message": "",
+          "detail": ""
         },
         {
-          "timestamp": "2026-01-02T19:22:09.779Z",
+          "timestamp": "2026-01-02T19:37:33.325Z",
           "agent": "_DevTeam",
           "isDelegated": false,
-          "type": "DETAIL",
-          "detail": "Restored multi-session tracking - now using .akis-sessions.json"
+          "type": "DECISION",
+          "content": "Found root cause: Exploit metadata (ports, payload types, etc) from CVE lookup not passed to builder. Only module_id stored. Need to: 1) Extend Vulnerability interface with exploit metadata, 2) Store full exploit data from API, 3) Create static mappings for known exploits with specific parameters"
         },
         {
-          "timestamp": "2026-01-02T19:25:08.204Z",
+          "timestamp": "2026-01-02T19:37:33.657Z",
           "agent": "_DevTeam",
           "isDelegated": false,
-          "type": "DETAIL",
-          "detail": "AKIS system verified - all functionality intact: multi-session, hierarchy, actions timeline, context SSOT, extension support"
+          "type": "PHASE",
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "",
+          "detail": ""
         },
         {
-          "timestamp": "2026-01-02T19:30:49.330Z",
+          "timestamp": "2026-01-02T19:39:59.215Z",
           "agent": "_DevTeam",
           "isDelegated": false,
-          "type": "DETAIL",
-          "detail": "Rebuilt and reinstalled VSCode extension with INTERRUPT action type support"
+          "type": "PHASE",
+          "phase": "PLAN",
+          "progress": "2/7",
+          "content": "PLAN",
+          "message": "",
+          "detail": ""
         },
         {
-          "timestamp": "2026-01-02T19:32:13.104Z",
+          "timestamp": "2026-01-02T19:40:14.240Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "",
+          "detail": ""
+        },
+        {
+          "timestamp": "2026-01-02T19:44:40.626Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "Adding descriptive phase messages to AKIS",
+          "detail": "Adding descriptive phase messages to AKIS"
+        },
+        {
+          "timestamp": "2026-01-02T19:45:00.915Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "VERIFY",
+          "progress": "5/7",
+          "content": "VERIFY",
+          "message": "Verifying exploit builder integration",
+          "detail": "Verifying exploit builder integration"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:24.198Z",
           "agent": "_DevTeam",
           "isDelegated": false,
           "type": "RESUME",
@@ -65,50 +307,367 @@
           "reason": "Continuing work"
         },
         {
-          "timestamp": "2026-01-02T19:32:49.284Z",
+          "timestamp": "2026-01-02T19:50:49.811Z",
           "agent": "_DevTeam",
           "isDelegated": false,
           "type": "PHASE",
           "phase": "LEARN",
           "progress": "6/7",
           "content": "LEARN",
-          "message": "Update knowledge and create workflow log",
-          "detail": "Update knowledge and create workflow log"
-        },
-        {
-          "timestamp": "2026-01-02T19:33:14.700Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "DETAIL",
-          "detail": "Updated project_knowledge.json with AKIS multi-session and extension capabilities"
-        },
-        {
-          "timestamp": "2026-01-02T19:33:21.935Z",
-          "agent": "_DevTeam",
-          "isDelegated": false,
-          "type": "PHASE",
-          "phase": "COMPLETE",
-          "progress": "7/7",
-          "content": "COMPLETE",
-          "message": "Session tracker restored and verified",
-          "detail": "Session tracker restored and verified"
+          "message": "Documenting findings and creating workflow log",
+          "detail": "Documenting findings and creating workflow log"
         }
       ],
       "delegations": [],
       "skills": [],
-      "lastUpdate": "2026-01-02T19:33:21.935Z",
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "completed",
+          "startTime": "2026-01-02T19:35:21.141Z",
+          "message": "",
+          "actionIds": [
+            "0",
+            "1"
+          ],
+          "endTime": "2026-01-02T19:37:05.880Z"
+        },
+        "PLAN": {
+          "name": "PLAN",
+          "status": "completed",
+          "startTime": "2026-01-02T19:37:05.880Z",
+          "message": "",
+          "actionIds": [
+            "2",
+            "3",
+            "5"
+          ],
+          "endTime": "2026-01-02T19:40:14.240Z"
+        },
+        "INTEGRATE": {
+          "name": "INTEGRATE",
+          "status": "completed",
+          "startTime": "2026-01-02T19:37:33.657Z",
+          "message": "",
+          "actionIds": [
+            "4",
+            "6",
+            "7"
+          ],
+          "endTime": "2026-01-02T19:45:00.915Z"
+        },
+        "VERIFY": {
+          "name": "VERIFY",
+          "status": "completed",
+          "startTime": "2026-01-02T19:45:00.915Z",
+          "message": "Verifying exploit builder integration",
+          "actionIds": [
+            "8",
+            "10"
+          ],
+          "endTime": "2026-01-02T19:50:49.811Z"
+        },
+        "LEARN": {
+          "name": "LEARN",
+          "status": "active",
+          "startTime": "2026-01-02T19:50:49.811Z",
+          "message": "Documenting findings and creating workflow log",
+          "actionIds": [
+            "11"
+          ]
+        }
+      },
+      "awaitingReset": true,
+      "lastUpdate": "2026-01-02T19:50:49.811Z",
+      "endTime": "2026-01-02T19:51:26.637Z"
+    },
+    {
+      "id": "1767383141442",
+      "name": "add-descriptive-phase-messages",
+      "startTime": "2026-01-02T19:45:41.442Z",
+      "task": "add-descriptive-phase-messages",
+      "agent": "_DevTeam",
+      "status": "completed",
+      "phase": "COMPLETE",
+      "phaseDisplay": "_DevTeam COMPLETE",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "Phase message system fully implemented and tested",
+      "phaseVerbose": "_DevTeam COMPLETE | progress=7/7",
+      "progress": "7/7",
+      "parentSessionId": "1767382521141",
+      "isMainSession": false,
+      "depth": 1,
+      "context": {
+        "entities": [
+          "AKIS.SessionTracker",
+          "AKIS.PhaseSystem",
+          "VSCodeExtension.LiveMonitor"
+        ],
+        "skills": [],
+        "patterns": [
+          "phase-messages",
+          "session-state"
+        ],
+        "files": [
+          ".github/copilot-instructions.md",
+          ".github/scripts/session-tracker.js",
+          "vscode-extension/src/providers/LiveSessionViewProvider.ts"
+        ],
+        "changes": [
+          {
+            "file": "frontend/src/store/scanStore.ts",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:45:55.980Z"
+          },
+          {
+            "file": "frontend/src/pages/Scans.tsx",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:01.320Z"
+          },
+          {
+            "file": "frontend/src/pages/Access.tsx",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:01.365Z"
+          },
+          {
+            "file": "backend/app/api/v1/endpoints/vulnerabilities.py",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:01.402Z"
+          },
+          {
+            "file": "backend/app/services/exploit_match.py",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:01.435Z"
+          },
+          {
+            "file": ".github/copilot-instructions.md",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:04.097Z"
+          },
+          {
+            "file": ".github/instructions/phases.md",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:04.439Z"
+          },
+          {
+            "file": ".github/scripts/session-tracker.js",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:04.475Z"
+          },
+          {
+            "file": "vscode-extension/src/types/index.ts",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:04.509Z"
+          },
+          {
+            "file": "vscode-extension/src/parsers/LiveSessionParser.ts",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:11.190Z"
+          },
+          {
+            "file": "vscode-extension/src/providers/LiveSessionViewProvider.ts",
+            "type": "modified",
+            "timestamp": "2026-01-02T19:46:11.229Z"
+          }
+        ]
+      },
       "actions": [
         {
-          "id": "action-1767381639573-0",
-          "timestamp": "2026-01-02T19:20:39.573Z",
-          "type": "FILE_CHANGE",
-          "description": "Updated session tracker to populate actions array"
+          "id": "0",
+          "timestamp": "2026-01-02T19:45:41.442Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started add-descriptive-phase-messages with _DevTeam (sub-session)",
+          "reason": "Interrupt from parent session",
+          "details": {
+            "task": "add-descriptive-phase-messages",
+            "agent": "_DevTeam",
+            "isMainSession": false,
+            "parentSessionId": "1767382521141",
+            "depth": 1
+          }
         },
         {
           "id": "1",
-          "timestamp": "2026-01-02T19:21:45.911Z",
+          "timestamp": "2026-01-02T19:45:46.770Z",
+          "type": "PHASE_CHANGE",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "Phase: CONTEXT",
+          "description": "Loading AKIS framework knowledge and phase system",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "CONTEXT",
+            "to": "CONTEXT",
+            "progress": "1/7",
+            "message": "Loading AKIS framework knowledge and phase system"
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T19:45:52.256Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Phase: PLAN",
+          "description": "Designing phase message requirements and display",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": "Designing phase message requirements and display"
+          }
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T19:45:55.980Z",
           "type": "FILE_CHANGE",
-          "phase": "COORDINATE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "frontend/src/store/scanStore.ts",
+          "reason": "Code implementation",
+          "details": {
+            "file": "frontend/src/store/scanStore.ts",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "4",
+          "timestamp": "2026-01-02T19:45:58.041Z",
+          "type": "DECISION",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Decision Made",
+          "description": "Add phaseMessage field to session state and require messages in phase emissions",
+          "reason": "Strategic choice point",
+          "details": {
+            "decision": "Add phaseMessage field to session state and require messages in phase emissions",
+            "alternatives": [],
+            "rationale": ""
+          }
+        },
+        {
+          "id": "5",
+          "timestamp": "2026-01-02T19:45:58.369Z",
+          "type": "PHASE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "Phase: INTEGRATE",
+          "description": "Updating instructions, tracker, and VSCode extension",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": "Updating instructions, tracker, and VSCode extension"
+          }
+        },
+        {
+          "id": "6",
+          "timestamp": "2026-01-02T19:46:01.320Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "frontend/src/pages/Scans.tsx",
+          "reason": "Code implementation",
+          "details": {
+            "file": "frontend/src/pages/Scans.tsx",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "7",
+          "timestamp": "2026-01-02T19:46:01.365Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "frontend/src/pages/Access.tsx",
+          "reason": "Code implementation",
+          "details": {
+            "file": "frontend/src/pages/Access.tsx",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "8",
+          "timestamp": "2026-01-02T19:46:01.402Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "backend/app/api/v1/endpoints/vulnerabilities.py",
+          "reason": "Code implementation",
+          "details": {
+            "file": "backend/app/api/v1/endpoints/vulnerabilities.py",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "9",
+          "timestamp": "2026-01-02T19:46:01.435Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "backend/app/services/exploit_match.py",
+          "reason": "Code implementation",
+          "details": {
+            "file": "backend/app/services/exploit_match.py",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "10",
+          "timestamp": "2026-01-02T19:46:04.097Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": ".github/copilot-instructions.md",
+          "reason": "Code implementation",
+          "details": {
+            "file": ".github/copilot-instructions.md",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "11",
+          "timestamp": "2026-01-02T19:46:04.439Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": ".github/instructions/phases.md",
+          "reason": "Code implementation",
+          "details": {
+            "file": ".github/instructions/phases.md",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
+          }
+        },
+        {
+          "id": "12",
+          "timestamp": "2026-01-02T19:46:04.475Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
           "agent": "_DevTeam",
           "title": "File modified",
           "description": ".github/scripts/session-tracker.js",
@@ -121,245 +680,314 @@
           }
         },
         {
-          "id": "2",
-          "timestamp": "2026-01-02T19:22:09.779Z",
-          "type": "DETAIL",
-          "phase": "COORDINATE",
+          "id": "13",
+          "timestamp": "2026-01-02T19:46:04.509Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
           "agent": "_DevTeam",
-          "title": "Detail",
-          "description": "Restored multi-session tracking - now using .akis-sessions.json",
-          "reason": "Progress update",
+          "title": "File modified",
+          "description": "vscode-extension/src/types/index.ts",
+          "reason": "Code implementation",
           "details": {
-            "text": "Restored multi-session tracking - now using .akis-sessions.json"
+            "file": "vscode-extension/src/types/index.ts",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
           }
         },
         {
-          "id": "3",
-          "timestamp": "2026-01-02T19:25:08.204Z",
-          "type": "DETAIL",
-          "phase": "COORDINATE",
+          "id": "14",
+          "timestamp": "2026-01-02T19:46:06.334Z",
+          "type": "DECISION",
+          "phase": "INTEGRATE",
           "agent": "_DevTeam",
-          "title": "Detail",
-          "description": "AKIS system verified - all functionality intact: multi-session, hierarchy, actions timeline, context SSOT, extension support",
-          "reason": "Progress update",
+          "title": "Decision Made",
+          "description": "Added exploit_metadata support to fix generic exploit builder - now uses CVE-specific port/shell configs",
+          "reason": "Strategic choice point",
           "details": {
-            "text": "AKIS system verified - all functionality intact: multi-session, hierarchy, actions timeline, context SSOT, extension support"
+            "decision": "Added exploit_metadata support to fix generic exploit builder - now uses CVE-specific port/shell configs",
+            "alternatives": [],
+            "rationale": ""
           }
         },
         {
-          "id": "4",
-          "timestamp": "2026-01-02T19:30:49.330Z",
-          "type": "DETAIL",
-          "phase": "COORDINATE",
+          "id": "15",
+          "timestamp": "2026-01-02T19:46:11.190Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
           "agent": "_DevTeam",
-          "title": "Detail",
-          "description": "Rebuilt and reinstalled VSCode extension with INTERRUPT action type support",
-          "reason": "Progress update",
+          "title": "File modified",
+          "description": "vscode-extension/src/parsers/LiveSessionParser.ts",
+          "reason": "Code implementation",
           "details": {
-            "text": "Rebuilt and reinstalled VSCode extension with INTERRUPT action type support"
+            "file": "vscode-extension/src/parsers/LiveSessionParser.ts",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
           }
         },
         {
-          "id": "5",
-          "timestamp": "2026-01-02T19:31:59.044Z",
-          "type": "PAUSE",
-          "phase": "COORDINATE",
-          "title": "Session Paused",
-          "description": "Paused for: test-nested-session-functionality",
-          "reason": "Interrupt - starting sub-session",
+          "id": "16",
+          "timestamp": "2026-01-02T19:46:11.229Z",
+          "type": "FILE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "File modified",
+          "description": "vscode-extension/src/providers/LiveSessionViewProvider.ts",
+          "reason": "Code implementation",
           "details": {
-            "childTask": "test-nested-session-functionality"
+            "file": "vscode-extension/src/providers/LiveSessionViewProvider.ts",
+            "changeType": "modified",
+            "linesChanged": 0,
+            "summary": ""
           }
         },
         {
-          "id": "6",
-          "timestamp": "2026-01-02T19:32:13.104Z",
-          "type": "RESUME",
-          "phase": "COORDINATE",
-          "agent": "_DevTeam",
-          "title": "RESUME",
-          "description": "Session resumed",
-          "reason": "Continuing work",
-          "details": {}
-        },
-        {
-          "id": "7",
-          "timestamp": "2026-01-02T19:32:49.284Z",
+          "id": "17",
+          "timestamp": "2026-01-02T19:46:11.566Z",
           "type": "PHASE_CHANGE",
-          "phase": "LEARN",
+          "phase": "VERIFY",
           "agent": "_DevTeam",
-          "title": "Phase: LEARN",
-          "description": "Update knowledge and create workflow log",
+          "title": "Phase: VERIFY",
+          "description": "Testing phase messages in session tracker and extension",
           "reason": "Phase transition in workflow",
           "details": {
             "from": "NONE",
-            "to": "LEARN",
-            "progress": "6/7",
-            "message": "Update knowledge and create workflow log"
+            "to": "VERIFY",
+            "progress": "5/7",
+            "message": "Testing phase messages in session tracker and extension"
           }
         },
         {
-          "id": "8",
-          "timestamp": "2026-01-02T19:33:14.700Z",
-          "type": "DETAIL",
-          "phase": "LEARN",
+          "id": "18",
+          "timestamp": "2026-01-02T19:46:18.938Z",
+          "type": "CONTEXT",
+          "phase": "VERIFY",
           "agent": "_DevTeam",
-          "title": "Detail",
-          "description": "Updated project_knowledge.json with AKIS multi-session and extension capabilities",
-          "reason": "Progress update",
+          "title": "Context Updated",
+          "description": "Added 3 entities, 3 files, 2 patterns",
+          "reason": "Building session knowledge",
           "details": {
-            "text": "Updated project_knowledge.json with AKIS multi-session and extension capabilities"
+            "entities": [
+              "AKIS.SessionTracker",
+              "AKIS.PhaseSystem",
+              "VSCodeExtension.LiveMonitor"
+            ],
+            "files": [
+              ".github/copilot-instructions.md",
+              ".github/scripts/session-tracker.js",
+              "vscode-extension/src/providers/LiveSessionViewProvider.ts"
+            ],
+            "patterns": [
+              "phase-messages",
+              "session-state"
+            ]
           }
         },
         {
-          "id": "9",
-          "timestamp": "2026-01-02T19:33:21.935Z",
+          "id": "19",
+          "timestamp": "2026-01-02T19:46:19.293Z",
           "type": "PHASE_CHANGE",
           "phase": "COMPLETE",
           "agent": "_DevTeam",
           "title": "Phase: COMPLETE",
-          "description": "Session tracker restored and verified",
+          "description": "Phase message system fully implemented and tested",
           "reason": "Phase transition in workflow",
           "details": {
             "from": "NONE",
             "to": "COMPLETE",
             "progress": "7/7",
-            "message": "Session tracker restored and verified"
+            "message": "Phase message system fully implemented and tested"
           }
         }
       ],
-      "phases": {
-        "LEARN": {
-          "name": "LEARN",
-          "status": "completed",
-          "startTime": "2026-01-02T19:32:49.284Z",
-          "message": "Update knowledge and create workflow log",
-          "actionIds": [
-            "7",
-            "8"
-          ],
-          "endTime": "2026-01-02T19:33:21.935Z"
-        },
-        "COMPLETE": {
-          "name": "COMPLETE",
-          "status": "active",
-          "startTime": "2026-01-02T19:33:21.935Z",
-          "message": "Session tracker restored and verified",
-          "actionIds": [
-            "9"
-          ]
-        }
-      },
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": [
-          {
-            "file": ".github/scripts/session-tracker.js",
-            "type": "modified",
-            "timestamp": "2026-01-02T19:21:45.911Z"
-          }
-        ]
-      },
-      "phaseDisplay": "_DevTeam COMPLETE",
-      "phaseAgent": "_DevTeam",
-      "phaseMessage": "Session tracker restored and verified",
-      "phaseVerbose": "_DevTeam COMPLETE | progress=7/7",
-      "endTime": "2026-01-02T19:33:22.287Z",
-      "workflowLog": "log/workflow/2026-01-02_akis_session_tracker_restore.md",
-      "awaitingReset": true
-    },
-    {
-      "id": "1767382319045",
-      "name": "nested-test",
-      "startTime": "2026-01-02T19:31:59.045Z",
-      "task": "test-nested-session-functionality",
-      "agent": "Developer",
-      "status": "completed",
-      "phase": "PLAN",
-      "phaseDisplay": "Developer PLAN",
-      "phaseAgent": "Developer",
-      "phaseMessage": "Planning nested session test",
-      "phaseVerbose": "Developer PLAN | progress=2/7",
-      "progress": "2/7",
-      "parentSessionId": "1767381372815",
-      "isMainSession": false,
-      "depth": 1,
-      "context": {
-        "entities": [],
-        "skills": [],
-        "patterns": [],
-        "files": [],
-        "changes": []
-      },
-      "actions": [
+      "decisions": [
         {
-          "id": "0",
-          "timestamp": "2026-01-02T19:31:59.045Z",
-          "type": "SESSION_START",
-          "phase": "CONTEXT",
-          "title": "Session Started",
-          "description": "Started test-nested-session-functionality with Developer (sub-session)",
-          "reason": "Interrupt from parent session",
-          "details": {
-            "task": "test-nested-session-functionality",
-            "agent": "Developer",
-            "isMainSession": false,
-            "parentSessionId": "1767381372815",
-            "depth": 1
-          }
+          "description": "Add phaseMessage field to session state and require messages in phase emissions",
+          "timestamp": "2026-01-02T19:45:58.041Z"
         },
         {
-          "id": "1",
-          "timestamp": "2026-01-02T19:32:07.622Z",
-          "type": "DETAIL",
-          "phase": "CONTEXT",
-          "agent": "Developer",
-          "title": "Detail",
-          "description": "Testing nested session - adding detail to child session",
-          "reason": "Progress update",
-          "details": {
-            "text": "Testing nested session - adding detail to child session"
-          }
-        },
-        {
-          "id": "2",
-          "timestamp": "2026-01-02T19:32:07.972Z",
-          "type": "PHASE_CHANGE",
-          "phase": "PLAN",
-          "agent": "Developer",
-          "title": "Phase: PLAN",
-          "description": "Planning nested session test",
-          "reason": "Phase transition in workflow",
-          "details": {
-            "from": "NONE",
-            "to": "PLAN",
-            "progress": "2/7",
-            "message": "Planning nested session test"
-          }
+          "description": "Added exploit_metadata support to fix generic exploit builder - now uses CVE-specific port/shell configs",
+          "timestamp": "2026-01-02T19:46:06.334Z"
         }
       ],
-      "decisions": [],
       "emissions": [
         {
-          "timestamp": "2026-01-02T19:32:07.622Z",
-          "agent": "Developer",
+          "timestamp": "2026-01-02T19:45:46.770Z",
+          "agent": "_DevTeam",
           "isDelegated": false,
-          "type": "DETAIL",
-          "detail": "Testing nested session - adding detail to child session"
+          "type": "PHASE",
+          "phase": "CONTEXT",
+          "progress": "1/7",
+          "content": "CONTEXT",
+          "message": "Loading AKIS framework knowledge and phase system",
+          "detail": "Loading AKIS framework knowledge and phase system"
         },
         {
-          "timestamp": "2026-01-02T19:32:07.972Z",
-          "agent": "Developer",
+          "timestamp": "2026-01-02T19:45:52.256Z",
+          "agent": "_DevTeam",
           "isDelegated": false,
           "type": "PHASE",
           "phase": "PLAN",
           "progress": "2/7",
           "content": "PLAN",
-          "message": "Planning nested session test",
-          "detail": "Planning nested session test"
+          "message": "Designing phase message requirements and display",
+          "detail": "Designing phase message requirements and display"
+        },
+        {
+          "timestamp": "2026-01-02T19:45:55.980Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "frontend/src/store/scanStore.ts",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:45:58.041Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "DECISION",
+          "content": "Add phaseMessage field to session state and require messages in phase emissions"
+        },
+        {
+          "timestamp": "2026-01-02T19:45:58.369Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "Updating instructions, tracker, and VSCode extension",
+          "detail": "Updating instructions, tracker, and VSCode extension"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:01.320Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "frontend/src/pages/Scans.tsx",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:01.365Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "frontend/src/pages/Access.tsx",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:01.402Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "backend/app/api/v1/endpoints/vulnerabilities.py",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:01.435Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "backend/app/services/exploit_match.py",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:04.097Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": ".github/copilot-instructions.md",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:04.439Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": ".github/instructions/phases.md",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:04.475Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": ".github/scripts/session-tracker.js",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:04.509Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "vscode-extension/src/types/index.ts",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:06.334Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "DECISION",
+          "content": "Added exploit_metadata support to fix generic exploit builder - now uses CVE-specific port/shell configs"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:11.190Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "vscode-extension/src/parsers/LiveSessionParser.ts",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:11.229Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "FILE_CHANGE",
+          "file": "vscode-extension/src/providers/LiveSessionViewProvider.ts",
+          "changeType": "modified"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:11.566Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "VERIFY",
+          "progress": "5/7",
+          "content": "VERIFY",
+          "message": "Testing phase messages in session tracker and extension",
+          "detail": "Testing phase messages in session tracker and extension"
+        },
+        {
+          "timestamp": "2026-01-02T19:46:18.938Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "CONTEXT",
+          "entities": [
+            "AKIS.SessionTracker",
+            "AKIS.PhaseSystem",
+            "VSCodeExtension.LiveMonitor"
+          ],
+          "files": [
+            ".github/copilot-instructions.md",
+            ".github/scripts/session-tracker.js",
+            "vscode-extension/src/providers/LiveSessionViewProvider.ts"
+          ],
+          "patterns": [
+            "phase-messages",
+            "session-state"
+          ]
+        },
+        {
+          "timestamp": "2026-01-02T19:46:19.293Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "COMPLETE",
+          "progress": "7/7",
+          "content": "COMPLETE",
+          "message": "Phase message system fully implemented and tested",
+          "detail": "Phase message system fully implemented and tested"
         }
       ],
       "delegations": [],
@@ -368,29 +996,73 @@
         "CONTEXT": {
           "name": "CONTEXT",
           "status": "completed",
-          "startTime": "2026-01-02T19:31:59.045Z",
+          "startTime": "2026-01-02T19:45:41.442Z",
           "message": "",
           "actionIds": [
             "0",
             "1"
           ],
-          "endTime": "2026-01-02T19:32:07.972Z"
+          "endTime": "2026-01-02T19:45:52.256Z"
         },
         "PLAN": {
           "name": "PLAN",
-          "status": "active",
-          "startTime": "2026-01-02T19:32:07.972Z",
-          "message": "Planning nested session test",
+          "status": "completed",
+          "startTime": "2026-01-02T19:45:52.256Z",
+          "message": "Designing phase message requirements and display",
           "actionIds": [
-            "2"
+            "2",
+            "3",
+            "4"
+          ],
+          "endTime": "2026-01-02T19:45:58.369Z"
+        },
+        "INTEGRATE": {
+          "name": "INTEGRATE",
+          "status": "completed",
+          "startTime": "2026-01-02T19:45:58.369Z",
+          "message": "Updating instructions, tracker, and VSCode extension",
+          "actionIds": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16"
+          ],
+          "endTime": "2026-01-02T19:46:11.566Z"
+        },
+        "VERIFY": {
+          "name": "VERIFY",
+          "status": "completed",
+          "startTime": "2026-01-02T19:46:11.566Z",
+          "message": "Testing phase messages in session tracker and extension",
+          "actionIds": [
+            "17",
+            "18"
+          ],
+          "endTime": "2026-01-02T19:46:19.293Z"
+        },
+        "COMPLETE": {
+          "name": "COMPLETE",
+          "status": "active",
+          "startTime": "2026-01-02T19:46:19.293Z",
+          "message": "Phase message system fully implemented and tested",
+          "actionIds": [
+            "19"
           ]
         }
       },
       "awaitingReset": true,
-      "lastUpdate": "2026-01-02T19:32:07.972Z",
-      "endTime": "2026-01-02T19:32:13.094Z"
+      "lastUpdate": "2026-01-02T19:46:19.293Z",
+      "endTime": "2026-01-02T19:46:24.185Z"
     }
   ],
-  "currentSessionId": "1767381372815",
-  "lastUpdate": "2026-01-02T19:33:22.287Z"
+  "currentSessionId": "1767382521141",
+  "lastUpdate": "2026-01-02T19:51:26.637Z"
 }

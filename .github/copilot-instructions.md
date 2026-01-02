@@ -12,11 +12,17 @@
 5. Read `project_knowledge.json` → Verify entities loaded
 6. Emit `[AKIS] entities=N | skills=X,Y | patterns=Z`
 
-**Anti-Drift Gates**: [SESSION] before work → [AKIS] before code → [SCOPE] at PLAN → [ANCHOR] mid-task → [COMPLETE] at end
+**Anti-Drift Gates**: [SESSION] before work → [AKIS] before code → [SCOPE] at PLAN → [ANCHOR] mid-task → [REVIEW] after VERIFY → [COMPLETE] at end
 
 **Stale Session**: If session age > 30min → `[STALE: task=X | age=Ym]` → Ask user: resume/abandon/new
 
-**Session Commands**: `phase NAME "N/7"` | `action TYPE "desc"` | `skill NAME` | `decision "why"` | `complete "summary"`
+**Session Commands**: `phase NAME "N/7" "message"` | `action TYPE "desc"` | `skill NAME` | `decision "why"` | `complete "summary"`
+
+**Phase Messages Required**: Every phase emit MUST include descriptive message:
+- `phase "CONTEXT" "1/7" "Loading knowledge for feature X"`
+- `phase "PLAN" "2/7" "Designing API endpoints"`
+- `phase "INTEGRATE" "4/7" "Implementing authentication"`
+NO bare phase names - always explain what you're doing in that phase!
 
 **Session State File** (`.akis-session.json`):
 ```json
@@ -47,9 +53,11 @@
 ```
 [SESSION: task] @AgentName | phase: PHASE | depth: N
 [AKIS] entities=N | skills=X,Y | patterns=Z
-[PHASE: NAME | N/7]
+[PHASE: NAME | N/7 | "descriptive message"]
 <work - update session state as you go>
-[COMPLETE] result | files: changed
+[VERIFY] results | changed=N → STOP - await user approval
+<user reviews and approves>
+[LEARN] update knowledge → [COMPLETE] commit
 ```
 
 **Workflow**: Session file IS the plan. Read → Continue from `phase` → Update as you work → Log deviations as `decisions`

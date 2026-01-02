@@ -308,3 +308,7 @@
 {"type":"relation","from":"AKIS.SessionTracker","to":"AKIS.SessionTracker.MultiSession","relationType":"IMPLEMENTS"}
 {"type":"relation","from":"AKIS.Monitor.VSCodeExtension","to":"AKIS.Monitor.VSCodeExtension.ActionTypes","relationType":"IMPLEMENTS"}
 {"type":"relation","from":"AKIS.Framework","to":"AKIS.Framework.StartupProtocol","relationType":"ENFORCES"}
+{"type":"entity","name":"Backend.Services.ExploitMatchService.MetadataEnrichment","entityType":"feature","observations":["Enriches ExploitDB/DB results with metadata from static mappings","Fuzzy title matching for cross-platform exploit identification","Merges exploit_metadata (shell_port, shell_type, payload_variant) into responses","Enables exploit builder to use real configurations instead of generic guessing","upd:2026-01-02"]}
+{"type":"entity","name":"Frontend.Access.ExploitBuilder.PriorityBasedConfig","entityType":"feature","observations":["Priority 1: exploit_metadata (shell_port, shell_type, payload_variant)","Priority 2: exploit module_id pattern matching","Priority 3: service-based inference (fallback)","Correctly configures vsftpd backdoor: port 6200, bind_shell, bash","upd:2026-01-02"]}
+{"type":"relation","from":"Frontend.Scans.VulnerabilityScanWorkflow","to":"Backend.Services.ExploitMatchService.MetadataEnrichment","relationType":"CONSUMES"}
+{"type":"relation","from":"Frontend.Access.ExploitBuilder.PriorityBasedConfig","to":"Frontend.Scans.VulnerabilityScanWorkflow","relationType":"USES"}
