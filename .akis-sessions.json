@@ -1075,9 +1075,9 @@
       "phaseMessage": "Fixed session tracking and extension icon - using only .akis-sessions.json now",
       "phaseVerbose": "GitHub Copilot COMPLETE - Fixed session tracking and extension icon - using only .akis-sessions.json now | progress=7/7",
       "progress": "7/7",
-      "parentSessionId": "1767388691302",
-      "isMainSession": false,
-      "depth": 1,
+      "parentSessionId": null,
+      "isMainSession": true,
+      "depth": 0,
       "context": {
         "entities": [],
         "skills": [],
