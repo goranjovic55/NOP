@@ -1,0 +1,162 @@
+{
+  "sessions": [
+    {
+      "id": "1767331622682",
+      "name": "AKIS edge scenario analysis",
+      "startTime": "2026-01-02T05:27:02.682Z",
+      "task": "AKIS edge scenario analysis",
+      "agent": "_DevTeam",
+      "status": "active",
+      "phase": "INTEGRATE",
+      "phaseDisplay": "_DevTeam INTEGRATE",
+      "phaseAgent": "_DevTeam",
+      "phaseMessage": "Analyzing edge scenarios",
+      "phaseVerbose": "_DevTeam INTEGRATE - Analyzing edge scenarios | progress=4/7",
+      "progress": "4/7",
+      "context": {
+        "entities": [],
+        "skills": [],
+        "patterns": [],
+        "files": [],
+        "changes": []
+      },
+      "actions": [
+        {
+          "id": "0",
+          "timestamp": "2026-01-02T05:27:02.682Z",
+          "type": "SESSION_START",
+          "phase": "CONTEXT",
+          "title": "Session Started",
+          "description": "Started AKIS edge scenario analysis with _DevTeam",
+          "reason": "Initialize new work session",
+          "details": {
+            "task": "AKIS edge scenario analysis",
+            "agent": "_DevTeam"
+          }
+        },
+        {
+          "id": "1",
+          "timestamp": "2026-01-02T05:27:19.761Z",
+          "type": "PHASE_CHANGE",
+          "phase": "CONTEXT",
+          "agent": "_DevTeam",
+          "title": "Phase: CONTEXT",
+          "description": "Entered CONTEXT phase",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "CONTEXT",
+            "to": "CONTEXT",
+            "progress": "1/7",
+            "message": ""
+          }
+        },
+        {
+          "id": "2",
+          "timestamp": "2026-01-02T05:28:36.032Z",
+          "type": "PHASE_CHANGE",
+          "phase": "PLAN",
+          "agent": "_DevTeam",
+          "title": "Phase: PLAN",
+          "description": "Creating analysis plan",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "PLAN",
+            "progress": "2/7",
+            "message": "Creating analysis plan"
+          }
+        },
+        {
+          "id": "3",
+          "timestamp": "2026-01-02T05:29:58.485Z",
+          "type": "PHASE_CHANGE",
+          "phase": "INTEGRATE",
+          "agent": "_DevTeam",
+          "title": "Phase: INTEGRATE",
+          "description": "Analyzing edge scenarios",
+          "reason": "Phase transition in workflow",
+          "details": {
+            "from": "NONE",
+            "to": "INTEGRATE",
+            "progress": "4/7",
+            "message": "Analyzing edge scenarios"
+          }
+        }
+      ],
+      "decisions": [],
+      "emissions": [
+        {
+          "timestamp": "2026-01-02T05:27:19.761Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "CONTEXT",
+          "progress": "1/7",
+          "content": "CONTEXT",
+          "message": "",
+          "detail": ""
+        },
+        {
+          "timestamp": "2026-01-02T05:28:36.032Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "PLAN",
+          "progress": "2/7",
+          "content": "PLAN",
+          "message": "Creating analysis plan",
+          "detail": "Creating analysis plan"
+        },
+        {
+          "timestamp": "2026-01-02T05:29:58.485Z",
+          "agent": "_DevTeam",
+          "isDelegated": false,
+          "type": "PHASE",
+          "phase": "INTEGRATE",
+          "progress": "4/7",
+          "content": "INTEGRATE",
+          "message": "Analyzing edge scenarios",
+          "detail": "Analyzing edge scenarios"
+        }
+      ],
+      "delegations": [],
+      "skills": [],
+      "phases": {
+        "CONTEXT": {
+          "name": "CONTEXT",
+          "status": "completed",
+          "startTime": "2026-01-02T05:27:02.682Z",
+          "message": "",
+          "actionIds": [
+            "0",
+            "1"
+          ],
+          "endTime": "2026-01-02T05:28:36.032Z"
+        },
+        "PLAN": {
+          "name": "PLAN",
+          "status": "completed",
+          "startTime": "2026-01-02T05:28:36.032Z",
+          "message": "Creating analysis plan",
+          "actionIds": [
+            "2"
+          ],
+          "endTime": "2026-01-02T05:29:58.485Z"
+        },
+        "INTEGRATE": {
+          "name": "INTEGRATE",
+          "status": "active",
+          "startTime": "2026-01-02T05:29:58.485Z",
+          "message": "Analyzing edge scenarios",
+          "actionIds": [
+            "3"
+          ]
+        }
+      },
+      "awaitingReset": false,
+      "lastUpdate": "2026-01-02T05:29:58.485Z"
+    }
+  ],
+  "currentSessionId": "1767331622682",
+  "lastUpdate": "2026-01-02T05:29:58.485Z"
+}
