@@ -6,8 +6,8 @@ This directory contains comprehensive design documentation for implementing agen
 
 ### 1. [agent-design-summary.md](./agent-design-summary.md)
 **Quick Reference** - Start here!
-- Executive decision: Hybrid Architecture (Option C recommended)
-- All three agent types supported (Fat, Thin, Hybrid)
+- Executive decision: **Thin-First Hybrid** (recommended default)
+- All agent types supported (Fat, Thin, Thin-First Hybrid)
 - Technology stack justification
 - Key features overview
 - Quick start guide
@@ -32,7 +32,19 @@ This directory contains comprehensive design documentation for implementing agen
 **Read time:** 45-60 minutes  
 **Best for:** Developers, architects, technical review
 
-### 3. [agent-types-and-build-config.md](./agent-types-and-build-config.md) 🆕
+### 3. [thin-first-hybrid-architecture.md](./thin-first-hybrid-architecture.md) 🆕 ⭐
+**Thin-First Hybrid - Recommended Default**
+- Minimal agent by default (thin proxy 5-10MB)
+- Operator-driven workflow (95% of operations via proxy)
+- Selective module loading (only for offline/autonomous needs)
+- Never include unnecessary modules (SSH/RDP/VNC always proxied)
+- Usage pattern analysis and decision matrix
+- Module loading strategy and examples
+
+**Read time:** 25-35 minutes  
+**Best for:** Operators, architects, understanding the recommended approach
+
+### 4. [agent-types-and-build-config.md](./agent-types-and-build-config.md)
 **Agent Types and Build Configuration**
 - Detailed Fat Agent implementation (full capabilities)
 - Detailed Thin Proxy implementation (relay only)
@@ -44,7 +56,7 @@ This directory contains comprehensive design documentation for implementing agen
 **Read time:** 30-40 minutes  
 **Best for:** Developers, operators, deployment planning
 
-### 4. [agent-implementation-roadmap.md](./agent-implementation-roadmap.md)
+### 5. [agent-implementation-roadmap.md](./agent-implementation-roadmap.md)
 **Detailed Implementation Plan**
 - 5 phases over 10 weeks
 - Phase 1: Foundation (database, registration, WebSocket)
@@ -60,7 +72,7 @@ This directory contains comprehensive design documentation for implementing agen
 **Read time:** 60-90 minutes  
 **Best for:** Developers implementing the feature, project managers
 
-### 5. [agent-visual-reference.md](./agent-visual-reference.md)
+### 6. [agent-visual-reference.md](./agent-visual-reference.md)
 **Visual Diagrams & Flow Charts**
 - System architecture diagram
 - Communication flow diagrams
@@ -79,25 +91,30 @@ This directory contains comprehensive design documentation for implementing agen
 NOP can only monitor/test the network where it's deployed. Need ability to deploy lightweight agents on remote systems and operate NOP features through those agents.
 
 ### Solution
-**Hybrid Architecture** - Lightweight Go agent (~10MB) with:
-- Built-in core capabilities (discovery, heartbeat)
-- On-demand module loading (scan, traffic, access)
-- WebSocket/TLS communication to C2
-- Point-of-View (POV) switcher in UI
-- All NOP features work through agents
+**Thin-First Hybrid Architecture** - Minimal proxy agent (5-10MB) by default:
+- **Default**: Thin proxy only (SOCKS5, HTTP, port forwarding)
+- **Operator-driven**: 95% of operations via C2 tools through proxy
+- **Selective modules**: Load only for offline/autonomous operation
+- **Never embedded**: SSH/RDP/VNC always proxied in real-time
+- **Point-of-View (POV) switcher**: All NOP features work through agents
+- **All agent types supported**: Fat, Thin, Thin-First Hybrid
+
+### Key Insight
+Most agent operations are **real-time with operator present**, making a thin proxy the ideal baseline. Modules are added **only when offline automation is required** (scheduled scans, autonomous exploitation).
 
 ### Implementation
 10 weeks, 5 phases:
 1. **Foundation** (Week 1-2): Database, registration, WebSocket
-2. **Core** (Week 3-4): Discovery module, POV switcher
-3. **Advanced** (Week 5-6): Scan, traffic, access modules
-4. **Production** (Week 7-8): Agent builder, obfuscation
-5. **Polish** (Week 9-10): Testing, docs, deployment
+2. **Core** (Week 3-4): Thin proxy + POV switcher
+3. **Advanced** (Week 5-6): On-demand module loading
+4. **Production** (Week 7-8): Agent builder with type selection
+5. **Polish** (Week 9-10): Testing all types, docs, deployment
 
 ### Benefits
-- ✅ Deploy in <5 minutes
-- ✅ All NOP features work remotely
-- ✅ Small footprint (<15MB, <100MB RAM)
+- ✅ Minimal by default (5-10MB vs 10-15MB traditional hybrid)
+- ✅ Deploy in <3 minutes (smaller, faster)
+- ✅ All NOP features work via proxy (no modules needed for 95% of tasks)
+- ✅ Scale up when needed (load modules for offline operation)
 - ✅ Secure (TLS, JWT, optional obfuscation)
 - ✅ Support 50+ concurrent agents
 

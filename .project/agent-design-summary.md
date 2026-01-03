@@ -3,29 +3,54 @@
 **Date:** 2026-01-03  
 **Quick Reference for Implementation**
 
-## Executive Decision: Hybrid Architecture (Recommended)
+## Executive Decision: Thin-First Hybrid (Recommended)
 
-After analyzing community best practices and three architecture options (Fat Agent, Thin Proxy, Hybrid), we recommend **Hybrid Architecture** for general use. However, **all three agent types are fully supported** and can be selected during the build process based on deployment requirements.
+After analyzing community best practices, usage patterns, and three architecture options (Fat Agent, Thin Proxy, Hybrid), we recommend **Thin-First Hybrid Architecture** as the optimal default. This approach starts with a minimal thin proxy agent and adds modules only when offline functionality is required.
 
-### ✅ **Hybrid Architecture (Option C) - Recommended for General Use**
+### ✅ **Thin-First Hybrid - Recommended Default**
 
 **Core Concept:**
-- Lightweight agent core (~10MB)
-- Built-in basic capabilities (discovery, heartbeat, system info)
-- On-demand module loading for advanced features
-- Best of both worlds
+- **Start minimal**: Thin proxy agent (5-10MB) by default
+- **Operator-driven model**: Most operations via C2 tools through proxy
+- **Selective module loading**: Add modules ONLY for offline/autonomous operation
+- **Never include unnecessary modules**: SSH/RDP/VNC always proxied, never embedded
+
+**Usage Pattern Recognition:**
+- **95% of operations**: Real-time with operator present → Thin proxy sufficient
+- **4% of operations**: Scheduled/autonomous scanning → Load discovery module
+- **1% of operations**: Fully autonomous exploitation → Load multiple modules
 
 **All Agent Types Supported:**
-| Criterion | Fat Agent | Thin Proxy | **Hybrid** |
-|-----------|-----------|------------|------------|
-| Binary Size | ❌ 50-100MB | ✅ 5-15MB | ✅ 10MB |
+| Criterion | Fat Agent | Thin Proxy | **Thin-First Hybrid** |
+|-----------|-----------|------------|---------------------|
+| Binary Size | ❌ 50-100MB | ✅ 5-15MB | ✅ 5-10MB (default) |
 | Bandwidth | ✅ Low | ❌ High | ✅ Medium |
 | Maintainability | ❌ Hard | ✅ Easy | ✅ Easy |
-| Offline Capable | ✅ Yes | ❌ No | ⚠️ Partial |
-| Latency | ✅ Low | ❌ High | ✅ Low |
-| **Best For** | Long-term ops | Short tests | **General use** |
+| Offline Capable | ✅ Yes | ❌ No | ⚠️ On-demand |
+| Operator Workflow | Different | ✅ Proxy-based | ✅ Proxy-based |
+| **Best For** | Long-term ops | Short tests | **95% of cases** |
 
-> **Note:** For detailed implementation of all three agent types, see [agent-types-and-build-config.md](./agent-types-and-build-config.md)
+**Default Build:**
+```
+Thin Proxy Only: 5-10MB
+├─ Core (registration, heartbeat, queue)
+├─ SOCKS5 Proxy Server
+├─ HTTP Proxy Server
+└─ TCP/UDP Port Forwarding
+
+Optional Modules (load only if needed):
+├─ Discovery (+2-5MB) - for scheduled scans
+├─ Port Scan (+3-5MB) - for autonomous scanning
+└─ Exploit (+5-10MB) - for autonomous lateral movement
+
+Never Loaded (always proxied):
+✗ SSH/RDP/VNC/FTP clients (real-time via proxy)
+✗ Traffic analysis (stream to C2)
+✗ Packet crafting (one-time commands)
+```
+
+> **Note:** For detailed thin-first architecture, see [thin-first-hybrid-architecture.md](./thin-first-hybrid-architecture.md)  
+> **Note:** For all agent type implementations, see [agent-types-and-build-config.md](./agent-types-and-build-config.md)
 
 ## Technology Stack
 
