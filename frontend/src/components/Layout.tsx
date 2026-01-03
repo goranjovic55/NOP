@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
+import { useAgentStore } from '../store/agentStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
@@ -17,6 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const { activeAgent, setActiveAgent } = usePOV();
+  const { agents } = useAgentStore();
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
@@ -28,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
   const activeExploitCount = getActiveSessionCount();
   const isTrafficActive = isPinging || isCapturing || isCrafting || isStorming;
+  const agentCount = agents.filter(agent => agent.status === 'online').length;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
