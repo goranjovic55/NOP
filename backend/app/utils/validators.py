@@ -3,7 +3,8 @@ Shared validation utilities for network operations
 """
 import re
 import ipaddress
-from typing import Union
+import asyncio
+from typing import Union, List, Tuple, Optional
 
 
 def validate_ip_or_hostname(target: str) -> str:
@@ -124,3 +125,41 @@ def validate_timeout(timeout: Union[int, float], min_val: int = 1, max_val: int 
         Clamped timeout value
     """
     return max(min_val, min(max_val, int(timeout)))
+
+
+async def run_command(
+    cmd: List[str],
+    timeout: Optional[float] = None
+) -> Tuple[int, str, str]:
+    """
+    Execute a command asynchronously and return results.
+    
+    Args:
+        cmd: Command and arguments as list
+        timeout: Optional timeout in seconds
+        
+    Returns:
+        Tuple of (return_code, stdout, stderr)
+        
+    Raises:
+        asyncio.TimeoutError: If command times out
+    """
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    
+    if timeout:
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(),
+            timeout=timeout
+        )
+    else:
+        stdout, stderr = await process.communicate()
+    
+    return (
+        process.returncode or 0,
+        stdout.decode('utf-8', errors='ignore'),
+        stderr.decode('utf-8', errors='ignore')
+    )

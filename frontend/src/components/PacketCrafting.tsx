@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Asset } from '../services/assetService';
 import { COMMON_PORTS } from '../constants/network';
+import { useDropdowns } from '../hooks/useDropdown';
 
 interface PacketCraftingProps {
   onBack?: () => void;
@@ -22,29 +23,18 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
   const [protocol, setProtocol] = useState('TCP');
   const [sourceIp, setSourceIp] = useState('');
   const [destIp, setDestIp] = useState('');
-  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
-  const [showDestDropdown, setShowDestDropdown] = useState(false);
-  const [showSourcePortDropdown, setShowSourcePortDropdown] = useState(false);
-  const [showDestPortDropdown, setShowDestPortDropdown] = useState(false);
   const [showStructurePanel, setShowStructurePanel] = useState(false);
-  const sourceDropdownRef = useRef<HTMLDivElement>(null);
-  const destDropdownRef = useRef<HTMLDivElement>(null);
-  const sourcePortRef = useRef<HTMLDivElement>(null);
-  const destPortRef = useRef<HTMLDivElement>(null);
+  
+  // Use the custom hook for managing 4 dropdowns
+  const [
+    { isOpen: showSourceDropdown, setIsOpen: setShowSourceDropdown, ref: sourceDropdownRef },
+    { isOpen: showDestDropdown, setIsOpen: setShowDestDropdown, ref: destDropdownRef },
+    { isOpen: showSourcePortDropdown, setIsOpen: setShowSourcePortDropdown, ref: sourcePortRef },
+    { isOpen: showDestPortDropdown, setIsOpen: setShowDestPortDropdown, ref: destPortRef }
+  ] = useDropdowns(4);
 
   const [hexBytes, setHexBytes] = useState<string[]>(['00']);
   const [asciiValue, setAsciiValue] = useState<string>('\x00');
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sourceDropdownRef.current && !sourceDropdownRef.current.contains(event.target as Node)) setShowSourceDropdown(false);
-      if (destDropdownRef.current && !destDropdownRef.current.contains(event.target as Node)) setShowDestDropdown(false);
-      if (sourcePortRef.current && !sourcePortRef.current.contains(event.target as Node)) setShowSourcePortDropdown(false);
-      if (destPortRef.current && !destPortRef.current.contains(event.target as Node)) setShowDestPortDropdown(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const [sourcePort, setSourcePort] = useState('');
   const [destPort, setDestPort] = useState('');
