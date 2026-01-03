@@ -8,11 +8,35 @@
 
 Docker and deployment patterns.
 
+## NOP Project Docker Workflow
+
+**IMPORTANT**: This project uses different docker-compose files for different environments:
+
+- **`docker-compose.yml`** → Production (uses pre-built images from GHCR)
+  - Images: `ghcr.io/goranjovic55/nop-frontend:latest`, `ghcr.io/goranjovic55/nop-backend:latest`
+  - Use: `docker-compose up -d`
+  - For running stable production builds
+
+- **`docker-compose.dev.yml`** → Development (builds from local source)
+  - Builds from `./frontend/` and `./backend/` directories
+  - Use: `docker-compose -f docker-compose.dev.yml up -d --build`
+  - For active development with code changes
+  - **ALWAYS use this when making code changes during development**
+
+**Workflow**:
+1. Development: Use `docker-compose.dev.yml` to test changes locally
+2. Commit changes to repository
+3. CI/CD pipeline automatically builds and pushes new images to GHCR
+4. Production: Pull and run latest images with `docker-compose.yml`
+
+**Common mistake**: Using `docker-compose.yml` during development won't pick up code changes since it uses pre-built images!
+
 ## Avoid
 - ❌ Secrets in Dockerfiles → ✅ Use env vars
 - ❌ Running as root → ✅ Create user
 - ❌ No health checks → ✅ Define healthcheck
 - ❌ Large images → ✅ Multi-stage builds
+- ❌ Using production compose during development → ✅ Use docker-compose.dev.yml
 
 ## Checklist
 - [ ] Multi-stage Dockerfile (build → runtime)

@@ -11,6 +11,7 @@ export interface Agent {
   agent_type: 'python' | 'go';
   status: 'online' | 'offline' | 'disconnected' | 'error';
   connection_url: string;
+  target_platform?: string;
   auth_token: string;
   encryption_key: string;
   download_token: string;

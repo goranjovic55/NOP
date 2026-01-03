@@ -16,9 +16,11 @@ const Agents: React.FC = () => {
   
   // Modals and UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [selectedAgentForSettings, setSelectedAgentForSettings] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarAgent, setSidebarAgent] = useState<Agent | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editedAgent, setEditedAgent] = useState<Agent | null>(null);
   
   // Network config
   const [localIP, setLocalIP] = useState<string>('localhost');
@@ -98,39 +100,49 @@ const Agents: React.FC = () => {
       return;
     }
     setLoading(true);
+    let createdAgent: Agent | null = null;
+    
     try {
       console.log('Creating agent...', newAgent);
-      const agent = await agentService.createAgent(token, newAgent);
-      console.log('Agent created:', agent);
+      createdAgent = await agentService.createAgent(token, newAgent);
+      console.log('Agent created:', createdAgent);
       
       // Auto-download agent file with platform for Go
-      const platform = newAgent.agent_type === 'go' ? selectedPlatform : undefined;
-      console.log('Generating agent file...');
-      const { content, filename, is_binary } = await agentService.generateAgent(token, agent.id, platform);
-      
-      let blob: Blob;
-      if (is_binary) {
-        // Decode base64 to binary
-        const binaryString = atob(content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+      try {
+        const platform = newAgent.agent_type === 'go' ? selectedPlatform : undefined;
+        console.log('Generating agent file...');
+        const { content, filename, is_binary } = await agentService.generateAgent(token, createdAgent.id, platform);
+        
+        let blob: Blob;
+        if (is_binary) {
+          // Decode base64 to binary
+          const binaryString = atob(content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          blob = new Blob([bytes], { type: 'application/octet-stream' });
+        } else {
+          blob = new Blob([content], { type: 'text/plain' });
         }
-        blob = new Blob([bytes], { type: 'application/octet-stream' });
-      } else {
-        blob = new Blob([content], { type: 'text/plain' });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('Agent file downloaded successfully');
+      } catch (generateError) {
+        console.error('Failed to generate/download agent file:', generateError);
+        // Agent was created successfully, but file generation failed
+        alert(`Agent created successfully, but failed to generate file: ${generateError instanceof Error ? generateError.message : 'Unknown error'}\n\nYou can download the agent file from the agent template card.`);
       }
       
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      console.log('Agent file downloaded, reloading agents...');
+      console.log('Reloading agents...');
       // Reload agents to get the fresh agent with download token
       await loadAgents();
       
@@ -163,7 +175,10 @@ const Agents: React.FC = () => {
       console.log('Agent creation flow complete!');
     } catch (error) {
       console.error('Failed to create agent:', error);
-      alert(`Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Only show this error if agent creation actually failed (not file generation)
+      if (!createdAgent) {
+        alert(`Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -217,36 +232,6 @@ const Agents: React.FC = () => {
     // Set agent POV and navigate to dashboard
     setActiveAgent(agent);
     navigate('/dashboard');
-  };
-
-  const handleOpenSettings = (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    setSelectedAgentForSettings(agent);
-    setShowSettingsModal(true);
-  };
-
-  const handleSaveAgentSettings = async () => {
-    if (!token || !selectedAgentForSettings) return;
-    setLoading(true);
-    try {
-      // Update agent settings via API
-      await agentService.updateAgent(token, selectedAgentForSettings.id, {
-        connection_url: selectedAgentForSettings.connection_url,
-        agent_metadata: selectedAgentForSettings.agent_metadata
-      });
-      
-      // Update local state
-      setAgents(agents.map(a => 
-        a.id === selectedAgentForSettings.id ? selectedAgentForSettings : a
-      ));
-      
-      setShowSettingsModal(false);
-      setSelectedAgentForSettings(null);
-    } catch (error) {
-      console.error('Failed to update agent settings:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -364,22 +349,16 @@ const Agents: React.FC = () => {
               {getCreatedAgents().map((agent) => (
                 <div
                   key={agent.id}
-                  onClick={() => setSelectedAgent(agent)}
+                  onClick={() => {
+                    setSidebarAgent(agent);
+                    setShowSidebar(true);
+                  }}
                   className={`p-4 border cursor-pointer transition-all relative ${
-                    selectedAgent?.id === agent.id
+                    sidebarAgent?.id === agent.id && showSidebar
                       ? 'bg-cyber-blue/20 border-cyber-blue'
                       : 'bg-cyber-dark border-cyber-gray hover:border-cyber-blue'
                   }`}
                 >
-                  {/* Settings Button */}
-                  <button
-                    onClick={(e) => handleOpenSettings(agent, e)}
-                    className="absolute top-3 right-3 text-cyber-gray-light hover:text-cyber-blue transition-colors text-lg z-10"
-                    title="Agent Settings"
-                  >
-                    ⚙
-                  </button>
-
                   <div className="space-y-3">
                     {/* Header */}
                     <div className="flex items-start space-x-3 pr-8">
@@ -453,12 +432,6 @@ const Agents: React.FC = () => {
                         Download
                       </button>
                       <button
-                        onClick={(e) => handleOpenSettings(agent, e)}
-                        className="px-3 py-1.5 border border-cyber-gray text-cyber-gray-light text-xs uppercase hover:border-cyber-blue hover:text-cyber-blue transition"
-                      >
-                        Details
-                      </button>
-                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (window.confirm(`Delete agent template "${agent.name}"?\n\nThis will permanently remove the agent and its credentials.`)) {
@@ -518,9 +491,12 @@ const Agents: React.FC = () => {
               {getConnectedAgents().map((agent) => (
                 <div
                   key={agent.id}
-                  onClick={() => setSelectedAgent(agent)}
+                  onClick={() => {
+                    setSidebarAgent(agent);
+                    setShowSidebar(true);
+                  }}
                   className={`p-4 border-b border-cyber-gray cursor-pointer transition-all ${
-                    selectedAgent?.id === agent.id
+                    sidebarAgent?.id === agent.id && showSidebar
                       ? 'bg-cyber-blue/10'
                       : activeAgent?.id === agent.id
                       ? 'bg-cyber-purple/10'
@@ -562,8 +538,8 @@ const Agents: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Action Buttons */}
-                    <div className="flex flex-col space-y-2">
+                    {/* Action Button */}
+                    <div>
                       {activeAgent?.id === agent.id ? (
                         <button
                           onClick={(e) => {
@@ -585,12 +561,6 @@ const Agents: React.FC = () => {
                           Switch POV
                         </button>
                       )}
-                      <button
-                        onClick={(e) => handleOpenSettings(agent, e)}
-                        className="px-3 py-1 border border-cyber-gray text-cyber-gray-light text-xs uppercase hover:border-cyber-blue hover:text-cyber-blue transition"
-                      >
-                        Settings
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -959,45 +929,92 @@ const Agents: React.FC = () => {
         </div>
       )}
 
-      {/* Agent Settings Modal */}
-      {showSettingsModal && selectedAgentForSettings && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-cyber-dark border border-cyber-blue max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-cyber-darker border-b border-cyber-blue p-4 flex items-center justify-between sticky top-0">
-              <h3 className="text-cyber-blue font-bold text-xl uppercase tracking-wide">
-                Agent Configuration - {selectedAgentForSettings.name}
-              </h3>
+      {/* Agent Details Sidebar */}
+      {showSidebar && sidebarAgent && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setShowSidebar(false)}
+          />
+          
+          {/* Sliding Panel */}
+          <div className="fixed right-0 top-0 h-full w-full md:w-3/5 lg:w-2/5 bg-cyber-darker border-l border-cyber-blue z-50 overflow-y-auto animate-slideIn">
+            {/* Panel Header */}
+            <div className="sticky top-0 bg-cyber-dark border-b border-cyber-blue p-4 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-cyber-blue font-bold uppercase text-sm flex items-center">
+                  <span className="mr-2 text-2xl">{getTypeIcon(sidebarAgent.agent_type)}</span>
+                  Agent Details
+                </h3>
+                <p className="text-xs text-cyber-gray-light mt-1">
+                  {sidebarAgent.name}
+                </p>
+              </div>
               <button
-                onClick={() => {
-                  setShowSettingsModal(false);
-                  setSelectedAgentForSettings(null);
-                }}
-                className="text-cyber-blue hover:text-white text-2xl"
+                onClick={() => setShowSidebar(false)}
+                className="text-cyber-gray hover:text-cyber-blue text-2xl leading-none"
               >
                 ×
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              {/* Agent Credentials & Info */}
-              <div className="bg-cyber-darker border border-cyber-gray p-4">
-                <h4 className="text-cyber-purple font-bold uppercase text-sm mb-4 flex items-center">
+            {/* Panel Content */}
+            <div className="p-4 space-y-4">
+              {/* Agent Overview */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Overview</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Name:</span>
+                    <span className="text-white font-bold text-sm">{sidebarAgent.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Type:</span>
+                    <span className="text-white text-sm uppercase">{sidebarAgent.agent_type}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`w-2 h-2 rounded-full ${getStatusColor(sidebarAgent.status)} ${
+                        sidebarAgent.status === 'online' ? 'animate-pulse' : ''
+                      }`}></span>
+                      <span className={`text-sm uppercase font-bold ${
+                        sidebarAgent.status === 'online' ? 'text-cyber-green' : 'text-cyber-gray-light'
+                      }`}>
+                        {getStatusText(sidebarAgent.status)}
+                      </span>
+                    </div>
+                  </div>
+                  {sidebarAgent.description && (
+                    <div className="pt-2 border-t border-cyber-gray">
+                      <span className="text-cyber-gray-light text-xs uppercase">Description:</span>
+                      <p className="text-white text-sm mt-1">{sidebarAgent.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Agent Credentials & Download */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs flex items-center">
                   <span className="mr-2">🔐</span>
-                  Agent Credentials & Information
+                  Credentials & Download
                 </h4>
                 <div className="space-y-3">
                   {/* Agent ID */}
                   <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Agent ID:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-1">Agent ID:</span>
                     <div className="flex items-center space-x-2">
-                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-3 py-2 text-cyber-blue text-sm font-mono">
-                        {selectedAgentForSettings.id}
+                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-blue text-xs font-mono break-all">
+                        {sidebarAgent.id}
                       </code>
                       <button
-                        onClick={() => navigator.clipboard.writeText(selectedAgentForSettings.id)}
-                        className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(sidebarAgent.id);
+                        }}
+                        className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue text-xs transition"
                         title="Copy ID"
                       >
                         📋
@@ -1007,250 +1024,335 @@ const Agents: React.FC = () => {
 
                   {/* Auth Token */}
                   <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Authentication Token:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-1">Auth Token:</span>
                     <div className="flex items-center space-x-2">
-                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-3 py-2 text-cyber-green text-sm font-mono truncate">
-                        {selectedAgentForSettings.auth_token}
+                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono truncate">
+                        {sidebarAgent.auth_token}
                       </code>
                       <button
-                        onClick={() => navigator.clipboard.writeText(selectedAgentForSettings.auth_token)}
-                        className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(sidebarAgent.auth_token);
+                        }}
+                        className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green text-xs transition"
                         title="Copy token"
                       >
                         📋
                       </button>
                     </div>
-                    <p className="text-cyber-gray-light text-xs mt-1">Use this token for agent authentication</p>
                   </div>
 
                   {/* Encryption Key */}
                   <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Encryption Key:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-1">Encryption Key:</span>
                     <div className="flex items-center space-x-2">
-                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-3 py-2 text-cyber-yellow text-sm font-mono truncate">
-                        {selectedAgentForSettings.encryption_key}
+                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-yellow text-xs font-mono truncate">
+                        {sidebarAgent.encryption_key}
                       </code>
                       <button
-                        onClick={() => navigator.clipboard.writeText(selectedAgentForSettings.encryption_key)}
-                        className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-yellow hover:text-cyber-yellow transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(sidebarAgent.encryption_key);
+                        }}
+                        className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-yellow hover:text-cyber-yellow text-xs transition"
                         title="Copy key"
                       >
                         📋
                       </button>
                     </div>
-                    <p className="text-cyber-gray-light text-xs mt-1">Used for encrypting agent communication</p>
                   </div>
 
                   {/* Download Token */}
                   <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Download Token:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-1">Download Token:</span>
                     <div className="flex items-center space-x-2">
-                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-3 py-2 text-cyber-red text-sm font-mono truncate">
-                        {selectedAgentForSettings.download_token}
+                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-red text-xs font-mono truncate">
+                        {sidebarAgent.download_token}
                       </code>
                       <button
-                        onClick={() => navigator.clipboard.writeText(selectedAgentForSettings.download_token)}
-                        className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-red hover:text-cyber-red transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(sidebarAgent.download_token);
+                        }}
+                        className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-red hover:text-cyber-red text-xs transition"
                         title="Copy token"
                       >
                         📋
                       </button>
                     </div>
-                    <p className="text-cyber-gray-light text-xs mt-1">One-time token for downloading agent binary</p>
                   </div>
 
                   {/* Download URL */}
                   <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Download URL:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-1">Download URL:</span>
                     <div className="flex items-center space-x-2">
-                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-3 py-2 text-cyber-purple text-sm font-mono truncate">
-                        /api/v1/agents/download/{selectedAgentForSettings.download_token}
+                      <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-purple text-xs font-mono truncate">
+                        {window.location.protocol}//{window.location.host}/api/v1/agents/download/{sidebarAgent.download_token}
                       </code>
                       <button
-                        onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/v1/agents/download/${selectedAgentForSettings.download_token}`)}
-                        className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple transition"
-                        title="Copy full URL"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/v1/agents/download/${sidebarAgent.download_token}`);
+                        }}
+                        className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple text-xs transition"
+                        title="Copy URL"
                       >
                         📋
                       </button>
                     </div>
-                    <p className="text-cyber-gray-light text-xs mt-1">Direct download link (wget/curl compatible)</p>
                   </div>
 
-                  {/* Quick Download Command */}
-                  <div className="border-t border-cyber-gray pt-3 mt-3">
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-2">Quick Download Command:</span>
-                    <div className="bg-cyber-black border border-cyber-gray p-3">
-                      <code className="text-cyber-green text-xs font-mono block whitespace-pre-wrap break-all">
-                        {`wget -O agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${selectedAgentForSettings.download_token}"`}
-                      </code>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
+                  {/* Quick Download Commands */}
+                  <div className="border-t border-cyber-gray pt-3 mt-2">
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-2">Quick Download:</span>
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => navigator.clipboard.writeText(`wget -O agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${selectedAgentForSettings.download_token}"`)}
-                        className="text-xs px-3 py-1 border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`wget -O agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                        }}
+                        className="flex-1 px-2 py-1 border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black text-xs transition"
                       >
-                        Copy wget command
+                        Copy wget
                       </button>
                       <button
-                        onClick={() => navigator.clipboard.writeText(`curl -o agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${selectedAgentForSettings.download_token}"`)}
-                        className="text-xs px-3 py-1 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`curl -o agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                        }}
+                        className="flex-1 px-2 py-1 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white text-xs transition"
                       >
-                        Copy curl command
+                        Copy curl
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Connection Configuration */}
-              <div>
-                <h4 className="text-cyber-green font-bold uppercase text-sm mb-3">Connection Settings</h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                      Connectback Server URL
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedAgentForSettings.connection_url}
-                      onChange={(e) => setSelectedAgentForSettings({
-                        ...selectedAgentForSettings,
-                        connection_url: e.target.value
-                      })}
-                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue font-mono text-sm"
-                      placeholder="ws://your-server:12001/api/v1/agents/{agent_id}/connect"
-                    />
+              {/* Capabilities */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs">Capabilities</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`p-2 border rounded text-center ${
+                    sidebarAgent.capabilities.asset 
+                      ? 'border-cyber-blue bg-cyber-blue/20' 
+                      : 'border-cyber-gray bg-cyber-gray/10'
+                  }`}>
+                    <div className={`text-xs uppercase font-bold ${
+                      sidebarAgent.capabilities.asset ? 'text-cyber-blue' : 'text-cyber-gray-light'
+                    }`}>
+                      Asset
+                    </div>
+                    <div className={`text-[10px] ${
+                      sidebarAgent.capabilities.asset ? 'text-cyber-blue' : 'text-cyber-gray'
+                    }`}>
+                      {sidebarAgent.capabilities.asset ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </div>
+                  <div className={`p-2 border rounded text-center ${
+                    sidebarAgent.capabilities.traffic 
+                      ? 'border-cyber-green bg-cyber-green/20' 
+                      : 'border-cyber-gray bg-cyber-gray/10'
+                  }`}>
+                    <div className={`text-xs uppercase font-bold ${
+                      sidebarAgent.capabilities.traffic ? 'text-cyber-green' : 'text-cyber-gray-light'
+                    }`}>
+                      Traffic
+                    </div>
+                    <div className={`text-[10px] ${
+                      sidebarAgent.capabilities.traffic ? 'text-cyber-green' : 'text-cyber-gray'
+                    }`}>
+                      {sidebarAgent.capabilities.traffic ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </div>
+                  <div className={`p-2 border rounded text-center ${
+                    sidebarAgent.capabilities.host 
+                      ? 'border-cyber-purple bg-cyber-purple/20' 
+                      : 'border-cyber-gray bg-cyber-gray/10'
+                  }`}>
+                    <div className={`text-xs uppercase font-bold ${
+                      sidebarAgent.capabilities.host ? 'text-cyber-purple' : 'text-cyber-gray-light'
+                    }`}>
+                      Host
+                    </div>
+                    <div className={`text-[10px] ${
+                      sidebarAgent.capabilities.host ? 'text-cyber-purple' : 'text-cyber-gray'
+                    }`}>
+                      {sidebarAgent.capabilities.host ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </div>
+                  <div className={`p-2 border rounded text-center ${
+                    sidebarAgent.capabilities.access 
+                      ? 'border-cyber-red bg-cyber-red/20' 
+                      : 'border-cyber-gray bg-cyber-gray/10'
+                  }`}>
+                    <div className={`text-xs uppercase font-bold ${
+                      sidebarAgent.capabilities.access ? 'text-cyber-red' : 'text-cyber-gray-light'
+                    }`}>
+                      Access
+                    </div>
+                    <div className={`text-[10px] ${
+                      sidebarAgent.capabilities.access ? 'text-cyber-red' : 'text-cyber-gray'
+                    }`}>
+                      {sidebarAgent.capabilities.access ? 'Enabled' : 'Disabled'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Schedule Configuration */}
-              <div>
-                <h4 className="text-cyber-green font-bold uppercase text-sm mb-3">Schedule Settings</h4>
-                <div className="space-y-4">
+              {/* Connection Info */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Connection</h4>
+                <div className="space-y-2">
                   <div>
-                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                      Connectback Interval (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      value={selectedAgentForSettings.agent_metadata?.connectback_interval || 30}
-                      onChange={(e) => setSelectedAgentForSettings({
-                        ...selectedAgentForSettings,
-                        agent_metadata: {
-                          ...selectedAgentForSettings.agent_metadata,
-                          connectback_interval: parseInt(e.target.value)
-                        }
-                      })}
-                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
-                      min="5"
-                      max="3600"
-                    />
-                    <p className="text-cyber-gray-light text-xs mt-1">
-                      How often agent attempts to reconnect (5-3600 seconds)
-                    </p>
+                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">URL:</span>
+                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono break-all">
+                      {sidebarAgent.connection_url}
+                    </code>
                   </div>
+                  {sidebarAgent.last_seen ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Last Seen:</span>
+                      <span className="text-white text-sm">{formatLastSeen(sidebarAgent.last_seen)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
+                      <span className="text-cyber-yellow text-sm uppercase">Never Connected</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                  <div>
-                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                      Heartbeat Interval (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      value={selectedAgentForSettings.agent_metadata?.heartbeat_interval || 30}
-                      onChange={(e) => setSelectedAgentForSettings({
-                        ...selectedAgentForSettings,
-                        agent_metadata: {
-                          ...selectedAgentForSettings.agent_metadata,
-                          heartbeat_interval: parseInt(e.target.value)
-                        }
-                      })}
-                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
-                      min="10"
-                      max="300"
-                    />
-                    <p className="text-cyber-gray-light text-xs mt-1">
-                      Heartbeat frequency when connected (10-300 seconds)
-                    </p>
+              {/* Schedule Settings */}
+              {sidebarAgent.agent_metadata && (
+                <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                  <h4 className="text-cyber-yellow font-bold uppercase mb-3 text-xs">Schedule Settings</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Strategy:</span>
+                      <span className="text-white text-sm uppercase">{sidebarAgent.agent_metadata.connection_strategy || 'constant'}</span>
+                    </div>
+                    {sidebarAgent.agent_metadata.connection_strategy === 'scheduled' && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Max Retries:</span>
+                        <span className="text-white text-sm">{sidebarAgent.agent_metadata.max_reconnect_attempts || 'N/A'}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Connectback:</span>
+                      <span className="text-white text-sm">{sidebarAgent.agent_metadata.connectback_interval || 30}s</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Heartbeat:</span>
+                      <span className="text-white text-sm">{sidebarAgent.agent_metadata.heartbeat_interval || 30}s</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Data Sync:</span>
+                      <span className="text-white text-sm">{sidebarAgent.agent_metadata.data_interval || 60}s</span>
+                    </div>
                   </div>
+                </div>
+              )}
 
-                  <div>
-                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                      Data Collection Interval (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      value={selectedAgentForSettings.agent_metadata?.data_interval || 60}
-                      onChange={(e) => setSelectedAgentForSettings({
-                        ...selectedAgentForSettings,
-                        agent_metadata: {
-                          ...selectedAgentForSettings.agent_metadata,
-                          data_interval: parseInt(e.target.value)
-                        }
-                      })}
-                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
-                      min="30"
-                      max="3600"
-                    />
-                    <p className="text-cyber-gray-light text-xs mt-1">
-                      How often agent collects and sends data (30-3600 seconds)
-                    </p>
+              {/* Security Settings */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-red font-bold uppercase mb-3 text-xs">Security</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Obfuscation:</span>
+                    <span className={`text-sm uppercase font-bold ${
+                      sidebarAgent.obfuscate ? 'text-cyber-green' : 'text-cyber-red'
+                    }`}>
+                      {sidebarAgent.obfuscate ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Persistence:</span>
+                    <span className="text-white text-sm uppercase">{sidebarAgent.persistence_level || 'medium'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Startup Mode:</span>
+                    <span className="text-white text-sm uppercase">{sidebarAgent.startup_mode || 'auto'}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Download & Delete Actions */}
-              <div className="border-t border-cyber-gray pt-4">
-                <h4 className="text-cyber-yellow font-bold uppercase text-sm mb-3">Actions</h4>
-                <div className="flex gap-3">
+              {/* Actions */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-white font-bold uppercase mb-3 text-xs">Actions</h4>
+                <div className="space-y-2">
+                  {sidebarAgent.last_seen && (
+                    <>
+                      {activeAgent?.id === sidebarAgent.id ? (
+                        <button
+                          onClick={() => {
+                            setActiveAgent(null);
+                            setShowSidebar(false);
+                          }}
+                          className="w-full px-4 py-2 bg-cyber-purple border border-cyber-purple text-white uppercase text-sm hover:bg-cyber-purple-dark transition"
+                        >
+                          Exit POV
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            handleSwitchPOV(sidebarAgent);
+                            setShowSidebar(false);
+                          }}
+                          className="w-full px-4 py-2 border border-cyber-purple text-cyber-purple uppercase text-sm hover:bg-cyber-purple hover:text-white transition"
+                        >
+                          Switch POV
+                        </button>
+                      )}
+                    </>
+                  )}
                   <button
                     onClick={() => {
-                      handleGenerateAgent(selectedAgentForSettings);
-                      setShowSettingsModal(false);
+                      handleGenerateAgent(sidebarAgent);
                     }}
-                    className="flex-1 px-4 py-2 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all duration-300 uppercase text-sm"
+                    className="w-full px-4 py-2 border border-cyber-blue text-cyber-blue uppercase text-sm hover:bg-cyber-blue hover:text-white transition"
                   >
-                    Re-Download Agent
+                    {sidebarAgent.last_seen ? 'Re-Download' : 'Download'} Agent
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm(`Delete agent "${selectedAgentForSettings.name}"?`)) {
-                        handleDeleteAgent(selectedAgentForSettings.id);
-                        setShowSettingsModal(false);
-                        setSelectedAgentForSettings(null);
+                      if (window.confirm(`Delete agent "${sidebarAgent.name}"?\\n\\nThis action cannot be undone.`)) {
+                        handleDeleteAgent(sidebarAgent.id);
+                        setShowSidebar(false);
+                        setSidebarAgent(null);
                       }
                     }}
-                    className="px-4 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all duration-300 uppercase text-sm"
+                    className="w-full px-4 py-2 border border-cyber-red text-cyber-red uppercase text-sm hover:bg-cyber-red hover:text-white transition"
                   >
                     Delete Agent
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div className="border-t border-cyber-gray p-4 flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowSettingsModal(false);
-                  setSelectedAgentForSettings(null);
-                }}
-                className="px-6 py-2 border border-cyber-gray text-cyber-gray-light hover:border-white hover:text-white transition-all duration-300 uppercase"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveAgentSettings}
-                className="px-6 py-2 bg-cyber-blue border border-cyber-blue-dark text-white font-bold uppercase tracking-wide hover:bg-cyber-blue-dark transition-all duration-300 disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? 'Saving...' : 'Save Settings'}
-              </button>
+              {/* Metadata */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-gray-light font-bold uppercase mb-3 text-xs">Metadata</h4>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-cyber-gray">Created:</span>
+                    <span className="text-cyber-gray-light">{new Date(sidebarAgent.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-cyber-gray">Agent ID:</span>
+                    <code className="text-cyber-gray-light font-mono">{sidebarAgent.id}</code>
+                  </div>
+                  {sidebarAgent.target_platform && (
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray">Platform:</span>
+                      <span className="text-cyber-gray-light uppercase">{sidebarAgent.target_platform}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
