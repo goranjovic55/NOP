@@ -6,7 +6,8 @@ This directory contains comprehensive design documentation for implementing agen
 
 ### 1. [agent-design-summary.md](./agent-design-summary.md)
 **Quick Reference** - Start here!
-- Executive decision: Hybrid Architecture (Option C)
+- Executive decision: Hybrid Architecture (Option C recommended)
+- All three agent types supported (Fat, Thin, Hybrid)
 - Technology stack justification
 - Key features overview
 - Quick start guide
@@ -21,7 +22,7 @@ This directory contains comprehensive design documentation for implementing agen
 - Three architecture options (Fat, Thin, Hybrid) with pros/cons
 - Detailed hybrid architecture design
 - Communication protocol specification
-- Agent implementation details (Go)
+- Agent implementation details (Go and Python)
 - C2 backend implementation (Python/FastAPI)
 - Database schema (4 tables)
 - Frontend UI design (POV switcher)
@@ -31,13 +32,25 @@ This directory contains comprehensive design documentation for implementing agen
 **Read time:** 45-60 minutes  
 **Best for:** Developers, architects, technical review
 
-### 3. [agent-implementation-roadmap.md](./agent-implementation-roadmap.md)
+### 3. [agent-types-and-build-config.md](./agent-types-and-build-config.md) 🆕
+**Agent Types and Build Configuration**
+- Detailed Fat Agent implementation (full capabilities)
+- Detailed Thin Proxy implementation (relay only)
+- Build configuration system with agent type selection
+- Go and Python implementations for each type
+- Deployment scenarios and use cases
+- Comparison matrix and trade-offs
+
+**Read time:** 30-40 minutes  
+**Best for:** Developers, operators, deployment planning
+
+### 4. [agent-implementation-roadmap.md](./agent-implementation-roadmap.md)
 **Detailed Implementation Plan**
 - 5 phases over 10 weeks
 - Phase 1: Foundation (database, registration, WebSocket)
 - Phase 2: Core capabilities (discovery, POV switcher)
 - Phase 3: Advanced modules (scan, traffic, access)
-- Phase 4: Production features (builder, obfuscation)
+- Phase 4: Production features (builder with agent type selection, obfuscation)
 - Phase 5: Polish and testing
 - Task breakdown for each phase
 - Acceptance criteria
@@ -47,7 +60,7 @@ This directory contains comprehensive design documentation for implementing agen
 **Read time:** 60-90 minutes  
 **Best for:** Developers implementing the feature, project managers
 
-### 4. [agent-visual-reference.md](./agent-visual-reference.md)
+### 5. [agent-visual-reference.md](./agent-visual-reference.md)
 **Visual Diagrams & Flow Charts**
 - System architecture diagram
 - Communication flow diagrams

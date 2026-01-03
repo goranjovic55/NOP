@@ -548,48 +548,90 @@ backend/app/services/agent_builder_service.py
 
 **Build Configuration Options:**
 ```
-- Agent Type: Go (recommended) / Python
+- Agent Type: Fat / Hybrid (recommended) / Thin Proxy
+  • Fat: All modules built-in (50-100MB) - best for long-term, offline
+  • Hybrid: Core + on-demand modules (10-50MB) - best for general use
+  • Thin: Minimal relay (5-15MB) - best for short-term, high-bandwidth
+
+- Language: Go / Python
 - Target OS: Linux / Windows / macOS
 - Architecture: amd64 / arm64 / 386
-- Capabilities:
-  ☑ Network Discovery
-  ☑ Port Scanning
-  ☐ Traffic Capture (requires admin)
-  ☐ Access Testing
-  ☐ Packet Crafting
+
+- Capabilities (varies by agent type):
+  Fat Agent:
+    ☑ All modules included (discovery, scan, traffic, access, exploit)
+  
+  Hybrid Agent:
+    ☑ Network Discovery (built-in)
+    ☑ Heartbeat & System Info (built-in)
+    ☐ Port Scanning (on-demand)
+    ☐ Traffic Capture (on-demand)
+    ☐ Access Testing (on-demand)
+    ☐ Packet Crafting (on-demand)
+  
+  Thin Proxy:
+    ☑ SOCKS5 Proxy
+    ☑ HTTP Proxy
+    ☑ TCP/UDP Port Forwarding
+
 - Advanced:
-  ☐ Obfuscation (Garble for Go)
+  ☐ Obfuscation (Garble for Go, PyArmor for Python)
   ☐ Persistence
     - Linux: systemd / cron
     - Windows: service / registry
   ☐ Custom C2 URL
   ☐ Custom check-in interval
+  ☐ Check-in jitter (0-100%)
 ```
 
 **Build Process:**
 ```
-1. User configures agent
-2. Backend generates config file
-3. Backend runs build script:
-   - Go: GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o agent-linux-amd64
-   - Obfuscation: garble -literals -tiny build
-4. Store built binary
-5. Return download link
+1. User selects agent type (Fat / Hybrid / Thin)
+2. User configures based on selected type
+3. Backend generates config file
+4. Backend runs build script:
+   
+   Fat Agent (Go):
+   - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -tags "all_modules"
+   - Includes all dependencies statically linked
+   - Result: 80-100MB (50-60MB with UPX)
+   
+   Hybrid Agent (Go):
+   - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -tags "core_only"
+   - Core modules only
+   - Result: 10-15MB
+   
+   Thin Proxy (Go):
+   - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
+   - Minimal dependencies
+   - Result: 5-10MB
+   
+   Python (all types):
+   - PyInstaller with type-specific requirements
+   - Fat: 50-70MB, Hybrid: 25-50MB, Thin: 15-20MB
+
+5. Apply obfuscation if selected (Garble/PyArmor)
+6. Store built binary
+7. Return download link
 ```
 
 **Tasks:**
-- [ ] Create agent configuration form
-- [ ] Implement build service (execute build commands)
+- [ ] Create agent type selection UI (radio buttons: Fat/Hybrid/Thin)
+- [ ] Create agent configuration form (conditional based on type)
+- [ ] Implement build service for all three agent types
 - [ ] Handle build artifacts (store in volumes/)
 - [ ] Implement download endpoint
 - [ ] Add build status tracking (queued/building/ready/failed)
 - [ ] Add build history/logs
 - [ ] Support batch builds (multiple OS/arch)
+- [ ] Add agent type templates (fat, hybrid, thin)
 
 **Acceptance Criteria:**
-- Can configure and build custom agent
-- Binary downloads successfully
+- Can select and configure any of the three agent types
+- Binary builds successfully for selected type
+- Binary size matches expected range for type
 - Built agent connects to C2
+- Agent capabilities match selected type
 - Obfuscation option works (if selected)
 
 ### 4.2 Module System (On-Demand Loading)

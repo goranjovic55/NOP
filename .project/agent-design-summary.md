@@ -3,11 +3,11 @@
 **Date:** 2026-01-03  
 **Quick Reference for Implementation**
 
-## Executive Decision: Hybrid Architecture
+## Executive Decision: Hybrid Architecture (Recommended)
 
-After analyzing community best practices and three architecture options (Fat Agent, Thin Proxy, Hybrid), we recommend:
+After analyzing community best practices and three architecture options (Fat Agent, Thin Proxy, Hybrid), we recommend **Hybrid Architecture** for general use. However, **all three agent types are fully supported** and can be selected during the build process based on deployment requirements.
 
-### ✅ **Hybrid Architecture (Option C)**
+### ✅ **Hybrid Architecture (Option C) - Recommended for General Use**
 
 **Core Concept:**
 - Lightweight agent core (~10MB)
@@ -15,7 +15,7 @@ After analyzing community best practices and three architecture options (Fat Age
 - On-demand module loading for advanced features
 - Best of both worlds
 
-**Why Hybrid?**
+**All Agent Types Supported:**
 | Criterion | Fat Agent | Thin Proxy | **Hybrid** |
 |-----------|-----------|------------|------------|
 | Binary Size | ❌ 50-100MB | ✅ 5-15MB | ✅ 10MB |
@@ -23,7 +23,9 @@ After analyzing community best practices and three architecture options (Fat Age
 | Maintainability | ❌ Hard | ✅ Easy | ✅ Easy |
 | Offline Capable | ✅ Yes | ❌ No | ⚠️ Partial |
 | Latency | ✅ Low | ❌ High | ✅ Low |
-| **Recommendation** | Long-term ops | Short tests | **General use** |
+| **Best For** | Long-term ops | Short tests | **General use** |
+
+> **Note:** For detailed implementation of all three agent types, see [agent-types-and-build-config.md](./agent-types-and-build-config.md)
 
 ## Technology Stack
 
