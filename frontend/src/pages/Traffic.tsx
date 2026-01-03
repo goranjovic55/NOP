@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
+import { useLocalStorageString, useDropdown } from '../hooks';
 
 interface Packet {
   id: string;
@@ -173,17 +174,13 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
-    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
-  });
+  const [activeTab, setActiveTab] = useLocalStorageString('nop_traffic_active_tab', 'capture');
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
   const [selectedIface, setSelectedIface] = useState<string>('');
   const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
-  const [filter, setFilter] = useState(() => {
-    return localStorage.getItem('nop_traffic_filter') || '';
-  });
+  const [filter, setFilter] = useLocalStorageString('nop_traffic_filter', '');
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   
@@ -204,8 +201,9 @@ const Traffic: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<'time' | 'source' | 'destination' | 'protocol' | 'length' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
-  const [showAssetDropdown, setShowAssetDropdown] = useState(false);
-  const assetDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Use dropdown hook for asset dropdown
+  const [showAssetDropdown, setShowAssetDropdown, assetDropdownRef] = useDropdown();
   
   const wsRef = useRef<WebSocket | null>(null);
   const packetListEndRef = useRef<HTMLDivElement>(null);
@@ -229,25 +227,6 @@ const Traffic: React.FC = () => {
     }
   }, [activeTab, token]);
 
-  useEffect(() => {
-    // Close dropdown when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
-        setShowAssetDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Persist active tab and filter to localStorage
-  useEffect(() => {
-    localStorage.setItem('nop_traffic_active_tab', activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    localStorage.setItem('nop_traffic_filter', filter);
-  }, [filter]);
 
   useEffect(() => {
     if (packetListEndRef.current && !selectedPacket) {

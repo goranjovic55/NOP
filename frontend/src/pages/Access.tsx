@@ -6,8 +6,8 @@ import { useAuthStore } from '../store/authStore';
 import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
-
-type AccessMode = 'login' | 'exploit';
+import { useLocalStorage, useLocalStorageString, useResizablePanel } from '../hooks';
+import { AccessMode, VaultCredential, VaultSortBy, AssetFilter, PayloadType, PayloadVariant } from '../types/access';
 
 const Access: React.FC = () => {
   const { token } = useAuthStore();
@@ -28,20 +28,14 @@ const Access: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   
-  // Filtering
-  const [assetFilter, setAssetFilter] = useState<'all' | 'scanned' | 'vulnerable'>(() => {
-    const saved = localStorage.getItem('access_assetFilter');
-    return (saved as 'all' | 'scanned' | 'vulnerable') || 'all';
-  });
-  const [ipFilter, setIpFilter] = useState(() => localStorage.getItem('access_ipFilter') || '');
+  // Filtering - using localStorage hooks
+  const [assetFilter, setAssetFilter] = useLocalStorage<AssetFilter>('access_assetFilter', 'all');
+  const [ipFilter, setIpFilter] = useLocalStorageString('access_ipFilter', '');
   const [manualIP, setManualIP] = useState('');
   const [showManualIPInput, setShowManualIPInput] = useState(false);
   
-  // Mode state
-  const [accessMode, setAccessMode] = useState<AccessMode>(() => {
-    const saved = localStorage.getItem('access_mode');
-    return (saved as AccessMode) || 'login';
-  });
+  // Mode state - using localStorage hook
+  const [accessMode, setAccessMode] = useLocalStorage<AccessMode>('access_mode', 'login');
   
   // Login mode state
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -53,25 +47,16 @@ const Access: React.FC = () => {
   const [showVault, setShowVault] = useState(false);
   const [vaultPassword, setVaultPassword] = useState('');
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
-  const [vaultSortBy, setVaultSortBy] = useState<'recent' | 'frequent' | 'name'>('recent');
-  const [vaultCredentialsRaw, setVaultCredentialsRaw] = useState<Array<{
-    id: number;
-    host: string;
-    hostname?: string;
-    protocol: string;
-    username: string;
-    lastUsed: string;
-    useCount: number;
-    lastUsedTimestamp: number;
-  }>>([]);
+  const [vaultSortBy, setVaultSortBy] = useState<VaultSortBy>('recent');
+  const [vaultCredentialsRaw, setVaultCredentialsRaw] = useState<VaultCredential[]>([]);
   const [hoveredCredId, setHoveredCredId] = useState<number | null>(null);
   
   // Exploit mode state
   const [showExploitBuilder, setShowExploitBuilder] = useState(false);
   const [exploitName, setExploitName] = useState('');
   const [exploitDescription, setExploitDescription] = useState('');
-  const [payloadType, setPayloadType] = useState<'reverse_shell' | 'bind_shell' | 'meterpreter' | 'web_shell' | 'custom'>('reverse_shell');
-  const [payloadVariant, setPayloadVariant] = useState<'bash' | 'python' | 'perl' | 'netcat' | 'powershell' | 'php' | 'jsp' | 'aspx'>('bash');
+  const [payloadType, setPayloadType] = useState<PayloadType>('reverse_shell');
+  const [payloadVariant, setPayloadVariant] = useState<PayloadVariant>('bash');
   const [targetService, setTargetService] = useState('');
   const [targetPort, setTargetPort] = useState('');
   const [listenerIP, setListenerIP] = useState('');
@@ -84,25 +69,12 @@ const Access: React.FC = () => {
   const [output, setOutput] = useState<string[]>([]);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   
-  // View state
+  // View state - using resizable panel hook
   const [showConsole, setShowConsole] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [connectionHeight, setConnectionHeight] = useState(600);
-  const [isResizing, setIsResizing] = useState(false);
+  const { height: connectionHeight, isResizing, handleMouseDown } = useResizablePanel(600, 200);
 
   const activeTab = tabs.find(t => t.id === activeTabId);
-
-  useEffect(() => {
-    localStorage.setItem('access_assetFilter', assetFilter);
-  }, [assetFilter]);
-
-  useEffect(() => {
-    localStorage.setItem('access_ipFilter', ipFilter);
-  }, [ipFilter]);
-
-  useEffect(() => {
-    localStorage.setItem('access_mode', accessMode);
-  }, [accessMode]);
 
   useEffect(() => {
     fetchAllAssets();
@@ -845,38 +817,6 @@ const Access: React.FC = () => {
     };
     return colors[severity as keyof typeof colors] || colors.low;
   };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isResizing) {
-      const newHeight = window.innerHeight - e.clientY - 100;
-      if (newHeight >= 300 && newHeight <= window.innerHeight - 200) {
-        setConnectionHeight(newHeight);
-      }
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsResizing(false);
-  };
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
 
   return (
     <div className="h-full flex gap-4">
