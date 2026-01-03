@@ -799,10 +799,12 @@ class PingService:
         if protocol == 'tcp':
             if port is None:
                 raise ValueError("Port is required for TCP")
+            validated_port = validate_port(port)
             trace_cmd = ['hping3', '--traceroute', '-S', '-p', str(validated_port), '-c', '30', '-V', target]
         elif protocol == 'udp':
             if port is None:
                 raise ValueError("Port is required for UDP")
+            validated_port = validate_port(port)
             trace_cmd = ['hping3', '--traceroute', '--udp', '-p', str(validated_port), '-c', '30', '-V', target]
         else:
             # Use system traceroute for ICMP, HTTP, DNS
@@ -886,10 +888,12 @@ class PingService:
             if protocol == 'tcp':
                 if port is None:
                     raise ValueError("Port is required for TCP ping")
+                validated_port = validate_port(port)
                 cmd = ['hping3', '-S', '-p', str(validated_port), '-c', str(count), '-V', target]
             else:  # udp
                 if port is None:
                     raise ValueError("Port is required for UDP ping")
+                validated_port = validate_port(port)
                 cmd = ['hping3', '--udp', '-p', str(validated_port), '-c', str(count), '-V', target]
             
             try:
