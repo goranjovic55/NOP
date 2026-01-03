@@ -12,6 +12,8 @@ export interface Agent {
   status: 'online' | 'offline' | 'disconnected' | 'error';
   connection_url: string;
   auth_token: string;
+  encryption_key: string;
+  download_token: string;
   capabilities: {
     asset?: boolean;
     traffic?: boolean;

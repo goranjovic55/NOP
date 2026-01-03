@@ -3,6 +3,7 @@ Agent management endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from uuid import UUID
@@ -216,6 +217,44 @@ async def agent_websocket(
             del connected_agents[str(agent_id)]
         await AgentService.update_agent_status(db, agent_id, AgentStatus.OFFLINE, update_last_seen=True)
         await websocket.close()
+
+
+@router.get("/download/{download_token}")
+async def download_agent_by_token(
+    download_token: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Download agent by token (no auth required for remote deployment)"""
+    from sqlalchemy import select
+    
+    # Find agent by download token
+    result = await db.execute(
+        select(Agent).where(Agent.download_token == download_token)
+    )
+    agent = result.scalar_one_or_none()
+    
+    if not agent:
+        raise HTTPException(status_code=404, detail="Invalid download token")
+    
+    # Generate agent based on type
+    if agent.agent_type == AgentType.PYTHON:
+        content = AgentService.generate_python_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.py"
+        media_type = "text/x-python"
+    elif agent.agent_type == AgentType.GO:
+        content = AgentService.generate_go_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.go"
+        media_type = "text/x-go"
+    else:
+        raise HTTPException(status_code=400, detail="Unknown agent type")
+    
+    return Response(
+        content=content.encode('utf-8'),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
 
 
 @router.get("/{agent_id}/status")

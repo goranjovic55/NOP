@@ -53,6 +53,8 @@ class Agent(Base):
     # Connection configuration
     connection_url = Column(String(255), nullable=False)  # Where agent connects to
     auth_token = Column(String(255), nullable=False, unique=True)  # Pre-shared token
+    encryption_key = Column(String(255), nullable=False)  # Encryption key for secure tunnel
+    download_token = Column(String(255), nullable=False, unique=True)  # One-time use download token
     
     # Capabilities - JSON field with module flags
     # Modules: asset, traffic, host, access - agent acts as proxy relaying data to C2

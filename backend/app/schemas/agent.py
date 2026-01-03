@@ -48,6 +48,8 @@ class AgentResponse(BaseModel):
     status: AgentStatus
     connection_url: str
     auth_token: str
+    encryption_key: str
+    download_token: str
     capabilities: Dict[str, bool]
     obfuscate: bool
     startup_mode: StartupMode

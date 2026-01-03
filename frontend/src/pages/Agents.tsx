@@ -48,6 +48,19 @@ const Agents: React.FC = () => {
     try {
       const agent = await agentService.createAgent(token, newAgent);
       setAgents([...agents, agent]);
+      
+      // Auto-download agent file
+      const { content, filename } = await agentService.generateAgent(token, agent.id);
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
       setShowCreateModal(false);
       setNewAgent({
         name: '',
@@ -257,6 +270,44 @@ const Agents: React.FC = () => {
                       Access
                     </span>
                   )}
+                </div>
+              </div>
+
+              {/* Encryption Key & Download Link */}
+              <div className="border-t border-cyber-gray pt-3 space-y-2">
+                <div>
+                  <span className="text-cyber-gray-light text-xs uppercase block mb-1">Encryption Key:</span>
+                  <div className="flex items-center space-x-2">
+                    <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono truncate">
+                      {agent.encryption_key}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(agent.encryption_key);
+                      }}
+                      className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue text-xs"
+                      title="Copy key"
+                    >
+                      📋
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-cyber-gray-light text-xs uppercase block mb-1">Download Link:</span>
+                  <div className="flex items-center space-x-2">
+                    <code className="flex-1 bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-blue text-xs font-mono truncate">
+                      {window.location.origin}/api/v1/agents/download/{agent.download_token}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/api/v1/agents/download/${agent.download_token}`);
+                      }}
+                      className="px-2 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue text-xs"
+                      title="Copy link"
+                    >
+                      📋
+                    </button>
+                  </div>
                 </div>
               </div>
 
