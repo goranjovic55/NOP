@@ -4,6 +4,7 @@ Agent service for C2 management
 
 import secrets
 import base64
+import json
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,6 +129,16 @@ class AgentService:
     @staticmethod
     def generate_python_agent(agent: Agent) -> str:
         """Generate Python agent script with all modules (Asset, Traffic, Host, Access)"""
+        # Convert JSON booleans to Python booleans
+        capabilities_str = json.dumps(agent.capabilities, indent=4).replace('true', 'True').replace('false', 'False').replace('null', 'None')
+        
+        # Build proper WebSocket URL with agent ID
+        # Extract base URL and construct websocket path
+        base_url = agent.connection_url.replace('/ws', '')
+        if not base_url.endswith('/agents'):
+            base_url = base_url.rsplit('/', 1)[0] if '/agents/' in base_url else base_url
+        ws_url = f"{base_url}/{agent.id}/connect"
+        
         template = f'''#!/usr/bin/env python3
 """
 NOP Agent - {agent.name}
@@ -154,13 +165,7 @@ from datetime import datetime
 from typing import Dict, List, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
-import base64
-import os
-from typing import Dict, List, Any
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import os
 
@@ -169,8 +174,8 @@ AGENT_ID = "{agent.id}"
 AGENT_NAME = "{agent.name}"
 AUTH_TOKEN = "{agent.auth_token}"
 ENCRYPTION_KEY = "{agent.encryption_key}"
-SERVER_URL = "{agent.connection_url}"
-CAPABILITIES = {json.dumps(agent.capabilities, indent=4)}
+SERVER_URL = "{ws_url}"
+CAPABILITIES = {capabilities_str}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -188,8 +193,8 @@ class NOPAgent:
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
-        # Derive encryption key using PBKDF2
-        kdf = PBKDF2(
+        # Derive encryption key using PBKDF2HMAC
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'nop_c2_salt_2026',
@@ -228,7 +233,7 @@ class NOPAgent:
             print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
             async with websockets.connect(
                 self.server_url,
-                extra_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
+                additional_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
             ) as websocket:
                 self.ws = websocket
                 print(f"[{{datetime.now()}}] Connected! Establishing encrypted tunnel...")
