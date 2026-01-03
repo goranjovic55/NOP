@@ -260,12 +260,16 @@ interface StreamData {
 
 ## 4. Agent Implementation Details
 
-### 4.1 Core Agent Structure (Go)
+### 4.1 Core Agent Structure
 
-**Why Go:**
+**Both Go and Python implementations are supported. Choose based on your requirements:**
+
+#### Go Implementation
+
+**Benefits:**
 - Single binary, no dependencies
 - Cross-platform (Linux, Windows, macOS)
-- Small binary size with proper compilation flags
+- Small binary size with proper compilation flags (~10MB)
 - Good concurrency support (goroutines)
 - Easy obfuscation (garble)
 
@@ -302,10 +306,52 @@ agent/
     └── agent.yaml           # Default config
 ```
 
+#### Python Implementation
+
+**Benefits:**
+- Rapid development and prototyping
+- Leverages existing NOP backend codebase
+- Rich ecosystem (scapy, nmap, psutil, etc.)
+- Easier debugging and iteration
+
+**Directory Structure:**
+```
+agent/
+├── main.py                  # Entry point
+├── core/
+│   ├── agent.py             # Main agent logic
+│   ├── config.py            # Configuration
+│   ├── connection.py        # WebSocket handling
+│   └── heartbeat.py         # Health monitoring
+├── modules/
+│   ├── discovery.py         # Network discovery
+│   ├── scanner.py           # Port scanning
+│   ├── traffic.py           # Traffic capture
+│   ├── access.py            # Access testing
+│   └── executor.py          # Command execution
+├── comm/
+│   ├── protocol.py          # Message protocol
+│   └── crypto.py            # Encryption helpers
+├── utils/
+│   ├── network.py           # Network utilities
+│   └── system.py            # System info
+├── requirements.txt         # Dependencies
+├── build/
+│   └── build.sh            # PyInstaller build script
+└── config/
+    └── agent.yaml          # Default config
+```
+
+**Deployment Options:**
+- **PyInstaller**: Bundle as single executable (~25-50MB)
+- **Raw Python**: Deploy as script (requires Python runtime on target)
+- **Docker**: Containerized deployment
+
 ### 4.2 Module System
 
-**Built-in Modules (Compiled In):**
+**Both Go and Python implementations use the same module interface:**
 
+**Go Example:**
 ```go
 type Module interface {
     Name() string
@@ -333,6 +379,51 @@ func (m *DiscoveryModule) Execute(params map[string]interface{}) (interface{}, e
     
     return hosts, nil
 }
+```
+
+**Python Example:**
+```python
+from abc import ABC, abstractmethod
+from typing import Dict, Any, List
+
+class Module(ABC):
+    @abstractmethod
+    def name(self) -> str:
+        pass
+    
+    @abstractmethod
+    def execute(self, params: Dict[str, Any]) -> Any:
+        pass
+    
+    @abstractmethod
+    def requirements(self) -> List[str]:
+        pass
+    
+    @abstractmethod
+    def capabilities(self) -> List[str]:
+        pass
+
+# Discovery Module
+class DiscoveryModule(Module):
+    def name(self) -> str:
+        return "discovery"
+    
+    def execute(self, params: Dict[str, Any]) -> List[Dict]:
+        subnet = params["subnet"]
+        method = params["method"]  # "arp", "ping", "both"
+        
+        if method == "arp":
+            return self.arp_scan(subnet)
+        elif method == "ping":
+            return self.ping_scan(subnet)
+        elif method == "both":
+            return self.combined_scan(subnet)
+    
+    def requirements(self) -> List[str]:
+        return ["scapy", "netifaces"]
+    
+    def capabilities(self) -> List[str]:
+        return ["network_discovery", "arp_scan", "ping_sweep"]
 ```
 
 **On-Demand Modules:**
@@ -724,9 +815,11 @@ GET    /api/v1/traffic?pov=agent:abc123
 - **Chosen**: JSON
 - **Reason**: Easier debugging, extensibility, interoperability
 
-### Agent Languages: Go vs Python vs Rust
-- **Chosen**: Go (primary), Python (alternative)
-- **Reason**: Go = small binaries, easy cross-compile; Python = rapid development, existing NOP code
+### Agent Languages: Go and Python
+- **Both Supported**: Go and Python are both fully supported for agent development
+- **Go**: Small binaries (~10MB), easy cross-compilation, single file deployment
+- **Python**: Rapid development, existing NOP codebase reuse, rich ecosystem
+- **Choice depends on**: Deployment requirements (size, dependencies) vs development speed
 
 ### Direct Database Access vs API
 - **Chosen**: API-only

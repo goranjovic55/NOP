@@ -28,13 +28,18 @@ After analyzing community best practices and three architecture options (Fat Age
 ## Technology Stack
 
 ### Agent
-- **Language:** Go (primary), Python (alternative)
-- **Why Go:**
+- **Languages:** Go or Python (both supported)
+- **Go Benefits:**
   - Single binary, no dependencies
   - Cross-compile to Linux/Windows/macOS
   - Small footprint (~10MB)
   - Good concurrency (goroutines)
   - Easy obfuscation with Garble
+- **Python Benefits:**
+  - Rapid development
+  - Leverages existing NOP codebase
+  - Rich ecosystem (scapy, nmap-python, etc.)
+  - Easier debugging and prototyping
 
 ### Communication
 - **Protocol:** WebSocket over TLS
@@ -390,8 +395,8 @@ Reviewed approaches from:
 
 ## FAQ
 
-**Q: Why Go instead of Python for agents?**
-A: Single binary, no dependencies, small size, easy cross-compilation. Python available as alternative for quick development.
+**Q: Go or Python for agents?**
+A: Both are supported. Go offers single binary deployment (~10MB) with easy cross-compilation. Python offers rapid development and leverages existing NOP code. Choose based on deployment requirements and development speed needs.
 
 **Q: Why not just use SSH tunneling?**
 A: Agent provides structured command/result interface, health monitoring, module management, and better error handling than raw tunnels.

@@ -154,22 +154,28 @@ Created 5 comprehensive design documents:
 | Latency | ✅ Low | ❌ High | ✅ Low |
 | **Best For** | Long-term | Short tests | **General** |
 
-### 2. Agent Language: Go ✅
+### 2. Agent Languages: Go and Python ✅
 
-**Decision:** Go as primary language, Python as alternative
+**Decision:** Both Go and Python are fully supported for agent development
 
-**Rationale:**
+**Go Benefits:**
 - Single binary, no dependencies
 - Cross-platform compilation (Linux, Windows, macOS)
-- Small binary size with proper flags (~10MB)
+- Small binary size (~10MB with proper flags)
 - Good concurrency support (goroutines)
 - Easy obfuscation (Garble tool)
 - Strong standard library for networking
 
-**Alternatives Considered:**
-- Python: Easier development but larger deployment (PyInstaller ~50MB+)
-- Rust: Better performance but steeper learning curve
-- C/C++: Maximum performance but complex cross-platform builds
+**Python Benefits:**
+- Rapid development and prototyping
+- Leverages existing NOP backend codebase
+- Rich ecosystem (scapy, nmap, psutil, etc.)
+- Easier debugging and iteration
+- PyInstaller for bundling (~25-50MB)
+
+**Choice depends on:**
+- Go: When deployment size and single-binary portability are critical
+- Python: When development speed and codebase reuse are priorities
 
 ### 3. Communication: WebSocket over TLS ✅
 

@@ -117,13 +117,19 @@ NOP can only monitor/test the network where it's deployed. Need ability to deplo
 
 ## 🔑 Key Design Decisions
 
-### 1. Agent Language: **Go**
+### 1. Agent Languages: **Go or Python**
+
+**Go:**
 - Single binary, no dependencies
 - Cross-platform (Linux, Windows, macOS)
 - Small size (~10MB)
 - Easy obfuscation (Garble)
 
-**Alternative:** Python (for rapid dev)
+**Python:**
+- Rapid development
+- Leverages existing NOP codebase
+- Rich ecosystem (scapy, requests, etc.)
+- Easier debugging
 
 ### 2. Communication: **WebSocket over TLS**
 - Bidirectional real-time
