@@ -102,7 +102,7 @@ class PingService:
                 'hping3',
                 '--traceroute',  # Always trace packet path
                 '-S',  # SYN packets
-                '-p', str(port),
+                '-p', str(validated_port),
                 '-c', str(count),
                 '-V',  # Verbose output
                 validated_target
@@ -255,7 +255,7 @@ class PingService:
         
         # Validate numeric parameters
         count = max(1, min(100, count))
-        timeout = max(1, min(30, timeout))
+        timeout = validate_timeout(timeout, 1, 30)
         
         try:
             # Use hping3 for UDP ping with traceroute to show packet path
@@ -263,7 +263,7 @@ class PingService:
                 'hping3',
                 '--traceroute',  # Always trace packet path
                 '--udp',  # UDP mode
-                '-p', str(port),
+                '-p', str(validated_port),
                 '-c', str(count),
                 '-V',  # Verbose output
                 validated_target
@@ -495,7 +495,7 @@ class PingService:
         
         # Validate numeric parameters
         count = max(1, min(100, count))
-        timeout = max(1, min(30, timeout))
+        timeout = validate_timeout(timeout, 1, 30)
         results = []
         successful = 0
         failed = 0
@@ -642,7 +642,7 @@ class PingService:
         
         # Validate numeric parameters
         count = max(1, min(100, count))
-        timeout = max(1, min(30, timeout))
+        timeout = validate_timeout(timeout, 1, 30)
         
         results = []
         successful = 0
@@ -658,7 +658,7 @@ class PingService:
                 cmd = [
                     'dig',
                     f'@{validated_target}',
-                    '-p', str(port),
+                    '-p', str(validated_port),
                     '+time=' + str(timeout),
                     '+tries=1',
                     'google.com',  # Test query
@@ -799,11 +799,11 @@ class PingService:
         if protocol == 'tcp':
             if port is None:
                 raise ValueError("Port is required for TCP")
-            trace_cmd = ['hping3', '--traceroute', '-S', '-p', str(port), '-c', '30', '-V', target]
+            trace_cmd = ['hping3', '--traceroute', '-S', '-p', str(validated_port), '-c', '30', '-V', target]
         elif protocol == 'udp':
             if port is None:
                 raise ValueError("Port is required for UDP")
-            trace_cmd = ['hping3', '--traceroute', '--udp', '-p', str(port), '-c', '30', '-V', target]
+            trace_cmd = ['hping3', '--traceroute', '--udp', '-p', str(validated_port), '-c', '30', '-V', target]
         else:
             # Use system traceroute for ICMP, HTTP, DNS
             trace_cmd = ['traceroute', '-n', '-m', '30', '-w', '2', target]
@@ -886,11 +886,11 @@ class PingService:
             if protocol == 'tcp':
                 if port is None:
                     raise ValueError("Port is required for TCP ping")
-                cmd = ['hping3', '-S', '-p', str(port), '-c', str(count), '-V', target]
+                cmd = ['hping3', '-S', '-p', str(validated_port), '-c', str(count), '-V', target]
             else:  # udp
                 if port is None:
                     raise ValueError("Port is required for UDP ping")
-                cmd = ['hping3', '--udp', '-p', str(port), '-c', str(count), '-V', target]
+                cmd = ['hping3', '--udp', '-p', str(validated_port), '-c', str(count), '-V', target]
             
             try:
                 process = await asyncio.create_subprocess_exec(
