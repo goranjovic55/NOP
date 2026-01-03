@@ -166,7 +166,8 @@ async def advanced_ping(request: AdvancedPingRequest):
                 count=request.count,
                 timeout=request.timeout,
                 packet_size=request.packet_size,
-                use_https=request.use_https
+                use_https=request.use_https,
+                include_route=True
             )
         else:
             # Run simple advanced ping without traceroute
