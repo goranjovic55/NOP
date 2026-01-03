@@ -5,9 +5,9 @@ import asyncio
 import subprocess
 import re
 import time
-import ipaddress
 from typing import Optional, Dict, List, Any
 from datetime import datetime
+from app.utils.validators import validate_ip_or_hostname, validate_port, validate_timeout
 
 
 class PingService:
@@ -15,48 +15,6 @@ class PingService:
     Service for advanced ping operations supporting multiple protocols and ports.
     Provides functionality similar to hping3 for testing firewall rules and services.
     """
-
-    def _validate_target(self, target: str) -> str:
-        """
-        Validate and sanitize target hostname or IP address.
-        
-        Args:
-            target: Target IP or hostname to validate
-            
-        Returns:
-            Validated target string
-            
-        Raises:
-            ValueError: If target is invalid
-        """
-        # Remove whitespace
-        target = target.strip()
-        
-        # Check if empty
-        if not target:
-            raise ValueError("Target cannot be empty")
-        
-        # Try to parse as IP address first
-        try:
-            ipaddress.ip_address(target)
-            return target
-        except ValueError:
-            pass
-        
-        # Validate as hostname (RFC 1123)
-        # Allow alphanumeric, hyphens, dots, max 253 chars
-        if len(target) > 253:
-            raise ValueError("Hostname too long")
-        
-        # Check for valid hostname pattern
-        hostname_pattern = re.compile(
-            r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$'
-        )
-        
-        if not hostname_pattern.match(target):
-            raise ValueError("Invalid hostname format")
-        
-        return target
 
     async def icmp_ping(
         self,
@@ -78,12 +36,9 @@ class PingService:
             Dictionary with ping results
         """
         try:
-            # Validate target
-            validated_target = self._validate_target(target)
-            
-            # Validate numeric parameters
+            validated_target = validate_ip_or_hostname(target)
             count = max(1, min(100, count))
-            timeout = max(1, min(30, timeout))
+            timeout = validate_timeout(timeout, 1, 30)
             packet_size = max(1, min(65500, packet_size))
             
             cmd = [
@@ -135,16 +90,10 @@ class PingService:
         Returns:
             Dictionary with ping results including raw hping3 output
         """
-        # Validate target
-        validated_target = self._validate_target(target)
-        
-        # Validate port
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            raise ValueError("Port must be between 1 and 65535")
-        
-        # Validate numeric parameters
+        validated_target = validate_ip_or_hostname(target)
+        validated_port = validate_port(port)
         count = max(1, min(100, count))
-        timeout = max(1, min(30, timeout))
+        timeout = validate_timeout(timeout, 1, 30)
         
         try:
             # Use hping3 for TCP SYN ping with traceroute to show packet path
@@ -299,7 +248,7 @@ class PingService:
             Dictionary with ping results including raw hping3 output
         """
         # Validate target
-        validated_target = self._validate_target(target)
+        validated_target = validate_ip_or_hostname(target)
         
         # Validate port
         if not isinstance(port, int) or port < 1 or port > 65535:
@@ -540,7 +489,7 @@ class PingService:
             Dictionary with ping results
         """
         # Validate target
-        validated_target = self._validate_target(target)
+        validated_target = validate_ip_or_hostname(target)
         
         # Validate port
         if not isinstance(port, int) or port < 1 or port > 65535:
@@ -688,7 +637,7 @@ class PingService:
             Dictionary with ping results
         """
         # Validate target
-        validated_target = self._validate_target(target)
+        validated_target = validate_ip_or_hostname(target)
         
         # Validate port
         if not isinstance(port, int) or port < 1 or port > 65535:
@@ -1023,7 +972,7 @@ class PingService:
             Dictionary with 'hops' (if include_route) and 'packets' lists
         """
         protocol = protocol.lower()
-        validated_target = self._validate_target(target)
+        validated_target = validate_ip_or_hostname(target)
         
         result = {
             'target': validated_target,

@@ -5,12 +5,12 @@ Network scanning and discovery service
 import asyncio
 import subprocess
 import json
-import ipaddress
 import socket
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import xml.etree.ElementTree as ET
 import logging
+from app.utils.validators import validate_ip_or_network, validate_port_range
 
 logger = logging.getLogger(__name__)
 
@@ -19,45 +19,12 @@ class NetworkScanner:
 
     def __init__(self):
         self.scan_results = {}
-    
-    def _validate_ip_or_network(self, target: str) -> bool:
-        """Validate IP address or network CIDR notation"""
-        try:
-            # Try as IP address
-            ipaddress.ip_address(target)
-            return True
-        except ValueError:
-            # Try as network
-            try:
-                ipaddress.ip_network(target, strict=False)
-                return True
-            except ValueError:
-                return False
-    
-    def _validate_port_range(self, ports: str) -> bool:
-        """Validate port range string (e.g., '1-1000', '22,80,443')"""
-        # Allow patterns: single (80), range (1-1000), list (22,80,443), mixed (1-100,443)
-        pattern = r'^[0-9,\-]+$'
-        import re
-        if not re.match(pattern, ports):
-            return False
-        
-        # Validate individual port numbers
-        parts = ports.replace('-', ',').split(',')
-        for part in parts:
-            try:
-                port = int(part)
-                if not (1 <= port <= 65535):
-                    return False
-            except ValueError:
-                return False
-        return True
 
     async def ping_sweep(self, network: str) -> List[str]:
         """Perform ping sweep to discover live hosts"""
         try:
             # Validate network CIDR to prevent command injection
-            if not self._validate_ip_or_network(network):
+            if not validate_ip_or_network(network):
                 logger.error(f"Invalid network format: {network}")
                 return []
             
@@ -100,12 +67,12 @@ class NetworkScanner:
         """Perform port scan on a host"""
         try:
             # Validate IP address to prevent command injection
-            if not self._validate_ip_or_network(host):
+            if not validate_ip_or_network(host):
                 logger.error(f"Invalid IP address: {host}")
                 return {"error": "Invalid IP address format"}
             
             # Validate port range to prevent command injection
-            if not self._validate_port_range(ports):
+            if not validate_port_range(ports):
                 logger.error(f"Invalid port range: {ports}")
                 return {"error": "Invalid port range format"}
             
@@ -139,7 +106,7 @@ class NetworkScanner:
         """Perform service detection on specific ports"""
         try:
             # Validate IP address
-            if not self._validate_ip_or_network(host):
+            if not validate_ip_or_network(host):
                 logger.error(f"Invalid IP address: {host}")
                 return {"error": "Invalid IP address format"}
             
@@ -178,7 +145,7 @@ class NetworkScanner:
         """Perform OS detection"""
         try:
             # Validate IP address
-            if not self._validate_ip_or_network(host):
+            if not validate_ip_or_network(host):
                 logger.error(f"Invalid IP address: {host}")
                 return {"error": "Invalid IP address format"}
             
@@ -210,7 +177,7 @@ class NetworkScanner:
         """Perform basic vulnerability scanning"""
         try:
             # Validate IP address
-            if not self._validate_ip_or_network(host):
+            if not validate_ip_or_network(host):
                 logger.error(f"Invalid IP address: {host}")
                 return {"error": "Invalid IP address format"}
             
@@ -242,7 +209,7 @@ class NetworkScanner:
         """Perform comprehensive scan including ports, services, and OS"""
         try:
             # Validate IP address
-            if not self._validate_ip_or_network(host):
+            if not validate_ip_or_network(host):
                 logger.error(f"Invalid IP address: {host}")
                 return {"error": "Invalid IP address format"}
             
