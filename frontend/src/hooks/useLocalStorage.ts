@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 /**
  * Custom hook for managing state that syncs with localStorage
@@ -47,13 +47,14 @@ export function useLocalStorageString(key: string, initialValue: string): [strin
     }
   });
 
-  useEffect(() => {
+  const setValue = (value: string) => {
     try {
-      localStorage.setItem(key, storedValue);
+      setStoredValue(value);
+      localStorage.setItem(key, value);
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  };
 
-  return [storedValue, setStoredValue];
+  return [storedValue, setValue];
 }

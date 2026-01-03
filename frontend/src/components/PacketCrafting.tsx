@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Asset } from '../services/assetService';
 import { COMMON_PORTS } from '../constants/network';

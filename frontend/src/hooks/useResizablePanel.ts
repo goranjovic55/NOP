@@ -34,6 +34,9 @@ export function useResizablePanel(
     setHeight(Math.max(minHeight, Math.min(max, newHeight)));
   }, [isResizing, startY, startHeight, minHeight, maxHeight]);
 
+  /**
+   * Handles mouse up event to end the resize operation
+   */
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
   }, []);
