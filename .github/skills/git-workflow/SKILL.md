@@ -1,3 +1,8 @@
+---
+name: git-workflow
+description: Git workflow and deployment patterns using conventional commits. Use when making commits, creating branches, or opening pull requests.
+---
+
 # Git Workflow Patterns
 
 Git workflow and deployment patterns using conventional commits.

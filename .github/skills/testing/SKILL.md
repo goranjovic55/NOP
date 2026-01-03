@@ -1,3 +1,8 @@
+---
+name: testing
+description: Unit, integration, and E2E test patterns using pytest and Jest. Use when writing tests for features, debugging failing tests, or setting up test infrastructure.
+---
+
 # Testing Patterns
 
 Unit, integration, and E2E test patterns.
