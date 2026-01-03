@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore, Vulnerability } from '../store/scanStore';
+import { CyberPageTitle } from '../components/CyberUI';
 
 interface AssetListItemProps {
   asset: Asset & { has_been_scanned?: boolean; last_detailed_scan?: string | null };
@@ -368,11 +369,14 @@ const Scans: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full flex flex-col p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-cyber-blue">Target Scans</h1>
-          <p className="text-cyber-gray-light text-sm">Discover assets and run focused scans.</p>
+          <CyberPageTitle color="red" className="flex items-center">
+            <span className="mr-3 text-3xl">◆</span>
+            Target Scans
+          </CyberPageTitle>
+          <p className="text-cyber-gray-light text-sm mt-1">Discover assets and run focused scans</p>
         </div>
         <div className="flex items-center gap-2">
           <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
@@ -388,7 +392,7 @@ const Scans: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 h-[calc(100vh-160px)]">
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
         <div className="dashboard-card flex flex-col h-full overflow-hidden">
           <div className="p-4 border-b border-cyber-gray shrink-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -513,21 +517,23 @@ const Scans: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex-1 min-h-0 bg-black border border-cyber-gray p-3 rounded-sm overflow-y-auto custom-scrollbar font-mono text-xs">
-                    {activeTab.logs.length === 0 ? (
-                      <div className="text-cyber-gray-light opacity-60">&gt; Awaiting scan command...</div>
-                    ) : (
-                      activeTab.logs.map((log, idx) => (
-                        <div key={idx} className={`${
-                          log.includes('[SUCCESS]') ? 'text-cyber-green' :
-                          log.includes('[SCAN]') ? 'text-cyber-blue' :
-                          log.includes('[ERROR]') ? 'text-cyber-red' :
-                          log.includes('[INFO]') ? 'text-cyber-purple' :
-                          'text-cyber-gray-light'
-                        }`}>&gt; {log}</div>
-                      ))
-                    )}
-                    <div ref={logEndRef} />
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="h-full bg-black border border-cyber-gray p-3 rounded-sm overflow-y-auto custom-scrollbar font-mono text-xs">
+                      {activeTab.logs.length === 0 ? (
+                        <div className="text-cyber-gray-light opacity-60">&gt; Awaiting scan command...</div>
+                      ) : (
+                        activeTab.logs.map((log, idx) => (
+                          <div key={idx} className={`${
+                            log.includes('[SUCCESS]') ? 'text-cyber-green' :
+                            log.includes('[SCAN]') ? 'text-cyber-blue' :
+                            log.includes('[ERROR]') ? 'text-cyber-red' :
+                            log.includes('[INFO]') ? 'text-cyber-purple' :
+                            'text-cyber-gray-light'
+                          }`}>&gt; {log}</div>
+                        ))
+                      )}
+                      <div ref={logEndRef} />
+                    </div>
                   </div>
                 </div>
 
