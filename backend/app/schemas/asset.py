@@ -53,7 +53,7 @@ class AssetResponse(BaseModel):
     os_name: Optional[str] = None
     os_version: Optional[str] = None
     open_ports: Optional[List[int]] = None
-    services: Optional[Dict[str, Any]] = None
+    services: Optional[Any] = None  # Can be dict or list depending on source
     first_seen: datetime
     last_seen: datetime
     discovery_method: Optional[str] = None

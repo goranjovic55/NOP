@@ -1,8 +1,6 @@
 services:
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/goranjovic55/nop-frontend:latest
     ports:
       - "12000:3000"
     environment:
@@ -17,9 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/goranjovic55/nop-backend:latest
     network_mode: host
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop

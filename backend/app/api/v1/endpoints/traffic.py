@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPExce
 from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
-from app.schemas.traffic import StormConfig
+from app.services.PingService import ping_service
+from app.schemas.traffic import StormConfig, PingRequest as AdvancedPingRequest
 from pydantic import BaseModel
 import asyncio
 import json
@@ -147,3 +148,43 @@ async def ping_host(request: PingRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ping/advanced")
+async def advanced_ping(request: AdvancedPingRequest):
+    """
+    Advanced ping with support for multiple protocols (ICMP, TCP, UDP, HTTP, DNS)
+    and optional route tracing
+    """
+    try:
+        # Run advanced ping with optional route tracing
+        if request.include_route:
+            # Use parallel ping which includes traceroute
+            result = await ping_service.parallel_ping(
+                target=request.target,
+                protocol=request.protocol,
+                port=request.port,
+                count=request.count,
+                timeout=request.timeout,
+                packet_size=request.packet_size,
+                use_https=request.use_https,
+                include_route=True
+            )
+        else:
+            # Run simple advanced ping without traceroute
+            result = await ping_service.advanced_ping(
+                target=request.target,
+                protocol=request.protocol,
+                port=request.port,
+                count=request.count,
+                timeout=request.timeout,
+                packet_size=request.packet_size,
+                use_https=request.use_https
+            )
+        
+        return result
+    
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

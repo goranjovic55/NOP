@@ -232,6 +232,9 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         else:
             discovery_method = request.scan_type or "nmap"
         
+        # Check if this is a single host or a network
+        is_single_host = "/" not in request.network
+        
         if request.scan_type == "ping_only":
             hosts = await scanner.ping_sweep(request.network)
             results = {
@@ -239,7 +242,20 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
                 "live_hosts": hosts,
                 "total_hosts": len(hosts)
             }
+        elif is_single_host:
+            # Single host scan - use port_scan directly with appropriate port range
+            port_range = "1-65535" if request.scan_type == "comprehensive" else "1-1000"
+            logger.info(f"Single host scan on {request.network} with ports {port_range}")
+            host_result = await scanner.port_scan(request.network, port_range)
+            
+            results = {
+                "network": request.network,
+                "scan_time": host_result.get("scan_time"),
+                "total_hosts": len(host_result.get("hosts", [])),
+                "hosts": host_result.get("hosts", [])
+            }
         else:
+            # Network scan
             results = await scanner.discover_network(request.network)
         
         active_scans[scan_id]["results"] = results

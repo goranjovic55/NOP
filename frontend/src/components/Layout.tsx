@@ -24,6 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isPinging, isCapturing, isCrafting, isStorming } = useTrafficStore();
 
   const isAnyScanRunning = scanTabs.some(tab => tab.status === 'running');
+  const isAnyVulnScanRunning = scanTabs.some(tab => tab.vulnScanning);
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
   const activeExploitCount = getActiveSessionCount();
   const isTrafficActive = isPinging || isCapturing || isCrafting || isStorming;
@@ -101,8 +102,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {isStorming && <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Storming"></div>}
                     </div>
                   )}
-                  {item.name === 'Scans' && isAnyScanRunning && (
-                    <div className={`absolute right-2 w-2 h-2 bg-cyber-red rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
+                  {item.name === 'Scans' && (isAnyScanRunning || isAnyVulnScanRunning) && (
+                    <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {isAnyScanRunning && <div className="w-2 h-2 bg-cyber-red rounded-full animate-pulse" title="Port scan running"></div>}
+                      {isAnyVulnScanRunning && <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse" title="Vulnerability scan running"></div>}
+                    </div>
                   )}
                   {item.name === 'ACCESS' && (connectedCount > 0 || activeExploitCount > 0) && (
                     <div className={`absolute right-2 flex items-center justify-center ${

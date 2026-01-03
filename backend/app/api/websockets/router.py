@@ -5,8 +5,12 @@ WebSocket router for real-time communication
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 import asyncio
+from app.api.v1.websockets.exploit import router as exploit_ws_router
 
 websocket_router = APIRouter()
+
+# Include exploit WebSocket routes
+websocket_router.include_router(exploit_ws_router)
 
 # Store active connections
 active_connections: list[WebSocket] = []

@@ -1,44 +1,48 @@
-```markdown
----
-applyTo: '**'
----
+# Project Structure
 
-# Structure
+## Standard Folders
 
-## AKIS Files
+**`.github/`** - AKIS framework files
+- `copilot-instructions.md` - Main agent instructions
+- `project_knowledge.json` - Knowledge base
+- `instructions/` - Framework docs
+- `skills/` - Reusable patterns
+- `scripts/` - Knowledge tools
+- `templates/` - File templates
 
-```
-.github/
-├── agents/              # WHO: _DevTeam, Architect, Developer, Reviewer, Researcher
-├── instructions/        # HOW: phases, protocols, templates, structure
-├── skills/              # PATTERNS: backend-api, security, testing, etc.
-└── copilot-instructions.md  # Entry point
+**`docs/`** - All documentation organized by type
+- `analysis/` - Research, investigations
+- `architecture/` - System design, ADRs
+- `design/` - Feature specs
+- `development/` - Dev guides
+- `features/` - Feature documentation
+- `guides/` - How-tos
+- `technical/` - API docs, protocols
 
-project_knowledge.json   # WHAT: entities, relations, codegraph
-log/workflow/            # Session logs
-```
+**`log/`** - Historical execution records
+- `workflow/` - Task logs (YYYY-MM-DD_HHMMSS_task.md)
 
-## Knowledge Format (JSONL)
+**`scripts/`** - Automation, testing, utilities (not application code)
 
-```json
-{"type":"entity","name":"Module.Component","entityType":"type","observations":["desc, upd:YYYY-MM-DD"]}
-{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
-{"type":"codegraph","name":"file.ext","dependencies":["X"],"dependents":["Y"]}
-```
+**`test-environment/`** - Integration test infrastructure
 
-## File Limits
+**`volumes/`** - Persistent data (gitignored)
 
-| Type | Max Lines |
-|------|-----------|
-| copilot-instructions | 100 |
-| Instructions | 50 |
-| Agent files | 50 |
-| Skills | 100 |
+## Application Code
 
-## Project Structure
+Organize by component/service:
+- `{service-name}/` - Source code, tests, dependencies, config
+  - `src/` or `app/` - Application source
+  - `tests/` - Unit/integration tests
+  - Dependencies file (requirements.txt, package.json, go.mod, etc.)
+  - Dockerfile, config files
 
-```
-src/backend/, src/frontend/  →  tests/  →  docs/  →  scripts/  →  docker/  →  log/workflow/
-```
+## Placement Rules
 
-**Layer**: Route/Page → Service → Model/Store
+- Source code → `{service}/src/` or `{service}/app/`
+- Tests with code → `{service}/tests/`
+- Documentation → `docs/` (by type, not by component)
+- Workflow logs → `log/workflow/`
+- Automation scripts → `scripts/`
+- Dependencies with code → In service folder
+- Infrastructure config → Root (docker-compose.yml, .env)

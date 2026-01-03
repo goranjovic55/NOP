@@ -912,6 +912,15 @@ class PingService:
             # Add destination marker
             if hops:
                 hops.append({'hop': max(h['hop'] for h in hops) + 1, 'ip': target, 'rtt_ms': None, 'status': 'destination'})
+            else:
+                # No hops found - likely network restrictions
+                hops.append({
+                    'hop': 0, 
+                    'ip': None, 
+                    'rtt_ms': None, 
+                    'status': 'unavailable', 
+                    'error': 'Traceroute unavailable (network restrictions or firewall blocking ICMP/traceroute packets)'
+                })
             
         except asyncio.TimeoutError:
             hops.append({'hop': 0, 'ip': None, 'rtt_ms': None, 'status': 'error', 'error': 'Traceroute timed out'})

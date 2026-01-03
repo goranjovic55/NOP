@@ -1,91 +1,118 @@
-# AKIS Framework
+# AKIS v2 - Lightweight Agent Framework
 
-**A**gents • **K**nowledge • **I**nstructions • **S**kills
-
-## Required Response Format
-
-```
-[SESSION: task] @AgentName
-[AKIS] entities=N | skills=X,Y | patterns=Z
-[PHASE: NAME | progress=N/7]
-<work>
-[COMPLETE] result | files: changed
-```
-
-**Blocking (HALT if missing)**: `[SESSION:]` before work, `[AKIS]` in CONTEXT, `[COMPLETE]` at end
-
-**Session Tracking (REQUIRED)**: Call `node .github/scripts/session-tracker.js` at every phase/decision/delegation. Start: `start "task" "agent"`. Phase: `phase NAME "N/0"` (live monitor shows `Agent PHASE`; if another agent emits, it shows `[SUBAGENT] Agent`). Decision: `decision "desc"`. Delegate: `delegate Agent "task"`. Complete: `complete "log/workflow/file.md"`. Reset only after GitHub commit: `reset`. See `.github/AKIS_SESSION_TRACKING.md`.
+**A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (patterns)
 
 ---
 
-## 🔷 Agents (WHO)
+## Every Task Flow
 
-**Load agent file ONLY when delegating.**
+### Start
+`Read project_knowledge.json` → Load entities, check existing patterns
 
-| Agent | Role | When to Load |
-|-------|------|--------------|
-| _DevTeam | Orchestrator (delegates, never implements) | Complex tasks >30min |
-| Architect | Design, alternatives, trade-offs | Design decisions |
-| Developer | Code, tests, skill patterns | Implementation |
-| Reviewer | Validate, security, quality | Testing/validation |
-| Researcher | Investigate, document | Research tasks |
+### Todo Phases
 
-**Path**: `.github/agents/{Name}.agent.md`
+| Phase | Title Format | When |
+|-------|--------------|------|
+| CONTEXT | `[CONTEXT] Load knowledge for X` | Always (start) |
+| PLAN | `[PLAN] Design approach for X` | Complex tasks |
+| IMPLEMENT | `[IMPLEMENT] Build X` | Main work |
+| VERIFY | `[VERIFY] Test X` | Always |
+| LEARN | `[LEARN] Update knowledge & skills` | Always (after approval) |
+| COMPLETE | `[COMPLETE] Log & commit` | Always (end) |
 
-**Delegation**: `#runSubagent Name "Task: ... | Context: ... | Skills: ... | Expect: RESULT_TYPE"`
+### End (LEARN → COMPLETE)
+
+**LEARN:**
+1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
+2. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
+3. **Show skill suggestions to user** → Wait for approval before writing
+4. If approved: Create/update `.github/skills/{name}.md` with skill content
+5. Pattern obsolete? → Delete skill file
+
+**COMPLETE:**
+1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
+2. Commit all changes
 
 ---
 
-## 🔷 Knowledge (WHAT)
+## Knowledge System
 
-**Load at session start**, query as needed.
+**Format:** `project_knowledge.json` (JSONL)
 
-| File | Content |
-|------|---------|
-| `project_knowledge.json` | Entities, relations, codegraph (JSONL) |
-| `.github/global_knowledge.json` | Cross-project patterns |
-
-**Format**:
 ```json
-{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc, upd:YYYY-MM-DD"]}
+{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
 {"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
-{"type":"codegraph","name":"file.ext","dependencies":["X"],"dependents":["Y"]}
+{"type":"codegraph","name":"file.ext","nodeType":"module","dependencies":["X"],"dependents":["Y"]}
 ```
 
-**Emit**: `[AKIS] entities=N | skills=X,Y | patterns=Z`
+**Workflow:**
+- Load at start → Understand existing entities
+- Query during work → Avoid duplicates
+- Update before commit → Codemap + manual entities
 
 ---
 
-## 🔷 Instructions (HOW)
+## Skills
 
-**Load instruction file ONLY when relevant.**
+**Announce when loading:** `📘 Using: {skill-name.md}`
 
-| File | When to Load |
-|------|--------------|
-| `phases.md` | Every task (7-phase flow) |
-| `protocols.md` | Delegation, interrupts |
-| `templates.md` | Output formatting |
-| `todo-list.md` | Creating/managing todos |
-| `structure.md` | Architecture tasks |
+Load from `.github/skills/` when task matches:
 
-**Path**: `.github/instructions/{file}.md`
-
-**Phases**: CONTEXT(1) → PLAN(2) → COORDINATE(3) → INTEGRATE(4) → VERIFY(5) → LEARN(6) → COMPLETE(7)
-
-**Skip**: Quick fix (1→4→5→7), Q&A (1→7)
-
-**Todo Format**: `[PHASE: NAME | N/7] Description` - Always create all 7 phases in todo list
+| Task | Skill |
+|------|-------|
+| API endpoints, REST | `backend-api.md` |
+| React components, UI | `frontend-react.md` |
+| Unit/integration tests | `testing.md` |
+| Error handling, logging | `error-handling.md` |
+| Docker, deployment | `infrastructure.md` |
+| Git, commits, PRs | `git-workflow.md` |
+| Knowledge queries, updates | `knowledge-management.md` |
+| Build errors, troubleshooting | `debugging.md` |
+| Workflow logs, READMEs | `documentation.md` |
 
 ---
 
-## 🔷 Skills (PATTERNS)
+## Workflow Logs
 
-**Load skill when task matches**: API/REST → `backend-api` | React/UI → `frontend-react` | Tests → `testing` | Auth/secrets → `security` | Errors → `error-handling` | Docker → `infrastructure` | Git → `git-deploy`
-
-**Path**: `.github/skills/{name}/SKILL.md` (When to Use, Pattern, Checklist, Examples)
+**Required:** Tasks >15 min  
+**Location:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`  
+**Template:** `.github/templates/workflow-log.md`  
+**Purpose:** Historical record (search to understand past changes)
 
 ---
 
-## Portability
+## Quick Workflows
 
-Copy `.github/` + empty `project_knowledge.json`. **Limits**: instructions <50, agents <50, skills <100 lines
+**Simple (<5 min):**
+```
+CONTEXT → IMPLEMENT → VERIFY → Commit (no log)
+```
+
+**Feature (>15 min):**
+```
+CONTEXT → PLAN → IMPLEMENT → VERIFY
+↓ (wait for user approval)
+LEARN → COMPLETE
+```
+
+**Review Gate:** After VERIFY, show results and wait for user approval before LEARN/COMPLETE
+
+---
+
+## Standards
+
+- Files <500 lines, functions <50 lines
+- Type hints required (Python/TypeScript)
+- Tests for new features
+- Descriptive commit messages
+
+---
+
+## Folders
+
+- `.project/` → Planning docs, blueprints, ADRs
+- `log/workflow/` → Historical work record
+
+---
+
+*Context over Process. Knowledge over Ceremony.*

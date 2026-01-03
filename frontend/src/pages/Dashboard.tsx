@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import ForceGraph2D from 'react-force-graph-2d';
 import { dashboardService, SystemEvent } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { CyberCard } from '../components/CyberUI';
 
 // Time ago helper
 const formatTimeAgo = (timestamp: string): string => {
@@ -30,9 +31,10 @@ const CombinedStatCard: React.FC<{
   glowColor: string;
   onClick?: () => void;
 }> = ({ title, value1, value2, icon, color1, color2, glowColor, onClick }) => (
-  <div 
-    className={`dashboard-card p-2 hover:border-opacity-100 transition-all duration-300 ${onClick ? 'cursor-pointer hover:scale-105' : ''}`}
+  <CyberCard 
+    interactive={!!onClick}
     onClick={onClick}
+    className="p-2"
   >
     <div className="flex items-center justify-between">
       <div>
@@ -47,7 +49,7 @@ const CombinedStatCard: React.FC<{
         <span className="text-sm">{icon}</span>
       </div>
     </div>
-  </div>
+  </CyberCard>
 );
 
 const Dashboard: React.FC = () => {

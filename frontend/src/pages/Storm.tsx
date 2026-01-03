@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { CyberSectionHeader, CyberPageTitle } from '../components/CyberUI';
 
 interface StormMetrics {
   packets_sent: number;
@@ -285,18 +286,16 @@ const Storm: React.FC = () => {
       <div className="bg-cyber-darker p-3 border border-cyber-gray flex-shrink-0">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-sm font-bold text-cyber-blue uppercase tracking-widest">Packet Storm</h1>
-            <p className="text-[10px] text-cyber-gray-light">Test network storm protection mechanisms</p>
+            <CyberPageTitle color="blue">Packet Storm</CyberPageTitle>
+            <p className="text-[10px] text-cyber-gray-light mt-1">Test network storm protection mechanisms</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Configuration Panel */}
-        <div className="bg-cyber-darker border border-cyber-gray flex flex-col">
-          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex-shrink-0">
-            <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Configuration</span>
-          </div>
+        <div className="cyber-panel flex flex-col">
+          <CyberSectionHeader title="Configuration" />
           <div className="p-4">
           <div className="space-y-2">
           
@@ -509,10 +508,8 @@ const Storm: React.FC = () => {
         </div>
 
         {/* Metrics Panel */}
-        <div className="bg-cyber-darker border border-cyber-gray flex flex-col">
-          <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex-shrink-0">
-            <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Metrics</span>
-          </div>
+        <div className="cyber-panel flex flex-col">
+          <CyberSectionHeader title="Metrics" />
           <div className="p-4">
           
           {!isStormActive && !metrics && (

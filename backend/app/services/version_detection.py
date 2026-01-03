@@ -192,10 +192,10 @@ class VersionDetectionService:
     async def _update_asset_services(self, host: str, services: List[Dict[str, Any]]):
         """Update asset's services field in database"""
         try:
-            # Find asset by IP (cast to text for comparison with inet type)
-            from sqlalchemy import cast, Text
+            # Find asset by IP using host() function to extract IP without CIDR suffix
+            from sqlalchemy import func
             result = await self.db.execute(
-                select(Asset).where(cast(Asset.ip_address, Text) == host)
+                select(Asset).where(func.host(Asset.ip_address) == host)
             )
             asset = result.scalar_one_or_none()
             

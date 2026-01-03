@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/", response_model=AssetList)
 async def get_assets(
     page: int = Query(1, ge=1),
-    size: int = Query(50, ge=1, le=100),
+    size: int = Query(50, ge=1, le=500),
     search: Optional[str] = Query(None),
     asset_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),

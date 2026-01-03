@@ -12,6 +12,28 @@ export interface Vulnerability {
   exploit_available: boolean;
   exploit_module?: string;
   source_database: 'cve' | 'exploit_db' | 'metasploit' | 'vulners' | 'packetstorm';
+  // Full exploit metadata
+  exploit_data?: {
+    id: string;
+    platform: string;
+    module_id: string;
+    module_path?: string;
+    exploit_type: string;
+    target_platform?: string;
+    rank?: string;
+    verified: boolean;
+    exploit_db_id?: number;
+    reference_url?: string;
+    exploit_metadata?: {
+      trigger_port?: number;
+      shell_port?: number;
+      shell_type?: string;
+      payload_type?: string;
+      requires_auth?: boolean;
+      auto_exploit?: boolean;
+      default_payload_variant?: string;
+    };
+  };
 }
 
 export interface ScanTab {

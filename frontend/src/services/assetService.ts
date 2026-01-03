@@ -24,7 +24,7 @@ export interface Asset {
 
 export const assetService = {
   getAssets: async (token: string, status?: string): Promise<Asset[]> => {
-    const params: any = { page: 1, size: 100 };
+    const params: any = { page: 1, size: 500 };  // Increased from 100 to handle more assets
     if (status) {
       params.status = status;
     }

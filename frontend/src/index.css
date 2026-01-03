@@ -386,3 +386,296 @@ input[type="password"]:focus {
 .animate-slideIn {
   animation: slideIn 0.3s ease-out forwards;
 }
+
+/* =====================================================
+   UNIFIED DESIGN SYSTEM - ALL PAGES
+   Use these standardized classes for consistency
+   ===================================================== */
+
+/* CARDS & CONTAINERS */
+.cyber-card {
+  background: linear-gradient(135deg, #111111 0%, #1a1a1a 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.cyber-card:hover {
+  border-color: #3a3a3a;
+}
+
+.cyber-card-interactive:hover {
+  border-color: #ff0040;
+  box-shadow: 0 0 10px rgba(255, 0, 64, 0.2);
+  transform: scale(1.01);
+}
+
+/* SECTION HEADERS */
+.cyber-section-header {
+  background: #111111;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 0.75rem 1rem;
+}
+
+.cyber-section-title {
+  font-size: 0.75rem;
+  color: #8b5cf6;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cyber-section-subtitle {
+  font-size: 0.625rem;
+  color: #00d4ff;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 0.25rem;
+}
+
+/* PANELS & MODALS */
+.cyber-panel {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+}
+
+.cyber-panel-header {
+  background: #111111;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 1rem;
+}
+
+.cyber-modal {
+  background: #1a1a1a;
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+
+/* INPUT FIELDS - STANDARDIZED */
+.cyber-input {
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  color: #00d4ff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 2px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.cyber-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+.cyber-input::placeholder {
+  color: #666666;
+  font-style: italic;
+}
+
+.cyber-select {
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  color: #00d4ff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 2px;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cyber-select:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+/* SLIDERS - STANDARDIZED */
+.cyber-slider {
+  width: 100%;
+  height: 8px;
+  background: #111111;
+  border-radius: 0;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.cyber-slider::-webkit-slider-track {
+  background: #2a2a2a;
+  height: 2px;
+  border: 1px solid #8b5cf6;
+}
+
+.cyber-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #ff0040;
+  border: 2px solid #ff0040;
+  box-shadow: 0 0 8px rgba(255, 0, 64, 0.6);
+  cursor: pointer;
+}
+
+.cyber-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 64, 0.9);
+}
+
+.cyber-slider::-moz-range-track {
+  background: #2a2a2a;
+  height: 2px;
+  border: 1px solid #8b5cf6;
+}
+
+.cyber-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #ff0040;
+  border: 2px solid #ff0040;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+/* TABS - STANDARDIZED */
+.cyber-tab {
+  padding: 0.5rem 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  border: 2px solid #3a3a3a;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cyber-tab:hover:not(.cyber-tab-active) {
+  border-color: #666666;
+  color: #e0e0e0;
+}
+
+.cyber-tab-active {
+  background: var(--tab-bg-color, #00d4ff);
+  color: #000000;
+  border-color: var(--tab-border-color, #00d4ff);
+}
+
+/* Tab color variants */
+.cyber-tab-red.cyber-tab-active {
+  --tab-bg-color: #ff0040;
+  --tab-border-color: #ff0040;
+}
+
+.cyber-tab-blue.cyber-tab-active {
+  --tab-bg-color: #00d4ff;
+  --tab-border-color: #00d4ff;
+}
+
+.cyber-tab-green.cyber-tab-active {
+  --tab-bg-color: #00ff88;
+  --tab-border-color: #00ff88;
+}
+
+.cyber-tab-purple.cyber-tab-active {
+  --tab-bg-color: #8b5cf6;
+  --tab-border-color: #8b5cf6;
+}
+
+/* BADGES & LABELS */
+.cyber-badge {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cyber-badge-online {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid #00ff88;
+  color: #00ff88;
+}
+
+.cyber-badge-offline {
+  background: rgba(255, 0, 64, 0.1);
+  border: 1px solid #ff0040;
+  color: #ff0040;
+}
+
+.cyber-badge-warning {
+  background: rgba(255, 255, 0, 0.1);
+  border: 1px solid #ffff00;
+  color: #ffff00;
+}
+
+.cyber-badge-info {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid #8b5cf6;
+  color: #8b5cf6;
+}
+
+/* DIVIDERS */
+.cyber-divider {
+  height: 1px;
+  background: #2a2a2a;
+  border: none;
+}
+
+.cyber-divider-glow {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+  border: none;
+}
+
+/* CUSTOM SCROLLBAR - UNIFIED */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ff0040;
+  box-shadow: 0 0 5px rgba(255, 0, 64, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cc0033;
+  box-shadow: 0 0 10px rgba(255, 0, 64, 0.8);
+}
+
+/* PAGE TITLES */
+.cyber-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cyber-page-title-red {
+  color: #ff0040;
+  text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040, 0 0 30px #ff0040;
+}
+
+.cyber-page-title-blue {
+  color: #00d4ff;
+  text-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #00d4ff;
+}
+
+.cyber-page-title-green {
+  color: #00ff88;
+  text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88, 0 0 30px #00ff88;
+}
+
+.cyber-page-title-purple {
+  color: #8b5cf6;
+  text-shadow: 0 0 10px #8b5cf6, 0 0 20px #8b5cf6, 0 0 30px #8b5cf6;
+}

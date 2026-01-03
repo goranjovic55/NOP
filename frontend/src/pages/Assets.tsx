@@ -6,6 +6,7 @@ import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
 import AssetDetailsSidebar from '../components/AssetDetailsSidebar';
 import ScanSettingsModal from '../components/ScanSettingsModal';
+import { CyberPageTitle } from '../components/CyberUI';
 
 interface ScanSettings {
   autoScanEnabled: boolean;
@@ -349,7 +350,7 @@ const Assets: React.FC = () => {
         }}
       >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h2 className="text-2xl font-bold text-cyber-red uppercase tracking-wider cyber-glow-red">Assets</h2>
+          <CyberPageTitle color="red">Assets</CyberPageTitle>
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2 bg-cyber-darker border border-cyber-gray px-3 py-1">
