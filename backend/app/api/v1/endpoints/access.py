@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
 from app.services.access_hub import access_hub
 from app.services.guacamole import GuacamoleTunnel
+from app.utils.errors import handle_api_error
 
 router = APIRouter()
 
@@ -112,7 +113,7 @@ async def test_ssh_connection(request: SSHConnectionTest, db: AsyncSession = Dep
         
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/test/tcp")
 async def test_tcp_connection(request: TCPConnectionTest):
@@ -125,7 +126,7 @@ async def test_tcp_connection(request: TCPConnectionTest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/test/rdp")
 async def test_rdp_connection(request: RDPConnectionRequest):
@@ -147,7 +148,7 @@ async def test_rdp_connection(request: RDPConnectionRequest):
             }
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/execute/ssh")
 async def execute_ssh_command(request: SSHCommandRequest):
@@ -163,7 +164,7 @@ async def execute_ssh_command(request: SSHCommandRequest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.get("/scan/services/{host}")
 async def scan_common_services(host: str):
@@ -172,7 +173,7 @@ async def scan_common_services(host: str):
         result = await access_hub.scan_common_services(host)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/info/system")
 async def get_system_info(request: SSHConnectionTest):
@@ -187,7 +188,7 @@ async def get_system_info(request: SSHConnectionTest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/ftp/list")
 async def list_ftp_files(request: FTPListRequest):
@@ -202,7 +203,7 @@ async def list_ftp_files(request: FTPListRequest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/ftp/download")
 async def download_ftp_file(request: FTPDownloadRequest):
@@ -217,7 +218,7 @@ async def download_ftp_file(request: FTPDownloadRequest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/ftp/upload")
 async def upload_ftp_file(request: FTPUploadRequest):
@@ -234,7 +235,7 @@ async def upload_ftp_file(request: FTPUploadRequest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.get("/history")
 async def get_connection_history(limit: int = 50):
@@ -246,7 +247,7 @@ async def get_connection_history(limit: int = 50):
             "total": len(history)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.get("/connections")
 async def get_active_connections():
@@ -255,7 +256,7 @@ async def get_active_connections():
         connections = access_hub.get_active_connections()
         return connections
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.post("/credentials")
 async def save_asset_credential(request: dict, db: AsyncSession = Depends(get_db)):
@@ -264,7 +265,7 @@ async def save_asset_credential(request: dict, db: AsyncSession = Depends(get_db
         result = await access_hub.save_credential(db, request)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.get("/credentials/{asset_id}/{protocol}")
 async def get_asset_credentials(asset_id: str, protocol: str, db: AsyncSession = Depends(get_db)):
@@ -273,7 +274,7 @@ async def get_asset_credentials(asset_id: str, protocol: str, db: AsyncSession =
         credentials = await access_hub.get_credentials_for_asset(db, asset_id, protocol)
         return {"credentials": credentials}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 # Test endpoints for the test environment
 @router.get("/test-environment/ssh")
@@ -288,7 +289,7 @@ async def test_environment_ssh():
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.get("/test-environment/services")
 async def test_environment_services():
@@ -315,7 +316,7 @@ async def test_environment_services():
             "results": results
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_error(e)
 
 @router.websocket("/tunnel")
 async def guacamole_tunnel(
