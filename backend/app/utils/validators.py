@@ -159,7 +159,7 @@ async def run_command(
         stdout, stderr = await process.communicate()
     
     return (
-        process.returncode or 0,
+        process.returncode if process.returncode is not None else 0,
         stdout.decode('utf-8', errors='ignore'),
         stderr.decode('utf-8', errors='ignore')
     )
