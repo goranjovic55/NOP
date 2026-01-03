@@ -24,9 +24,10 @@
 
 **LEARN:**
 1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
-2. Pattern emerged? → `python .github/scripts/extract_skill.py "name" "desc"`
-3. Pattern improved? → Update `.github/skills/{name}.md`
-4. Pattern obsolete? → Delete skill file
+2. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
+3. **Show skill suggestions to user** → Wait for approval before writing
+4. If approved: Create/update `.github/skills/{name}.md` with skill content
+5. Pattern obsolete? → Delete skill file
 
 **COMPLETE:**
 1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
