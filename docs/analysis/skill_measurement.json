@@ -1,0 +1,834 @@
+{
+  "generated_at": "2026-01-03T09:47:56.389037",
+  "skills": [
+    {
+      "name": "backend-api",
+      "completeness_score": 66.7,
+      "example_quality": 95,
+      "trigger_clarity": 0,
+      "checklist_coverage": 90,
+      "overall_score": 67.7,
+      "usage_count": 6,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "cleanup-patterns",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 90,
+      "overall_score": 97.5,
+      "usage_count": 0,
+      "success_rate": 0.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    },
+    {
+      "name": "database-patterns",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 100,
+      "overall_score": 100.0,
+      "usage_count": 0,
+      "success_rate": 0.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    },
+    {
+      "name": "debugging",
+      "completeness_score": 66.7,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 100,
+      "overall_score": 71.7,
+      "usage_count": 9,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "documentation",
+      "completeness_score": 66.7,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 100,
+      "overall_score": 71.7,
+      "usage_count": 20,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "error-handling",
+      "completeness_score": 50.0,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 60,
+      "overall_score": 57.5,
+      "usage_count": 9,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "frontend-react",
+      "completeness_score": 50.0,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 75,
+      "overall_score": 61.2,
+      "usage_count": 7,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "git-workflow",
+      "completeness_score": 33.3,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 30,
+      "overall_score": 45.8,
+      "usage_count": 3,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more detailed overview description",
+        "Expand checklist with more actionable items",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "infrastructure",
+      "completeness_score": 50.0,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 60,
+      "overall_score": 57.5,
+      "usage_count": 10,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "knowledge-management",
+      "completeness_score": 50.0,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 0,
+      "overall_score": 42.5,
+      "usage_count": 2,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Expand checklist with more actionable items",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "multiarch-cicd",
+      "completeness_score": 66.7,
+      "example_quality": 0,
+      "trigger_clarity": 0,
+      "checklist_coverage": 100,
+      "overall_score": 41.7,
+      "usage_count": 1,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more code examples covering variations",
+        "Define more specific trigger scenarios"
+      ]
+    },
+    {
+      "name": "performance-patterns",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 100,
+      "overall_score": 100.0,
+      "usage_count": 0,
+      "success_rate": 0.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    },
+    {
+      "name": "protocol-enforcement",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 90,
+      "overall_score": 97.5,
+      "usage_count": 3,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    },
+    {
+      "name": "security-patterns",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 100,
+      "overall_score": 100.0,
+      "usage_count": 0,
+      "success_rate": 0.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    },
+    {
+      "name": "testing",
+      "completeness_score": 50.0,
+      "example_quality": 100,
+      "trigger_clarity": 0,
+      "checklist_coverage": 60,
+      "overall_score": 57.5,
+      "usage_count": 21,
+      "success_rate": 100.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ]
+    },
+    {
+      "name": "websocket-patterns",
+      "completeness_score": 100.0,
+      "example_quality": 100,
+      "trigger_clarity": 100,
+      "checklist_coverage": 90,
+      "overall_score": 97.5,
+      "usage_count": 0,
+      "success_rate": 0.0,
+      "time_impact_minutes": 0,
+      "areas_of_improvement": []
+    }
+  ],
+  "comparisons": [
+    {
+      "scenario": "Using backend-api skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 43,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 80.3,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 41.7
+    },
+    {
+      "scenario": "Using cleanup-patterns skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 89.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    },
+    {
+      "scenario": "Using database-patterns skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 90.0,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    },
+    {
+      "scenario": "Using debugging skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 42,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 81.5,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 40.0
+    },
+    {
+      "scenario": "Using documentation skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 42,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 81.5,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 40.0
+    },
+    {
+      "scenario": "Using error-handling skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 46,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 77.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 46.7
+    },
+    {
+      "scenario": "Using frontend-react skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 45,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 78.4,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 45.0
+    },
+    {
+      "scenario": "Using git-workflow skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 49,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 73.7,
+        "learning_curve": "steep"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 51.7
+    },
+    {
+      "scenario": "Using infrastructure skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 46,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 77.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 46.7
+    },
+    {
+      "scenario": "Using knowledge-management skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 49,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 72.8,
+        "learning_curve": "steep"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 51.7
+    },
+    {
+      "scenario": "Using multiarch-cicd skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 49,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 72.5,
+        "learning_curve": "steep"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 51.7
+    },
+    {
+      "scenario": "Using performance-patterns skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 90.0,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    },
+    {
+      "scenario": "Using protocol-enforcement skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 89.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    },
+    {
+      "scenario": "Using security-patterns skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 90.0,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    },
+    {
+      "scenario": "Using testing skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 46,
+        "errors": 2,
+        "iterations": 4,
+        "success_rate": 77.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 46.7
+    },
+    {
+      "scenario": "Using websocket-patterns skill",
+      "without_skill": {
+        "time_minutes": 60,
+        "errors": 3,
+        "iterations": 5,
+        "success_rate": 60.0,
+        "learning_curve": "steep"
+      },
+      "with_current_skill": {
+        "time_minutes": 36,
+        "errors": 1,
+        "iterations": 3,
+        "success_rate": 89.2,
+        "learning_curve": "moderate"
+      },
+      "with_improved_skill": {
+        "time_minutes": 18,
+        "errors": 1,
+        "iterations": 2,
+        "success_rate": 95.0,
+        "learning_curve": "gentle"
+      },
+      "improvement_potential": 30.0
+    }
+  ],
+  "recommendations": [
+    {
+      "rank": 1,
+      "skill": "multiarch-cicd",
+      "current_score": 41.7,
+      "target_score": 90,
+      "priority": "critical",
+      "actions": [
+        "Add more code examples covering variations",
+        "Define more specific trigger scenarios"
+      ],
+      "estimated_effort": "low",
+      "expected_impact": 24.1
+    },
+    {
+      "rank": 2,
+      "skill": "knowledge-management",
+      "current_score": 42.5,
+      "target_score": 90,
+      "priority": "critical",
+      "actions": [
+        "Expand checklist with more actionable items",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 23.8
+    },
+    {
+      "rank": 3,
+      "skill": "git-workflow",
+      "current_score": 45.8,
+      "target_score": 90,
+      "priority": "critical",
+      "actions": [
+        "Add more detailed overview description",
+        "Expand checklist with more actionable items",
+        "Define more specific trigger scenarios"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 22.1
+    },
+    {
+      "rank": 4,
+      "skill": "error-handling",
+      "current_score": 57.5,
+      "target_score": 90,
+      "priority": "high",
+      "actions": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 16.2
+    },
+    {
+      "rank": 5,
+      "skill": "infrastructure",
+      "current_score": 57.5,
+      "target_score": 90,
+      "priority": "high",
+      "actions": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 16.2
+    },
+    {
+      "rank": 6,
+      "skill": "testing",
+      "current_score": 57.5,
+      "target_score": 90,
+      "priority": "high",
+      "actions": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 16.2
+    },
+    {
+      "rank": 7,
+      "skill": "frontend-react",
+      "current_score": 61.2,
+      "target_score": 90,
+      "priority": "high",
+      "actions": [
+        "Add more detailed overview description",
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "medium",
+      "expected_impact": 14.4
+    },
+    {
+      "rank": 8,
+      "skill": "backend-api",
+      "current_score": 67.7,
+      "target_score": 90,
+      "priority": "high",
+      "actions": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "low",
+      "expected_impact": 11.1
+    },
+    {
+      "rank": 9,
+      "skill": "debugging",
+      "current_score": 71.7,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "low",
+      "expected_impact": 9.1
+    },
+    {
+      "rank": 10,
+      "skill": "documentation",
+      "current_score": 71.7,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [
+        "Define more specific trigger scenarios",
+        "Document common anti-patterns to avoid"
+      ],
+      "estimated_effort": "low",
+      "expected_impact": 9.1
+    },
+    {
+      "rank": 11,
+      "skill": "cleanup-patterns",
+      "current_score": 97.5,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -3.8
+    },
+    {
+      "rank": 12,
+      "skill": "protocol-enforcement",
+      "current_score": 97.5,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -3.8
+    },
+    {
+      "rank": 13,
+      "skill": "websocket-patterns",
+      "current_score": 97.5,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -3.8
+    },
+    {
+      "rank": 14,
+      "skill": "database-patterns",
+      "current_score": 100.0,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -5.0
+    },
+    {
+      "rank": 15,
+      "skill": "performance-patterns",
+      "current_score": 100.0,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -5.0
+    },
+    {
+      "rank": 16,
+      "skill": "security-patterns",
+      "current_score": 100.0,
+      "target_score": 90,
+      "priority": "medium",
+      "actions": [],
+      "estimated_effort": "low",
+      "expected_impact": -5.0
+    }
+  ]
+}
