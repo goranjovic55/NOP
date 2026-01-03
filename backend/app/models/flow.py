@@ -2,7 +2,7 @@
 Network flow model for traffic analysis
 """
 
-from sqlalchemy import Column, String, DateTime, Integer, BigInteger, Float
+from sqlalchemy import Column, String, DateTime, Integer, BigInteger, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.sql import func
 import uuid
@@ -50,6 +50,9 @@ class Flow(Base):
     
     # Source information
     source = Column(String(50), default="ntopng", nullable=False)  # ntopng, pcap, etc.
+    
+    # Agent association - which agent captured this flow
+    agent_id = Column(UUID(as_uuid=True), ForeignKey('agents.id', ondelete='SET NULL'), nullable=True, index=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

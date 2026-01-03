@@ -23,15 +23,20 @@ export interface Asset {
 }
 
 export const assetService = {
-  getAssets: async (token: string, status?: string): Promise<Asset[]> => {
+  getAssets: async (token: string, status?: string, agentPOV?: string): Promise<Asset[]> => {
     const params: any = { page: 1, size: 500 };  // Increased from 100 to handle more assets
     if (status) {
       params.status = status;
     }
 
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+
     try {
       const response = await axios.get(`${API_URL}/assets/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
         params
       });
       return response.data.assets || [];

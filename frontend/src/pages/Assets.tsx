@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
@@ -71,6 +72,7 @@ const Assets: React.FC = () => {
   }, [subnetFilter]);
 
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const { setOnScanComplete, tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { setIsDiscovering } = useDiscoveryStore();
@@ -101,7 +103,11 @@ const Assets: React.FC = () => {
       if (showLoading) setLoading(true);
       setIsRefreshing(true);
 
-      const data = await assetService.getAssets(token, statusFilter === 'all' ? undefined : statusFilter);
+      const data = await assetService.getAssets(
+        token, 
+        statusFilter === 'all' ? undefined : statusFilter,
+        activeAgent?.id
+      );
       
       const localResults = JSON.parse(localStorage.getItem('nop_local_scan_results') || '{}');
       const mergedData = data.map(asset => {

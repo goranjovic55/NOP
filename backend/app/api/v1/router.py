@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     access,
     events,
     host,
+    agents,
     dashboard,
     vulnerabilities
 )
@@ -36,4 +37,5 @@ api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(access.router, prefix="/access", tags=["access-hub"])
 api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(host.router, prefix="/host", tags=["host"])
+api_router.include_router(agents.router, prefix="/agents", tags=["agents"])
 api_router.include_router(vulnerabilities.router, prefix="/vulnerabilities", tags=["vulnerabilities"])

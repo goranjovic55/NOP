@@ -2,13 +2,14 @@
 Asset management endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
 import uuid
 
 from app.core.database import get_db
+from app.core.pov_middleware import get_agent_pov
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats
 from app.services.asset_service import AssetService
 from app.models.asset import Asset
@@ -18,6 +19,7 @@ router = APIRouter()
 
 @router.get("/", response_model=AssetList)
 async def get_assets(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=500),
     search: Optional[str] = Query(None),
@@ -26,13 +28,15 @@ async def get_assets(
     db: AsyncSession = Depends(get_db)
 ):
     """Get list of assets with pagination and filtering"""
+    agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
     return await asset_service.get_assets(
         page=page,
         size=size,
         search=search,
         asset_type=asset_type,
-        status=status
+        status=status,
+        agent_id=agent_pov
     )
 
 
