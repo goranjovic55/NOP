@@ -21,6 +21,7 @@ from app.schemas.agent import (
     AgentGenerateResponse
 )
 from app.services.agent_service import AgentService
+from app.services.agent_data_service import AgentDataService
 
 router = APIRouter()
 
@@ -175,9 +176,28 @@ async def agent_websocket(
                         db, agent_id, AgentStatus.ONLINE, update_last_seen=True
                     )
                     
-                elif msg_type == "assets_discovered":
+                elif msg_type == "asset_data":
                     # Handle discovered assets
-                    print(f"Assets from {agent.name}: {message.get('assets', [])}")
+                    assets = message.get('assets', [])
+                    count = await AgentDataService.ingest_asset_data(db, agent_id, assets)
+                    print(f"Agent {agent.name} discovered {count} assets")
+                    await websocket.send_json({
+                        "type": "asset_ack",
+                        "count": count,
+                        "status": "success"
+                    })
+                    
+                elif msg_type == "traffic_data":
+                    # Handle traffic statistics
+                    traffic = message.get('traffic', {})
+                    success = await AgentDataService.ingest_traffic_data(db, agent_id, traffic)
+                    print(f"Agent {agent.name} traffic data: {success}")
+                    
+                elif msg_type == "host_data":
+                    # Handle host information
+                    host_info = message.get('host', {})
+                    success = await AgentDataService.ingest_host_data(db, agent_id, host_info)
+                    print(f"Agent {agent.name} host data: {success}")
                     
                 elif msg_type == "pong":
                     # Pong response

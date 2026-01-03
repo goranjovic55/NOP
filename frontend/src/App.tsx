@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tantml:react-query';
+import { POVProvider } from './context/POVContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
@@ -28,32 +29,34 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="App">
-          {!isAuthenticated ? (
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          ) : (
-            <Layout>
+      <POVProvider>
+        <Router>
+          <div className="App">
+            {!isAuthenticated ? (
               <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/assets" element={<Assets />} />
-                <Route path="/topology" element={<Topology />} />
-                <Route path="/traffic" element={<Traffic />} />
-                <Route path="/scans" element={<Scans />} />
-                <Route path="/access" element={<Access />} />
-                <Route path="/host" element={<Host />} />
-                <Route path="/agents" element={<Agents />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
-            </Layout>
-          )}
-        </div>
-      </Router>
+            ) : (
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/assets" element={<Assets />} />
+                  <Route path="/topology" element={<Topology />} />
+                  <Route path="/traffic" element={<Traffic />} />
+                  <Route path="/scans" element={<Scans />} />
+                  <Route path="/access" element={<Access />} />
+                  <Route path="/host" element={<Host />} />
+                  <Route path="/agents" element={<Agents />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </Layout>
+            )}
+          </div>
+        </Router>
+      </POVProvider>
     </QueryClientProvider>
   );
 }

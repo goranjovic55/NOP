@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func, or_
 from typing import Optional, List, Dict, Any
+from uuid import UUID
 import uuid
 import math
 
@@ -12,8 +13,14 @@ class AssetService:
         self.db = db
 
     async def get_assets(self, page: int = 1, size: int = 50, search: Optional[str] = None, 
-                         asset_type: Optional[str] = None, status: Optional[str] = None) -> AssetList:
+                         asset_type: Optional[str] = None, status: Optional[str] = None,
+                         agent_id: Optional[UUID] = None) -> AssetList:
         query = select(Asset)
+        
+        # Filter by agent POV if specified
+        if agent_id:
+            query = query.where(Asset.agent_id == agent_id)
+        
         if search:
             query = query.where(or_(Asset.hostname.ilike(f"%{search}%"), 
                                     Asset.ip_address.cast(str).ilike(f"%{search}%"),

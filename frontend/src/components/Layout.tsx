@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
-import { useAgentStore } from '../store/agentStore';
 import { useExploitStore } from '../store/exploitStore';
 import { useTrafficStore } from '../store/trafficStore';
 
@@ -16,10 +16,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { activeAgent, setActiveAgent } = usePOV();
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
-  const { activeAgent, connectedCount: agentCount } = useAgentStore();
   const { getActiveSessionCount } = useExploitStore();
   const { isPinging, isCapturing, isCrafting, isStorming } = useTrafficStore();
 

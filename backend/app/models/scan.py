@@ -68,6 +68,9 @@ class Scan(Base):
     # User tracking
     created_by = Column(String(50), nullable=True)
     
+    # Agent association - which agent performed this scan
+    agent_id = Column(UUID(as_uuid=True), ForeignKey('agents.id', ondelete='SET NULL'), nullable=True, index=True)
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

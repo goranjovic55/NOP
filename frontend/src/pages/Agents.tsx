@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useAgentStore } from '../store/agentStore';
+import { usePOV } from '../context/POVContext';
 import { agentService, Agent, AgentCreate } from '../services/agentService';
 
 const Agents: React.FC = () => {
   const { token } = useAuthStore();
-  const { agents, activeAgent, setAgents, addAgent, removeAgent, updateAgent, setActiveAgent } = useAgentStore();
+  const { activeAgent, setActiveAgent } = usePOV();
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newAgent, setNewAgent] = useState<AgentCreate>({
@@ -46,7 +47,7 @@ const Agents: React.FC = () => {
     setLoading(true);
     try {
       const agent = await agentService.createAgent(token, newAgent);
-      addAgent(agent);
+      setAgents([...agents, agent]);
       setShowCreateModal(false);
       setNewAgent({
         name: '',
@@ -74,7 +75,10 @@ const Agents: React.FC = () => {
     if (!token || !window.confirm('Are you sure you want to delete this agent?')) return;
     try {
       await agentService.deleteAgent(token, agentId);
-      removeAgent(agentId);
+      setAgents(agents.filter(a => a.id !== agentId));
+      if (activeAgent?.id === agentId) {
+        setActiveAgent(null);
+      }
     } catch (error) {
       console.error('Failed to delete agent:', error);
     }
