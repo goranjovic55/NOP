@@ -15,6 +15,7 @@ class AgentCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     agent_type: AgentType = AgentType.PYTHON
     connection_url: str = Field(..., min_length=1, max_length=255)
+    target_platform: Optional[str] = Field(None, description="Target platform for Go agents: linux-amd64, windows-amd64, darwin-amd64, linux-arm64")
     capabilities: Dict[str, bool] = Field(default_factory=lambda: {
         "asset": True,
         "traffic": True,
@@ -70,6 +71,7 @@ class AgentListResponse(BaseModel):
 class AgentGenerateRequest(BaseModel):
     """Request to generate agent artifact"""
     agent_id: UUID
+    target_platform: Optional[str] = Field(None, description="For Go: linux-amd64, windows-amd64, darwin-amd64, linux-arm64")
 
 
 class AgentGenerateResponse(BaseModel):
@@ -78,3 +80,5 @@ class AgentGenerateResponse(BaseModel):
     agent_type: AgentType
     content: str  # Base64 encoded content or script
     filename: str
+    is_binary: bool = False
+    platform: Optional[str] = None

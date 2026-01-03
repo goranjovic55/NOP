@@ -98,10 +98,20 @@ async def delete_agent(
 @router.post("/{agent_id}/generate", response_model=AgentGenerateResponse)
 async def generate_agent(
     agent_id: UUID,
+    platform: str = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Generate agent artifact for download"""
+    """Generate agent artifact for download
+    
+    For Go agents:
+    - platform: linux-amd64, windows-amd64, darwin-amd64, darwin-arm64, linux-arm64
+    - Returns compiled binary (base64 encoded)
+    
+    For Python agents:
+    - platform parameter ignored
+    - Returns Python source code
+    """
     agent = await AgentService.get_agent(db, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -110,9 +120,44 @@ async def generate_agent(
     if agent.agent_type == AgentType.PYTHON:
         content = AgentService.generate_python_agent(agent)
         filename = f"nop_agent_{agent.name.replace(' ', '_')}.py"
+        is_binary = False
+        actual_platform = None
+        
     elif agent.agent_type == AgentType.GO:
-        content = AgentService.generate_go_agent(agent)
-        filename = f"nop_agent_{agent.name.replace(' ', '_')}.go"
+        source_code = AgentService.generate_go_agent(agent)
+        
+        # Default platform if not specified
+        if not platform:
+            platform = "linux-amd64"
+        
+        try:
+            # Compile to binary
+            binary_data = await AgentService.compile_go_agent(
+                source_code, 
+                platform=platform,
+                obfuscate=agent.obfuscate
+            )
+            
+            # Base64 encode binary
+            import base64
+            content = base64.b64encode(binary_data).decode('utf-8')
+            
+            # Set filename based on platform
+            goos = platform.split('-')[0]
+            filename = f"nop_agent_{agent.name.replace(' ', '_')}"
+            if goos == "windows":
+                filename += ".exe"
+            
+            is_binary = True
+            actual_platform = platform
+            
+        except Exception as e:
+            # Fallback to source code if compilation fails
+            print(f"Compilation failed: {e}, falling back to source")
+            content = source_code
+            filename = f"nop_agent_{agent.name.replace(' ', '_')}.go"
+            is_binary = False
+            actual_platform = None
     else:
         raise HTTPException(status_code=400, detail="Unknown agent type")
     
@@ -120,7 +165,9 @@ async def generate_agent(
         agent_id=agent.id,
         agent_type=agent.agent_type,
         content=content,
-        filename=filename
+        filename=filename,
+        is_binary=is_binary,
+        platform=actual_platform
     )
 
 

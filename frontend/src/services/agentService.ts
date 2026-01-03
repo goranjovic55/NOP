@@ -35,6 +35,7 @@ export interface AgentCreate {
   description?: string;
   agent_type: 'python' | 'go';
   connection_url: string;
+  target_platform?: string;
   capabilities: {
     asset?: boolean;
     traffic?: boolean;
@@ -119,8 +120,13 @@ export const agentService = {
     if (!response.ok) throw new Error('Failed to delete agent');
   },
 
-  async generateAgent(token: string, agentId: string): Promise<{ content: string; filename: string; agent_type: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/generate`, {
+  async generateAgent(token: string, agentId: string, platform?: string): Promise<{ content: string; filename: string; agent_type: string; is_binary?: boolean }> {
+    const url = new URL(`${API_BASE_URL}/api/v1/agents/${agentId}/generate`);
+    if (platform) {
+      url.searchParams.append('platform', platform);
+    }
+    
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

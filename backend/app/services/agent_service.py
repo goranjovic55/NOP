@@ -746,3 +746,116 @@ func main() {{
 \tagent.Run()
 }}
 '''
+    
+    @staticmethod
+    async def compile_go_agent(source_code: str, platform: str = "linux-amd64", obfuscate: bool = False) -> bytes:
+        """
+        Compile Go agent to binary for specified platform
+        
+        Platform options:
+        - linux-amd64: Linux x64
+        - windows-amd64: Windows x64
+        - darwin-amd64: macOS x64 (Intel)
+        - darwin-arm64: macOS ARM (M1/M2)
+        - linux-arm64: Linux ARM64 (Raspberry Pi, etc)
+        """
+        import tempfile
+        import subprocess
+        import os
+        
+        # Parse platform
+        parts = platform.split('-')
+        if len(parts) != 2:
+            raise ValueError(f"Invalid platform format: {platform}. Use format: OS-ARCH")
+        
+        goos, goarch = parts
+        
+        # Create temporary directory for Go project
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Write source code
+            main_file = os.path.join(tmpdir, "main.go")
+            with open(main_file, 'w') as f:
+                f.write(source_code)
+            
+            # Create go.mod
+            go_mod = os.path.join(tmpdir, "go.mod")
+            with open(go_mod, 'w') as f:
+                f.write("""module nop-agent
+
+go 1.21
+
+require (
+\tgithub.com/gorilla/websocket v1.5.1
+)
+""")
+            
+            # Determine output filename
+            output_name = "nop-agent"
+            if goos == "windows":
+                output_name += ".exe"
+            
+            output_path = os.path.join(tmpdir, output_name)
+            
+            # Set environment for cross-compilation
+            env = os.environ.copy()
+            env['GOOS'] = goos
+            env['GOARCH'] = goarch
+            env['CGO_ENABLED'] = '0'  # Disable CGO for static binaries
+            
+            try:
+                # Download dependencies
+                subprocess.run(
+                    ['go', 'mod', 'download'],
+                    cwd=tmpdir,
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                
+                # Build command
+                if obfuscate:
+                    # Use garble for obfuscation
+                    build_cmd = [
+                        'garble',
+                        '-tiny',
+                        '-literals',
+                        'build',
+                        '-ldflags=-w -s',  # Strip debug info
+                        '-o', output_path,
+                        'main.go'
+                    ]
+                else:
+                    build_cmd = [
+                        'go',
+                        'build',
+                        '-ldflags=-w -s',  # Strip debug info
+                        '-o', output_path,
+                        'main.go'
+                    ]
+                
+                # Compile
+                result = subprocess.run(
+                    build_cmd,
+                    cwd=tmpdir,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                
+                if result.returncode != 0:
+                    raise RuntimeError(f"Compilation failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
+                
+                # Read compiled binary
+                with open(output_path, 'rb') as f:
+                    return f.read()
+                    
+            except subprocess.TimeoutExpired:
+                raise RuntimeError("Compilation timeout (>120s)")
+            except FileNotFoundError as e:
+                if 'garble' in str(e) and obfuscate:
+                    raise RuntimeError("Garble not installed. Install with: go install mvdan.cc/garble@latest")
+                elif 'go' in str(e):
+                    raise RuntimeError("Go compiler not found. Install Go 1.21+")
+                raise

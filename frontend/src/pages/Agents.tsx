@@ -16,11 +16,13 @@ const Agents: React.FC = () => {
   const [localIP, setLocalIP] = useState<string>('localhost');
   const [publicIP, setPublicIP] = useState<string>('');
   const [usePublicIP, setUsePublicIP] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('linux-amd64');
   const [newAgent, setNewAgent] = useState<AgentCreate>({
     name: '',
     description: '',
     agent_type: 'python',
     connection_url: 'ws://localhost:12001/api/v1/agents/{agent_id}/connect',
+    target_platform: 'linux-amd64',
     capabilities: {
       asset: true,
       traffic: true,
@@ -97,9 +99,23 @@ const Agents: React.FC = () => {
       const agent = await agentService.createAgent(token, newAgent);
       setAgents([...agents, agent]);
       
-      // Auto-download agent file
-      const { content, filename } = await agentService.generateAgent(token, agent.id);
-      const blob = new Blob([content], { type: 'text/plain' });
+      // Auto-download agent file with platform for Go
+      const platform = newAgent.agent_type === 'go' ? selectedPlatform : undefined;
+      const { content, filename, is_binary } = await agentService.generateAgent(token, agent.id, platform);
+      
+      let blob: Blob;
+      if (is_binary) {
+        // Decode base64 to binary
+        const binaryString = atob(content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: 'application/octet-stream' });
+      } else {
+        blob = new Blob([content], { type: 'text/plain' });
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -115,6 +131,7 @@ const Agents: React.FC = () => {
         description: '',
         agent_type: 'python',
         connection_url: `ws://${usePublicIP ? publicIP : localIP}:12001/api/v1/agents/{agent_id}/connect`,
+        target_platform: 'linux-amd64',
         capabilities: {
           asset: true,
           traffic: true,
@@ -133,6 +150,7 @@ const Agents: React.FC = () => {
         },
       });
       setUsePublicIP(false);
+      setSelectedPlatform('linux-amd64');
     } catch (error) {
       console.error('Failed to create agent:', error);
     } finally {
@@ -153,13 +171,24 @@ const Agents: React.FC = () => {
     }
   };
 
-  const handleGenerateAgent = async (agent: Agent) => {
+  const handleGenerateAgent = async (agent: Agent, platform?: string) => {
     if (!token) return;
     try {
-      const { content, filename } = await agentService.generateAgent(token, agent.id);
+      const { content, filename, is_binary } = await agentService.generateAgent(token, agent.id, platform);
       
       // Download the file
-      const blob = new Blob([content], { type: 'text/plain' });
+      let blob: Blob;
+      if (is_binary) {
+        // Decode base64 to binary
+        const binaryString = atob(content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: 'application/octet-stream' });
+      } else {
+        blob = new Blob([content], { type: 'text/plain' });
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -506,6 +535,7 @@ const Agents: React.FC = () => {
                   {['python', 'go'].map((type) => (
                     <button
                       key={type}
+                      type="button"
                       onClick={() => setNewAgent({ ...newAgent, agent_type: type as any })}
                       className={`px-4 py-3 border text-center transition-all duration-300 ${
                         newAgent.agent_type === type
@@ -519,6 +549,44 @@ const Agents: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Platform Selection (Go only) */}
+              {newAgent.agent_type === 'go' && (
+                <div className="border border-cyber-purple p-4 bg-cyber-purple/10">
+                  <label className="block text-cyber-purple text-sm uppercase mb-3 font-bold">
+                    🔷 Target Platform (Compiled Binary)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'linux-amd64', label: 'Linux x64', icon: '🐧' },
+                      { value: 'windows-amd64', label: 'Windows x64', icon: '🪟' },
+                      { value: 'darwin-amd64', label: 'macOS Intel', icon: '🍎' },
+                      { value: 'darwin-arm64', label: 'macOS M1/M2', icon: '🍏' },
+                      { value: 'linux-arm64', label: 'Linux ARM', icon: '🔧' },
+                    ].map((platform) => (
+                      <button
+                        key={platform.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlatform(platform.value);
+                          setNewAgent({ ...newAgent, target_platform: platform.value });
+                        }}
+                        className={`px-3 py-2 border text-xs transition-all ${
+                          selectedPlatform === platform.value
+                            ? 'border-cyber-purple bg-cyber-purple/30 text-white'
+                            : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-purple'
+                        }`}
+                      >
+                        <div className="text-lg mb-1">{platform.icon}</div>
+                        <div className="font-bold uppercase">{platform.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-cyber-gray-light text-xs mt-3">
+                    Agent will be compiled to native binary for the selected platform
+                  </p>
+                </div>
+              )}
 
               {/* Connection URL */}
               <div>
