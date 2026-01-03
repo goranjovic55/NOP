@@ -2,6 +2,12 @@
 
 Unit, integration, and E2E test patterns.
 
+## When to Use
+- After implementing features
+- Fixing bugs (regression tests)
+- Refactoring code
+- Before merging PRs
+
 ## Checklist
 - [ ] Unit tests for logic (80%+ coverage)
 - [ ] Integration tests for APIs
@@ -86,3 +92,13 @@ test('create item workflow', async ({ page }) => {
   await expect(page.locator('[data-testid="item-list"]')).toContainText('New Item');
 });
 ```
+
+## Avoid
+- ❌ Testing implementation details → ✅ Test user behavior
+- ❌ No test isolation → ✅ Independent tests
+- ❌ Skipping edge cases → ✅ Test error paths
+
+## Related Skills
+- `backend-api.md` - API endpoint patterns
+- `debugging.md` - Test failure debugging
+- `frontend-react.md` - Component testing

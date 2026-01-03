@@ -9,6 +9,9 @@ Usage:
     python .github/scripts/suggest_skill.py
     
 Output: JSON array of skill suggestions for user approval
+
+Format: Each suggestion includes name, title, description, when_to_use, avoid, 
+related_skills, and example code snippets to generate complete skill files.
 """
 
 import json
@@ -85,7 +88,7 @@ def get_changed_files() -> List[str]:
 
 
 def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> List[Dict[str, Any]]:
-    """Analyze session patterns and suggest skills."""
+    """Analyze session patterns and suggest skills in new format."""
     suggestions = []
     
     # Pattern 1: Styling/UI consistency work
@@ -96,17 +99,23 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
                 'name': 'ui-consistency',
                 'title': 'UI Consistency Patterns',
                 'description': 'Unifying styling across pages with component libraries and design systems',
+                'when_to_use': [
+                    'Creating unified component libraries (like CyberUI)',
+                    'Migrating inline styles to reusable components',
+                    'Standardizing spacing, colors, and typography',
+                    'Ensuring visual consistency across pages'
+                ],
+                'avoid': [
+                    {'wrong': 'Inline styles everywhere', 'right': 'Reusable styled components'},
+                    {'wrong': 'Duplicated styling logic', 'right': 'Centralized design tokens'},
+                    {'wrong': 'Inconsistent spacing', 'right': 'Systematic spacing scale'}
+                ],
+                'related_skills': ['frontend-react.md', 'documentation.md'],
                 'confidence': 'high',
                 'evidence': [
                     'Multiple UI/styling commits detected',
                     f'Modified {len(ui_files)} UI-related files',
                     'Workflow mentions styling/design consistency'
-                ],
-                'use_cases': [
-                    'Creating unified component libraries (like CyberUI)',
-                    'Migrating inline styles to reusable components',
-                    'Standardizing spacing, colors, and typography',
-                    'Ensuring visual consistency across pages'
                 ],
                 'example_files': ui_files[:3]
             })
@@ -119,17 +128,23 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
                 'name': 'api-endpoint-patterns',
                 'title': 'REST API Endpoint Patterns',
                 'description': 'Creating and fixing backend API endpoints with proper error handling',
+                'when_to_use': [
+                    'Adding missing backend endpoints',
+                    'Implementing request validation and error handling',
+                    'Connecting frontend calls to backend services',
+                    'Testing endpoints with curl/Postman'
+                ],
+                'avoid': [
+                    {'wrong': 'Direct DB access in routes', 'right': 'Service layer separation'},
+                    {'wrong': 'No response validation', 'right': 'Pydantic response_model'},
+                    {'wrong': 'Generic error messages', 'right': 'Specific HTTP exceptions'}
+                ],
+                'related_skills': ['backend-api.md', 'error-handling.md', 'testing.md'],
                 'confidence': 'high',
                 'evidence': [
                     'API/endpoint commits detected',
                     f'Modified {len(api_files)} API files',
                     'Workflow involves endpoint creation'
-                ],
-                'use_cases': [
-                    'Adding missing backend endpoints',
-                    'Implementing request validation and error handling',
-                    'Connecting frontend calls to backend services',
-                    'Testing endpoints with curl/Postman'
                 ],
                 'example_files': api_files[:3]
             })
@@ -140,16 +155,22 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
             'name': 'docker-hot-reload',
             'title': 'Docker Hot-Reload Development',
             'description': 'Fast iteration by copying files into running containers without full rebuilds',
-            'confidence': 'medium',
-            'evidence': [
-                'Docker-related content in commits or logs',
-                'Workflow mentions container updates'
-            ],
-            'use_cases': [
+            'when_to_use': [
                 'Quick testing without waiting for full Docker rebuild',
                 'Iterating on backend code changes',
                 'Updating frontend build in running nginx container',
                 'Development in environments using pre-built images from registries'
+            ],
+            'avoid': [
+                {'wrong': 'Full rebuild for each change', 'right': 'docker cp for quick tests'},
+                {'wrong': 'No volume mounts', 'right': 'Bind mounts for development'},
+                {'wrong': 'Forgetting to restart services', 'right': 'docker exec reload'}
+            ],
+            'related_skills': ['infrastructure.md', 'debugging.md'],
+            'confidence': 'medium',
+            'evidence': [
+                'Docker-related content in commits or logs',
+                'Workflow mentions container updates'
             ],
             'example_files': ['docker-compose.yml']
         })
@@ -161,16 +182,22 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
             'name': 'component-refactoring',
             'title': 'Component Refactoring Patterns',
             'description': 'Extracting reusable components and updating multiple consumers',
-            'confidence': 'medium',
-            'evidence': [
-                f'Modified {len(component_changes)} component files',
-                'Multiple component updates suggest refactoring'
-            ],
-            'use_cases': [
+            'when_to_use': [
                 'Creating shared component libraries',
                 'Replacing duplicate code with reusable components',
                 'Updating all component consumers consistently',
                 'Maintaining backward compatibility during refactoring'
+            ],
+            'avoid': [
+                {'wrong': 'Breaking existing consumers', 'right': 'Gradual migration'},
+                {'wrong': 'Over-engineering components', 'right': 'Start simple, extend when needed'},
+                {'wrong': 'No prop validation', 'right': 'TypeScript interfaces'}
+            ],
+            'related_skills': ['frontend-react.md', 'testing.md'],
+            'confidence': 'medium',
+            'evidence': [
+                f'Modified {len(component_changes)} component files',
+                'Multiple component updates suggest refactoring'
             ],
             'example_files': component_changes[:5]
         })
@@ -181,13 +208,22 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
             'name': 'api-debugging',
             'title': 'API Debugging Workflows',
             'description': 'Systematic approach to debugging missing endpoints and integration issues',
+            'when_to_use': [
+                'Debugging "404 Not Found" API errors',
+                'Testing endpoints with curl/httpie',
+                'Checking container logs for errors',
+                'Verifying request/response formats'
+            ],
+            'avoid': [
+                {'wrong': 'Random code changes', 'right': 'Systematic debugging process'},
+                {'wrong': 'Ignoring logs', 'right': 'Check logs first'},
+                {'wrong': 'No request logging', 'right': 'Log all API requests'}
+            ],
+            'related_skills': ['debugging.md', 'backend-api.md', 'error-handling.md'],
             'confidence': 'medium',
             'evidence': [
                 'Fix-related commits detected',
-                'Session involved debugging'
-            ],
-            'use_cases': [
-                'Debugging "404 Not Found" API errors',
+                'Session involved debuggingrs',
                 'Testing endpoints with curl/httpie',
                 'Checking container logs for errors',
                 'Verifying request/response formats'

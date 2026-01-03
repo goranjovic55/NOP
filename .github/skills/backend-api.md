@@ -2,6 +2,12 @@
 
 FastAPI layered architecture with typing and dependency injection.
 
+## When to Use
+- Creating REST endpoints
+- Modifying existing APIs
+- Adding database operations
+- Implementing CRUD operations
+
 ## Checklist
 - [ ] Endpoint → Service → Model separation
 - [ ] Define `response_model` for validation
@@ -45,6 +51,12 @@ async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
     return item
 ```
 
+## Avoid
+- ❌ Direct DB access in routes → ✅ Use service layer
+- ❌ Missing response models → ✅ Define `response_model`
+- ❌ Sync operations for I/O → ✅ Use async/await
+- ❌ No dependency injection → ✅ Use `Depends()`
+
 ### Service Layer Pattern
 ```python
 class ItemService:
@@ -83,3 +95,8 @@ class ItemResponse(ItemBase):
     class Config:
         from_attributes = True
 ```
+
+## Related Skills
+- `testing.md` - API integration tests
+- `error-handling.md` - HTTP exceptions
+- `debugging.md` - Troubleshooting endpoints

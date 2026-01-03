@@ -1,5 +1,16 @@
 # Knowledge Management
 
+## When to Use
+- Start of any task
+- Before creating new entities
+- When updating code structure
+- Before committing changes
+
+## Avoid
+- ❌ Duplicate entities → ✅ Check existing first
+- ❌ Stale observations → ✅ Update timestamps
+- ❌ Missing relations → ✅ Document dependencies
+
 ## Overview
 
 Maintain `project_knowledge.json` as institutional memory. Load at start, update before commit.
@@ -133,6 +144,17 @@ grep 'upd:2026-01' project_knowledge.json
 ## Common Mistakes
 
 ❌ Creating duplicate entities  
+✅ Query project_knowledge.json first
+
+❌ Missing update timestamps  
+✅ Add `upd:YYYY-MM-DD` to observations
+
+❌ Forgetting relations  
+✅ Document USES/IMPLEMENTS/DEPENDS_ON
+
+## Related Skills
+- `documentation.md` - Workflow logging
+- `git-workflow.md` - Commit messages
 ✅ Query first, then create
 
 ❌ Forgetting to update after changes  

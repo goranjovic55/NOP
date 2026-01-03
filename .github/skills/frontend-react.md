@@ -1,5 +1,17 @@
 # Frontend React Patterns
 
+## When to Use
+- Creating UI components
+- Managing component state
+- Fetching API data
+- Building forms and user inputs
+
+## Avoid
+- ❌ Prop drilling → ✅ Use context or state management
+- ❌ Missing key props in lists → ✅ Use unique keys
+- ❌ Direct DOM manipulation → ✅ Use React refs
+- ❌ Large component files → ✅ Extract subcomponents
+
 React components with TypeScript and hooks.
 
 ## Checklist
@@ -275,3 +287,8 @@ const ConfigPanel: React.FC = () => (
 
 ### Reference
 See `/docs/design/UNIFIED_STYLE_GUIDE.md` for complete style guide.
+
+## Related Skills
+- `testing.md` - Component testing
+- `debugging.md` - React debugging
+- `documentation.md` - Component docs

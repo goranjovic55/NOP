@@ -1,5 +1,16 @@
 # Documentation
 
+## When to Use
+- Creating workflow logs
+- Writing README files
+- Documenting APIs
+- After completing features
+
+## Avoid
+- ❌ Stale documentation → ✅ Update with code changes
+- ❌ No examples → ✅ Include code samples
+- ❌ Verbose explanations → ✅ Keep concise
+
 ## Overview
 
 Keep documentation clear, current, and close to code. Workflow logs for history, READMEs for usage, inline for complexity.
@@ -258,3 +269,7 @@ Documentation review:
 - [ ] Up to date
 - [ ] No duplicates
 - [ ] Properly linked
+
+## Related Skills
+- `knowledge-management.md` - Project knowledge
+- `git-workflow.md` - Commit documentation

@@ -50,14 +50,14 @@ SKILL_TEMPLATE = '''# {title}
 | Basic | Simple cases |
 | Advanced | Complex scenarios |
 
-## Anti-Patterns
+## Avoid
 
 - ❌ {anti_pattern} → ✅ {correct_pattern}
 
-## Related
+## Related Skills
 
-- `related-skill-1`
-- `related-skill-2`
+- `related-skill-1.md`
+- `related-skill-2.md`
 
 ---
 *Created: {date}*

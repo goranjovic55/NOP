@@ -1,5 +1,16 @@
 # Debugging
 
+## When to Use
+- Build errors
+- Runtime exceptions
+- API integration issues
+- Unexpected behavior
+
+## Avoid
+- ❌ Random code changes → ✅ Systematic debugging
+- ❌ Ignoring logs → ✅ Check logs first
+- ❌ Debugging in production → ✅ Reproduce locally
+
 ## Overview
 
 Systematic approach to resolving build, runtime, and infrastructure errors.
@@ -326,6 +337,17 @@ Before debugging:
 - [ ] Check recent changes (`git diff`)
 - [ ] Verify environment (`.env` file)
 - [ ] Check logs (`docker compose logs`)
+
+During debugging:
+- [ ] Reproduce consistently
+- [ ] Isolate the issue
+- [ ] Test hypothesis
+- [ ] Document solution
+
+## Related Skills
+- `error-handling.md` - Error patterns
+- `backend-api.md` - API debugging
+- `infrastructure.md` - Container issues
 
 While debugging:
 - [ ] Isolate the issue (which component?)

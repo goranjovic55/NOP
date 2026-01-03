@@ -1,6 +1,18 @@
 # Infrastructure Patterns
 
+## When to Use
+- Docker containerization
+- Multi-container orchestration
+- Production deployment
+- Development environment setup
+
 Docker and deployment patterns.
+
+## Avoid
+- ❌ Secrets in Dockerfiles → ✅ Use env vars
+- ❌ Running as root → ✅ Create user
+- ❌ No health checks → ✅ Define healthcheck
+- ❌ Large images → ✅ Multi-stage builds
 
 ## Checklist
 - [ ] Multi-stage Dockerfile (build → runtime)
@@ -117,3 +129,7 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ github.repository }}:latest
 ```
+
+## Related Skills
+- `multiarch-cicd.md` - Multi-platform builds
+- `debugging.md` - Container debugging

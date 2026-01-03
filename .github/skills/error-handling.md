@@ -1,5 +1,11 @@
 # Error Handling Patterns
 
+## When to Use
+- API endpoints (HTTP errors)
+- Database operations
+- External service calls
+- User input validation
+
 Exception handling with JSON error responses.
 
 ## Checklist
@@ -94,3 +100,13 @@ try {
   }
 }
 ```
+
+## Avoid
+- ❌ Generic error messages → ✅ Specific, actionable messages
+- ❌ Swallowing exceptions → ✅ Log and handle properly
+- ❌ Exposing stack traces → ✅ User-friendly messages
+
+## Related Skills
+- `backend-api.md` - API error handling
+- `debugging.md` - Troubleshooting
+- `testing.md` - Error path testing

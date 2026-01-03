@@ -2,6 +2,12 @@
 
 Multi-arch Docker builds with GitHub Actions and GHCR.
 
+## When to Use
+- Supporting ARM and x64 platforms
+- Building images in CI/CD
+- Publishing to GHCR
+- Production deployments
+
 ## Pattern
 
 1. Dockerfiles are architecture-agnostic
@@ -10,7 +16,7 @@ Multi-arch Docker builds with GitHub Actions and GHCR.
 4. Production uses GHCR images, dev builds locally
 5. Deploy script auto-detects architecture
 
-## Anti-Patterns
+## Avoid
 
 - ❌ Arch-specific base images → ✅ Official multi-arch images
 - ❌ Hardcoded platform → ✅ Auto-detect
@@ -125,6 +131,10 @@ docker compose up -d
 - [ ] Deploy script with arch detection
 - [ ] Documentation updated
 - [ ] Tested on both architectures
+
+## Related Skills
+- `infrastructure.md` - Docker patterns
+- `git-workflow.md` - CI/CD workflows
 
 ## Related
 

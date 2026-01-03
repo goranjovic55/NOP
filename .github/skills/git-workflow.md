@@ -2,6 +2,17 @@
 
 Conventional commits and branch naming.
 
+## When to Use
+- Creating feature branches
+- Making commits
+- Opening pull requests
+- Managing releases
+
+## Avoid
+- ❌ Generic commit messages → ✅ Use conventional commits
+- ❌ Direct commits to main → ✅ Use feature branches
+- ❌ Large monolithic commits → ✅ Small, logical commits
+
 ## Branch Naming
 ```bash
 feature/add-user-auth
@@ -79,3 +90,7 @@ git merge release/v1.2.0
 # Rebase for small fixes
 git rebase main
 ```
+
+## Related Skills
+- `documentation.md` - Workflow logs
+- `testing.md` - Pre-merge testing
