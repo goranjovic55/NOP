@@ -248,9 +248,40 @@ def load_existing_knowledge(knowledge_path: Path) -> List[Dict]:
 
 
 def merge_knowledge(existing: List[Dict], new_codegraph: List[Dict]) -> List[Dict]:
-    """Merge existing knowledge with new codegraph entries."""
-    # Keep all non-codegraph entries
-    result = [e for e in existing if e.get('type') != 'codegraph']
+    """Merge existing knowledge with new codegraph entries. Deduplicates entities and relations."""
+    
+    # Separate by type
+    entities = [e for e in existing if e.get('type') == 'entity']
+    relations = [e for e in existing if e.get('type') == 'relation']
+    
+    # Deduplicate entities by name (merge observations)
+    entity_map: Dict[str, Dict] = {}
+    for entity in entities:
+        name = entity.get('name')
+        if not name:
+            continue
+        
+        if name in entity_map:
+            # Merge observations, keep unique ones
+            existing_obs = entity_map[name].get('observations', [])
+            new_obs = entity.get('observations', [])
+            combined = list(dict.fromkeys(existing_obs + new_obs))  # Preserve order, remove duplicates
+            # Keep last 10 observations to prevent unbounded growth
+            entity_map[name]['observations'] = combined[-10:]
+        else:
+            entity_map[name] = entity.copy()
+    
+    # Deduplicate relations by (from, to, relationType)
+    relation_map: Dict[tuple, Dict] = {}
+    for relation in relations:
+        key = (relation.get('from'), relation.get('to'), relation.get('relationType'))
+        if None in key:
+            continue
+        # Keep the most recent relation (last one wins)
+        relation_map[key] = relation
+    
+    # Build result
+    result = list(entity_map.values()) + list(relation_map.values())
     
     # Add new codegraph entries
     result.extend(new_codegraph)
@@ -281,9 +312,16 @@ def main():
     merged = merge_knowledge(existing, codegraph)
     
     # Count changes
+    old_entities = len([e for e in existing if e.get('type') == 'entity'])
+    old_relations = len([e for e in existing if e.get('type') == 'relation'])
     old_codegraph = len([e for e in existing if e.get('type') == 'codegraph'])
+    
+    new_entities = len([e for e in merged if e.get('type') == 'entity'])
+    new_relations = len([e for e in merged if e.get('type') == 'relation'])
     new_codegraph = len(codegraph)
     
+    print(f"📊 Entities: {old_entities} → {new_entities} (deduplicated)")
+    print(f"📊 Relations: {old_relations} → {new_relations} (deduplicated)")
     print(f"📈 Codegraph: {old_codegraph} → {new_codegraph} entries")
     
     if dry_run:
