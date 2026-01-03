@@ -251,8 +251,7 @@ class PingService:
         validated_target = validate_ip_or_hostname(target)
         
         # Validate port
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            raise ValueError("Port must be between 1 and 65535")
+        validated_port = validate_port(port)
         
         # Validate numeric parameters
         count = max(1, min(100, count))
@@ -492,8 +491,7 @@ class PingService:
         validated_target = validate_ip_or_hostname(target)
         
         # Validate port
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            raise ValueError("Port must be between 1 and 65535")
+        validated_port = validate_port(port)
         
         # Validate numeric parameters
         count = max(1, min(100, count))
@@ -640,8 +638,7 @@ class PingService:
         validated_target = validate_ip_or_hostname(target)
         
         # Validate port
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            raise ValueError("Port must be between 1 and 65535")
+        validated_port = validate_port(port)
         
         # Validate numeric parameters
         count = max(1, min(100, count))
