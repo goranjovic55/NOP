@@ -7,6 +7,8 @@ networks:
       config:
         - subnet: 172.21.0.0/16
           gateway: 172.21.0.1
+  nop_nop-internal:
+    external: true
 
 services:
   ssh-server:
@@ -84,6 +86,19 @@ services:
     ports:
       - "5901:5900"
     restart: unless-stopped
+
+  agent-test:
+    build: ./agent-test
+    container_name: nop-agent-test
+    hostname: agent-test
+    networks:
+      test-network:
+        ipv4_address: 172.21.0.100
+      nop_nop-internal:
+        ipv4_address: 172.28.0.100
+    restart: unless-stopped
+    volumes:
+      - ./agent-test/agents:/opt/agents
 
   rdp-server:
     build: ./rdp-server

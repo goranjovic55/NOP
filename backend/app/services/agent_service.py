@@ -51,7 +51,7 @@ class AgentService:
             obfuscate=agent_data.obfuscate,
             startup_mode=agent_data.startup_mode,
             persistence_level=agent_data.persistence_level,
-            agent_metadata=agent_data.metadata or {},
+            agent_metadata=agent_data.agent_metadata or {},
             status=AgentStatus.DISCONNECTED
         )
         

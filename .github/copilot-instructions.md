@@ -54,8 +54,6 @@
 
 ## Skills
 
-**Announce when loading:** `📘 Using: {skill-name.md}`
-
 Load from `.github/skills/` when task matches:
 
 | Task | Skill |

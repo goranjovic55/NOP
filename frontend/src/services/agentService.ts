@@ -2,7 +2,7 @@
  * Agent API Service
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:12001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 export interface Agent {
   id: string;
@@ -23,7 +23,7 @@ export interface Agent {
   obfuscate: boolean;
   startup_mode: 'auto' | 'single';
   persistence_level: 'low' | 'medium' | 'high';
-  metadata?: Record<string, any>;
+  agent_metadata?: Record<string, any>;
   last_seen?: string;
   connected_at?: string;
   created_at: string;
@@ -45,7 +45,7 @@ export interface AgentCreate {
   obfuscate?: boolean;
   startup_mode?: 'auto' | 'single';
   persistence_level?: 'low' | 'medium' | 'high';
-  metadata?: Record<string, any>;
+  agent_metadata?: Record<string, any>;
 }
 
 export interface AgentUpdate {
@@ -58,7 +58,7 @@ export interface AgentUpdate {
     host?: boolean;
     access?: boolean;
   };
-  metadata?: Record<string, any>;
+  agent_metadata?: Record<string, any>;
   status?: 'online' | 'offline' | 'disconnected' | 'error';
 }
 
@@ -85,6 +85,10 @@ export const agentService = {
   },
 
   async createAgent(token: string, agentData: AgentCreate): Promise<Agent> {
+    console.log('[agentService] Creating agent with data:', agentData);
+    console.log('[agentService] Token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
+    console.log('[agentService] API URL:', `${API_BASE_URL}/api/v1/agents/`);
+    
     const response = await fetch(`${API_BASE_URL}/api/v1/agents/`, {
       method: 'POST',
       headers: {
@@ -93,8 +97,18 @@ export const agentService = {
       },
       body: JSON.stringify(agentData),
     });
-    if (!response.ok) throw new Error('Failed to create agent');
-    return response.json();
+    
+    console.log('[agentService] Response status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[agentService] Error response:', errorText);
+      throw new Error(`Failed to create agent: ${response.status} ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('[agentService] Agent created successfully:', result);
+    return result;
   },
 
   async updateAgent(token: string, agentId: string, agentData: AgentUpdate): Promise<Agent> {
@@ -121,12 +135,12 @@ export const agentService = {
   },
 
   async generateAgent(token: string, agentId: string, platform?: string): Promise<{ content: string; filename: string; agent_type: string; is_binary?: boolean }> {
-    const url = new URL(`${API_BASE_URL}/api/v1/agents/${agentId}/generate`);
+    let url = `${API_BASE_URL}/api/v1/agents/${agentId}/generate`;
     if (platform) {
-      url.searchParams.append('platform', platform);
+      url += `?platform=${encodeURIComponent(platform)}`;
     }
     
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
