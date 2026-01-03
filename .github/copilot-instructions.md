@@ -64,6 +64,9 @@ Load from `.github/skills/` when task matches:
 | Error handling, logging | `error-handling.md` |
 | Docker, deployment | `infrastructure.md` |
 | Git, commits, PRs | `git-workflow.md` |
+| Knowledge queries, updates | `knowledge-management.md` |
+| Build errors, troubleshooting | `debugging.md` |
+| Workflow logs, READMEs | `documentation.md` |
 
 ---
 
