@@ -247,10 +247,58 @@ def load_existing_knowledge(knowledge_path: Path) -> List[Dict]:
     return entries
 
 
+def update_domain_map(entries: List[Dict]) -> Dict:
+    """Generate/update domain map based on current knowledge entries."""
+    domains = {}
+    quick_nav = {}
+    
+    # Scan entities to build domain map
+    for i, entry in enumerate(entries, 1):
+        if entry.get('type') != 'entity':
+            continue
+        
+        name = entry.get('name', '')
+        prefix = name.split('.')[0] if '.' in name else ''
+        
+        # Track domain line ranges
+        if prefix and prefix not in domains:
+            domains[prefix] = f"Line {i}+"
+    
+    # Build quick navigation for common tasks
+    task_keywords = {
+        'Scans_Vulnerabilities': ['Scan', 'CVE', 'Vulnerability', 'Exploit'],
+        'Traffic_PacketCapture': ['Traffic', 'Packet', 'Sniffer', 'Flow'],
+        'AccessHub_RemoteAccess': ['AccessHub', 'Guacamole', 'Credential', 'Vault'],
+        'Assets_Discovery': ['Asset', 'Discovery', 'NMAP'],
+        'Settings_Config': ['Settings', 'Config']
+    }
+    
+    for task, keywords in task_keywords.items():
+        matches = []
+        for i, entry in enumerate(entries, 1):
+            if entry.get('type') != 'entity':
+                continue
+            name = entry.get('name', '')
+            if any(kw in name for kw in keywords):
+                matches.append(f"{name} (line {i})")
+                if len(matches) >= 2:
+                    break
+        if matches:
+            quick_nav[task] = ', '.join(matches)
+    
+    return {
+        'type': 'map',
+        'purpose': 'Quick domain overview - Read first for context, then query specific domains below',
+        'domains': domains,
+        'quickNav': quick_nav,
+        'upd': datetime.now().strftime('%Y-%m-%d')
+    }
+
+
 def merge_knowledge(existing: List[Dict], new_codegraph: List[Dict]) -> List[Dict]:
     """Merge existing knowledge with new codegraph entries. Deduplicates entities and relations."""
     
-    # Separate by type
+    # Separate by type (skip old map)
     entities = [e for e in existing if e.get('type') == 'entity']
     relations = [e for e in existing if e.get('type') == 'relation']
     
@@ -311,6 +359,9 @@ def main():
     existing = load_existing_knowledge(knowledge_path)
     merged = merge_knowledge(existing, codegraph)
     
+    # Generate domain map
+    domain_map = update_domain_map(merged)
+    
     # Count changes
     old_entities = len([e for e in existing if e.get('type') == 'entity'])
     old_relations = len([e for e in existing if e.get('type') == 'relation'])
@@ -331,12 +382,13 @@ def main():
             print(json.dumps(entry))
         return
     
-    # Write back
+    # Write back with map as first line
     with open(knowledge_path, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(domain_map) + '\n')
         for entry in merged:
             f.write(json.dumps(entry) + '\n')
     
-    print(f"✅ Updated {knowledge_path}")
+    print(f"✅ Updated {knowledge_path} (with domain map)")
 
 
 if __name__ == '__main__':

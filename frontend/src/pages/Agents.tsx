@@ -234,6 +234,31 @@ const Agents: React.FC = () => {
     navigate('/dashboard');
   };
 
+  const formatUptime = (connectedAt?: string) => {
+    if (!connectedAt) return 'N/A';
+    const start = new Date(connectedAt).getTime();
+    const now = Date.now();
+    const diff = now - start;
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  };
+
+  const getAgentIP = (agent: Agent) => {
+    // Extract IP from connection URL or metadata
+    try {
+      const url = new URL(agent.connection_url.replace('ws://', 'http://').replace('wss://', 'https://'));
+      return url.hostname;
+    } catch {
+      return 'N/A';
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'online': return 'bg-cyber-green';
@@ -1198,6 +1223,102 @@ const Agents: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Agent Details */}
+              <div className="bg-cyber-darker border border-cyber-blue rounded p-4">
+                <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs flex items-center justify-between">
+                  <span>Agent Information</span>
+                  <span className={`w-2 h-2 rounded-full ${getStatusColor(sidebarAgent.status)} ${
+                    sidebarAgent.status === 'online' ? 'animate-pulse' : ''
+                  }`}></span>
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Type:</span>
+                    <span className="text-white text-sm flex items-center space-x-1">
+                      <span>{getTypeIcon(sidebarAgent.agent_type)}</span>
+                      <span className="uppercase">{sidebarAgent.agent_type}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
+                    <span className={`text-sm uppercase font-bold ${
+                      sidebarAgent.status === 'online' ? 'text-cyber-green' : 
+                      sidebarAgent.status === 'disconnected' ? 'text-cyber-yellow' : 'text-cyber-red'
+                    }`}>
+                      {sidebarAgent.status}
+                    </span>
+                  </div>
+                  {sidebarAgent.connected_at && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Uptime:</span>
+                      <span className="text-cyber-green text-sm font-mono">{formatUptime(sidebarAgent.connected_at)}</span>
+                    </div>
+                  )}
+                  {sidebarAgent.connected_at && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Connected:</span>
+                      <span className="text-white text-sm">{new Date(sidebarAgent.connected_at).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Network Information */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Details</h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Agent IP:</span>
+                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-blue text-xs font-mono">
+                      {getAgentIP(sidebarAgent)}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Connection URL:</span>
+                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono break-all">
+                      {sidebarAgent.connection_url}
+                    </code>
+                  </div>
+                  {sidebarAgent.last_seen && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-cyber-gray-light text-xs uppercase">Last Heartbeat:</span>
+                      <span className="text-white text-sm">{formatLastSeen(sidebarAgent.last_seen)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Capabilities */}
+              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs">Enabled Modules</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {sidebarAgent.capabilities.asset && (
+                    <div className="bg-cyber-blue/20 border border-cyber-blue text-cyber-blue px-2 py-1 text-xs uppercase text-center">
+                      ◈ Asset
+                    </div>
+                  )}
+                  {sidebarAgent.capabilities.traffic && (
+                    <div className="bg-cyber-green/20 border border-cyber-green text-cyber-green px-2 py-1 text-xs uppercase text-center">
+                      ≋ Traffic
+                    </div>
+                  )}
+                  {sidebarAgent.capabilities.host && (
+                    <div className="bg-cyber-yellow/20 border border-cyber-yellow text-cyber-yellow px-2 py-1 text-xs uppercase text-center">
+                      ◐ Host
+                    </div>
+                  )}
+                  {sidebarAgent.capabilities.access && (
+                    <div className="bg-cyber-red/20 border border-cyber-red text-cyber-red px-2 py-1 text-xs uppercase text-center">
+                      ⬡ Access
+                    </div>
+                  )}
+                </div>
+                {!sidebarAgent.capabilities.asset && !sidebarAgent.capabilities.traffic && 
+                 !sidebarAgent.capabilities.host && !sidebarAgent.capabilities.access && (
+                  <div className="text-cyber-gray-light text-xs text-center">No modules enabled</div>
+                )}
               </div>
 
               {/* Connection Info */}

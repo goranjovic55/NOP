@@ -39,6 +39,9 @@
 
 **Format:** `project_knowledge.json` (JSONL)
 
+**Line 1 - Map:** `{"type":"map","domains":{...},"quickNav":{...}}` - Read first for overview
+
+**Types:**
 ```json
 {"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
 {"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
@@ -46,9 +49,9 @@
 ```
 
 **Workflow:**
-- Load at start → Understand existing entities
-- Query during work → Avoid duplicates
-- Update before commit → Codemap + manual entities
+- Read line 1 (map) → Get domain overview & quickNav
+- Load relevant sections → Query specific domains as needed
+- Update before commit → Codemap + manual entities (map auto-updates)
 
 ---
 

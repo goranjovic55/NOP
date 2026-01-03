@@ -1,0 +1,10 @@
+[2026-01-03 23:14:48.326420] NOP Agent 'Ubuntu Test Agent' starting...
+[2026-01-03 23:14:48.326490] Enabled modules: asset, traffic, host
+[2026-01-03 23:14:48.326508] Connecting to C2 server: ws://172.28.0.1:8000/api/v1/agents/1483a6eb-bc9e-4ef1-be63-b8e7c0f01029/connect...
+[2026-01-03 23:14:48.345769] Connected! Establishing encrypted tunnel...
+[2026-01-03 23:14:48.346344] Registered with C2 server
+[2026-01-03 23:14:48.346527] Asset module started
+[2026-01-03 23:14:48.346620] Traffic module started
+[2026-01-03 23:14:48.346729] Host module started
+[2026-01-03 23:19:49.468055] Discovered 5 assets
+[2026-01-03 23:24:50.562012] Discovered 5 assets

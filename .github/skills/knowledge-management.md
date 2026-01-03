@@ -15,24 +15,30 @@
 
 Maintain `project_knowledge.json` as institutional memory. Load at start, update before commit.
 
+**First line = Domain map** for quick navigation.
+
 ---
 
 ## Start of Task
 
-**Always load first:**
+**Read line 1 (domain map):**
 ```bash
-cat project_knowledge.json
+head -1 project_knowledge.json | python3 -m json.tool
 ```
 
-**Query for:**
-- Existing entities (avoid duplicates)
-- Related components
-- Dependencies/dependents
-- Recent updates
+**Then query relevant domains:**
+- Check `domains` for line ranges
+- Use `quickNav` for common tasks
+- Load specific sections as needed
 
 ---
 
 ## Format (JSONL)
+
+**Map (line 1):**
+```json
+{"type":"map","domains":{"Frontend":"Line 5+","Backend":"Line 50+"},"quickNav":{"Scans":"..."}}
+```
 
 **Entity:**
 ```json
@@ -89,7 +95,7 @@ cat project_knowledge.json
 
 ## Before Commit
 
-**1. Generate codemap:**
+**1. Generate codemap (auto-updates map):**
 ```bash
 python .github/scripts/generate_codemap.py
 ```
