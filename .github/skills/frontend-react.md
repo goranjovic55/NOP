@@ -5,6 +5,49 @@
 - Managing component state
 - Fetching API data
 - Building forms and user inputs
+- **Building/modifying any React/JSX files**
+
+## Critical Rules - MUST FOLLOW
+
+### Docker Compose for Local Development
+**ALWAYS use `docker-compose.dev.yml` for local frontend work:**
+```bash
+# ✅ CORRECT - Builds from local source
+docker-compose -f docker-compose.dev.yml build frontend
+docker-compose -f docker-compose.dev.yml up -d frontend
+
+# ❌ WRONG - Uses pre-built registry images
+docker-compose build frontend  # <-- DON'T DO THIS
+```
+**Why:** `docker-compose.yml` uses `image: ghcr.io/.../nop-frontend:latest` (registry), while `docker-compose.dev.yml` has `build: context: ./frontend` (local source).
+
+### JSX Comment Syntax
+**Comments inside JSX MUST be in braces:**
+```tsx
+// ✅ CORRECT
+<div>
+  {/* Comment here */}
+  <Component />
+</div>
+
+// ❌ WRONG - Causes "')' expected" syntax error
+{condition ? (
+  <A />
+) : (
+  /* Comment here */  {/* <-- BREAKS BUILD */}
+  <B />
+)}
+
+// ✅ CORRECT FIX
+{condition ? (
+  <A />
+) : (
+  <>
+    {/* Comment here */}
+    <B />
+  </>
+)}
+```
 
 ## Avoid
 - ❌ Prop drilling → ✅ Use context or state management
@@ -255,6 +298,38 @@ const AssetCard: React.FC<{ asset: Asset }> = ({ asset }) => (
     className="p-4"
   >
     <div className="flex justify-between items-center">
+```
+
+## Frontend Build & Deploy Checklist
+
+### Before Testing Changes
+1. ✅ Build with dev compose file:
+   ```bash
+   docker-compose -f docker-compose.dev.yml build frontend
+   ```
+2. ✅ Watch for "Syntax error:" or "Failed to compile" messages
+3. ✅ Verify "File sizes after gzip:" appears (success indicator)
+4. ✅ Restart frontend:
+   ```bash
+   docker-compose -f docker-compose.dev.yml up -d frontend
+   ```
+5. ✅ Verify build hash changed:
+   ```bash
+   docker-compose -f docker-compose.dev.yml exec frontend cat /usr/share/nginx/html/index.html | grep -o 'main\.[^"]*\.js'
+   ```
+6. ✅ Tell user to **hard refresh** browser (Ctrl+Shift+R)
+
+### Common Build Errors
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Syntax error: ')' expected` | Comment outside JSX braces | Wrap in `{/* */}` or put in fragment |
+| Frontend shows old code | Used wrong docker-compose file | Use `docker-compose.dev.yml` |
+| UI doesn't update | Browser cache | Hard refresh (Ctrl+Shift+R) |
+
+### Environment URLs
+- Frontend: http://localhost:12000
+- Backend: http://localhost:8000/docs
+- Credentials: admin / admin123
       <div>
         <h3 className="text-cyber-blue font-bold">{asset.ip}</h3>
         <p className="text-xs text-cyber-gray-light">{asset.hostname}</p>
