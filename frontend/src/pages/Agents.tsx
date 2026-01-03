@@ -1100,8 +1100,8 @@ const Agents: React.FC = () => {
                   </div>
                 </>
               ) : (
-                /* Template Agent: Configuration Details */
                 <>
+                  {/* Template Agent: Configuration Details */}
                   {/* Agent Overview */}
                   <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
                     <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Agent Template</h4>
