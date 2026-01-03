@@ -1,3 +1,8 @@
+---
+name: error-handling
+description: Exception handling and JSON error response patterns. Use when implementing API error handling, creating custom exception classes, or standardizing error responses.
+---
+
 # Error Handling Patterns
 
 Exception handling and JSON error response patterns.

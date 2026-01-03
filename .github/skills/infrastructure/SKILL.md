@@ -1,3 +1,8 @@
+---
+name: infrastructure
+description: Docker, container orchestration, and deployment patterns. Use when creating Dockerfiles, configuring docker-compose, setting up CI/CD, or managing container resources.
+---
+
 # Infrastructure Patterns
 
 Docker, container orchestration, and deployment patterns.

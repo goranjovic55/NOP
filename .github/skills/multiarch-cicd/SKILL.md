@@ -1,3 +1,8 @@
+---
+name: multiarch-cicd
+description: Multi-arch Docker CI/CD with GitHub Actions and GHCR deployment. Use when setting up Docker-based projects for multiple architectures (amd64/arm64), supporting ARM devices, or creating production-ready deployment with pre-built images.
+---
+
 # Skill: Multi-Arch CI/CD
 
 **Description**: Multi-arch Docker CI/CD with GitHub Actions and GHCR deployment
@@ -46,7 +51,7 @@
 
 ### Example 1: GitHub Actions Multi-Arch Workflow
 
-\`\`\`yaml
+```yaml
 name: Build Multi-Arch Images
 
 on:
@@ -57,7 +62,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/\${{ github.repository_owner }}
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   build-backend:
@@ -77,9 +82,9 @@ jobs:
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: \${{ env.REGISTRY }}
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -87,14 +92,14 @@ jobs:
           context: ./backend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: \${{ env.IMAGE_PREFIX }}/app-backend:latest
+          tags: ${{ env.IMAGE_PREFIX }}/app-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-\`\`\`
+```
 
 ### Example 2: Production docker-compose.yml
 
-\`\`\`yaml
+```yaml
 services:
   backend:
     image: ghcr.io/username/app-backend:latest
@@ -107,11 +112,11 @@ services:
   
   postgres:
     image: postgres:15-alpine  # Multi-arch official image
-\`\`\`
+```
 
 ### Example 3: Development docker-compose.dev.yml
 
-\`\`\`yaml
+```yaml
 services:
   backend:
     build:
@@ -123,23 +128,23 @@ services:
   frontend:
     build:
       context: ./frontend
-\`\`\`
+```
 
 ### Example 4: Deployment Script
 
-\`\`\`bash
+```bash
 #!/bin/bash
 set -e
 
-ARCH=\$(uname -m)
-case \$ARCH in
+ARCH=$(uname -m)
+case $ARCH in
     x86_64) echo "✓ AMD64" ;;
     aarch64|arm64) echo "✓ ARM64" ;;
 esac
 
 docker compose pull
 docker compose up -d
-\`\`\`
+```
 
 ## Checklist
 

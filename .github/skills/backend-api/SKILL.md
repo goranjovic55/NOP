@@ -1,3 +1,8 @@
+---
+name: backend-api
+description: FastAPI patterns with layered architecture, typing, and dependency injection. Use when creating new API endpoints, implementing REST APIs, or structuring service layers.
+---
+
 # Backend API Patterns
 
 FastAPI patterns with layered architecture, typing, and dependency injection.

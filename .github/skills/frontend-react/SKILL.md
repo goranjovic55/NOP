@@ -1,3 +1,8 @@
+---
+name: frontend-react
+description: React component patterns with TypeScript, hooks, and composition. Use when creating new React components, managing component state, or implementing hooks.
+---
+
 # Frontend React Patterns
 
 React component patterns with TypeScript, hooks, and composition.
