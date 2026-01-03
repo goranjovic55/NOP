@@ -1,0 +1,1056 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-03T09:42:48.652291",
+    "workflow_logs_analyzed": 47,
+    "edge_cases_simulated": 15,
+    "skills_evaluated": 9,
+    "new_skills_proposed": 6
+  },
+  "summary": {
+    "total_time_saved_minutes": 324,
+    "average_skill_effectiveness_percent": 59.9,
+    "high_risk_scenarios": 9,
+    "coverage_gaps": 2
+  },
+  "category_breakdown": {
+    "protocol_compliance": {
+      "count": 1,
+      "avg_effectiveness": 55.5,
+      "time_saved": 40
+    },
+    "context_loss": {
+      "count": 1,
+      "avg_effectiveness": 41.1,
+      "time_saved": 30
+    },
+    "integration_failure": {
+      "count": 1,
+      "avg_effectiveness": 69.2,
+      "time_saved": 25
+    },
+    "docker_issues": {
+      "count": 1,
+      "avg_effectiveness": 66.1,
+      "time_saved": 24
+    },
+    "type_errors": {
+      "count": 2,
+      "avg_effectiveness": 67.6,
+      "time_saved": 37
+    },
+    "state_management": {
+      "count": 2,
+      "avg_effectiveness": 67.05,
+      "time_saved": 36
+    },
+    "error_handling": {
+      "count": 1,
+      "avg_effectiveness": 63.5,
+      "time_saved": 23
+    },
+    "caching_issues": {
+      "count": 1,
+      "avg_effectiveness": 69.8,
+      "time_saved": 13
+    },
+    "skill_gaps": {
+      "count": 5,
+      "avg_effectiveness": 52.9,
+      "time_saved": 96
+    }
+  },
+  "simulation_results": [
+    {
+      "edge_case": {
+        "id": "EC001",
+        "name": "Protocol Emission Drift",
+        "category": "protocol_compliance",
+        "description": "Agent fails to emit required [SESSION:], [PHASE:], or [SKILLS:] markers",
+        "trigger": "Long-running sessions, context switches, complex multi-step tasks",
+        "severity": "critical",
+        "probability": 0.87,
+        "historical_occurrences": 2,
+        "related_skills": [
+          "documentation",
+          "git-workflow"
+        ],
+        "mitigation_strategy": "Blocking gates before work starts, explicit protocol checklist",
+        "source_logs": [
+          "2025-12-30_085644_agent-ecosystem-analysis-improvements.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 120,
+        "error_rate": 2.61,
+        "debug_iterations": 7,
+        "context_switches": 4,
+        "success_rate": 13.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 80,
+        "error_rate": 1.6,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 29.6
+      },
+      "improvement": {
+        "time_saved_minutes": 40,
+        "time_saved_percentage": 33.3,
+        "error_reduction_percentage": 38.7,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 16.6,
+        "overall_effectiveness": 55.5
+      },
+      "skill_applications": [
+        {
+          "skill_name": "documentation",
+          "applicable": true,
+          "effectiveness": 0.68,
+          "time_saved_minutes": 17,
+          "errors_prevented": 2,
+          "coverage_percentage": 68.0
+        },
+        {
+          "skill_name": "git-workflow",
+          "applicable": true,
+          "effectiveness": 0.429,
+          "time_saved_minutes": 11,
+          "errors_prevented": 1,
+          "coverage_percentage": 42.9
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC002",
+        "name": "Multi-Session Context Loss",
+        "category": "context_loss",
+        "description": "Parent session state lost when child session is spawned",
+        "trigger": "DELEGATE calls, sub-agent invocation, task interruption",
+        "severity": "critical",
+        "probability": 0.95,
+        "historical_occurrences": 4,
+        "related_skills": [
+          "knowledge-management"
+        ],
+        "mitigation_strategy": "PAUSE/RESUME protocol with state persistence, session file as SSOT",
+        "source_logs": [
+          "2025-12-30_102700_multi-thread-session.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 120,
+        "error_rate": 2.85,
+        "debug_iterations": 7,
+        "context_switches": 4,
+        "success_rate": 5.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 90,
+        "error_rate": 2.03,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 17.3
+      },
+      "improvement": {
+        "time_saved_minutes": 30,
+        "time_saved_percentage": 25.0,
+        "error_reduction_percentage": 28.8,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 12.3,
+        "overall_effectiveness": 41.1
+      },
+      "skill_applications": [
+        {
+          "skill_name": "knowledge-management",
+          "applicable": true,
+          "effectiveness": 0.411,
+          "time_saved_minutes": 11,
+          "errors_prevented": 1,
+          "coverage_percentage": 41.1
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC003",
+        "name": "Frontend-Backend Endpoint Mismatch",
+        "category": "integration_failure",
+        "description": "Frontend calls endpoint that doesn't exist or has wrong signature",
+        "trigger": "New feature implementation, API refactoring, endpoint renaming",
+        "severity": "high",
+        "probability": 0.45,
+        "historical_occurrences": 1,
+        "related_skills": [
+          "backend-api",
+          "frontend-react",
+          "debugging"
+        ],
+        "mitigation_strategy": "API contract testing, endpoint verification before frontend work",
+        "source_logs": [
+          "2026-01-02_exploit_builder_metadata_fix.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 1.35,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 55.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 35,
+        "error_rate": 0.7,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 75.8
+      },
+      "improvement": {
+        "time_saved_minutes": 25,
+        "time_saved_percentage": 41.7,
+        "error_reduction_percentage": 48.1,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 20.799999999999997,
+        "overall_effectiveness": 69.2
+      },
+      "skill_applications": [
+        {
+          "skill_name": "backend-api",
+          "applicable": true,
+          "effectiveness": 0.682,
+          "time_saved_minutes": 9,
+          "errors_prevented": 2,
+          "coverage_percentage": 68.2
+        },
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.675,
+          "time_saved_minutes": 9,
+          "errors_prevented": 2,
+          "coverage_percentage": 67.5
+        },
+        {
+          "skill_name": "debugging",
+          "applicable": true,
+          "effectiveness": 0.72,
+          "time_saved_minutes": 9,
+          "errors_prevented": 2,
+          "coverage_percentage": 72.0
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC004",
+        "name": "Docker Cache Stale Code",
+        "category": "docker_issues",
+        "description": "Old code persists in container despite rebuild attempts",
+        "trigger": "Multiple quick rebuilds, layer caching, browser caching",
+        "severity": "high",
+        "probability": 0.35,
+        "historical_occurrences": 1,
+        "related_skills": [
+          "infrastructure",
+          "debugging"
+        ],
+        "mitigation_strategy": "Full cleanup protocol: docker-compose down -v, system prune, hard refresh",
+        "source_logs": [
+          "2025-12-29_145716_granular-traffic-filtering-rebuild.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 1.05,
+        "debug_iterations": 4,
+        "context_switches": 3,
+        "success_rate": 65.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 36,
+        "error_rate": 0.56,
+        "debug_iterations": 2,
+        "context_switches": 2,
+        "success_rate": 84.8
+      },
+      "improvement": {
+        "time_saved_minutes": 24,
+        "time_saved_percentage": 40.0,
+        "error_reduction_percentage": 46.7,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 19.799999999999997,
+        "overall_effectiveness": 66.1
+      },
+      "skill_applications": [
+        {
+          "skill_name": "infrastructure",
+          "applicable": true,
+          "effectiveness": 0.602,
+          "time_saved_minutes": 6,
+          "errors_prevented": 1,
+          "coverage_percentage": 60.2
+        },
+        {
+          "skill_name": "debugging",
+          "applicable": true,
+          "effectiveness": 0.72,
+          "time_saved_minutes": 7,
+          "errors_prevented": 2,
+          "coverage_percentage": 72.0
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC005",
+        "name": "TypeScript Prop Drilling Mismatch",
+        "category": "type_errors",
+        "description": "Component receives wrong type or missing required prop",
+        "trigger": "Component refactoring, interface changes, new features",
+        "severity": "medium",
+        "probability": 0.4,
+        "historical_occurrences": 12,
+        "related_skills": [
+          "frontend-react",
+          "testing"
+        ],
+        "mitigation_strategy": "Strict typing, interface definitions, component testing",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 1.2,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 60.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 18,
+        "error_rate": 0.65,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 79.8
+      },
+      "improvement": {
+        "time_saved_minutes": 12,
+        "time_saved_percentage": 40.0,
+        "error_reduction_percentage": 45.8,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 19.799999999999997,
+        "overall_effectiveness": 66.0
+      },
+      "skill_applications": [
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.712,
+          "time_saved_minutes": 8,
+          "errors_prevented": 2,
+          "coverage_percentage": 71.2
+        },
+        {
+          "skill_name": "testing",
+          "applicable": true,
+          "effectiveness": 0.607,
+          "time_saved_minutes": 7,
+          "errors_prevented": 1,
+          "coverage_percentage": 60.7
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC006",
+        "name": "Stale State After Async Operation",
+        "category": "state_management",
+        "description": "Component renders with outdated state after async update",
+        "trigger": "Rapid user interactions, parallel API calls, component unmounting",
+        "severity": "medium",
+        "probability": 0.3,
+        "historical_occurrences": 5,
+        "related_skills": [
+          "frontend-react"
+        ],
+        "mitigation_strategy": "Cleanup on unmount, proper async handling, optimistic updates",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 0.9,
+        "debug_iterations": 4,
+        "context_switches": 2,
+        "success_rate": 70.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 17,
+        "error_rate": 0.45,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 91.4
+      },
+      "improvement": {
+        "time_saved_minutes": 13,
+        "time_saved_percentage": 43.3,
+        "error_reduction_percentage": 50.0,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 21.400000000000006,
+        "overall_effectiveness": 71.2
+      },
+      "skill_applications": [
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.712,
+          "time_saved_minutes": 6,
+          "errors_prevented": 2,
+          "coverage_percentage": 71.2
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC007",
+        "name": "Unhandled API Error Crash",
+        "category": "error_handling",
+        "description": "API error causes page crash instead of graceful fallback",
+        "trigger": "Network timeout, 5xx errors, malformed responses",
+        "severity": "high",
+        "probability": 0.25,
+        "historical_occurrences": 4,
+        "related_skills": [
+          "error-handling",
+          "frontend-react"
+        ],
+        "mitigation_strategy": "Error boundaries, try-catch wrappers, fallback UI components",
+        "source_logs": [
+          "2025-12-29_202000_host-page-auth-fix.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 0.75,
+        "debug_iterations": 4,
+        "context_switches": 2,
+        "success_rate": 75.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 37,
+        "error_rate": 0.42,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 94.1
+      },
+      "improvement": {
+        "time_saved_minutes": 23,
+        "time_saved_percentage": 38.3,
+        "error_reduction_percentage": 44.0,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 19.099999999999994,
+        "overall_effectiveness": 63.5
+      },
+      "skill_applications": [
+        {
+          "skill_name": "error-handling",
+          "applicable": true,
+          "effectiveness": 0.596,
+          "time_saved_minutes": 4,
+          "errors_prevented": 1,
+          "coverage_percentage": 59.6
+        },
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.675,
+          "time_saved_minutes": 5,
+          "errors_prevented": 2,
+          "coverage_percentage": 67.5
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC008",
+        "name": "Browser Cache Serving Old JS",
+        "category": "caching_issues",
+        "description": "Browser loads cached JavaScript despite new build hash",
+        "trigger": "Container restart without cache clearing, same filename pattern",
+        "severity": "medium",
+        "probability": 0.2,
+        "historical_occurrences": 3,
+        "related_skills": [
+          "debugging",
+          "infrastructure"
+        ],
+        "mitigation_strategy": "Cache-busting filenames, service worker updates, clear instructions",
+        "source_logs": [
+          "2026-01-02_exploit_builder_metadata_fix.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 0.6,
+        "debug_iterations": 4,
+        "context_switches": 2,
+        "success_rate": 80.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 17,
+        "error_rate": 0.31,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 13,
+        "time_saved_percentage": 43.3,
+        "error_reduction_percentage": 48.3,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 19.0,
+        "overall_effectiveness": 69.8
+      },
+      "skill_applications": [
+        {
+          "skill_name": "debugging",
+          "applicable": true,
+          "effectiveness": 0.76,
+          "time_saved_minutes": 4,
+          "errors_prevented": 2,
+          "coverage_percentage": 76.0
+        },
+        {
+          "skill_name": "infrastructure",
+          "applicable": true,
+          "effectiveness": 0.636,
+          "time_saved_minutes": 3,
+          "errors_prevented": 1,
+          "coverage_percentage": 63.6
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC009",
+        "name": "WebSocket Connection Management",
+        "category": "skill_gaps",
+        "description": "Real-time connection handling without dedicated patterns",
+        "trigger": "WebSocket features, streaming, live updates",
+        "severity": "medium",
+        "probability": 0.5,
+        "historical_occurrences": 5,
+        "related_skills": [],
+        "mitigation_strategy": "Need new skill: websocket-patterns",
+        "source_logs": [
+          "2025-12-29_194214_passive-discovery-filtering-interface-selector.md"
+        ]
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 1.5,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 50.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 1.5,
+        "debug_iterations": 5,
+        "context_switches": 3,
+        "success_rate": 50.0
+      },
+      "improvement": {
+        "time_saved_minutes": 0,
+        "time_saved_percentage": 0.0,
+        "error_reduction_percentage": 0.0,
+        "debug_iterations_saved": 0,
+        "success_rate_improvement": 0.0,
+        "overall_effectiveness": 0.0
+      },
+      "skill_applications": []
+    },
+    {
+      "edge_case": {
+        "id": "EC010",
+        "name": "Security Vulnerability Introduction",
+        "category": "skill_gaps",
+        "description": "Code change introduces security vulnerability without detection",
+        "trigger": "User input handling, API endpoint creation, file operations",
+        "severity": "critical",
+        "probability": 0.15,
+        "historical_occurrences": 2,
+        "related_skills": [
+          "backend-api"
+        ],
+        "mitigation_strategy": "Need new skill: security-patterns",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 120,
+        "error_rate": 0.45,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 85.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 73,
+        "error_rate": 0.25,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 47,
+        "time_saved_percentage": 39.2,
+        "error_reduction_percentage": 44.4,
+        "debug_iterations_saved": 1,
+        "success_rate_improvement": 14.0,
+        "overall_effectiveness": 64.4
+      },
+      "skill_applications": [
+        {
+          "skill_name": "backend-api",
+          "applicable": true,
+          "effectiveness": 0.644,
+          "time_saved_minutes": 2,
+          "errors_prevented": 1,
+          "coverage_percentage": 64.4
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC011",
+        "name": "Performance Regression",
+        "category": "skill_gaps",
+        "description": "Feature addition causes performance degradation",
+        "trigger": "Large list rendering, complex queries, inefficient algorithms",
+        "severity": "medium",
+        "probability": 0.25,
+        "historical_occurrences": 3,
+        "related_skills": [
+          "testing"
+        ],
+        "mitigation_strategy": "Need new skill: performance-patterns",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 0.75,
+        "debug_iterations": 4,
+        "context_switches": 2,
+        "success_rate": 75.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 19,
+        "error_rate": 0.43,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 93.2
+      },
+      "improvement": {
+        "time_saved_minutes": 11,
+        "time_saved_percentage": 36.7,
+        "error_reduction_percentage": 42.7,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 18.200000000000003,
+        "overall_effectiveness": 60.7
+      },
+      "skill_applications": [
+        {
+          "skill_name": "testing",
+          "applicable": true,
+          "effectiveness": 0.607,
+          "time_saved_minutes": 4,
+          "errors_prevented": 1,
+          "coverage_percentage": 60.7
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC012",
+        "name": "Database Migration Conflict",
+        "category": "skill_gaps",
+        "description": "Alembic migration conflicts or fails in production",
+        "trigger": "Multiple developers, schema changes, rollback scenarios",
+        "severity": "high",
+        "probability": 0.2,
+        "historical_occurrences": 2,
+        "related_skills": [
+          "backend-api"
+        ],
+        "mitigation_strategy": "Need new skill: database-patterns",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 0.6,
+        "debug_iterations": 4,
+        "context_switches": 2,
+        "success_rate": 80.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 35,
+        "error_rate": 0.31,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 25,
+        "time_saved_percentage": 41.7,
+        "error_reduction_percentage": 48.3,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 19.0,
+        "overall_effectiveness": 68.2
+      },
+      "skill_applications": [
+        {
+          "skill_name": "backend-api",
+          "applicable": true,
+          "effectiveness": 0.682,
+          "time_saved_minutes": 4,
+          "errors_prevented": 2,
+          "coverage_percentage": 68.2
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC013",
+        "name": "Circular Dependency Hell",
+        "category": "type_errors",
+        "description": "Module imports create circular dependencies breaking build",
+        "trigger": "Large refactoring, module extraction, lazy imports",
+        "severity": "high",
+        "probability": 0.1,
+        "historical_occurrences": 1,
+        "related_skills": [
+          "debugging",
+          "frontend-react",
+          "backend-api"
+        ],
+        "mitigation_strategy": "Dependency graph analysis, barrel file patterns, lazy imports",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 0.3,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 90.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 35,
+        "error_rate": 0.15,
+        "debug_iterations": 1,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 25,
+        "time_saved_percentage": 41.7,
+        "error_reduction_percentage": 50.0,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 9.0,
+        "overall_effectiveness": 69.2
+      },
+      "skill_applications": [
+        {
+          "skill_name": "debugging",
+          "applicable": true,
+          "effectiveness": 0.72,
+          "time_saved_minutes": 2,
+          "errors_prevented": 2,
+          "coverage_percentage": 72.0
+        },
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.675,
+          "time_saved_minutes": 2,
+          "errors_prevented": 2,
+          "coverage_percentage": 67.5
+        },
+        {
+          "skill_name": "backend-api",
+          "applicable": true,
+          "effectiveness": 0.682,
+          "time_saved_minutes": 2,
+          "errors_prevented": 2,
+          "coverage_percentage": 68.2
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC014",
+        "name": "Race Condition in Concurrent Updates",
+        "category": "state_management",
+        "description": "Multiple simultaneous updates cause data corruption",
+        "trigger": "Parallel API calls, optimistic updates, real-time collaboration",
+        "severity": "high",
+        "probability": 0.12,
+        "historical_occurrences": 1,
+        "related_skills": [
+          "backend-api",
+          "testing"
+        ],
+        "mitigation_strategy": "Optimistic locking, transaction isolation, idempotent operations",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 60,
+        "error_rate": 0.36,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 88.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 37,
+        "error_rate": 0.2,
+        "debug_iterations": 2,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 23,
+        "time_saved_percentage": 38.3,
+        "error_reduction_percentage": 44.4,
+        "debug_iterations_saved": 1,
+        "success_rate_improvement": 11.0,
+        "overall_effectiveness": 62.9
+      },
+      "skill_applications": [
+        {
+          "skill_name": "backend-api",
+          "applicable": true,
+          "effectiveness": 0.682,
+          "time_saved_minutes": 2,
+          "errors_prevented": 2,
+          "coverage_percentage": 68.2
+        },
+        {
+          "skill_name": "testing",
+          "applicable": true,
+          "effectiveness": 0.575,
+          "time_saved_minutes": 2,
+          "errors_prevented": 1,
+          "coverage_percentage": 57.5
+        }
+      ]
+    },
+    {
+      "edge_case": {
+        "id": "EC015",
+        "name": "Memory Leak in Long Sessions",
+        "category": "skill_gaps",
+        "description": "Component fails to cleanup, causing browser slowdown",
+        "trigger": "WebSocket subscriptions, event listeners, timers",
+        "severity": "medium",
+        "probability": 0.18,
+        "historical_occurrences": 2,
+        "related_skills": [
+          "frontend-react"
+        ],
+        "mitigation_strategy": "Need new skill: cleanup-patterns",
+        "source_logs": []
+      },
+      "without_skill": {
+        "resolution_time_minutes": 30,
+        "error_rate": 0.54,
+        "debug_iterations": 3,
+        "context_switches": 2,
+        "success_rate": 82.0
+      },
+      "with_skill": {
+        "resolution_time_minutes": 17,
+        "error_rate": 0.27,
+        "debug_iterations": 1,
+        "context_switches": 1,
+        "success_rate": 99
+      },
+      "improvement": {
+        "time_saved_minutes": 13,
+        "time_saved_percentage": 43.3,
+        "error_reduction_percentage": 50.0,
+        "debug_iterations_saved": 2,
+        "success_rate_improvement": 17.0,
+        "overall_effectiveness": 71.2
+      },
+      "skill_applications": [
+        {
+          "skill_name": "frontend-react",
+          "applicable": true,
+          "effectiveness": 0.712,
+          "time_saved_minutes": 3,
+          "errors_prevented": 2,
+          "coverage_percentage": 71.2
+        }
+      ]
+    }
+  ],
+  "proposed_skills": [
+    {
+      "name": "websocket-patterns",
+      "category": "Backend/Frontend",
+      "description": "Patterns for WebSocket connection management, reconnection, and message handling",
+      "trigger_scenarios": [
+        "Real-time data streaming features",
+        "Live updates (traffic monitoring, scan progress)",
+        "WebSocket connection lifecycle management"
+      ],
+      "checklist": [
+        "Connection lifecycle (open, message, close, error handlers)",
+        "Automatic reconnection with exponential backoff",
+        "Message buffering during disconnection",
+        "Cleanup on component unmount",
+        "Connection state tracking"
+      ],
+      "examples": [
+        "WebSocket with React hook pattern",
+        "Reconnection strategy implementation",
+        "Message queue with offline support"
+      ],
+      "priority": "high",
+      "estimated_impact": 0.75
+    },
+    {
+      "name": "security-patterns",
+      "category": "Security",
+      "description": "Security-first development patterns including input validation, authentication, and secure coding",
+      "trigger_scenarios": [
+        "User input handling",
+        "API endpoint creation with auth",
+        "File upload/download features",
+        "Credential management"
+      ],
+      "checklist": [
+        "Input sanitization for all user data",
+        "Parameterized queries (no SQL injection)",
+        "JWT token validation on protected routes",
+        "CORS configuration review",
+        "Secret management (env vars, not code)"
+      ],
+      "examples": [
+        "Input validation middleware",
+        "JWT auth decorator pattern",
+        "Secure file upload handling"
+      ],
+      "priority": "critical",
+      "estimated_impact": 0.85
+    },
+    {
+      "name": "performance-patterns",
+      "category": "Optimization",
+      "description": "Performance optimization patterns for frontend rendering and backend queries",
+      "trigger_scenarios": [
+        "Large list rendering (100+ items)",
+        "Complex database queries",
+        "Heavy computation in request handlers"
+      ],
+      "checklist": [
+        "React virtualization for long lists",
+        "useMemo/useCallback for expensive computations",
+        "Database query optimization (indexes, eager loading)",
+        "Pagination for large datasets",
+        "Lazy loading for non-critical components"
+      ],
+      "examples": [
+        "Virtual list implementation",
+        "Query optimization with EXPLAIN ANALYZE",
+        "Code splitting with React.lazy"
+      ],
+      "priority": "medium",
+      "estimated_impact": 0.65
+    },
+    {
+      "name": "database-patterns",
+      "category": "Backend",
+      "description": "Database migration and schema change patterns for safe production deployments",
+      "trigger_scenarios": [
+        "Schema changes (add/remove columns)",
+        "Data migrations",
+        "Multi-developer migration conflicts"
+      ],
+      "checklist": [
+        "Create migration with descriptive name",
+        "Test upgrade and downgrade paths",
+        "Handle existing data gracefully",
+        "Check for index creation on large tables",
+        "Coordinate with team on migration order"
+      ],
+      "examples": [
+        "Adding nullable column safely",
+        "Renaming column with data preservation",
+        "Creating index concurrently"
+      ],
+      "priority": "high",
+      "estimated_impact": 0.7
+    },
+    {
+      "name": "cleanup-patterns",
+      "category": "Frontend",
+      "description": "Resource cleanup patterns to prevent memory leaks and stale state",
+      "trigger_scenarios": [
+        "Components with subscriptions",
+        "Timers and intervals in components",
+        "Event listeners on window/document",
+        "WebSocket connections in components"
+      ],
+      "checklist": [
+        "useEffect cleanup return function",
+        "AbortController for fetch requests",
+        "Clear timeouts and intervals",
+        "Remove event listeners",
+        "Unsubscribe from stores"
+      ],
+      "examples": [
+        "WebSocket cleanup hook",
+        "AbortController pattern for API calls",
+        "Timer cleanup in useEffect"
+      ],
+      "priority": "medium",
+      "estimated_impact": 0.6
+    },
+    {
+      "name": "protocol-enforcement",
+      "category": "Meta/Process",
+      "description": "Patterns for ensuring agent protocol compliance through blocking gates and validation",
+      "trigger_scenarios": [
+        "Starting new work sessions",
+        "Multi-step complex tasks",
+        "Context switching between tasks"
+      ],
+      "checklist": [
+        "Emit [SESSION:] before any work",
+        "Load knowledge and emit [AKIS]",
+        "Declare [PHASE:] progression",
+        "Track skill usage with [SKILL:]",
+        "Complete with [COMPLETE:]"
+      ],
+      "examples": [
+        "Session start protocol",
+        "Phase transition checklist",
+        "Context preservation on interrupt"
+      ],
+      "priority": "critical",
+      "estimated_impact": 0.9
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      "Create websocket-patterns skill (priority: high)",
+      "Create security-patterns skill (priority: critical)",
+      "Create database-patterns skill (priority: high)",
+      "Create protocol-enforcement skill (priority: critical)"
+    ],
+    "short_term": [
+      "Improve knowledge-management effectiveness for Multi-Session Context Loss"
+    ],
+    "long_term": [
+      "Implement automated protocol enforcement",
+      "Create skill effectiveness dashboard",
+      "Integrate edge case simulation in CI/CD"
+    ]
+  }
+}
