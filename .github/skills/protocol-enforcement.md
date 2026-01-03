@@ -181,8 +181,12 @@ def validate_session(log: str) -> bool:
 
 ## Compliance Metrics
 
-| Metric | Target | Current (baseline) |
-|--------|--------|-------------------|
+These baselines were measured from 29 historical workflow logs (2025-12-28 to 2026-01-02) 
+before the protocol enforcement skill was created. With this skill applied, compliance 
+should improve significantly (target: 85%+).
+
+| Metric | Target | Baseline (historical) |
+|--------|--------|----------------------|
 | SESSION emission | 100% | 15.8% |
 | AKIS loading | 100% | 6.9% |
 | Phase tracking | 100% | 13.7% |

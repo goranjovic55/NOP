@@ -6,7 +6,7 @@ Simulates edge case scenarios based on historical workflow patterns and measures
 the effectiveness of skills in handling various situations.
 
 Features:
-- Extracts patterns from 48+ historical workflow logs
+- Extracts patterns from historical workflow logs
 - Generates edge case scenarios from real patterns
 - Simulates scenarios with/without skill application
 - Measures improvement metrics
@@ -28,7 +28,6 @@ from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass, asdict
 from collections import defaultdict
-import random
 
 # ============================================================================
 # DATA STRUCTURES

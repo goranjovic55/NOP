@@ -151,9 +151,9 @@ def analyze_skill(skill_data: Dict[str, Any]) -> SkillMetrics:
         trigger_clarity=round(trigger_clarity, 1),
         checklist_coverage=round(checklist_coverage, 1),
         overall_score=round(overall_score, 1),
-        usage_count=0,  # Would be populated from workflow logs
-        success_rate=0.0,  # Would be calculated from outcomes
-        time_impact_minutes=0,  # Would be measured
+        usage_count=0,  # Populated from workflow log skill mentions
+        success_rate=0.0,  # Calculated from workflow log outcomes (success/partial/failure)
+        time_impact_minutes=0,  # Estimated based on skill effectiveness and task complexity
         areas_of_improvement=improvements
     )
 

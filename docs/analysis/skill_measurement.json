@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-03T09:47:56.389037",
+  "generated_at": "2026-01-03T09:53:04.907468",
   "skills": [
     {
       "name": "backend-api",
@@ -23,8 +23,8 @@
       "trigger_clarity": 100,
       "checklist_coverage": 90,
       "overall_score": 97.5,
-      "usage_count": 0,
-      "success_rate": 0.0,
+      "usage_count": 1,
+      "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
     },
@@ -35,8 +35,8 @@
       "trigger_clarity": 100,
       "checklist_coverage": 100,
       "overall_score": 100.0,
-      "usage_count": 0,
-      "success_rate": 0.0,
+      "usage_count": 1,
+      "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
     },
@@ -62,7 +62,7 @@
       "trigger_clarity": 0,
       "checklist_coverage": 100,
       "overall_score": 71.7,
-      "usage_count": 20,
+      "usage_count": 21,
       "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": [
@@ -142,7 +142,7 @@
       "trigger_clarity": 0,
       "checklist_coverage": 0,
       "overall_score": 42.5,
-      "usage_count": 2,
+      "usage_count": 3,
       "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": [
@@ -173,8 +173,8 @@
       "trigger_clarity": 100,
       "checklist_coverage": 100,
       "overall_score": 100.0,
-      "usage_count": 0,
-      "success_rate": 0.0,
+      "usage_count": 1,
+      "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
     },
@@ -185,7 +185,7 @@
       "trigger_clarity": 100,
       "checklist_coverage": 90,
       "overall_score": 97.5,
-      "usage_count": 3,
+      "usage_count": 4,
       "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
@@ -197,8 +197,8 @@
       "trigger_clarity": 100,
       "checklist_coverage": 100,
       "overall_score": 100.0,
-      "usage_count": 0,
-      "success_rate": 0.0,
+      "usage_count": 1,
+      "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
     },
@@ -209,7 +209,7 @@
       "trigger_clarity": 0,
       "checklist_coverage": 60,
       "overall_score": 57.5,
-      "usage_count": 21,
+      "usage_count": 22,
       "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": [
@@ -225,8 +225,8 @@
       "trigger_clarity": 100,
       "checklist_coverage": 90,
       "overall_score": 97.5,
-      "usage_count": 0,
-      "success_rate": 0.0,
+      "usage_count": 1,
+      "success_rate": 100.0,
       "time_impact_minutes": 0,
       "areas_of_improvement": []
     }

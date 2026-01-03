@@ -49,6 +49,9 @@ class UserInput(BaseModel):
 ### Parameterized Queries (SQLAlchemy)
 ```python
 # ❌ VULNERABLE - SQL Injection
+# DANGER: If username = "'; DROP TABLE users; --" the query becomes:
+# SELECT * FROM users WHERE username = ''; DROP TABLE users; --'
+# This allows attackers to execute arbitrary SQL commands!
 async def get_user_bad(username: str, db: AsyncSession):
     result = await db.execute(text(f"SELECT * FROM users WHERE username = '{username}'"))
     return result.fetchone()
