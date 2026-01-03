@@ -174,7 +174,10 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
-  const [activeTab, setActiveTab] = useLocalStorageString('nop_traffic_active_tab', 'capture');
+  const [activeTab, setActiveTab] = useLocalStorageString('nop_traffic_active_tab', 'capture') as [
+    'capture' | 'ping' | 'craft' | 'storm',
+    (value: string) => void
+  ];
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
   const [selectedIface, setSelectedIface] = useState<string>('');
