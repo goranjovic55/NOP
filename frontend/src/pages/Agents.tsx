@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { agentService, Agent, AgentCreate } from '../services/agentService';
@@ -6,8 +7,11 @@ import { agentService, Agent, AgentCreate } from '../services/agentService';
 const Agents: React.FC = () => {
   const { token } = useAuthStore();
   const { activeAgent, setActiveAgent } = usePOV();
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedAgentForSettings, setSelectedAgentForSettings] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(false);
   const [newAgent, setNewAgent] = useState<AgentCreate>({
     name: '',
@@ -118,10 +122,38 @@ const Agents: React.FC = () => {
   };
 
   const handleSwitchPOV = (agent: Agent) => {
-    if (activeAgent?.id === agent.id) {
-      setActiveAgent(null);
-    } else {
-      setActiveAgent(agent);
+    // Set agent POV and navigate to dashboard
+    setActiveAgent(agent);
+    navigate('/dashboard');
+  };
+
+  const handleOpenSettings = (agent: Agent, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    setSelectedAgentForSettings(agent);
+    setShowSettingsModal(true);
+  };
+
+  const handleSaveAgentSettings = async () => {
+    if (!token || !selectedAgentForSettings) return;
+    setLoading(true);
+    try {
+      // Update agent settings via API
+      await agentService.updateAgent(token, selectedAgentForSettings.id, {
+        connection_url: selectedAgentForSettings.connection_url,
+        metadata: selectedAgentForSettings.metadata
+      });
+      
+      // Update local state
+      setAgents(agents.map(a => 
+        a.id === selectedAgentForSettings.id ? selectedAgentForSettings : a
+      ));
+      
+      setShowSettingsModal(false);
+      setSelectedAgentForSettings(null);
+    } catch (error) {
+      console.error('Failed to update agent settings:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,15 +227,29 @@ const Agents: React.FC = () => {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className={`bg-cyber-dark border p-6 relative ${
+            onClick={() => handleSwitchPOV(agent)}
+            className={`bg-cyber-dark border p-6 relative cursor-pointer ${
               activeAgent?.id === agent.id
                 ? 'border-cyber-purple shadow-lg shadow-cyber-purple/50'
+                : agent.status === 'online'
+                ? 'border-cyber-green hover:border-cyber-blue hover:shadow-lg hover:shadow-cyber-blue/30'
                 : 'border-cyber-gray hover:border-cyber-blue'
             } transition-all duration-300`}
           >
-            {/* Status Indicator */}
-            <div className="absolute top-4 right-4">
-              <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)}`}></div>
+            {/* Settings Button */}
+            <button
+              onClick={(e) => handleOpenSettings(agent, e)}
+              className="absolute top-4 right-12 text-cyber-gray-light hover:text-cyber-blue transition-colors text-xl"
+              title="Agent Settings"
+            >
+              ⚙
+            </button>
+
+            {/* Status Indicator - Prominent */}
+            <div className="absolute top-4 right-4 flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)} ${
+                agent.status === 'online' ? 'animate-pulse' : ''
+              }`}></div>
             </div>
 
             {/* Agent Info */}
@@ -221,20 +267,26 @@ const Agents: React.FC = () => {
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-cyber-gray-light">Type:</span>
                   <span className="text-white uppercase">{agent.agent_type}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-cyber-gray-light">Status:</span>
-                  <span className={`uppercase font-bold ${
-                    agent.status === 'online' ? 'text-cyber-green' :
-                    agent.status === 'offline' ? 'text-cyber-gray' :
-                    agent.status === 'error' ? 'text-cyber-red' :
-                    'text-cyber-yellow'
-                  }`}>
-                    {getStatusText(agent.status)}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(agent.status)}`}></div>
+                    <span className={`uppercase font-bold text-xs ${
+                      agent.status === 'online' ? 'text-cyber-green' :
+                      agent.status === 'offline' ? 'text-cyber-gray' :
+                      agent.status === 'error' ? 'text-cyber-red' :
+                      'text-cyber-yellow'
+                    }`}>
+                      {agent.status === 'online' ? '● CONNECTED' : 
+                       agent.status === 'offline' ? '○ OFFLINE' : 
+                       agent.status === 'error' ? '✖ ERROR' : 
+                       '◌ DISCONNECTED'}
+                    </span>
+                  </div>
                 </div>
                 {agent.last_seen && (
                   <div className="flex justify-between">
@@ -311,30 +363,18 @@ const Agents: React.FC = () => {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="border-t border-cyber-gray pt-3 flex gap-2">
-                <button
-                  onClick={() => handleGenerateAgent(agent)}
-                  className="flex-1 px-3 py-2 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all duration-300 text-xs uppercase"
-                >
-                  Download
-                </button>
-                <button
-                  onClick={() => handleSwitchPOV(agent)}
-                  className={`flex-1 px-3 py-2 border transition-all duration-300 text-xs uppercase ${
-                    activeAgent?.id === agent.id
-                      ? 'border-cyber-purple bg-cyber-purple text-white'
-                      : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-white'
-                  }`}
-                >
-                  {activeAgent?.id === agent.id ? 'Active POV' : 'Switch POV'}
-                </button>
-                <button
-                  onClick={() => handleDeleteAgent(agent.id)}
-                  className="px-3 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all duration-300 text-xs uppercase"
-                >
-                  ×
-                </button>
+              {/* Click to Open Indicator */}
+              <div className="border-t border-cyber-gray pt-3 mt-3">
+                <div className="text-center text-cyber-blue text-xs uppercase tracking-wide">
+                  {agent.status === 'online' ? (
+                    <span className="flex items-center justify-center space-x-2">
+                      <span>Click to View Agent POV</span>
+                      <span className="text-lg">→</span>
+                    </span>
+                  ) : (
+                    <span className="text-cyber-gray-light">Agent Offline - Deploy to Connect</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -499,6 +539,178 @@ const Agents: React.FC = () => {
                 disabled={loading || !newAgent.name}
               >
                 {loading ? 'Creating...' : 'Create Agent'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Agent Settings Modal */}
+      {showSettingsModal && selectedAgentForSettings && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-cyber-dark border border-cyber-blue max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-cyber-darker border-b border-cyber-blue p-4 flex items-center justify-between sticky top-0">
+              <h3 className="text-cyber-blue font-bold text-xl uppercase tracking-wide">
+                Agent Configuration - {selectedAgentForSettings.name}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  setSelectedAgentForSettings(null);
+                }}
+                className="text-cyber-blue hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Connection Configuration */}
+              <div>
+                <h4 className="text-cyber-green font-bold uppercase text-sm mb-3">Connection Settings</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
+                      Connectback Server URL
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedAgentForSettings.connection_url}
+                      onChange={(e) => setSelectedAgentForSettings({
+                        ...selectedAgentForSettings,
+                        connection_url: e.target.value
+                      })}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue font-mono text-sm"
+                      placeholder="ws://your-server:12001/api/v1/agents/{agent_id}/connect"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Configuration */}
+              <div>
+                <h4 className="text-cyber-green font-bold uppercase text-sm mb-3">Schedule Settings</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
+                      Connectback Interval (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedAgentForSettings.metadata?.connectback_interval || 30}
+                      onChange={(e) => setSelectedAgentForSettings({
+                        ...selectedAgentForSettings,
+                        metadata: {
+                          ...selectedAgentForSettings.metadata,
+                          connectback_interval: parseInt(e.target.value)
+                        }
+                      })}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
+                      min="5"
+                      max="3600"
+                    />
+                    <p className="text-cyber-gray-light text-xs mt-1">
+                      How often agent attempts to reconnect (5-3600 seconds)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
+                      Heartbeat Interval (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedAgentForSettings.metadata?.heartbeat_interval || 30}
+                      onChange={(e) => setSelectedAgentForSettings({
+                        ...selectedAgentForSettings,
+                        metadata: {
+                          ...selectedAgentForSettings.metadata,
+                          heartbeat_interval: parseInt(e.target.value)
+                        }
+                      })}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
+                      min="10"
+                      max="300"
+                    />
+                    <p className="text-cyber-gray-light text-xs mt-1">
+                      Heartbeat frequency when connected (10-300 seconds)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-cyber-gray-light text-sm uppercase mb-2">
+                      Data Collection Interval (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedAgentForSettings.metadata?.data_interval || 60}
+                      onChange={(e) => setSelectedAgentForSettings({
+                        ...selectedAgentForSettings,
+                        metadata: {
+                          ...selectedAgentForSettings.metadata,
+                          data_interval: parseInt(e.target.value)
+                        }
+                      })}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-blue"
+                      min="30"
+                      max="3600"
+                    />
+                    <p className="text-cyber-gray-light text-xs mt-1">
+                      How often agent collects and sends data (30-3600 seconds)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Download & Delete Actions */}
+              <div className="border-t border-cyber-gray pt-4">
+                <h4 className="text-cyber-yellow font-bold uppercase text-sm mb-3">Actions</h4>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      handleGenerateAgent(selectedAgentForSettings);
+                      setShowSettingsModal(false);
+                    }}
+                    className="flex-1 px-4 py-2 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white transition-all duration-300 uppercase text-sm"
+                  >
+                    Re-Download Agent
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Delete agent "${selectedAgentForSettings.name}"?`)) {
+                        handleDeleteAgent(selectedAgentForSettings.id);
+                        setShowSettingsModal(false);
+                        setSelectedAgentForSettings(null);
+                      }
+                    }}
+                    className="px-4 py-2 border border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white transition-all duration-300 uppercase text-sm"
+                  >
+                    Delete Agent
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-cyber-gray p-4 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  setSelectedAgentForSettings(null);
+                }}
+                className="px-6 py-2 border border-cyber-gray text-cyber-gray-light hover:border-white hover:text-white transition-all duration-300 uppercase"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAgentSettings}
+                className="px-6 py-2 bg-cyber-blue border border-cyber-blue-dark text-white font-bold uppercase tracking-wide hover:bg-cyber-blue-dark transition-all duration-300 disabled:opacity-50"
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
           </div>
