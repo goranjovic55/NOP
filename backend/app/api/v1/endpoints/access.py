@@ -377,7 +377,11 @@ async def guacamole_tunnel(
         "height": str(height),
         "dpi": str(dpi),
         "ignore-cert": "true",
-        "security": "any"
+        "security": "any",
+        "color-depth": "16",  # 16-bit color to avoid black screen
+        "enable-wallpaper": "false",  # Disable wallpaper for better performance
+        "enable-theming": "false",  # Disable theming
+        "enable-font-smoothing": "false"  # Disable font smoothing
     }
     
     logger.debug(f"[ACCESS-TUNNEL] Connection args prepared (password hidden)")
@@ -481,7 +485,15 @@ async def http_tunnel_connect(
         "height": str(height),
         "dpi": str(dpi),
         "ignore-cert": "true",
-        "security": "any"
+        "security": "any",
+        "color-depth": "16",
+        "enable-wallpaper": "false",
+        "enable-theming": "false",
+        "enable-font-smoothing": "false",
+        "enable-desktop-composition": "false",
+        "disable-audio": "true",
+        "enable-printing": "false",
+        "enable-drive": "false"
     }
     
     try:
