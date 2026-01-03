@@ -986,42 +986,154 @@ const Agents: React.FC = () => {
 
             {/* Panel Content */}
             <div className="p-4 space-y-4">
-              {/* Agent Overview */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Overview</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-cyber-gray-light text-xs uppercase">Name:</span>
-                    <span className="text-white font-bold text-sm">{sidebarAgent.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-cyber-gray-light text-xs uppercase">Type:</span>
-                    <span className="text-white text-sm uppercase">{sidebarAgent.agent_type}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
-                    <div className="flex items-center space-x-2">
-                      <span className={`w-2 h-2 rounded-full ${getStatusColor(sidebarAgent.status)} ${
-                        sidebarAgent.status === 'online' ? 'animate-pulse' : ''
-                      }`}></span>
-                      <span className={`text-sm uppercase font-bold ${
-                        sidebarAgent.status === 'online' ? 'text-cyber-green' : 'text-cyber-gray-light'
-                      }`}>
-                        {getStatusText(sidebarAgent.status)}
-                      </span>
+              {/* Connected Agent: Operational Details */}
+              {sidebarAgent.last_seen ? (
+                <>
+                  {/* Live Status */}
+                  <div className="bg-cyber-dark border border-cyber-green rounded p-4">
+                    <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs flex items-center">
+                      <span className="mr-2">●</span>
+                      Live Agent Status
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Agent Name:</span>
+                        <span className="text-white font-bold text-sm">{sidebarAgent.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className={`w-2 h-2 rounded-full ${getStatusColor(sidebarAgent.status)} animate-pulse`}></span>
+                          <span className="text-cyber-green text-sm uppercase font-bold">
+                            {getStatusText(sidebarAgent.status)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Uptime:</span>
+                        <span className="text-cyber-green text-sm font-mono">{formatUptime(sidebarAgent.connected_at || '')}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Last Heartbeat:</span>
+                        <span className="text-white text-sm">{formatLastSeen(sidebarAgent.last_seen)}</span>
+                      </div>
                     </div>
                   </div>
-                  {sidebarAgent.description && (
-                    <div className="pt-2 border-t border-cyber-gray">
-                      <span className="text-cyber-gray-light text-xs uppercase">Description:</span>
-                      <p className="text-white text-sm mt-1">{sidebarAgent.description}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Agent Credentials & Download */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                  {/* Network Info */}
+                  <div className="bg-cyber-dark border border-cyber-blue rounded p-4">
+                    <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Network Information</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-cyber-gray-light text-xs uppercase block mb-1">Agent IP Address:</span>
+                        <code className="block bg-cyber-black border border-cyber-blue px-3 py-2 text-cyber-blue text-sm font-mono">
+                          {getAgentIP(sidebarAgent)}
+                        </code>
+                      </div>
+                      <div>
+                        <span className="text-cyber-gray-light text-xs uppercase block mb-1">Connection Endpoint:</span>
+                        <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono break-all">
+                          {sidebarAgent.connection_url}
+                        </code>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-cyber-gray-light text-xs uppercase">Connected Since:</span>
+                        <span className="text-white text-sm">{sidebarAgent.connected_at ? new Date(sidebarAgent.connected_at).toLocaleString() : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Modules */}
+                  <div className="bg-cyber-dark border border-cyber-purple rounded p-4">
+                    <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Active Modules</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {sidebarAgent.capabilities.asset && (
+                        <div className="bg-cyber-blue/20 border border-cyber-blue text-cyber-blue px-3 py-2 text-xs uppercase text-center font-bold">
+                          ◈ Asset Discovery
+                        </div>
+                      )}
+                      {sidebarAgent.capabilities.traffic && (
+                        <div className="bg-cyber-green/20 border border-cyber-green text-cyber-green px-3 py-2 text-xs uppercase text-center font-bold">
+                          ≋ Traffic Monitor
+                        </div>
+                      )}
+                      {sidebarAgent.capabilities.host && (
+                        <div className="bg-cyber-yellow/20 border border-cyber-yellow text-cyber-yellow px-3 py-2 text-xs uppercase text-center font-bold">
+                          ◐ Host Intel
+                        </div>
+                      )}
+                      {sidebarAgent.capabilities.access && (
+                        <div className="bg-cyber-red/20 border border-cyber-red text-cyber-red px-3 py-2 text-xs uppercase text-center font-bold">
+                          ⬡ Remote Access
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* POV Action */}
+                  <div className="bg-cyber-purple/10 border border-cyber-purple rounded p-4">
+                    <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Point of View</h4>
+                    <p className="text-cyber-gray-light text-xs mb-3">
+                      Switch to this agent's perspective to see only data collected by this agent.
+                    </p>
+                    {activeAgent?.id === sidebarAgent.id ? (
+                      <button
+                        onClick={() => {
+                          setActiveAgent(null);
+                          setShowSidebar(false);
+                        }}
+                        className="w-full px-4 py-2 bg-cyber-purple border border-cyber-purple text-white uppercase text-sm font-bold hover:bg-cyber-purple-dark transition"
+                      >
+                        ✓ Currently in POV - Click to Exit
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          handleSwitchPOV(sidebarAgent);
+                          setShowSidebar(false);
+                        }}
+                        className="w-full px-4 py-2 border border-cyber-purple text-cyber-purple uppercase text-sm font-bold hover:bg-cyber-purple hover:text-white transition"
+                      >
+                        → Enter Agent POV
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Template Agent: Configuration Details */
+                <>
+                  {/* Agent Overview */}
+                  <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+                    <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs">Agent Template</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Name:</span>
+                        <span className="text-white font-bold text-sm">{sidebarAgent.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Type:</span>
+                        <span className="text-white text-sm uppercase">{sidebarAgent.agent_type}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-2 h-2 rounded-full bg-cyber-gray"></span>
+                          <span className="text-cyber-gray-light text-sm uppercase font-bold">
+                            Template Only
+                          </span>
+                        </div>
+                      </div>
+                      {sidebarAgent.description && (
+                        <div className="pt-2 border-t border-cyber-gray">
+                          <span className="text-cyber-gray-light text-xs uppercase">Description:</span>
+                          <p className="text-white text-sm mt-1">{sidebarAgent.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Agent Credentials & Download */}
+                  <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
                 <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs flex items-center">
                   <span className="mr-2">🔐</span>
                   Credentials & Download
@@ -1154,9 +1266,9 @@ const Agents: React.FC = () => {
                 </div>
               </div>
 
-              {/* Capabilities */}
+              {/* Template Capabilities */}
               <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs">Capabilities</h4>
+                <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs">Template Capabilities</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div className={`p-2 border rounded text-center ${
                     sidebarAgent.capabilities.asset 
@@ -1225,130 +1337,10 @@ const Agents: React.FC = () => {
                 </div>
               </div>
 
-              {/* Agent Details */}
-              <div className="bg-cyber-darker border border-cyber-blue rounded p-4">
-                <h4 className="text-cyber-blue font-bold uppercase mb-3 text-xs flex items-center justify-between">
-                  <span>Agent Information</span>
-                  <span className={`w-2 h-2 rounded-full ${getStatusColor(sidebarAgent.status)} ${
-                    sidebarAgent.status === 'online' ? 'animate-pulse' : ''
-                  }`}></span>
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-cyber-gray-light text-xs uppercase">Type:</span>
-                    <span className="text-white text-sm flex items-center space-x-1">
-                      <span>{getTypeIcon(sidebarAgent.agent_type)}</span>
-                      <span className="uppercase">{sidebarAgent.agent_type}</span>
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
-                    <span className={`text-sm uppercase font-bold ${
-                      sidebarAgent.status === 'online' ? 'text-cyber-green' : 
-                      sidebarAgent.status === 'disconnected' ? 'text-cyber-yellow' : 'text-cyber-red'
-                    }`}>
-                      {sidebarAgent.status}
-                    </span>
-                  </div>
-                  {sidebarAgent.connected_at && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyber-gray-light text-xs uppercase">Uptime:</span>
-                      <span className="text-cyber-green text-sm font-mono">{formatUptime(sidebarAgent.connected_at)}</span>
-                    </div>
-                  )}
-                  {sidebarAgent.connected_at && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyber-gray-light text-xs uppercase">Connected:</span>
-                      <span className="text-white text-sm">{new Date(sidebarAgent.connected_at).toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Network Information */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Network Details</h4>
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Agent IP:</span>
-                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-blue text-xs font-mono">
-                      {getAgentIP(sidebarAgent)}
-                    </code>
-                  </div>
-                  <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">Connection URL:</span>
-                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono break-all">
-                      {sidebarAgent.connection_url}
-                    </code>
-                  </div>
-                  {sidebarAgent.last_seen && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyber-gray-light text-xs uppercase">Last Heartbeat:</span>
-                      <span className="text-white text-sm">{formatLastSeen(sidebarAgent.last_seen)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Capabilities */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-green font-bold uppercase mb-3 text-xs">Enabled Modules</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {sidebarAgent.capabilities.asset && (
-                    <div className="bg-cyber-blue/20 border border-cyber-blue text-cyber-blue px-2 py-1 text-xs uppercase text-center">
-                      ◈ Asset
-                    </div>
-                  )}
-                  {sidebarAgent.capabilities.traffic && (
-                    <div className="bg-cyber-green/20 border border-cyber-green text-cyber-green px-2 py-1 text-xs uppercase text-center">
-                      ≋ Traffic
-                    </div>
-                  )}
-                  {sidebarAgent.capabilities.host && (
-                    <div className="bg-cyber-yellow/20 border border-cyber-yellow text-cyber-yellow px-2 py-1 text-xs uppercase text-center">
-                      ◐ Host
-                    </div>
-                  )}
-                  {sidebarAgent.capabilities.access && (
-                    <div className="bg-cyber-red/20 border border-cyber-red text-cyber-red px-2 py-1 text-xs uppercase text-center">
-                      ⬡ Access
-                    </div>
-                  )}
-                </div>
-                {!sidebarAgent.capabilities.asset && !sidebarAgent.capabilities.traffic && 
-                 !sidebarAgent.capabilities.host && !sidebarAgent.capabilities.access && (
-                  <div className="text-cyber-gray-light text-xs text-center">No modules enabled</div>
-                )}
-              </div>
-
-              {/* Connection Info */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-purple font-bold uppercase mb-3 text-xs">Connection</h4>
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-cyber-gray-light text-xs uppercase block mb-1">URL:</span>
-                    <code className="block bg-cyber-black border border-cyber-gray px-2 py-1 text-cyber-green text-xs font-mono break-all">
-                      {sidebarAgent.connection_url}
-                    </code>
-                  </div>
-                  {sidebarAgent.last_seen ? (
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyber-gray-light text-xs uppercase">Last Seen:</span>
-                      <span className="text-white text-sm">{formatLastSeen(sidebarAgent.last_seen)}</span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyber-gray-light text-xs uppercase">Status:</span>
-                      <span className="text-cyber-yellow text-sm uppercase">Never Connected</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Schedule Settings */}
               {sidebarAgent.agent_metadata && (
                 <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                  <h4 className="text-cyber-yellow font-bold uppercase mb-3 text-xs">Schedule Settings</h4>
+                  <h4 className="text-cyber-yellow font-bold uppercase mb-3 text-xs">Schedule Configuration</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-cyber-gray-light text-xs uppercase">Strategy:</span>
@@ -1378,7 +1370,7 @@ const Agents: React.FC = () => {
 
               {/* Security Settings */}
               <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-cyber-red font-bold uppercase mb-3 text-xs">Security</h4>
+                <h4 className="text-cyber-red font-bold uppercase mb-3 text-xs">Security Configuration</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-cyber-gray-light text-xs uppercase">Obfuscation:</span>
@@ -1399,46 +1391,21 @@ const Agents: React.FC = () => {
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Template Actions */}
               <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
-                <h4 className="text-white font-bold uppercase mb-3 text-xs">Actions</h4>
+                <h4 className="text-white font-bold uppercase mb-3 text-xs">Template Actions</h4>
                 <div className="space-y-2">
-                  {sidebarAgent.last_seen && (
-                    <>
-                      {activeAgent?.id === sidebarAgent.id ? (
-                        <button
-                          onClick={() => {
-                            setActiveAgent(null);
-                            setShowSidebar(false);
-                          }}
-                          className="w-full px-4 py-2 bg-cyber-purple border border-cyber-purple text-white uppercase text-sm hover:bg-cyber-purple-dark transition"
-                        >
-                          Exit POV
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            handleSwitchPOV(sidebarAgent);
-                            setShowSidebar(false);
-                          }}
-                          className="w-full px-4 py-2 border border-cyber-purple text-cyber-purple uppercase text-sm hover:bg-cyber-purple hover:text-white transition"
-                        >
-                          Switch POV
-                        </button>
-                      )}
-                    </>
-                  )}
                   <button
                     onClick={() => {
                       handleGenerateAgent(sidebarAgent);
                     }}
                     className="w-full px-4 py-2 border border-cyber-blue text-cyber-blue uppercase text-sm hover:bg-cyber-blue hover:text-white transition"
                   >
-                    {sidebarAgent.last_seen ? 'Re-Download' : 'Download'} Agent
+                    Download Agent
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm(`Delete agent "${sidebarAgent.name}"?\\n\\nThis action cannot be undone.`)) {
+                      if (window.confirm(`Delete agent template "${sidebarAgent.name}"?\\n\\nThis action cannot be undone.`)) {
                         handleDeleteAgent(sidebarAgent.id);
                         setShowSidebar(false);
                         setSidebarAgent(null);
@@ -1446,13 +1413,15 @@ const Agents: React.FC = () => {
                     }}
                     className="w-full px-4 py-2 border border-cyber-red text-cyber-red uppercase text-sm hover:bg-cyber-red hover:text-white transition"
                   >
-                    Delete Agent
+                    Delete Template
                   </button>
                 </div>
               </div>
+            </>
+          )}
 
-              {/* Metadata */}
-              <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
+          {/* Common Metadata - Shown for both connected and template agents */}
+          <div className="bg-cyber-dark border border-cyber-gray rounded p-4">
                 <h4 className="text-cyber-gray-light font-bold uppercase mb-3 text-xs">Metadata</h4>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">

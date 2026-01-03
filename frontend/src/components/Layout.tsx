@@ -175,19 +175,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </h1>
             <div className="flex items-center space-x-6">
               {activeAgent && (
-                <div className="flex items-center space-x-3 bg-cyber-purple/10 border border-cyber-purple px-4 py-2 rounded">
+                <div className="flex items-center space-x-3 bg-cyber-purple/20 border-2 border-cyber-purple px-5 py-2 rounded cyber-glow-purple shadow-lg shadow-cyber-purple/50">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse"></div>
-                    <span className="text-cyber-purple text-sm font-medium tracking-wide uppercase">
+                    <span className="text-cyber-purple text-sm font-bold tracking-wide uppercase">
                       Agent POV: {activeAgent.name}
                     </span>
                   </div>
                   <button
                     onClick={() => setActiveAgent(null)}
-                    className="px-3 py-1 bg-cyber-purple/20 border border-cyber-purple text-cyber-purple text-xs uppercase hover:bg-cyber-purple hover:text-white transition"
+                    className="px-4 py-1.5 bg-cyber-purple border-2 border-cyber-purple text-white text-xs uppercase font-bold hover:bg-cyber-purple-dark hover:border-cyber-purple-light transition cyber-glow-purple flex items-center space-x-1"
                     title="Exit Agent POV and return to global view"
                   >
-                    Exit POV
+                    <span>✕</span>
+                    <span>Exit POV</span>
                   </button>
                 </div>
               )}
