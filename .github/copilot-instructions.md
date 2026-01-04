@@ -131,11 +131,13 @@ LEARN → COMPLETE
 
 **Purpose**: Analyze all workflow logs to standardize skills, organize docs, and improve framework
 
-**Trigger**: After 10+ sessions or periodically (monthly)
+**Trigger**: After 30-50 sessions or periodically (monthly) - **Manual maintenance task, NOT part of regular LEARN phase**
 
 **Workflow**: Follow `.github/prompts/akis-workflow-analyzer.md`
 
 **Script**: `python .github/scripts/analyze_workflows.py`
+
+**Important**: This is a separate maintenance workflow that runs independently outside of regular sessions to analyze patterns across multiple sessions.
 
 **Outputs**:
 - Skill candidates from recurring patterns

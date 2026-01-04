@@ -3,23 +3,29 @@
 **Purpose**: Analyze all workflow sessions, identify patterns, and propose improvements to the AKIS framework including documentation, instructions, skills, and knowledge.
 
 **When to Use**: 
-- At the end of major feature development cycles
-- After accumulating 10+ new workflow logs
+- After accumulating 30-50 new workflow logs
+- Periodically (e.g., monthly) for framework maintenance
 - When reviewing and standardizing the AKIS framework
-- Periodically (e.g., monthly) to maintain framework quality
+- At the end of major development cycles for cleanup
 
-**Trigger**: Manual invocation by user or as part of LEARN phase for framework improvement tasks
+**Trigger**: **Manual invocation only** - This is a maintenance workflow that runs **independently outside of regular sessions**
+
+**Important**: This is NOT part of the regular session LEARN phase. This is a separate maintenance task for multi-session analysis.
 
 ---
 
 ## Workflow Overview
 
+**This is a maintenance workflow that runs independently, outside of regular sessions.**
+
 This prompt guides the agent through analyzing historical workflow logs to:
-1. Identify recurring patterns across sessions
-2. Extract and standardize skills
-3. Organize and update documentation
-4. Propose instruction improvements
+1. Identify recurring patterns across 30-50 sessions
+2. Extract and standardize skills based on frequency
+3. Organize and clean up documentation
+4. Propose instruction improvements from common decisions
 5. Update knowledge base with cross-session insights
+
+**Key Difference**: Unlike the single-session LEARN phase (which analyzes only the current session), this workflow analyzes ALL sessions to identify patterns and perform framework-level maintenance.
 
 ---
 
@@ -379,20 +385,28 @@ Recommendations for future:
 
 ## Integration with AKIS
 
-This workflow analyzer is part of the AKIS v2 framework's continuous improvement cycle:
+This workflow analyzer is a **maintenance tool** that operates independently from regular sessions:
 
 ```
-Individual Session (current model):
+Individual Session (regular workflow - baked into LEARN phase):
 CONTEXT → PLAN → IMPLEMENT → VERIFY → LEARN → COMPLETE
+- Analyzes current session only
+- Updates knowledge/skills for that session
 
-Cross-Session Analysis (this workflow):
+Cross-Session Maintenance (this workflow - independent task):
 CONTEXT (load all logs) → ANALYZE (patterns) → REVIEW (with user) →
 IMPLEMENT (improvements) → VERIFY → DOCUMENT → COMPLETE
+- Analyzes 30-50 sessions collectively
+- Standardizes patterns across sessions
+- Organizes and cleans documentation
+- Adjusts framework instructions
 ```
 
-**Frequency**: Run this workflow after every 10-15 sessions or monthly
+**Frequency**: Run this workflow after every 30-50 sessions or monthly
 
-**Purpose**: Ensure AKIS framework evolves based on actual usage patterns rather than theoretical needs
+**Purpose**: Framework-level maintenance to standardize skills, organize documentation, and adjust instructions based on actual usage patterns across multiple sessions
+
+**Key Point**: This is NOT part of the regular session LEARN phase. It's a separate maintenance workflow.
 
 **Principle**: *Context over Process. Knowledge over Ceremony.*
 

@@ -14,19 +14,23 @@ Prompts in this folder are designed to:
 
 ### akis-workflow-analyzer.md
 
-**Purpose**: Analyze all workflow sessions to identify patterns and propose framework improvements
+**Purpose**: **Maintenance workflow** - Analyze all workflow sessions to identify patterns and propose framework improvements
+
+**Type**: Independent maintenance task (runs outside of regular sessions)
 
 **When to Use**:
-- After accumulating 10+ new workflow logs
+- After accumulating 30-50 new workflow logs
 - Periodically (e.g., monthly) for framework maintenance
 - When standardizing skills and documentation
-- For cross-session pattern analysis
+- For cross-session pattern analysis and cleanup
+
+**Important**: This is NOT part of the regular session LEARN phase. This is a separate maintenance workflow.
 
 **What it Does**:
 1. Analyzes all workflow logs in `log/workflow/`
 2. Identifies recurring patterns (tasks, technologies, decisions)
 3. Suggests skills to create/update/remove
-4. Recommends documentation organization
+4. Recommends documentation organization and cleanup
 5. Proposes instruction improvements
 6. Suggests knowledge base updates
 
@@ -39,7 +43,7 @@ CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLET
 
 **Example Usage**:
 ```bash
-# Run analysis
+# Run analysis independently (not during a regular session)
 python .github/scripts/analyze_workflows.py --output markdown
 
 # Follow the prompt to implement improvements
@@ -70,19 +74,27 @@ When creating a new prompt in this directory:
 
 ## Relationship to AKIS Framework
 
-These prompts complement the core AKIS workflow:
+These prompts are **independent maintenance workflows** that complement but are separate from the core AKIS workflow:
 
-**Individual Session** (`.github/copilot-instructions.md`):
+**Individual Session** (`.github/copilot-instructions.md` - runs during regular sessions):
 ```
 CONTEXT → PLAN → IMPLEMENT → VERIFY → LEARN → COMPLETE
 ```
+- Analyzes current session only
+- Updates knowledge/skills for that session
+- Baked into every session's LEARN phase
 
-**Cross-Session Analysis** (this directory):
+**Cross-Session Maintenance** (this directory - runs independently outside sessions):
 ```
 CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 ```
+- Analyzes 30-50 sessions collectively
+- Standardizes patterns across sessions
+- Organizes and cleans documentation
+- Adjusts framework instructions
+- Maintenance task every 30-50 sessions
 
-The prompts in this folder operate at a higher level, analyzing multiple sessions to improve the framework itself.
+The prompts in this folder operate at a higher level, analyzing multiple sessions to improve the framework itself. They are NOT part of the regular session workflow.
 
 ## Standards
 

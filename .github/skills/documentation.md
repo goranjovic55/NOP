@@ -282,14 +282,16 @@ python .github/scripts/update_docs.py
 
 ## Cross-Session Workflow Analysis
 
-**When:** After accumulating 10+ workflow logs or periodically (monthly)
+**When:** After accumulating 30-50 workflow logs or periodically (monthly)
 
-**Purpose:** Analyze ALL sessions to identify patterns and improve AKIS framework
+**Purpose:** **Maintenance task** - Analyze ALL sessions independently to identify patterns and improve AKIS framework
 
-**How:** Use the AKIS Workflow Analyzer
+**Important:** This is **NOT part of the regular session LEARN phase**. This is a separate maintenance workflow that runs independently outside of regular sessions.
+
+**How:** Use the AKIS Workflow Analyzer as a standalone maintenance task
 
 **Process:**
-1. Run analyzer script:
+1. Run analyzer script (independent of any session):
    ```bash
    python .github/scripts/analyze_workflows.py --output markdown
    ```
@@ -312,6 +314,10 @@ python .github/scripts/update_docs.py
 ```
 CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 ```
+
+**Difference from single-session LEARN phase:**
+- **Single session (baked into LEARN)**: Analyzes current session only, updates knowledge/skills for that session
+- **Multi-session maintenance (this workflow)**: Analyzes 30-50 sessions, standardizes patterns, cleans documentation, adjusts instructions
 
 **What it provides:**
 - Pattern analysis across all sessions
