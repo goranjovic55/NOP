@@ -118,12 +118,14 @@ export interface FileContent {
 }
 
 export const hostService = {
-  getSystemInfo: async (token: string): Promise<SystemInfo> => {
+  getSystemInfo: async (token: string, agentPOV?: string): Promise<SystemInfo> => {
     const url = `${API_URL}/system/info`;
     try {
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (agentPOV) {
+        headers['X-Agent-POV'] = agentPOV;
+      }
+      const response = await axios.get(url, { headers });
       return response.data;
     } catch (error: any) {
       console.error('[hostService.getSystemInfo] Error:', error.response?.status, error.message);
@@ -131,10 +133,12 @@ export const hostService = {
     }
   },
 
-  getSystemMetrics: async (token: string): Promise<SystemMetrics> => {
-    const response = await axios.get(`${API_URL}/system/metrics`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  getSystemMetrics: async (token: string, agentPOV?: string): Promise<SystemMetrics> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/system/metrics`, { headers });
     return response.data;
   },
 

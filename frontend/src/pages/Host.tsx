@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO } from '../services/hostService';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
@@ -9,6 +10,7 @@ import { useAccessStore, Protocol } from '../store/accessStore';
 
 const Host: React.FC = () => {
   const { token, logout } = useAuthStore();
+  const { activeAgent } = usePOV();
   const { addTab } = useAccessStore();
   const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
   const [desktopProtocol, setDesktopProtocol] = useState<Protocol>('vnc');
@@ -48,7 +50,7 @@ const Host: React.FC = () => {
     if (token) {
       fetchSystemInfo();
     }
-  }, [token]);
+  }, [token, activeAgent]);
 
   // Fetch metrics periodically
   useEffect(() => {
@@ -190,7 +192,7 @@ const Host: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const info = await hostService.getSystemInfo(token);
+      const info = await hostService.getSystemInfo(token, activeAgent?.id);
       setSystemInfo(info);
       setLoading(false);
     } catch (error: any) {
@@ -210,7 +212,7 @@ const Host: React.FC = () => {
   const fetchMetrics = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getSystemMetrics(token);
+      const data = await hostService.getSystemMetrics(token, activeAgent?.id);
       setMetrics(data);
       setError(null);
     } catch (error: any) {
