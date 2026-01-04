@@ -1,46 +1,67 @@
-# [Skill Name]
+# Skill: {Name}
 
-[One-line description of what this skill covers]
+**When to Use:** {Brief description of when to apply this skill - 1 sentence}
 
-## When to Use
-- [Specific scenario 1]
-- [Specific scenario 2]
-- [Specific scenario 3]
-- [Specific scenario 4]
+**Avoid:** {When NOT to use this - 1 sentence}
 
-## Checklist
-- [ ] [Essential requirement 1]
-- [ ] [Essential requirement 2]
-- [ ] [Essential requirement 3]
-- [ ] [Essential requirement 4]
-- [ ] [Essential requirement 5]
-- [ ] [Essential requirement 6]
+---
 
-## Examples
+## Overview
 
-### [Example 1 Title]
-```[language]
-[Minimal, focused code example]
-```
+{2-3 sentence description of what this skill provides}
 
-### [Example 2 Title]
-```[language]
-[Minimal, focused code example]
-```
+Key capabilities:
+- {Capability 1}
+- {Capability 2}
+- {Capability 3}
 
-### [Example 3 Title]
-```[language]
-[Minimal, focused code example]
-```
+---
 
 ## Quick Reference
 
-| Pattern | Solution |
-|---------|----------|
-| [Common case 1] | [Quick fix] |
-| [Common case 2] | [Quick fix] |
-| [Common case 3] | [Quick fix] |
+### Commands
+```bash
+# {Action 1}
+{command}
+
+# {Action 2}
+{command}
+```
+
+### Code Pattern
+```{language}
+// {Description}
+{code snippet}
+```
+
+---
+
+## Examples
+
+### Example 1: {Scenario}
+```bash
+# {Context}
+{commands or code}
+```
+
+**Result:** {What this achieves}
+
+### Example 2: {Scenario}
+```{language}
+# {Context}
+{code}
+```
+
+**Result:** {What this achieves}
+
+---
 
 ## Related
-- `related-skill.md` - [Brief description]
-- `docs/category/DOCUMENT.md` - [Brief description]
+
+- **Skills:** {related-skill.md}
+- **Docs:** {docs/path/to/doc.md}
+- **Scripts:** {scripts/script.py}
+
+---
+
+*Last updated: YYYY-MM-DD*

@@ -1,157 +1,108 @@
-# AKIS v2 - Lightweight Agent Framework
+# AKIS v3 - Agent Knowledge & Instruction System
 
-**A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (patterns)
+**A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (solutions)
 
 ---
 
-## Every Task Flow
+## Session Flow
 
-### Start
-`Read project_knowledge.json` → Index entities, map available context
+### Start (Auto)
+`python .github/scripts/session_start.sh` → Shows banner with:
+- Knowledge map overview (line 1 of project_knowledge.json)
+- Available docs in `docs/`
+- Available skills in `.github/skills/` (see INDEX for quick lookup)
+- Available workflow prompts in `.github/prompts/`
 
-**Context Indexing:**
-1. Read line 1 of `project_knowledge.json` (map) for domain overview
-2. Identify relevant documentation paths in `docs/` based on task domain
-3. Note applicable skills in `.github/skills/`
-4. Query specific sections as needed **throughout the workflow**
+**Query resources throughout work as needed**
 
-**During Work (All Phases):**
-Query `project_knowledge.json`, `docs/`, and skills as needed
+### Work (Free-form)
+No prescribed phases. Work naturally:
+- Query knowledge/docs/skills when stuck
+- Use `grep_search` to find examples
+- Reference skills for copy-paste solutions
+- Invoke workflow prompts (`.github/prompts/`) for multi-step tasks
 
-### Todo Phases
-
-| Phase | Title Format | When |
-|-------|--------------|------|
-| CONTEXT | `[CONTEXT] Load knowledge for X` | Always (start) |
-| PLAN | `[PLAN] Design approach for X` | Complex tasks |
-| IMPLEMENT | `[IMPLEMENT] Build X` | Main work |
-| VERIFY | `[VERIFY] Test X` | Always |
-| LEARN | `[LEARN] Update knowledge & skills` | Always (after approval) |
-| COMPLETE | `[COMPLETE] Log & commit` | Always (end) |
-
-### End (LEARN → COMPLETE)
-
-**LEARN:**
-1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
-2. Run `python .github/scripts/update_docs.py` → Apply doc updates automatically (lightweight)
-3. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
-4. **Show skill suggestions to user** → Wait for approval before writing
-5. If approved: Create/update `.github/skills/{name}.md` with skill content
-6. Pattern obsolete? → Delete skill file
-
-**COMPLETE:**
-1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
-2. **Session tracking**: Increment counter, check if maintenance due (every 10 sessions), prompt user
-3. Commit all changes
+### End (Required)
+`python .github/scripts/session_end.sh` → Runs:
+1. Generate codemap → Update project_knowledge.json
+2. Suggest skills → Propose new/update/remove (show to user, wait approval)
+3. Increment session counter → Check if maintenance due (every 10 sessions)
+4. Create workflow log (if >15min or complex)
+5. Commit all changes
 
 ---
 
 ## Knowledge System
 
-**Format:** `project_knowledge.json` (JSONL)
+**File:** `project_knowledge.json` (JSONL format)
 
-**Line 1 - Map:** `{"type":"map","domains":{...},"quickNav":{...}}` - Read first for overview
-
-**Types:**
+**Line 1 = Map:** Read first for domain overview and quickNav
 ```json
-{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
+{"type":"map","domains":{"backend":["Module.A"],"frontend":["Component.B"]},"quickNav":{"api":"Module.A","ui":"Component.B"}}
+```
+
+**Entity Types:**
+```json
+{"type":"entity","name":"Component.Name","entityType":"service|component|module","observations":["desc","upd:YYYY-MM-DD"]}
 {"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
 {"type":"codegraph","name":"file.ext","nodeType":"module","dependencies":["X"],"dependents":["Y"]}
 ```
 
-**Workflow:**
-- Read line 1 (map) → Get domain overview & quickNav
-- **Query specific domains as needed throughout work** → Use map to locate entities
-- Update before commit → Codemap + manual entities (map auto-updates)
+**Workflow:** Query throughout work, update at session end (auto via codemap)
 
 ---
 
-## Skills
+## Skills Library
 
-Reference from `.github/skills/` when task matches (query as needed during work):
+**Location:** `.github/skills/`
+**Index:** `.github/skills/INDEX.md` - Quick problem→solution lookup
+**Format:** Copy-paste ready, <50 lines, executable patterns
 
-| Task | Skill |
-|------|-------|
-| API endpoints, REST | `backend-api.md` |
-| React components, UI | `frontend-react.md` |
-| UI consistency, styling | `ui-consistency.md` |
-| Build/runtime errors | `debugging.md` |
-| Knowledge queries, updates | `knowledge.md` |
-| Documentation | `documentation.md` |
+**When to use:** Query INDEX when stuck, grep skill content for examples
 
----
-
-## Workflow Logs
-
-**Required:** Tasks >15 min  
-**Location:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`  
-**Template:** `.github/templates/workflow-log.md`  
-**Purpose:** Historical record (search to understand past changes)
+**Examples:**
+- `debugging.md` - Runtime/build errors, common fixes
+- `knowledge.md` - Query/update project_knowledge.json patterns
+- `documentation.md` - Doc structure, update workflows
 
 ---
 
-## Quick Workflows
+## Workflow Prompts
 
-**Simple (<5 min):**
-```
-CONTEXT → IMPLEMENT → VERIFY → Commit (no log)
-```
+**Location:** `.github/prompts/`
+**Purpose:** Multi-step phase-based workflows for specialized tasks
+**Format:** Each prompt defines phases (CONTEXT → ANALYZE → IMPLEMENT → ...)
 
-**Feature (>15 min):**
-```
-CONTEXT → PLAN → IMPLEMENT → VERIFY
-↓ (wait for user approval)
-LEARN → COMPLETE
-```
+**Difference from regular work:**
+- Regular work: Free-form, no phases, context-driven
+- Workflow prompts: Prescribed phases, step-by-step instructions
 
-**Review Gate:** After VERIFY, show results and wait for user approval before LEARN/COMPLETE
+**Available prompts:**
+- `akis-workflow-analyzer.md` - Analyze all sessions, consolidate skills/docs (every 10 sessions or manual)
+
+**Usage:** Follow prompt instructions when triggered (auto or manual)
 
 ---
 
 ## Standards
 
 - Files <500 lines, functions <50 lines
-- Type hints required (Python/TypeScript)
+- Type hints/annotations required
 - Tests for new features
 - Descriptive commit messages
-- **Use templates** from `.github/templates/` for all new skills and documentation
+- Use templates from `.github/templates/`
 
 ---
 
-## Templates
+## Folder Structure
 
-All new content follows standardized templates:
-
-**Skills**: `.github/templates/skill.md`
-- Format: When to Use → Checklist → Examples → Quick Reference → Related
-- Keep terse (<200 lines)
-
-**Documentation**:
-- Features: `.github/templates/feature-doc.md`
-- Guides: `.github/templates/guide-doc.md`
-- Workflow logs: `.github/templates/workflow-log.md`
-
-**See**: `.github/templates/README.md` for usage guidelines
-
----
-
-## Folders
-
-- `.project/` → Planning docs, blueprints, ADRs
-- `log/workflow/` → Historical work record
-- `.github/prompts/` → Specialized workflow prompts
-
----
-
-## Cross-Session Analysis
-
-**Purpose**: Analyze all workflow logs to standardize skills, organize docs, and improve framework
-
-**Trigger**: Every 10 sessions (automatic in COMPLETE) or manual anytime
-
-**Workflow**: `.github/prompts/akis-workflow-analyzer.md`
-
-**Outputs**: Skill candidates, doc organization, instruction improvements, knowledge updates
+- `.github/skills/` → Copy-paste solution patterns
+- `.github/prompts/` → Multi-step workflow instructions
+- `.github/templates/` → File templates (skills, docs, logs)
+- `.github/scripts/` → Automation (session_start.sh, session_end.sh, etc.)
+- `docs/` → Project documentation (features, guides, technical)
+- `log/workflow/` → Historical work logs (>15min tasks)
+- `project_knowledge.json` → Knowledge graph (entities, relations, codemap)
 
 ---
 

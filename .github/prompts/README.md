@@ -1,32 +1,47 @@
-# AKIS Prompts
+# AKIS Workflow Prompts
 
-This directory contains specialized workflow prompts for the AKIS framework. These prompts guide agents through complex, multi-phase workflows that go beyond typical single-session tasks.
+This directory contains specialized workflow prompts for the AKIS framework. These prompts guide agents through complex, multi-phase workflows that go beyond typical free-form work.
 
 ## Purpose
 
 Prompts in this folder are designed to:
-- Guide agents through specialized multi-phase workflows
+- Guide agents through specialized **multi-phase workflows**
 - Standardize complex analysis and improvement processes
 - Provide step-by-step instructions for framework maintenance
 - Enable cross-session insights and improvements
+
+## Key Distinction
+
+**Regular Work (Free-form):**
+- No prescribed phases
+- Context-driven, query resources when stuck
+- Natural workflow based on task requirements
+- Most development work falls here
+
+**Workflow Prompts (Phase-based):**
+- Prescribed phases (CONTEXT → ANALYZE → IMPLEMENT → ...)
+- Step-by-step instructions for each phase
+- Used for specialized, repeatable workflows
+- Examples: Cross-session analysis, major refactoring, framework maintenance
 
 ## Available Prompts
 
 ### akis-workflow-analyzer.md
 
-**Purpose**: **Maintenance workflow** - Analyze all workflow sessions to identify patterns and propose framework improvements
+**Purpose:** Analyze all workflow sessions to identify patterns and propose framework improvements
 
-**Type**: Independent maintenance task (runs after session completion when due)
+**Type:** Maintenance workflow (runs after session completion when due)
 
-**Trigger Options**:
-- **Automatic**: Every 10 sessions (prompted in COMPLETE phase)
-- **Manual**: User can trigger anytime
+**Trigger Options:**
+- **Automatic:** Every 10 sessions (prompted by session_end.py)
+- **Manual:** User can trigger anytime
 
-**Session Tracking**: Uses `.github/scripts/session_tracker.py` to track session numbers
+**Phases:**
+```
+CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
+```
 
-**Important**: This is NOT part of the regular session LEARN phase. This is a separate maintenance workflow.
-
-**What it Does**:
+**What it Does:**
 1. Analyzes all workflow logs in `log/workflow/`
 2. Identifies recurring patterns (tasks, technologies, decisions)
 3. Suggests skills to create/update/remove
@@ -34,16 +49,7 @@ Prompts in this folder are designed to:
 5. Proposes instruction improvements
 6. Suggests knowledge base updates
 
-**Workflow**:
-```
-CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
-```
-
-**Related Scripts**: 
-- `.github/scripts/analyze_workflows.py` (analyzer)
-- `.github/scripts/session_tracker.py` (session tracking)
-
-**Example Usage**:
+**Example Usage:**
 ```bash
 # Check if maintenance is due
 python .github/scripts/session_tracker.py check-maintenance
@@ -51,53 +57,72 @@ python .github/scripts/session_tracker.py check-maintenance
 # Run analysis (when maintenance is due or manual trigger)
 python .github/scripts/analyze_workflows.py --output markdown
 
-# After completing maintenance
-python .github/scripts/session_tracker.py mark-maintenance-done
-
-# Follow the prompt to implement improvements
-# See .github/prompts/akis-workflow-analyzer.md for full workflow
+# Follow the prompt workflow
+# See .github/prompts/akis-workflow-analyzer.md for full instructions
 ```
 
-## Creating New Prompts
+## Creating New Workflow Prompts
 
-When creating a new prompt in this directory:
+When you have a **repeatable multi-step workflow** that benefits from prescribed phases:
 
-1. **Use descriptive names**: `{purpose}-{action}.md` (e.g., `akis-workflow-analyzer.md`)
+1. **Use the template:** `.github/templates/workflow-prompt.md`
 
-2. **Follow standard structure**:
-   - Purpose and when to use
-   - Overview of the workflow
-   - Phase-by-phase instructions (CONTEXT, ANALYZE, etc.)
-   - Success criteria
-   - Guidelines and anti-patterns
-   - Related files and scripts
+2. **Define clear phases:**
+   - Each phase has: Objective, Steps, Output
+   - Phases should be sequential and logical
+   - Include commands/tools for each phase
 
-3. **Include examples**: Show expected inputs and outputs
+3. **Include examples:**
+   - Show expected inputs and outputs
+   - Demonstrate the workflow in action
 
-4. **Keep actionable**: Focus on concrete steps, not theory
+4. **Document integration:**
+   - How it relates to regular AKIS workflow
+   - When to trigger (auto/manual)
+   - What purpose it serves
 
-5. **Reference scripts**: Link to any automation scripts
+5. **Update this README:** Add entry for the new prompt
 
-6. **Update this README**: Add entry for the new prompt
+## When to Create a Workflow Prompt vs Regular Work
+
+**Create a Workflow Prompt if:**
+- ✅ Task repeats regularly (e.g., every N sessions)
+- ✅ Multiple distinct phases with dependencies
+- ✅ Benefits from standardized procedure
+- ✅ Used by multiple people or sessions
+
+**Use Regular Free-form Work if:**
+- ✅ One-off implementation task
+- ✅ Context-specific problem solving
+- ✅ Natural discovery process
+- ✅ Most feature development
+
+## Templates
+
+- **Workflow Prompt:** `.github/templates/workflow-prompt.md`
+- **Skill (for free-form patterns):** `.github/templates/skill.md`
 
 ## Relationship to AKIS Framework
 
-These prompts are **independent maintenance workflows** that complement but are separate from the core AKIS workflow:
+Workflow prompts are **independent specialized workflows** that complement free-form work:
 
-**Individual Session** (`.github/copilot-instructions.md` - runs during regular sessions):
+**Regular Session Flow:**
 ```
-CONTEXT → PLAN → IMPLEMENT → VERIFY → LEARN → COMPLETE
+Session Start (auto context) → Work Freely → Session End (required checklist)
 ```
-- Analyzes current session only
-- Updates knowledge/skills for that session
-- Baked into every session's LEARN phase
-- Session counter incremented in COMPLETE phase
+- Query knowledge/docs/skills as needed
+- No prescribed phases
+- Natural problem-solving
 
-**Cross-Session Maintenance** (this directory - triggered after session completion):
+**Workflow Prompt Flow:**
 ```
 CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 ```
-- Analyzes sessions since last maintenance (typically 10)
+- Prescribed step-by-step phases
+- Triggered automatically or manually
+- Specialized, repeatable procedures
+
+Both approaches are part of AKIS, used for different purposes.
 - Standardizes patterns across sessions
 - Organizes and cleans documentation
 - Adjusts framework instructions
