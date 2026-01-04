@@ -38,6 +38,15 @@
 {"type":"relation","from":"...","to":"...","relationType":"..."}
 ```
 
+## Documentation Updates
+
+### Documents Updated
+- `path/to/doc.md` - Brief description of changes made
+- `path/to/doc.md` - Section updated with new info
+
+### Documents Reviewed
+- `path/to/doc.md` - Reviewed, no updates needed
+
 ## Skills
 
 ### Skills Used
