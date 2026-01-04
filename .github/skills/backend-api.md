@@ -97,6 +97,5 @@ class ItemResponse(ItemBase):
 ```
 
 ## Related Skills
-- `testing.md` - API integration tests
-- `error-handling.md` - HTTP exceptions
 - `debugging.md` - Troubleshooting endpoints
+- `frontend-react.md` - API integration patterns

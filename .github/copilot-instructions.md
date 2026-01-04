@@ -74,13 +74,10 @@ Reference from `.github/skills/` when task matches (query as needed during work)
 |------|-------|
 | API endpoints, REST | `backend-api.md` |
 | React components, UI | `frontend-react.md` |
-| Unit/integration tests | `testing.md` |
-| Error handling, logging | `error-handling.md` |
-| Docker, deployment | `infrastructure.md` |
-| Git, commits, PRs | `git-workflow.md` |
+| UI consistency, styling | `ui-consistency.md` |
+| Build/runtime errors | `debugging.md` |
 | Knowledge queries, updates | `knowledge.md` |
-| Build errors, troubleshooting | `debugging.md` |
-| Workflow logs, READMEs, doc updates | `documentation.md` |
+| Documentation | `documentation.md` |
 
 ---
 

@@ -1,361 +1,167 @@
 # Debugging
 
+Systematic troubleshooting for build, runtime, and infrastructure errors.
+
 ## When to Use
-- Build errors
+- Build/compile errors
 - Runtime exceptions
-- API integration issues
-- Unexpected behavior
+- Container/Docker issues
+- API integration failures
+- Type errors
 
-## Avoid
-- ❌ Random code changes → ✅ Systematic debugging
-- ❌ Ignoring logs → ✅ Check logs first
-- ❌ Debugging in production → ✅ Reproduce locally
+## Checklist
+- [ ] Read complete error message
+- [ ] Check recent changes (`git diff`)
+- [ ] Isolate failing component
+- [ ] Reproduce in minimal case
+- [ ] Fix and verify related areas
 
-## Overview
+## Examples
 
-Systematic approach to resolving build, runtime, and infrastructure errors.
+### Build Errors
 
----
-
-## General Strategy
-
-1. **Read error message completely** - Don't skip details
-2. **Identify error type** - Build, runtime, type, network, Docker
-3. **Check recent changes** - `git diff`, changed files
-4. **Isolate component** - Which layer (frontend, backend, infra)
-5. **Fix and verify** - Test fix, check related areas
-
----
-
-## Build Errors
-
-### TypeScript/JavaScript
-
-**Symptom:** `Cannot find module`, `Type error`
-
-**Check:**
+**TypeScript Module Not Found:**
 ```bash
-# Missing dependency
-npm install
+# Check imports
+grep -r "import.*X" src/
 
-# Type errors
-npm run build  # See full error context
+# Install if missing
+npm install X
 
-# Import path
-grep -r "import.*from.*X" src/
+# Fix path
+import { X } from './components/X'  # Relative path
 ```
 
-**Common fixes:**
-- Add missing import
-- Fix import path (relative vs absolute)
-- Add type definition
-- Install missing package
-
----
-
-### Python
-
-**Symptom:** `ModuleNotFoundError`, `ImportError`
-
-**Check:**
+**Python Import Error:**
 ```bash
-# Missing package
+# Check if installed
 pip list | grep package-name
 
-# Import structure
-grep -r "from .* import" app/
+# Install if missing
+pip install package-name
 
-# Python path
-echo $PYTHONPATH
+# Fix relative import
+from .module import X  # Not: from module import X
 ```
 
-**Common fixes:**
-- Install missing package (`pip install X`)
-- Fix relative imports (`from .module import`)
-- Check `__init__.py` exists
-- Verify package structure
+### Runtime Errors
 
----
-
-## Type Errors
-
-### TypeScript
-
-**Check:**
+**Backend 500 Error:**
 ```bash
-# Full type check
-npx tsc --noEmit
+# Check logs
+docker compose logs backend | tail -50
 
-# Specific file
-npx tsc --noEmit src/file.ts
+# Check database
+docker compose exec backend python -c "from app.core.database import test_connection; test_connection()"
+
+# Enable debug mode
+LOG_LEVEL=DEBUG docker compose up backend
 ```
 
-**Common patterns:**
+**Frontend TypeError:**
 ```typescript
-// Property missing
+// Add null check
+const value = data?.property ?? 'default';
+
+// Type guard
+if (typeof value === 'string') {
+  // Safe to use as string
+}
+```
+
+### Docker Issues
+
+**Container Won't Start:**
+```bash
+# Check logs
+docker compose logs service-name
+
+# Inspect container
+docker compose ps
+docker inspect container-id
+
+# Rebuild
+docker compose build --no-cache service-name
+docker compose up -d service-name
+```
+
+**Port Already in Use:**
+```bash
+# Find process
+lsof -i :8000
+kill <PID>
+
+# Or change port in docker-compose.yml
+```
+
+### Type Errors
+
+**TypeScript:**
+```typescript
+// Fix missing property
 interface User {
   id: number;
-  name: string;  // Add missing property
+  name: string;
+  email?: string;  // Optional with ?
 }
 
-// Type mismatch
-const value: string | null = ...;
-if (value) {  // Narrow type
-  value.toUpperCase();
+// Type assertion when certain
+const user = data as User;
+
+// Type narrowing
+if ('property' in object) {
+  // Safe to access object.property
 }
-
-// Async type
-const data: Awaited<ReturnType<typeof fetchData>>;
 ```
 
----
-
-### Python
-
-**Check:**
-```bash
-# Type check
-mypy app/
-
-# Specific file
-mypy app/services/file.py
-```
-
-**Common patterns:**
+**Python:**
 ```python
 # Type hints
 def process(data: dict[str, Any]) -> list[str]:
-    ...
+    return list(data.keys())
 
-# Optional
+# Optional types
 from typing import Optional
 def get_user(id: int) -> Optional[User]:
-    ...
-
-# Union
-from typing import Union
-def parse(value: Union[str, int]) -> str:
-    ...
+    return user or None
 ```
 
----
+### Error Handling
 
-## Runtime Errors
-
-### Backend
-
-**Check logs:**
-```bash
-# Docker logs
-docker compose logs backend -f
-
-# Specific error
-docker compose logs backend | grep -i error
-
-# Last 100 lines
-docker compose logs backend --tail=100
+**Try-Catch Pattern:**
+```typescript
+try {
+  await riskyOperation();
+} catch (error) {
+  console.error('Operation failed:', error);
+  // Handle gracefully
+  return defaultValue;
+}
 ```
 
-**Common issues:**
-- Database connection (check `DATABASE_URL`)
-- Missing environment variables
-- Port conflicts
-- Dependency versions
-
----
-
-### Frontend
-
-**Check console:**
-- Browser DevTools → Console
-- Network tab (API calls)
-- React DevTools (component state)
-
-**Common issues:**
-- API endpoint wrong (`/api/v1/...`)
-- CORS errors (backend CORS config)
-- Null/undefined state
-- Event handler binding
-
----
-
-## Docker Errors
-
-### Container won't start
-
-**Check:**
-```bash
-# Build output
-docker compose build service-name
-
-# Logs
-docker compose logs service-name
-
-# Inspect
-docker inspect container-id
-
-# Shell access (if running)
-docker exec -it container-id /bin/bash
+**Python Exception Handling:**
+```python
+try:
+    result = risky_operation()
+except SpecificError as e:
+    logger.error(f"Operation failed: {e}")
+    result = default_value
+except Exception as e:
+    logger.exception("Unexpected error")
+    raise
 ```
 
-**Common issues:**
-- Missing environment variables
-- Port already in use
-- Volume permission errors
-- Network connectivity
+## Quick Fixes
 
----
+| Error | Solution |
+|-------|----------|
+| Module not found | Install package or fix import path |
+| Type error | Add type hint or assertion |
+| Port in use | Kill process or change port |
+| Container fails | Check logs, rebuild with `--no-cache` |
+| API 500 | Check backend logs, verify database |
+| Null/undefined | Add null checks (`?.` or `??`) |
 
-### Network issues
-
-**Check:**
-```bash
-# Container networks
-docker network ls
-docker network inspect network-name
-
-# Container IP
-docker inspect container-id | grep IPAddress
-
-# Test connectivity
-docker exec container-id ping other-container
-docker exec container-id curl http://other-container:port
-```
-
-**Common fixes:**
-- Verify network config in `docker-compose.yml`
-- Use service names (not localhost)
-- Check port mappings
-- Restart network: `docker compose down && docker compose up`
-
----
-
-### Volume issues
-
-**Check:**
-```bash
-# List volumes
-docker volume ls
-
-# Inspect volume
-docker volume inspect volume-name
-
-# Permissions
-docker exec container-id ls -la /mount/path
-```
-
-**Common fixes:**
-- Remove and recreate: `docker volume rm volume-name`
-- Fix permissions in Dockerfile
-- Check mount paths in `docker-compose.yml`
-
----
-
-## Database Errors
-
-**Check connection:**
-```bash
-# Postgres
-docker exec -it container-id psql -U user -d database
-
-# Test from backend
-docker exec -it backend-container python -c "from app.db import engine; print(engine)"
-```
-
-**Common issues:**
-- Database not ready (wait-for-db script)
-- Wrong credentials
-- Missing migrations
-- Connection pool exhausted
-
----
-
-## Performance Debugging
-
-**Backend:**
-```bash
-# Request time
-docker compose logs backend | grep "GET\|POST"
-
-# CPU/Memory
-docker stats
-```
-
-**Frontend:**
-```javascript
-// React DevTools Profiler
-// Network tab (waterfall)
-// Lighthouse audit
-```
-
-**Common issues:**
-- N+1 queries (add eager loading)
-- Missing indexes (database)
-- Large payload (pagination)
-- Re-renders (React.memo, useMemo)
-
----
-
-## Debugging Tools
-
-**Logs:**
-```bash
-# Tail all services
-docker compose logs -f
-
-# Filter by service
-docker compose logs backend -f
-
-# Search logs
-docker compose logs | grep -i "error\|exception"
-```
-
-**Interactive:**
-```bash
-# Python debugger
-import pdb; pdb.set_trace()
-
-# Node inspector
-node --inspect-brk app.js
-```
-
-**Network:**
-```bash
-# curl test
-curl -v http://localhost:8000/api/health
-
-# Docker network
-docker exec container ping other-container
-```
-
----
-
-## Checklist
-
-Before debugging:
-- [ ] Read full error message
-- [ ] Check recent changes (`git diff`)
-- [ ] Verify environment (`.env` file)
-- [ ] Check logs (`docker compose logs`)
-
-During debugging:
-- [ ] Reproduce consistently
-- [ ] Isolate the issue
-- [ ] Test hypothesis
-- [ ] Document solution
-
-## Related Skills
-- `error-handling.md` - Error patterns
-- `backend-api.md` - API debugging
-- `infrastructure.md` - Container issues
-
-While debugging:
-- [ ] Isolate the issue (which component?)
-- [ ] Test hypothesis (one change at a time)
-- [ ] Verify fix (run tests, manual check)
-- [ ] Check related areas (integration points)
-
-After fix:
-- [ ] Document if non-obvious
-- [ ] Add test if bug was missed
-- [ ] Update error handling if needed
+## Related
+- `backend-api.md` - Backend patterns
+- `frontend-react.md` - Frontend patterns

@@ -177,9 +177,4 @@ grep 'upd:2026-01' project_knowledge.json
 
 ## Related Skills
 - `documentation.md` - Workflow logging, doc updates
-- `git-workflow.md` - Commit message
-❌ Vague observations  
-✅ Specific, dated observations
-
-❌ Missing relations  
-✅ Document integration points
+- `debugging.md` - Troubleshooting
