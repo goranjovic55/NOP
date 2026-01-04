@@ -403,3 +403,5 @@
 {"type": "codegraph", "name": "frontend/postcss.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
 {"type": "codegraph", "name": "frontend/tailwind.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
 {"type": "codegraph", "name": "frontend/src/setupProxy.js", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type":"entity","name":"AKIS.WorkflowAnalyzer","entityType":"tool","observations":["Analyzes all workflow logs to identify patterns and propose framework improvements","Script: .github/scripts/analyze_workflows.py","Prompt: .github/prompts/akis-workflow-analyzer.md","Outputs: skill candidates, documentation needs, instruction improvements, knowledge updates","upd:2026-01-04"]}
+{"type":"relation","from":"AKIS.v2.Framework","to":"AKIS.WorkflowAnalyzer","relationType":"USES"}
