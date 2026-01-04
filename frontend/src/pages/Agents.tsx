@@ -27,6 +27,9 @@ const Agents: React.FC = () => {
   const [publicIP, setPublicIP] = useState<string>('');
   const [usePublicIP, setUsePublicIP] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string>('linux-amd64');
+  const [c2Host, setC2Host] = useState<string>('localhost');
+  const [c2Port, setC2Port] = useState<string>('8000');
+  const [c2Protocol, setC2Protocol] = useState<'ws' | 'wss'>('ws');
   
   // Sorting and filtering
   const [sortBy, setSortBy] = useState<'name' | 'type' | 'status' | 'last_seen'>('last_seen');
@@ -34,7 +37,7 @@ const Agents: React.FC = () => {
     name: '',
     description: '',
     agent_type: 'python',
-    connection_url: 'ws://localhost:12001/api/v1/agents/{agent_id}/connect',
+    connection_url: 'ws://localhost:8000/api/v1/agents/{agent_id}/connect',
     target_platform: 'linux-amd64',
     capabilities: {
       asset: true,
@@ -55,37 +58,78 @@ const Agents: React.FC = () => {
   });
 
   useEffect(() => {
-    loadAgents();
-    detectIPs();
+    // Small delay to ensure zustand persistence is hydrated
+    const timeout = setTimeout(() => {
+      loadAgents();
+      detectIPs();
+    }, 100);
+    
     // Poll for agent status updates
     const interval = setInterval(loadAgents, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [token]);
 
   const detectIPs = async () => {
-    // Set default local IP for docker internal network
-    // This is the gateway IP that agents in containers can reach
-    setLocalIP('172.28.0.1');
-    
-    // Detect public IP
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      if (data.ip) {
-        setPublicIP(data.ip);
+    // Detect if running in Codespaces and get forwarded URL
+    const hostname = window.location.hostname;
+    if (hostname.includes('github.dev') || hostname.includes('app.github.dev')) {
+      // Extract codespace name and construct backend URL
+      const codespaceName = hostname.split('-12000')[0];
+      const backendUrl = `${codespaceName}-8000.app.github.dev`;
+      setLocalIP(backendUrl);
+      setC2Host(backendUrl);
+      setC2Port('');
+      setC2Protocol('wss');
+      setPublicIP('');
+    } else {
+      // Set default local IP for docker internal network
+      setLocalIP('172.28.0.1');
+      setC2Host('172.28.0.1');
+      setC2Port('8000');
+      setC2Protocol('ws');
+      
+      // Detect public IP
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        if (data.ip) {
+          setPublicIP(data.ip);
+        }
+      } catch (error) {
+        console.error('Failed to detect public IP:', error);
       }
-    } catch (error) {
-      console.error('Failed to detect public IP:', error);
     }
   };
 
+  // Build connection URL from components
+  const buildConnectionUrl = (host: string, port: string, protocol: 'ws' | 'wss' = 'ws') => {
+    const portSuffix = port ? `:${port}` : '';
+    return `${protocol}://${host}${portSuffix}/api/v1/agents/{agent_id}/connect`;
+  };
+
+  // Update connection URL when host/port/protocol changes
+  useEffect(() => {
+    const url = buildConnectionUrl(c2Host, c2Port, c2Protocol);
+    setNewAgent(prev => ({ ...prev, connection_url: url }));
+  }, [c2Host, c2Port, c2Protocol]);
+
   const loadAgents = async () => {
-    if (!token) return;
+    if (!token) {
+      console.warn('[Agents] No token available, skipping agent load');
+      return;
+    }
     try {
       const data = await agentService.getAgents(token);
       setAgents(data);
     } catch (error) {
       console.error('Failed to load agents:', error);
+      // If 401, user might need to re-login
+      if (error instanceof Error && error.message.includes('401')) {
+        console.error('[Agents] Authentication failed - token may be invalid');
+      }
     }
   };
 
@@ -714,19 +758,21 @@ const Agents: React.FC = () => {
               {/* Connection URL */}
               <div>
                 <label className="block text-cyber-gray-light text-sm uppercase mb-2">
-                  Connection URL *
+                  Connection URL * <span className="text-cyber-gray text-xs normal-case">(Editable)</span>
                 </label>
                 
-                {/* IP Selection */}
+                {/* Quick Select */}
                 <div className="mb-3 flex gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setUsePublicIP(false);
-                      setNewAgent({ 
-                        ...newAgent, 
-                        connection_url: `ws://${localIP}:12001/api/v1/agents/{agent_id}/connect` 
-                      });
+                      const isCodespaces = localIP.includes('github.dev');
+                      const protocol = isCodespaces ? 'wss' : 'ws';
+                      const port = isCodespaces ? '' : '8000';
+                      setC2Protocol(protocol as 'ws' | 'wss');
+                      setC2Host(localIP);
+                      setC2Port(port);
                     }}
                     className={`flex-1 px-3 py-2 border text-xs uppercase transition-all ${
                       !usePublicIP
@@ -734,39 +780,74 @@ const Agents: React.FC = () => {
                         : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-blue'
                     }`}
                   >
-                    <div className="font-bold mb-1">Local IP</div>
-                    <div className="font-mono">{localIP}</div>
+                    <div className="font-bold mb-1">{localIP.includes('github.dev') ? 'Codespaces' : 'Local'}</div>
+                    <div className="font-mono text-[10px] truncate">{localIP}</div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsePublicIP(true);
-                      setNewAgent({ 
-                        ...newAgent, 
-                        connection_url: `ws://${publicIP || 'DETECTING...'}:12001/api/v1/agents/{agent_id}/connect` 
-                      });
-                    }}
-                    className={`flex-1 px-3 py-2 border text-xs uppercase transition-all ${
-                      usePublicIP
-                        ? 'border-cyber-blue bg-cyber-blue/20 text-cyber-blue'
-                        : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-blue'
-                    }`}
-                    disabled={!publicIP}
-                  >
-                    <div className="font-bold mb-1">Public IP</div>
-                    <div className="font-mono">{publicIP || 'Detecting...'}</div>
-                  </button>
+                  {publicIP && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsePublicIP(true);
+                        setC2Protocol('ws');
+                        setC2Host(publicIP);
+                        setC2Port('8000');
+                      }}
+                      className={`flex-1 px-3 py-2 border text-xs uppercase transition-all ${
+                        usePublicIP
+                          ? 'border-cyber-blue bg-cyber-blue/20 text-cyber-blue'
+                          : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-blue'
+                      }`}
+                    >
+                      <div className="font-bold mb-1">Public IP</div>
+                      <div className="font-mono text-[10px]">{publicIP}</div>
+                    </button>
+                  )}
                 </div>
 
-                <input
-                  type="text"
-                  value={newAgent.connection_url}
-                  onChange={(e) => setNewAgent({ ...newAgent, connection_url: e.target.value })}
-                  className="w-full bg-cyber-black border border-cyber-gray text-white px-4 py-2 focus:outline-none focus:border-cyber-red font-mono text-sm"
-                  placeholder="ws://your-nop-server:12001/api/v1/agents/{agent_id}/connect"
-                />
-                <p className="text-cyber-gray-light text-xs mt-1">
-                  Agent will connect back to this WebSocket URL
+                {/* Protocol, Host, Port Inputs */}
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  <div className="col-span-1">
+                    <label className="block text-cyber-gray-light text-xs uppercase mb-1">Protocol</label>
+                    <select
+                      value={c2Protocol}
+                      onChange={(e) => setC2Protocol(e.target.value as 'ws' | 'wss')}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-2 py-2 focus:outline-none focus:border-cyber-blue text-sm"
+                    >
+                      <option value="ws">WS</option>
+                      <option value="wss">WSS</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-cyber-gray-light text-xs uppercase mb-1">Host / Domain</label>
+                    <input
+                      type="text"
+                      value={c2Host}
+                      onChange={(e) => setC2Host(e.target.value)}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-3 py-2 focus:outline-none focus:border-cyber-blue font-mono text-sm"
+                      placeholder="your-server.com"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-cyber-gray-light text-xs uppercase mb-1">Port</label>
+                    <input
+                      type="text"
+                      value={c2Port}
+                      onChange={(e) => setC2Port(e.target.value)}
+                      className="w-full bg-cyber-black border border-cyber-gray text-white px-3 py-2 focus:outline-none focus:border-cyber-blue font-mono text-sm"
+                      placeholder="8000"
+                    />
+                  </div>
+                </div>
+
+                {/* Full URL Display */}
+                <div className="bg-cyber-black/50 border border-cyber-gray p-3 rounded">
+                  <div className="text-cyber-gray-light text-xs uppercase mb-1">Full WebSocket URL:</div>
+                  <div className="font-mono text-sm text-cyber-green break-all">
+                    {newAgent.connection_url}
+                  </div>
+                </div>
+                <p className="text-cyber-gray-light text-xs mt-2">
+                  Agent will connect back to this WebSocket URL (agent_id is auto-replaced)
                 </p>
               </div>
 
@@ -1241,12 +1322,17 @@ const Agents: React.FC = () => {
 
                   {/* Quick Download Commands */}
                   <div className="border-t border-cyber-gray pt-3 mt-2">
-                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-2">Quick Download:</span>
+                    <span className="text-cyber-gray-light text-[10px] uppercase block mb-2">External Download:</span>
+                    <p className="text-cyber-gray-light text-[9px] mb-2">Use backend API port (8000) for external systems:</p>
                     <div className="flex gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigator.clipboard.writeText(`wget -O agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                          const hostname = window.location.hostname;
+                          const protocol = window.location.protocol;
+                          // For Codespaces, replace port 12000 with 8000
+                          const backendUrl = `${protocol}//${hostname.replace('-12000', '-8000')}`;
+                          navigator.clipboard.writeText(`wget -O agent.py "${backendUrl}/api/v1/agents/download/${sidebarAgent.download_token}"`);
                         }}
                         className="flex-1 px-2 py-1 border border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black text-xs transition"
                       >
@@ -1255,7 +1341,11 @@ const Agents: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigator.clipboard.writeText(`curl -o agent.py "${window.location.protocol}//${window.location.host}/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                          const hostname = window.location.hostname;
+                          const protocol = window.location.protocol;
+                          // For Codespaces, replace port 12000 with 8000
+                          const backendUrl = `${protocol}//${hostname.replace('-12000', '-8000')}`;
+                          navigator.clipboard.writeText(`curl -o agent.py "${backendUrl}/api/v1/agents/download/${sidebarAgent.download_token}"`);
                         }}
                         className="flex-1 px-2 py-1 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white text-xs transition"
                       >
@@ -1432,12 +1522,6 @@ const Agents: React.FC = () => {
                     <span className="text-cyber-gray">Agent ID:</span>
                     <code className="text-cyber-gray-light font-mono">{sidebarAgent.id}</code>
                   </div>
-                  {sidebarAgent.target_platform && (
-                    <div className="flex justify-between">
-                      <span className="text-cyber-gray">Platform:</span>
-                      <span className="text-cyber-gray-light uppercase">{sidebarAgent.target_platform}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

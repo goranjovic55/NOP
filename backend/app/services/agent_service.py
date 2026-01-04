@@ -129,15 +129,11 @@ class AgentService:
     @staticmethod
     def generate_python_agent(agent: Agent) -> str:
         """Generate Python agent script with all modules (Asset, Traffic, Host, Access)"""
-        # Convert JSON booleans to Python booleans
-        capabilities_str = json.dumps(agent.capabilities, indent=4).replace('true', 'True').replace('false', 'False').replace('null', 'None')
+        # Replace {agent_id} placeholder in connection URL  
+        server_url = agent.connection_url.replace('{agent_id}', str(agent.id))
         
-        # Build proper WebSocket URL with agent ID
-        # Extract base URL and construct websocket path
-        base_url = agent.connection_url.replace('/ws', '')
-        if not base_url.endswith('/agents'):
-            base_url = base_url.rsplit('/', 1)[0] if '/agents/' in base_url else base_url
-        ws_url = f"{base_url}/{agent.id}/connect"
+        # Pre-compute values that will be used in the template
+        capabilities_json = json.dumps(agent.capabilities, indent=4)
         
         template = f'''#!/usr/bin/env python3
 """
@@ -151,21 +147,59 @@ back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
 Download URL: {{BASE_URL}}/api/v1/agents/download/{agent.download_token}
+
+INSTALLATION:
+  pip3 install websockets psutil scapy cryptography
+  
+  OR run this agent with sudo (for scapy):
+  sudo python3 agent.py
 """
+
+# Auto-install dependencies if missing
+import sys
+import subprocess
+import importlib.util
+
+def check_and_install_deps():
+    """Check and install required dependencies"""
+    deps = {{
+        'websockets': 'websockets',
+        'psutil': 'psutil', 
+        'scapy': 'scapy',
+        'cryptography': 'cryptography'
+    }}
+    
+    missing = []
+    for module, package in deps.items():
+        if importlib.util.find_spec(module) is None:
+            missing.append(package)
+    
+    if missing:
+        print(f"Missing dependencies: {{', '.join(missing)}}")
+        print("Installing dependencies...")
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user'] + missing)
+            print("Dependencies installed successfully. Please run the agent again.")
+            sys.exit(0)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install dependencies: {{e}}")
+            print(f"Please install manually: pip3 install {{' '.join(missing)}}")
+            sys.exit(1)
+
+check_and_install_deps()
 
 import asyncio
 import websockets
 import json
 import platform
 import socket
-import subprocess
 import psutil
 import scapy.all as scapy
 from datetime import datetime
 from typing import Dict, List, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
 import base64
 import os
 
@@ -174,8 +208,8 @@ AGENT_ID = "{agent.id}"
 AGENT_NAME = "{agent.name}"
 AUTH_TOKEN = "{agent.auth_token}"
 ENCRYPTION_KEY = "{agent.encryption_key}"
-SERVER_URL = "{ws_url}"
-CAPABILITIES = {capabilities_str}
+SERVER_URL = "{server_url}"
+CAPABILITIES = {capabilities_json}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -193,8 +227,8 @@ class NOPAgent:
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
-        # Derive encryption key using PBKDF2HMAC
-        kdf = PBKDF2HMAC(
+        # Derive encryption key using PBKDF2
+        kdf = PBKDF2(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'nop_c2_salt_2026',
@@ -233,7 +267,7 @@ class NOPAgent:
             print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
             async with websockets.connect(
                 self.server_url,
-                additional_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
+                extra_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
             ) as websocket:
                 self.ws = websocket
                 print(f"[{{datetime.now()}}] Connected! Establishing encrypted tunnel...")
