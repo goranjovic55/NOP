@@ -282,33 +282,47 @@ python .github/scripts/update_docs.py
 
 ## Cross-Session Workflow Analysis
 
-**When:** After accumulating 30-50 workflow logs or periodically (monthly)
+**When:** 
+- **Automatically**: Every 10 sessions (prompted in COMPLETE phase)
+- **Manually**: User can trigger anytime
 
 **Purpose:** **Maintenance task** - Analyze ALL sessions independently to identify patterns and improve AKIS framework
 
-**Important:** This is **NOT part of the regular session LEARN phase**. This is a separate maintenance workflow that runs independently outside of regular sessions.
+**Session Tracking:** Uses `.github/scripts/session_tracker.py` to track session numbers and automatically prompt for maintenance
+
+**Important:** This is **NOT part of the regular session LEARN phase**. This is a separate maintenance workflow that runs after session completion when maintenance is due.
 
 **How:** Use the AKIS Workflow Analyzer as a standalone maintenance task
 
 **Process:**
-1. Run analyzer script (independent of any session):
+1. **Check if maintenance is due** (automatic in COMPLETE phase):
+   ```bash
+   python .github/scripts/session_tracker.py check-maintenance
+   ```
+
+2. **Run analyzer script**:
    ```bash
    python .github/scripts/analyze_workflows.py --output markdown
    ```
 
-2. Review analysis output:
+3. Review analysis output:
    - Skill candidates (recurring patterns across sessions)
    - Documentation needs (frequently updated areas)
    - Instruction improvements (common decisions)
    - Knowledge updates (cross-session entities)
 
-3. Follow prompt: `.github/prompts/akis-workflow-analyzer.md`
+4. Follow prompt: `.github/prompts/akis-workflow-analyzer.md`
 
-4. Implement approved improvements:
+5. Implement approved improvements:
    - Create/update skills based on patterns
    - Organize and update documentation
    - Enhance framework instructions
    - Update knowledge base
+
+6. **Mark maintenance as complete**:
+   ```bash
+   python .github/scripts/session_tracker.py mark-maintenance-done
+   ```
 
 **Workflow phases:**
 ```
@@ -317,7 +331,7 @@ CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLET
 
 **Difference from single-session LEARN phase:**
 - **Single session (baked into LEARN)**: Analyzes current session only, updates knowledge/skills for that session
-- **Multi-session maintenance (this workflow)**: Analyzes 30-50 sessions, standardizes patterns, cleans documentation, adjusts instructions
+- **Multi-session maintenance (this workflow)**: Analyzes sessions since last maintenance (typically 10), standardizes patterns, cleans documentation, adjusts instructions
 
 **What it provides:**
 - Pattern analysis across all sessions

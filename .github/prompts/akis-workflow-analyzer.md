@@ -3,12 +3,14 @@
 **Purpose**: Analyze all workflow sessions, identify patterns, and propose improvements to the AKIS framework including documentation, instructions, skills, and knowledge.
 
 **When to Use**: 
-- After accumulating 30-50 new workflow logs
-- Periodically (e.g., monthly) for framework maintenance
+- **Automatically**: Every 10 sessions (prompted in COMPLETE phase)
+- **Manually**: User can trigger anytime for maintenance
+- After major development cycles for cleanup
 - When reviewing and standardizing the AKIS framework
-- At the end of major development cycles for cleanup
 
-**Trigger**: **Manual invocation only** - This is a maintenance workflow that runs **independently outside of regular sessions**
+**Trigger Options**: 
+1. **Automatic (every 10 sessions)**: Agent checks session counter in COMPLETE phase and prompts user
+2. **Manual invocation**: User can trigger this workflow anytime
 
 **Important**: This is NOT part of the regular session LEARN phase. This is a separate maintenance task for multi-session analysis.
 
@@ -396,17 +398,22 @@ CONTEXT → PLAN → IMPLEMENT → VERIFY → LEARN → COMPLETE
 Cross-Session Maintenance (this workflow - independent task):
 CONTEXT (load all logs) → ANALYZE (patterns) → REVIEW (with user) →
 IMPLEMENT (improvements) → VERIFY → DOCUMENT → COMPLETE
-- Analyzes 30-50 sessions collectively
+- Analyzes all sessions since last maintenance (typically 10 sessions)
 - Standardizes patterns across sessions
 - Organizes and cleans documentation
 - Adjusts framework instructions
+- Triggered automatically every 10 sessions or manually
 ```
 
-**Frequency**: Run this workflow after every 30-50 sessions or monthly
+**Frequency**: 
+- **Automatic**: Every 10 sessions (prompted in COMPLETE phase)
+- **Manual**: User can trigger anytime
+
+**Session Tracking**: Uses `.github/scripts/session_tracker.py` to automatically track sessions and prompt for maintenance every 10 sessions
 
 **Purpose**: Framework-level maintenance to standardize skills, organize documentation, and adjust instructions based on actual usage patterns across multiple sessions
 
-**Key Point**: This is NOT part of the regular session LEARN phase. It's a separate maintenance workflow.
+**Key Point**: This is NOT part of the regular session LEARN phase. It's a separate maintenance workflow triggered after session completion.
 
 **Principle**: *Context over Process. Knowledge over Ceremony.*
 

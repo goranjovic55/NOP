@@ -16,13 +16,13 @@ Prompts in this folder are designed to:
 
 **Purpose**: **Maintenance workflow** - Analyze all workflow sessions to identify patterns and propose framework improvements
 
-**Type**: Independent maintenance task (runs outside of regular sessions)
+**Type**: Independent maintenance task (runs after session completion when due)
 
-**When to Use**:
-- After accumulating 30-50 new workflow logs
-- Periodically (e.g., monthly) for framework maintenance
-- When standardizing skills and documentation
-- For cross-session pattern analysis and cleanup
+**Trigger Options**:
+- **Automatic**: Every 10 sessions (prompted in COMPLETE phase)
+- **Manual**: User can trigger anytime
+
+**Session Tracking**: Uses `.github/scripts/session_tracker.py` to track session numbers
 
 **Important**: This is NOT part of the regular session LEARN phase. This is a separate maintenance workflow.
 
@@ -39,12 +39,20 @@ Prompts in this folder are designed to:
 CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 ```
 
-**Related Script**: `.github/scripts/analyze_workflows.py`
+**Related Scripts**: 
+- `.github/scripts/analyze_workflows.py` (analyzer)
+- `.github/scripts/session_tracker.py` (session tracking)
 
 **Example Usage**:
 ```bash
-# Run analysis independently (not during a regular session)
+# Check if maintenance is due
+python .github/scripts/session_tracker.py check-maintenance
+
+# Run analysis (when maintenance is due or manual trigger)
 python .github/scripts/analyze_workflows.py --output markdown
+
+# After completing maintenance
+python .github/scripts/session_tracker.py mark-maintenance-done
 
 # Follow the prompt to implement improvements
 # See .github/prompts/akis-workflow-analyzer.md for full workflow
@@ -83,18 +91,20 @@ CONTEXT → PLAN → IMPLEMENT → VERIFY → LEARN → COMPLETE
 - Analyzes current session only
 - Updates knowledge/skills for that session
 - Baked into every session's LEARN phase
+- Session counter incremented in COMPLETE phase
 
-**Cross-Session Maintenance** (this directory - runs independently outside sessions):
+**Cross-Session Maintenance** (this directory - triggered after session completion):
 ```
 CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 ```
-- Analyzes 30-50 sessions collectively
+- Analyzes sessions since last maintenance (typically 10)
 - Standardizes patterns across sessions
 - Organizes and cleans documentation
 - Adjusts framework instructions
-- Maintenance task every 30-50 sessions
+- Triggered automatically every 10 sessions or manually
+- Uses session tracking (`.github/scripts/session_tracker.py`)
 
-The prompts in this folder operate at a higher level, analyzing multiple sessions to improve the framework itself. They are NOT part of the regular session workflow.
+The prompts in this folder operate at a higher level, analyzing multiple sessions to improve the framework itself. They are triggered in COMPLETE phase when maintenance is due, NOT during the regular LEARN phase.
 
 ## Standards
 

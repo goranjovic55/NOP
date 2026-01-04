@@ -41,7 +41,12 @@ Query `project_knowledge.json`, `docs/`, and skills as needed
 
 **COMPLETE:**
 1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
-2. Commit all changes
+2. **Increment session counter**: `python .github/scripts/session_tracker.py increment`
+3. **Check if maintenance is due**: `python .github/scripts/session_tracker.py check-maintenance`
+   - If due (every 10 sessions): **Ask user** if they want to run cross-session maintenance workflow
+   - If user approves: Follow `.github/prompts/akis-workflow-analyzer.md`
+   - After maintenance: Run `python .github/scripts/session_tracker.py mark-maintenance-done`
+4. Commit all changes
 
 ---
 
@@ -131,7 +136,11 @@ LEARN → COMPLETE
 
 **Purpose**: Analyze all workflow logs to standardize skills, organize docs, and improve framework
 
-**Trigger**: After 30-50 sessions or periodically (monthly) - **Manual maintenance task, NOT part of regular LEARN phase**
+**Trigger Options**:
+1. **Automatic**: Every 10 sessions - prompted in COMPLETE phase
+2. **Manual**: User can trigger anytime with the workflow prompt
+
+**Session Tracking**: Uses `.github/scripts/session_tracker.py` to track session numbers
 
 **Workflow**: Follow `.github/prompts/akis-workflow-analyzer.md`
 
@@ -144,6 +153,18 @@ LEARN → COMPLETE
 - Documentation organization recommendations  
 - Instruction improvements from common decisions
 - Knowledge updates from cross-session insights
+
+**Session Tracking Commands**:
+```bash
+# Check current session number
+python .github/scripts/session_tracker.py current
+
+# Check if maintenance is due
+python .github/scripts/session_tracker.py check-maintenance
+
+# Mark maintenance as completed
+python .github/scripts/session_tracker.py mark-maintenance-done
+```
 
 ---
 
