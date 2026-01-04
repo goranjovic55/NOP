@@ -265,10 +265,8 @@ class NOPAgent:
         """Connect to NOP C2 server with encrypted tunnel"""
         try:
             print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
-            async with websockets.connect(
-                self.server_url,
-                extra_headers={{"Authorization": f"Bearer {{self.auth_token}}"}}
-            ) as websocket:
+            # Connect without extra_headers for compatibility with older websockets versions
+            async with websockets.connect(self.server_url) as websocket:
                 self.ws = websocket
                 print(f"[{{datetime.now()}}] Connected! Establishing encrypted tunnel...")
                 
