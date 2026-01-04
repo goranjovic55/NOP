@@ -280,6 +280,71 @@ python .github/scripts/update_docs.py
 
 ---
 
+## Cross-Session Workflow Analysis
+
+**When:** After accumulating 10+ workflow logs or periodically (monthly)
+
+**Purpose:** Analyze ALL sessions to identify patterns and improve AKIS framework
+
+**How:** Use the AKIS Workflow Analyzer
+
+**Process:**
+1. Run analyzer script:
+   ```bash
+   python .github/scripts/analyze_workflows.py --output markdown
+   ```
+
+2. Review analysis output:
+   - Skill candidates (recurring patterns across sessions)
+   - Documentation needs (frequently updated areas)
+   - Instruction improvements (common decisions)
+   - Knowledge updates (cross-session entities)
+
+3. Follow prompt: `.github/prompts/akis-workflow-analyzer.md`
+
+4. Implement approved improvements:
+   - Create/update skills based on patterns
+   - Organize and update documentation
+   - Enhance framework instructions
+   - Update knowledge base
+
+**Workflow phases:**
+```
+CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
+```
+
+**What it provides:**
+- Pattern analysis across all sessions
+- Skill creation suggestions (frequency-based)
+- Documentation organization recommendations
+- Instruction standardization proposals
+- Knowledge base improvements
+
+**Example output:**
+```
+Pattern Analysis:
+- frontend-ui: 12 sessions
+- api-endpoints: 8 sessions
+- docker-deployment: 5 sessions
+
+Skill Candidates:
+- ui-consistency.md (12 sessions, high priority)
+- api-debugging.md (8 sessions, high priority)
+
+Documentation Needs:
+- API Reference (high priority)
+- Component Library Guide (medium priority)
+```
+
+**Use cases:**
+- Standardizing skills across project
+- Organizing scattered documentation
+- Codifying frequently-made decisions
+- Tracking frequently-modified areas
+- Framework continuous improvement
+
+---
+
 ## Best Practices
 
 **Do:**
@@ -315,5 +380,8 @@ Documentation review:
 - [ ] Properly linked
 
 ## Related Skills
-- `knowledge-management.md` - Project knowledge
+- `knowledge.md` - Project knowledge management
 - `git-workflow.md` - Commit documentation
+
+## Related Prompts
+- `.github/prompts/akis-workflow-analyzer.md` - Cross-session analysis and framework improvement

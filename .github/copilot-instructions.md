@@ -123,6 +123,25 @@ LEARN → COMPLETE
 
 - `.project/` → Planning docs, blueprints, ADRs
 - `log/workflow/` → Historical work record
+- `.github/prompts/` → Specialized workflow prompts
+
+---
+
+## Cross-Session Analysis
+
+**Purpose**: Analyze all workflow logs to standardize skills, organize docs, and improve framework
+
+**Trigger**: After 10+ sessions or periodically (monthly)
+
+**Workflow**: Follow `.github/prompts/akis-workflow-analyzer.md`
+
+**Script**: `python .github/scripts/analyze_workflows.py`
+
+**Outputs**:
+- Skill candidates from recurring patterns
+- Documentation organization recommendations  
+- Instruction improvements from common decisions
+- Knowledge updates from cross-session insights
 
 ---
 
