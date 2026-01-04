@@ -1,35 +1,37 @@
-# Knowledge Management
+# Knowledge
 
 ## When to Use
-- Start of any task
-- Before creating new entities
-- When updating code structure
-- Before committing changes
+- Start of any task (CONTEXT phase)
+- During work (query as needed)
+- Before committing (LEARN phase)
 
 ## Avoid
+- ❌ Loading everything upfront → ✅ Index map, query as needed
 - ❌ Duplicate entities → ✅ Check existing first
 - ❌ Stale observations → ✅ Update timestamps
-- ❌ Missing relations → ✅ Document dependencies
 
 ## Overview
 
-Maintain `project_knowledge.json` as institutional memory. Load at start, update before commit.
+Maintain `project_knowledge.json` as institutional memory and `docs/` for detailed documentation. Index at start, query during work, update before commit.
 
-**First line = Domain map** for quick navigation.
+**Line 1 = Domain map** for quick navigation to entities and documentation.
 
 ---
 
-## Start of Task
+## CONTEXT Phase (Start of Task)
 
-**Read line 1 (domain map):**
+**1. Read line 1 (domain map):**
 ```bash
 head -1 project_knowledge.json | python3 -m json.tool
 ```
 
-**Then query relevant domains:**
-- Check `domains` for line ranges
-- Use `quickNav` for common tasks
-- Load specific sections as needed
+**2. Index available context:**
+- Check `domains` for knowledge line ranges
+- Use `quickNav` for common task shortcuts
+- Identify relevant documentation in `docs/` based on domain
+- Note applicable skills in `.github/skills/`
+
+**3. Query specific sections as needed throughout work** (don't load everything)
 
 ---
 
@@ -78,7 +80,12 @@ head -1 project_knowledge.json | python3 -m json.tool
 
 ---
 
-## During Work
+## During Work (All Phases)
+
+**Query knowledge as needed:**
+- Check `project_knowledge.json` for entity details
+- Read relevant docs from `docs/` when encountering unknowns
+- Reference skills for patterns
 
 **Add entities manually:**
 - New services, components, features
@@ -93,19 +100,24 @@ head -1 project_knowledge.json | python3 -m json.tool
 
 ---
 
-## Before Commit
+## LEARN Phase (Before Commit)
 
 **1. Generate codemap (auto-updates map):**
 ```bash
 python .github/scripts/generate_codemap.py
 ```
 
-**2. Add manual entities:**
+**2. Apply documentation updates (automatic):**
+```bash
+python .github/scripts/update_docs.py
+```
+
+**3. Add manual entities:**
 - New features
 - Architectural changes
 - Integration points
 
-**3. Update observations:**
+**4. Update observations:**
 ```json
 {"type":"entity","name":"ExistingService","entityType":"service","observations":["original desc","enhanced X","upd:2026-01-03"]}
 ```
@@ -133,15 +145,11 @@ grep '"to":"ModuleName"' project_knowledge.json
 ```bash
 grep 'upd:2026-01' project_knowledge.json
 ```
-
----
-
-## Best Practices
-
-- Load knowledge at task start (CONTEXT phase)
+**CONTEXT phase**: Index map, identify relevant docs/skills
+- **During work**: Query knowledge and docs as needed (not all upfront)
+- **LEARN phase**: Update knowledge and documentation automatically
 - Check for existing entities before creating
 - Add observations with dates (upd:YYYY-MM-DD)
-- Update before commit (LEARN phase)
 - Keep descriptions concise
 - Use consistent naming (PascalCase for entities)
 
@@ -149,23 +157,27 @@ grep 'upd:2026-01' project_knowledge.json
 
 ## Common Mistakes
 
+❌ Loading everything at start → context overflow  
+✅ Index map, query as needed
+
 ❌ Creating duplicate entities  
 ✅ Query project_knowledge.json first
 
 ❌ Missing update timestamps  
 ✅ Add `upd:YYYY-MM-DD` to observations
 
-❌ Forgetting relations  
-✅ Document USES/IMPLEMENTS/DEPENDS_ON
+❌ Forgetting documentation updates  
+✅ Run update_docs.py in LEARN phase
+
+❌ Vague observations  
+✅ Specific, dated observations
+
+❌ Missing relations  
+✅ Document integration points
 
 ## Related Skills
-- `documentation.md` - Workflow logging
-- `git-workflow.md` - Commit messages
-✅ Query first, then create
-
-❌ Forgetting to update after changes  
-✅ Always update in LEARN phase
-
+- `documentation.md` - Workflow logging, doc updates
+- `git-workflow.md` - Commit message
 ❌ Vague observations  
 ✅ Specific, dated observations
 
