@@ -441,6 +441,40 @@ POST /api/v1/traffic/ping
 
 ---
 
+## Agent Framework Enhancements
+
+### Session-Driven Documentation Updates
+**Added: 2026-01-04**
+
+Automated documentation maintenance system integrated into the AKIS v2 LEARN phase:
+
+- **Script**: `.github/scripts/update_docs.py` - Analyzes session changes and suggests doc updates
+- **Integration**: Runs between codemap generation and skill suggestions
+- **Approach**: Lightweight, targeted updates to keep docs current without bloat
+- **Benefits**: 
+  - Agents always start with accurate documentation context
+  - Incremental updates prevent documentation drift
+  - Organized and informative docs for both users and agents
+  - Minimal overhead (~2 minutes per session)
+
+**How it works**:
+1. Analyzes recent commits, changed files, and workflow logs
+2. Identifies affected documentation based on change patterns
+3. Suggests high/medium/low priority updates
+4. Agent applies approved updates (keeping them minimal)
+5. Updates tracked in workflow log
+
+**Documentation categories tracked**:
+- API endpoints → `docs/technical/API_rest_v1.md`
+- UI components → `docs/design/UI_UX_SPEC.md`
+- Infrastructure → `docs/DEPLOYMENT.md`
+- New features → `docs/features/IMPLEMENTED_FEATURES.md`
+- Architecture → `docs/architecture/ARCH_system_v1.md`
+
+**See**: `.github/scripts/README_DOC_UPDATES.md` for complete documentation
+
+---
+
 ## Future Enhancements
 
 ### Topology Visualization

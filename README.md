@@ -122,9 +122,9 @@ NOP/
 └── docker-compose.debug.yml   # Debug configuration
 ```
 
-## 📋 Knowledge System
+## 📋 Knowledge System & Agent Framework
 
-This project follows the **Universal Agent Framework** for AI-assisted development:
+This project follows the **AKIS v2 (Agents, Knowledge, Instructions, Skills)** framework for AI-assisted development:
 
 ### Knowledge Files
 - **`project_knowledge.json`** - Project-specific entities, code graph, relations
@@ -136,6 +136,14 @@ This project follows the **Universal Agent Framework** for AI-assisted developme
 {"type":"codegraph","name":"Component","nodeType":"module|class|function","dependencies":[],"dependents":[]}
 {"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
 ```
+
+### Agent Workflow
+- **CONTEXT**: Load knowledge and skills at session start
+- **PLAN/IMPLEMENT/VERIFY**: Execute task with rich context
+- **LEARN**: Update knowledge, documentation, and skills
+- **COMPLETE**: Log workflow and commit changes
+
+**Session-Driven Documentation**: Documentation automatically updated at end of each session to ensure agents always work with current, accurate context. See `.github/scripts/README_DOC_UPDATES.md` for details.
 
 ## 🚀 Quick Start
 
