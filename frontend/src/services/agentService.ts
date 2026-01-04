@@ -135,6 +135,17 @@ export const agentService = {
     if (!response.ok) throw new Error('Failed to delete agent');
   },
 
+  async terminateAgent(token: string, agentId: string): Promise<{ status: string; message?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/terminate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to terminate agent');
+    return response.json();
+  },
+
   async generateAgent(token: string, agentId: string, platform?: string): Promise<{ content: string; filename: string; agent_type: string; is_binary?: boolean }> {
     let url = `${API_BASE_URL}/api/v1/agents/${agentId}/generate`;
     if (platform) {

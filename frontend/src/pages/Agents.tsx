@@ -241,6 +241,19 @@ const Agents: React.FC = () => {
     }
   };
 
+  const handleTerminateAgent = async (agentId: string, agentName: string) => {
+    if (!token || !window.confirm(`Send terminate command to agent "${agentName}"?\n\nThis will shut down the agent process.`)) return;
+    try {
+      const result = await agentService.terminateAgent(token, agentId);
+      alert(`Terminate command status: ${result.status}\n${result.message || ''}`);
+      // Reload agents to update status
+      setTimeout(() => loadAgents(), 2000);
+    } catch (error) {
+      console.error('Failed to terminate agent:', error);
+      alert(`Failed to terminate agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleGenerateAgent = async (agent: Agent, platform?: string) => {
     if (!token) return;
     try {
@@ -607,8 +620,8 @@ const Agents: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Action Button */}
-                    <div>
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-2">
                       {activeAgent?.id === agent.id ? (
                         <button
                           onClick={(e) => {
@@ -628,6 +641,18 @@ const Agents: React.FC = () => {
                           className="px-3 py-1 border border-cyber-purple text-cyber-purple text-xs uppercase hover:bg-cyber-purple hover:text-white transition"
                         >
                           Switch POV
+                        </button>
+                      )}
+                      {agent.status === 'online' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTerminateAgent(agent.id, agent.name);
+                          }}
+                          className="px-2 py-1 border border-cyber-red text-cyber-red text-xs uppercase hover:bg-cyber-red hover:text-white transition"
+                          title="Send terminate command to agent"
+                        >
+                          ⚠ Kill
                         </button>
                       )}
                     </div>
@@ -762,7 +787,7 @@ const Agents: React.FC = () => {
                 </label>
                 
                 {/* Quick Select */}
-                <div className="mb-3 flex gap-2">
+                <div className="mb-3 grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -774,14 +799,31 @@ const Agents: React.FC = () => {
                       setC2Host(localIP);
                       setC2Port(port);
                     }}
-                    className={`flex-1 px-3 py-2 border text-xs uppercase transition-all ${
-                      !usePublicIP
+                    className={`px-3 py-2 border text-xs uppercase transition-all ${
+                      !usePublicIP && c2Host !== 'nop-backend-1'
                         ? 'border-cyber-blue bg-cyber-blue/20 text-cyber-blue'
                         : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-blue'
                     }`}
                   >
                     <div className="font-bold mb-1">{localIP.includes('github.dev') ? 'Codespaces' : 'Local'}</div>
                     <div className="font-mono text-[10px] truncate">{localIP}</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUsePublicIP(false);
+                      setC2Protocol('ws');
+                      setC2Host('172.28.0.1');
+                      setC2Port('8000');
+                    }}
+                    className={`px-3 py-2 border text-xs uppercase transition-all ${
+                      c2Host === '172.28.0.1'
+                        ? 'border-cyber-purple bg-cyber-purple/20 text-cyber-purple'
+                        : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-purple'
+                    }`}
+                  >
+                    <div className="font-bold mb-1">🐳 Internal</div>
+                    <div className="font-mono text-[10px]">172.28.0.1</div>
                   </button>
                   {publicIP && (
                     <button
@@ -792,7 +834,7 @@ const Agents: React.FC = () => {
                         setC2Host(publicIP);
                         setC2Port('8000');
                       }}
-                      className={`flex-1 px-3 py-2 border text-xs uppercase transition-all ${
+                      className={`px-3 py-2 border text-xs uppercase transition-all ${
                         usePublicIP
                           ? 'border-cyber-blue bg-cyber-blue/20 text-cyber-blue'
                           : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-blue'
@@ -1348,6 +1390,32 @@ const Agents: React.FC = () => {
                           navigator.clipboard.writeText(`curl -o agent.py "${backendUrl}/api/v1/agents/download/${sidebarAgent.download_token}"`);
                         }}
                         className="flex-1 px-2 py-1 border border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-white text-xs transition"
+                      >
+                        Copy curl
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Internal Download (Docker) */}
+                  <div className="border-t border-cyber-gray pt-3 mt-2">
+                    <span className="text-cyber-purple text-[10px] uppercase block mb-2">🐳 Internal Download (Docker):</span>
+                    <p className="text-cyber-gray-light text-[9px] mb-2">Use internal hostname for containers in same network:</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`wget -O agent.py "http://nop-backend-1:8000/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                        }}
+                        className="flex-1 px-2 py-1 border border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white text-xs transition"
+                      >
+                        Copy wget
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`curl -o agent.py "http://nop-backend-1:8000/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                        }}
+                        className="flex-1 px-2 py-1 border border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white text-xs transition"
                       >
                         Copy curl
                       </button>

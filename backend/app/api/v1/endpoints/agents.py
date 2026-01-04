@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from uuid import UUID
 import json
+import asyncio
 from datetime import datetime
 
 from app.core.database import get_db
@@ -83,13 +84,53 @@ async def update_agent(
     return AgentResponse.model_validate(agent)
 
 
+@router.post("/{agent_id}/terminate")
+async def terminate_agent(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Send terminate command to agent"""
+    agent = await AgentService.get_agent(db, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Send kill command if agent is connected
+    agent_id_str = str(agent_id)
+    if agent_id_str in connected_agents:
+        try:
+            websocket = connected_agents[agent_id_str]
+            await websocket.send_json({
+                "type": "terminate",
+                "message": "Shutdown requested by C2"
+            })
+            return {"status": "terminate_sent", "agent_id": str(agent_id)}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    return {"status": "offline", "message": "Agent not connected"}
+
+
 @router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agent(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Delete agent"""
+    """Delete agent (sends terminate command first if online)"""
+    # Try to send terminate command if agent is connected
+    agent_id_str = str(agent_id)
+    if agent_id_str in connected_agents:
+        try:
+            websocket = connected_agents[agent_id_str]
+            await websocket.send_json({
+                "type": "terminate",
+                "message": "Agent deleted from C2"
+            })
+            await asyncio.sleep(0.5)  # Give agent time to process
+        except:
+            pass  # Continue with deletion even if terminate fails
+    
     success = await AgentService.delete_agent(db, agent_id)
     if not success:
         raise HTTPException(status_code=404, detail="Agent not found")

