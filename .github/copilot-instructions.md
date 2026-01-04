@@ -114,6 +114,24 @@ LEARN → COMPLETE
 - Type hints required (Python/TypeScript)
 - Tests for new features
 - Descriptive commit messages
+- **Use templates** from `.github/templates/` for all new skills and documentation
+
+---
+
+## Templates
+
+All new content follows standardized templates:
+
+**Skills**: `.github/templates/skill.md`
+- Format: When to Use → Checklist → Examples → Quick Reference → Related
+- Keep terse (<200 lines)
+
+**Documentation**:
+- Features: `.github/templates/feature-doc.md`
+- Guides: `.github/templates/guide-doc.md`
+- Workflow logs: `.github/templates/workflow-log.md`
+
+**See**: `.github/templates/README.md` for usage guidelines
 
 ---
 

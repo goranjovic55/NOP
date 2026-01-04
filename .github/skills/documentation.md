@@ -17,6 +17,12 @@ Keep documentation clear, current, and close to code. Workflow logs for history,
 
 **Document Placement:** Always integrate new documentation intelligently into existing structure - never create random files in random places. Follow standardized naming and directory conventions.
 
+**Use Templates:** All new docs and skills follow standardized templates from `.github/templates/`:
+- Skills: `skill.md`
+- Features: `feature-doc.md`
+- Guides: `guide-doc.md`
+- Workflow logs: `workflow-log.md`
+
 ---
 
 ## Documentation Directory Structure
@@ -166,7 +172,7 @@ docs/archive/feature-docs-YYYY-MM-DD/ # Historical versions
 
 **Create during COMPLETE phase:**
 ```bash
-# Template format
+# Copy template and rename
 cp .github/templates/workflow-log.md log/workflow/$(date +%Y-%m-%d_%H%M%S)_task-name.md
 ```
 
@@ -345,33 +351,14 @@ Use NVD API 2.0 with caching.
 
 **Location:** `docs/features/`
 
+**Template:** `.github/templates/feature-doc.md`
+
 **Include:**
 - Feature description
 - User flow
 - Screenshots (if UI)
 - Configuration
 - Limitations
-
-**Example:**
-```markdown
-# CVE Scanner
-
-Scans assets for known vulnerabilities using NVD database.
-
-## Usage
-1. Navigate to Vulnerabilities page
-2. Click "Scan Asset"
-3. Select asset and scan type
-4. View results
-
-## Configuration
-- `NVD_API_KEY` - Optional, increases rate limit
-- `CVE_CACHE_TTL` - Cache duration (default: 24h)
-
-## Limitations
-- Rate limited without API key
-- Requires accurate version detection
-```
 
 **Generic Template:**
 ```markdown
