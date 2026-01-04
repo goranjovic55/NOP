@@ -4,7 +4,7 @@ import { useScriptStore, ScriptStep, ScriptTemplate, ScriptStepType } from '../s
 import { CyberPageTitle } from '../components/CyberUI';
 
 const Scripts: React.FC = () => {
-  const { token: _token } = useAuthStore();
+  const { token } = useAuthStore();
   const {
     scripts,
     templates,
@@ -92,39 +92,29 @@ const Scripts: React.FC = () => {
   };
 
   const executeStep = async (step: ScriptStep): Promise<{ output: string }> => {
-    // Simulate execution for now - replace with actual API calls
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Call backend API to execute step
+    try {
+      const response = await fetch('/api/v1/scripts/step/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          step_type: step.type,
+          params: step.params
+        })
+      });
 
-    switch (step.type) {
-      case 'login_ssh':
-        return { output: `Connected to ${step.params.target || 'target'} via SSH` };
-      case 'login_rdp':
-        return { output: `Connected to ${step.params.target || 'target'} via RDP` };
-      case 'login_vnc':
-        return { output: `Connected to ${step.params.target || 'target'} via VNC` };
-      case 'port_scan':
-        return { output: `Scanned ports ${step.params.ports} on ${step.params.target}. Found 5 open ports.` };
-      case 'vuln_scan':
-        return { output: `Vulnerability scan completed. Found 2 vulnerabilities.` };
-      case 'exploit':
-        return { output: `Exploit executed successfully. Shell session opened.` };
-      case 'command':
-        return { output: `Command executed: ${step.params.command}` };
-      case 'ping_test':
-        return { output: `Ping test completed. All targets reachable.` };
-      case 'port_disable':
-        return { output: `Port ${step.params.port} disabled` };
-      case 'port_enable':
-        return { output: `Port ${step.params.port} enabled` };
-      case 'delay':
-        await new Promise(resolve => setTimeout(resolve, (step.params.seconds || 5) * 1000));
-        return { output: `Waited ${step.params.seconds || 5} seconds` };
-      case 'agent_download':
-        return { output: `NOP agent downloaded from ${step.params.url}` };
-      case 'agent_execute':
-        return { output: `NOP agent started with args: ${step.params.args}` };
-      default:
-        return { output: 'Step completed' };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Step execution failed');
+      }
+
+      const result = await response.json();
+      return { output: result.output || 'Step completed' };
+    } catch (error: any) {
+      throw new Error(error.message || 'Network error');
     }
   };
 
