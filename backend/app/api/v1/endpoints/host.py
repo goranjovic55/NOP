@@ -93,19 +93,54 @@ async def get_system_metrics(
     agent_pov = get_agent_pov(request)
     
     if agent_pov:
-        # Return agent's host metrics from metadata
+        # Return agent's host metrics from metadata in full format
         agent = await AgentService.get_agent(db, agent_pov)
         if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
             host_info = agent.agent_metadata['host_info']
-            # Convert to metrics format
+            # Convert simplified agent data to full SystemMetrics format
             return {
-                "cpu_percent": host_info.get('cpu_percent', 0),
-                "memory_percent": host_info.get('memory_percent', 0),
-                "disk_percent": host_info.get('disk_percent', 0),
+                "cpu": {
+                    "percent_total": host_info.get('cpu_percent', 0),
+                    "percent_per_core": [],
+                    "core_count": 0,
+                    "thread_count": 0,
+                    "frequency": {
+                        "current": 0,
+                        "min": 0,
+                        "max": 0
+                    }
+                },
+                "memory": {
+                    "total": 0,
+                    "available": 0,
+                    "percent": host_info.get('memory_percent', 0),
+                    "used": 0,
+                    "free": 0,
+                    "swap_total": 0,
+                    "swap_used": 0,
+                    "swap_free": 0,
+                    "swap_percent": 0
+                },
+                "disk": [{
+                    "device": "agent",
+                    "mountpoint": "/",
+                    "fstype": "unknown",
+                    "total": 0,
+                    "used": 0,
+                    "free": 0,
+                    "percent": host_info.get('disk_percent', 0)
+                }],
+                "network": {
+                    "bytes_sent": 0,
+                    "bytes_recv": 0,
+                    "packets_sent": 0,
+                    "packets_recv": 0
+                },
+                "processes": 0,
+                "timestamp": agent.agent_metadata.get('last_host_update'),
                 "_source": "agent",
                 "_agent_id": str(agent.id),
-                "_agent_name": agent.name,
-                "_last_update": agent.agent_metadata.get('last_host_update')
+                "_agent_name": agent.name
             }
         else:
             raise HTTPException(status_code=404, detail="Agent metrics not available")
