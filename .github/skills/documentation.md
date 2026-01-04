@@ -15,6 +15,145 @@
 
 Keep documentation clear, current, and close to code. Workflow logs for history, READMEs for usage, inline for complexity.
 
+**Document Placement:** Always integrate new documentation intelligently into existing structure - never create random files in random places. Follow standardized naming and directory conventions.
+
+---
+
+## Documentation Directory Structure
+
+**Standard Structure** (adapt to project needs):
+
+```
+docs/
+├── INDEX.md              # Master index (always update when adding docs)
+├── guides/               # User-facing guides and deployment
+│   ├── QUICK_START.md
+│   ├── DEPLOYMENT.md
+│   └── CONFIGURATION.md
+├── features/             # Feature-specific documentation
+│   ├── FEATURE_NAME.md
+│   └── IMPLEMENTED_FEATURES.md
+├── technical/            # API references and technical specs
+│   └── API_reference.md
+├── architecture/         # System design and ADRs
+│   └── ARCH_system.md
+├── design/               # UI/UX specifications (if applicable)
+│   └── UI_UX_SPEC.md
+├── development/          # Contributing, testing, roadmap
+│   ├── CONTRIBUTING.md
+│   ├── TESTING.md
+│   └── ROADMAP.md
+├── analysis/             # Current project analysis
+└── archive/              # Historical documentation
+    └── category-YYYY-MM-DD/
+```
+
+**Variations by Project Type:**
+- **Backend API**: Focus on `technical/` (API docs) and `guides/` (deployment)
+- **Frontend App**: Add `design/` for UI components and patterns
+- **Library/SDK**: Focus on `technical/` (API reference) and examples
+- **CLI Tool**: Focus on `guides/` (usage) and examples
+- **Full-Stack**: Use complete structure
+
+---
+
+## File Naming Convention
+
+**Standardized Format:**
+- Primary docs: `CATEGORY_NAME.md` (e.g., `DEPLOYMENT.md`, `AGENTS_C2.md`)
+- Features: `FEATURE_NAME.md` (e.g., `STORM_FEATURE.md`)
+- Guides: `GUIDE_PURPOSE.md` (e.g., `QUICK_START.md`)
+- Specs: `SPEC_CATEGORY.md` (e.g., `UI_UX_SPEC.md`)
+
+**Use uppercase with underscores** for all documentation files to maintain consistency.
+
+---
+
+## Intelligent Document Placement
+
+### When Creating New Documentation
+
+1. **Check existing structure first:**
+   ```bash
+   # Review current docs
+   ls docs/*/
+   # Check INDEX.md for coverage
+   cat docs/INDEX.md
+   ```
+
+2. **Determine correct category:**
+   - User guides, deployment → `docs/guides/`
+   - Feature documentation → `docs/features/`
+   - API references, specs → `docs/technical/`
+   - System design, ADRs → `docs/architecture/`
+   - UI/UX, design systems → `docs/design/`
+   - Contributing, testing → `docs/development/`
+   - Temporary analysis → `docs/analysis/`
+
+3. **Check for existing related docs:**
+   - Can content be **merged** into existing doc?
+   - Is there overlap with another document?
+   - Should old versions be archived first?
+
+4. **Use standardized naming:**
+   - Follow existing patterns
+   - Uppercase with underscores
+   - Descriptive, concise names
+
+5. **Update INDEX.md immediately:**
+   - Add entry in appropriate section
+   - Include description and audience
+   - Link to related documents
+   - Update last modified date
+
+### When Updating Existing Documentation
+
+1. **Archive old versions if major rewrite:**
+   ```bash
+   mkdir -p docs/archive/category-YYYY-MM-DD/
+   mv docs/OLD_DOC.md docs/archive/category-YYYY-MM-DD/
+   ```
+
+2. **Consolidate duplicates:**
+   - Identify scattered documentation on same topic
+   - Merge into single source of truth
+   - Archive old versions
+   - Update cross-references
+
+3. **Update INDEX.md:**
+   - Note consolidation
+   - Update links
+   - Add changelog entry
+
+### Consolidation Guidelines
+
+**When to consolidate:**
+- Multiple docs cover same topic
+- Documentation scattered across directories
+- Old versions exist alongside new versions
+- Similar content in different locations
+
+**How to consolidate:**
+1. Identify authoritative/newest version
+2. Archive older/duplicate versions to `docs/archive/category-YYYY-MM-DD/`
+3. Merge unique content from old docs into primary doc
+4. Update INDEX.md with consolidated structure
+5. Add cross-references to archived versions
+6. Update any external links
+
+**Example consolidation:**
+```bash
+# Before: Multiple docs scattered across root
+FEATURE_PAGE_DOCUMENTATION.md
+FEATURE_SCREENSHOTS.md
+FEATURE_IMPLEMENTATION.md
+FEATURE_ADVANCED_OPTIONS.md
+
+# After: Single comprehensive doc
+docs/features/FEATURE_NAME.md        # Consolidated primary doc
+docs/archive/feature-docs-YYYY-MM-DD/ # Historical versions
+```
+
 ---
 
 ## Workflow Logs
@@ -232,6 +371,25 @@ Scans assets for known vulnerabilities using NVD database.
 ## Limitations
 - Rate limited without API key
 - Requires accurate version detection
+```
+
+**Generic Template:**
+```markdown
+# [Feature Name]
+
+[Brief description of what it does]
+
+## Usage
+[Step-by-step instructions or code examples]
+
+## Configuration
+[Environment variables, settings, options]
+
+## Limitations
+[Known limitations or constraints]
+
+## Related
+[Links to related features or documentation]
 ```
 
 ---

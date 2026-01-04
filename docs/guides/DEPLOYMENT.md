@@ -1,79 +1,192 @@
 # Network Observatory Platform - Deployment Guide
-## Installation & Configuration Manual v1.0
+## Installation & Configuration Manual v2.0
+
+**Last Updated**: 2026-01-04
 
 ---
 
-## 1. Prerequisites
+## Quick Start
 
-### 1.1 Hardware Requirements
+### Pre-built Images (Recommended)
+
+```bash
+# Clone repository
+git clone https://github.com/goranjovic55/NOP.git
+cd NOP
+
+# Pull and start (uses GitHub Container Registry)
+docker compose pull
+docker compose up -d
+
+# Access application
+# Frontend: http://localhost:12000
+# Backend API: http://localhost:12001
+```
+
+**Default Credentials**: `admin` / `changeme` (**change immediately**)
+
+### Development Setup (Build from Source)
+
+```bash
+# Clone repository
+git clone https://github.com/goranjovic55/NOP.git
+cd NOP
+
+# Build and start using dev compose file
+docker compose -f docker-compose.dev.yml up -d --build
+
+# View logs
+docker compose -f docker-compose.dev.yml logs -f
+```
+
+---
+
+## Prerequisites
+
+### Hardware Requirements
 
 **Minimum (Small Network: <50 devices)**
-- CPU: 4 cores ARM64 or x86_64
+- CPU: 4 cores ARM64/x86_64
 - RAM: 4 GB
 - Storage: 50 GB
 - Network: 1 Gbps Ethernet
 
 **Recommended (Medium Network: 50-250 devices)**
-- CPU: 8 cores ARM64 or x86_64 (Radxa-E54C or better)
+- CPU: 8 cores ARM64/x86_64
 - RAM: 8 GB
-- Storage: 100 GB (NVMe preferred)
+- Storage: 100 GB NVMe
 - Network: 2.5 Gbps Ethernet
 
-**Optimal (Large Network: 250-500 devices)**
+**Optimal (Large Network: 250-500+ devices)**
 - CPU: 16 cores x86_64
 - RAM: 16 GB
 - Storage: 250 GB NVMe
 - Network: 10 Gbps Ethernet
 
-### 1.2 Software Requirements
+### Software Requirements
 
-- **Operating System**: Ubuntu 22.04 LTS (ARM64 or x86_64)
-- **Docker**: 24.0.0 or later
-- **Docker Compose**: 2.20.0 or later
-- **Git**: 2.34.0 or later
+- **OS**: Ubuntu 22.04 LTS (ARM64 or x86_64) or similar
+- **Docker**: 24.0.0+
+- **Docker Compose**: 2.20.0+
+- **Git**: 2.34.0+
 
-### 1.3 Network Requirements
+### Network Requirements
 
-- **Network Position**: Device must be on the network segment to monitor
-- **Promiscuous Mode**: Network interface must support promiscuous mode
-- **Port Access**: Ability to bind to ports 80, 443, 5432, 6379
-- **Internet Access**: Required for initial setup and updates (optional after)
+- Network access to segment being monitored
+- Promiscuous mode capability on network interface
+- Ports: 12000 (frontend), 12001 (backend), 5432 (postgres), 6379 (redis)
+- Internet access for initial setup and container pulls
 
 ---
 
-## 2. Installation
+## Docker Management
 
-### 2.1 Quick Start (Recommended)
+### Quick Rebuild (Development)
+
+For testing code changes quickly:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-org/nop.git
-cd nop
+# Stop containers
+docker compose down
 
-# 2. Copy example environment file
-cp .env.example .env
+# Rebuild specific service
+docker compose build --no-cache backend
+docker compose build --no-cache frontend
 
-# 3. Edit configuration (see Section 3)
-nano .env
+# Start containers
+docker compose up -d
 
-# 4. Run setup script
-./scripts/setup.sh
-
-# 5. Start NOP
-docker-compose up -d
-
-# 6. Check status
-docker-compose ps
-
-# 7. Access web interface
-open https://localhost:8080
+# Check logs
+docker compose logs -f backend frontend
 ```
 
-Initial credentials: `admin` / `changeme` (must change on first login)
+### Full System Rebuild
 
-### 2.2 Manual Installation
+Complete rebuild of all images and containers:
 
-#### Step 1: Install Docker
+```bash
+# Stop and remove everything
+docker compose down -v
+
+# Prune Docker system (removes unused images)
+docker system prune -af --volumes
+
+# Rebuild all services
+docker compose build --no-cache
+
+# Start all services
+docker compose up -d
+
+# Verify status
+docker compose ps
+```
+
+### Individual Service Rebuild
+
+**Backend Only**:
+```bash
+docker compose stop backend
+docker compose build --no-cache backend
+docker compose up -d backend
+```
+
+**Frontend Only**:
+```bash
+docker compose stop frontend
+docker compose build --no-cache frontend
+docker compose up -d frontend
+```
+
+### Hot-Reload (No Rebuild)
+
+**Frontend** (faster for UI changes):
+```bash
+# Build locally
+cd frontend && npm run build
+
+# Copy to container
+docker cp build/. nop-frontend-1:/usr/share/nginx/html/
+
+# Reload nginx
+docker exec nop-frontend-1 nginx -s reload
+```
+
+**Backend** (for single file changes):
+```bash
+# Copy file
+docker cp backend/app/services/agent_service.py nop-backend-1:/app/app/services/agent_service.py
+
+# Restart service
+docker compose restart backend
+```
+
+---
+
+## Container Registry
+
+### Pre-built Images
+
+Available at GitHub Container Registry (no auth required):
+- Frontend: `ghcr.io/goranjovic55/nop-frontend:latest`
+- Backend: `ghcr.io/goranjovic55/nop-backend:latest`
+- Guacd: `ghcr.io/goranjovic55/nop-guacd:latest`
+
+### Multi-Architecture Support
+
+Images built for:
+- `linux/amd64` (x86_64)
+- `linux/arm64` (ARM64, Radxa-E54C, Raspberry Pi)
+
+Pull automatically selects correct architecture:
+```bash
+docker compose pull  # Auto-detects platform
+```
+
+---
+
+## Installation
+
+### Step 1: Install Docker
 
 ```bash
 # Update package index
@@ -670,14 +783,101 @@ docker-compose exec backend pip-audit
 
 ---
 
-## 11. Uninstallation
+## 11. Production Deployment
+
+### 11.1 Automated Deployment (Recommended)
+
+Use the automated deployment script:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+This script:
+- Validates environment
+- Configures networking
+- Pulls pre-built multi-arch images from GitHub Container Registry
+- Starts all services
+- Verifies health
+
+### 11.2 Multi-Architecture Support
+
+Images available for:
+- `linux/amd64` (x86_64)
+- `linux/arm64` (ARM64, Raspberry Pi, Radxa Rock)
+
+Docker automatically selects correct architecture:
+```bash
+docker compose pull  # Auto-detects platform
+```
+
+**Manual Platform Selection**:
+```bash
+docker pull --platform linux/arm64 ghcr.io/goranjovic55/nop-backend:latest
+```
+
+### 11.3 GitHub Container Registry
+
+All images published to: `ghcr.io/goranjovic55/nop-*`
+
+- Backend: `ghcr.io/goranjovic55/nop-backend:latest`
+- Frontend: `ghcr.io/goranjovic55/nop-frontend:latest`
+- Guacd: `ghcr.io/goranjovic55/nop-guacd:latest`
+
+No authentication required for pulling.
+
+### 11.4 Production Checklist
+
+Before going live:
+
+- [ ] Change `SECRET_KEY` to random string: `openssl rand -hex 32`
+- [ ] Change `ADMIN_PASSWORD` from default
+- [ ] Set `POSTGRES_PASSWORD` to secure value
+- [ ] Configure firewall (allow only necessary ports)
+- [ ] Enable SSL/TLS for public access
+- [ ] Set `ENVIRONMENT=production` in `.env`
+- [ ] Configure monitoring and alerting
+- [ ] Set up automated backups
+- [ ] Review network interface settings
+- [ ] Test disaster recovery procedure
+
+### 11.5 ARM-Specific Notes
+
+**Radxa Rock / Raspberry Pi Recommendations**:
+- Minimum 4GB RAM for full stack
+- Use fast storage (SSD preferred over SD card)
+- Enable swap if RAM <8GB: `sudo dphys-swapfile setup`
+- Some network tools (`hping3`) may have limited ARM support
+
+**Performance**:
+- PostgreSQL runs via QEMU emulation on ARM (minimal impact for <500 devices)
+- Local builds take longer; use pre-built images
+
+### 11.6 Updating Production
+
+```bash
+# Pull latest images
+docker compose pull
+
+# Restart services with zero downtime
+docker compose up -d
+
+# Verify health
+docker compose ps
+curl http://localhost:12001/health
+```
+
+---
+
+## 12. Uninstallation
 
 ```bash
 # Stop all services
-docker-compose down
+docker compose down
 
 # Remove all data (WARNING: IRREVERSIBLE)
-docker-compose down -v
+docker compose down -v
 sudo rm -rf volumes/
 
 # Remove application
@@ -692,15 +892,15 @@ sudo rm -rf /var/lib/containerd
 
 ---
 
-## 12. Support & Resources
+## 13. Support & Resources
 
-- **Documentation**: https://docs.nop.local
-- **Issues**: https://github.com/your-org/nop/issues
-- **Discussions**: https://github.com/your-org/nop/discussions
-- **Security**: security@nop.local
+- **Documentation**: [docs/INDEX.md](../INDEX.md)
+- **Issues**: https://github.com/goranjovic55/NOP/issues
+- **Security**: Report security issues via GitHub Security Advisories
+- **Archived Docs**: [archive/](../archive/) - Historical deployment guides
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2025-12-24  
+**Document Version:** 2.1  
+**Last Updated:** 2026-01-04  
 **Status:** Production Ready
