@@ -77,6 +77,23 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             (mouse as any).onmouseup = sendMouseState;
             (mouse as any).onmousemove = sendMouseState;
             
+            // Enable pointer lock on click (grab cursor for RDP/VNC)
+            displayElement.addEventListener('click', () => {
+              if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
+                displayElement.requestPointerLock();
+                console.log('[GUACAMOLE-CLIENT] Pointer lock requested');
+              }
+            });
+            
+            // Exit pointer lock with ESC key hint
+            document.addEventListener('pointerlockchange', () => {
+              if (document.pointerLockElement === displayElement) {
+                console.log('[GUACAMOLE-CLIENT] Pointer locked (press ESC to release)');
+              } else {
+                console.log('[GUACAMOLE-CLIENT] Pointer unlocked');
+              }
+            });
+            
             console.log('[GUACAMOLE-CLIENT] Keyboard and mouse handlers attached');
           }
         } catch (e) {
