@@ -21,11 +21,13 @@
 **This is a maintenance workflow that runs independently, outside of regular sessions.**
 
 This prompt guides the agent through analyzing historical workflow logs to:
-1. Identify recurring patterns across 30-50 sessions
-2. Extract and standardize skills based on frequency
-3. Organize and clean up documentation
-4. Propose instruction improvements from common decisions
+1. Identify recurring patterns across sessions
+2. **Consolidate and streamline existing skills** (merge duplicates, remove unused)
+3. **Consolidate and organize documentation** (merge scattered docs, archive old versions)
+4. **Refine instructions to be terse and effective** (remove verbosity, codify frequent patterns)
 5. Update knowledge base with cross-session insights
+
+**Core Principle**: **Terse and Effective** - Consolidate, streamline, remove redundancy. Quality over quantity.
 
 **Key Difference**: Unlike the single-session LEARN phase (which analyzes only the current session), this workflow analyzes ALL sessions to identify patterns and perform framework-level maintenance.
 
@@ -78,20 +80,29 @@ This prompt guides the agent through analyzing historical workflow logs to:
 
 **Steps**:
 1. Display markdown report summary
-2. Highlight high-priority items:
-   - Skill candidates with frequency >= 5
-   - High-priority documentation needs
-   - Instruction improvements affecting multiple sessions
+2. Highlight consolidation opportunities:
+   - **Skills**: Unused skills to remove, overlapping skills to merge, gaps to fill
+   - **Documentation**: Scattered docs to consolidate, outdated docs to archive
+   - **Instructions**: Verbose sections to streamline, rarely-used patterns to remove
 
 3. Present recommendations in categories:
-   - **Skills**: New skills to create, existing skills to update/remove
-   - **Documentation**: Docs to create/update, organization improvements
-   - **Instructions**: Framework improvements, new patterns to codify
+   - **Skills Consolidation**: 
+     - Remove: Unused skills (<2 sessions in analysis period)
+     - Merge: Overlapping/similar skills
+     - Create: High-frequency patterns (>=5 sessions)
+   - **Documentation Consolidation**: 
+     - Merge: Scattered docs on same topic
+     - Archive: Outdated/superseded versions
+     - Streamline: Verbose or redundant sections
+   - **Instructions Refinement**: 
+     - Remove: Rarely-applied patterns
+     - Streamline: Verbose sections
+     - Add: Frequently-made decisions (>=5 sessions)
    - **Knowledge**: Entities/relations to add, observations to update
 
 4. Wait for user approval and prioritization
 
-**Output**: User-approved action items
+**Output**: User-approved action items with focus on consolidation and terseness
 
 ---
 
@@ -99,67 +110,84 @@ This prompt guides the agent through analyzing historical workflow logs to:
 
 **Objective**: Implement approved improvements
 
-### 4.1 Skills
+### 4.1 Skills Consolidation
 
-**Create New Skills** (if approved):
-- Use skill candidates from analysis
-- Follow existing skill format in `.github/skills/`
-- Include: When to Use, Avoid, Overview, Examples, Related Skills
-- Ensure skills are project-agnostic and reusable
+**Remove Unused Skills** (priority action):
+- Identify skills used in <2 sessions during analysis period
+- Archive to `docs/archive/skills-YYYY-MM-DD/`
+- Update references in documentation and instructions
+- Principle: If not used, remove it
 
-**Update Existing Skills** (if needed):
-- Add new patterns discovered across sessions
-- Update examples with better code snippets
-- Remove obsolete patterns
+**Merge Overlapping Skills** (priority action):
+- Identify skills with >50% content overlap
+- Consolidate into single comprehensive skill
+- Archive old versions
+- Update all references
 
-**Remove Unused Skills** (if approved):
-- Archive rarely-used skills to `docs/archive/skills/`
-- Update references in documentation
+**Create New Skills** (only if high-frequency pattern):
+- Frequency threshold: >=5 sessions
+- Must be project-agnostic and reusable
+- Follow terse format: When to Use, Avoid, Overview, Examples (keep minimal)
+- No verbose explanations
 
-### 4.2 Documentation
+**Streamline Existing Skills**:
+- Remove verbose sections
+- Keep only essential patterns
+- Update examples to be concise
+- Remove rarely-used sections
 
-**Organize Documentation**:
-- Identify scattered or duplicate docs
-- Propose clear hierarchy (technical/, guides/, architecture/, design/)
-- Move or merge documents as needed
-- Update cross-references
+### 4.2 Documentation Consolidation
 
-**Update Documentation**:
+**Merge Scattered Documentation** (priority action):
+- Identify docs covering same/similar topics
+- Consolidate into single source of truth
+- Archive old versions to `docs/archive/category-YYYY-MM-DD/`
+- Update INDEX.md
+
+**Archive Outdated Documentation**:
+- Superseded versions
+- Historical implementation details
+- Old design decisions
+- Keep minimal cross-references
+
+**Streamline Verbose Sections**:
+- Convert paragraphs to bullet points
+- Remove redundant explanations
+- Keep only essential information
+- Follow "terse and effective" principle
+
+**Update Only If Necessary**:
 - Apply high-priority updates from analysis
+- Skip minor/cosmetic updates
 - Focus on areas with most session activity
-- Keep updates lightweight (follow AKIS principle: concise > verbose)
 
-**Create Missing Docs** (if needed):
-- API reference (if API work is frequent)
-- Deployment guides (if infrastructure work is frequent)
-- Component library docs (if UI work is frequent)
+### 4.3 Instructions Refinement
 
-### 4.3 Instructions
+**Streamline `.github/copilot-instructions.md`** (priority action):
+- Remove rarely-applied patterns (<2 sessions)
+- Convert verbose sections to bullet points
+- Consolidate similar guidance
+- Target: <150 lines (currently aiming for maximum terseness)
+- Remove redundant examples
 
-**Update `.github/copilot-instructions.md`**:
-- Add new patterns discovered across sessions
-- Codify frequently-made decisions
-- Add guidance for common pitfalls
-- Update skill references
-- Keep instructions concise (AKIS v2 principle: < 200 lines)
+**Add High-Frequency Patterns Only**:
+- Threshold: >=5 sessions with same decision
+- Keep guidance minimal (1-2 sentences)
+- Focus on actionable patterns
 
-**Update Templates** (if needed):
-- `.github/templates/workflow-log.md`
-- `.github/templates/doc-update-notes.md`
+**Remove Redundancy**:
+- Consolidate similar instructions
+- Remove overlapping guidance
+- Keep single source of truth per pattern
 
 ### 4.4 Knowledge
 
 **Update `project_knowledge.json`**:
-- Add entities for frequently-modified areas
+- Add entities for frequently-modified areas (>=5 sessions)
 - Add relations for common integration points
 - Update observations with cross-session insights
 - Ensure map (line 1) is accurate
-
-**Example Updates**:
-```json
-{"type":"entity","name":"Frontend.UIComponents","entityType":"module","observations":["Standardized with CyberUI library","Modified in 8 sessions","upd:2026-01-04"]}
-{"type":"relation","from":"Scans.Page","to":"Frontend.UIComponents","relationType":"USES"}
-```
+- Remove stale entities
 
 ---
 
@@ -285,41 +313,57 @@ Recommendations for future:
 
 ## Guidelines
 
-### Skills
-- **Create** when pattern appears in 3+ sessions
-- **Update** when new patterns emerge for existing skills
-- **Remove** when skill used in < 2 sessions and no future need
-- Keep skills project-agnostic and reusable
+### Skills (Consolidation Priority)
+- **Remove first**: Skills used in <2 sessions → archive immediately
+- **Merge duplicates**: >50% overlap → consolidate into one
+- **Create sparingly**: Only for patterns in >=5 sessions
+- **Keep terse**: When to Use, Avoid, Overview, Examples only
+- **Project-agnostic**: Must be reusable across projects
 
-### Documentation
-- **Organize** scattered docs into clear hierarchy
-- **Update** high-priority areas first
-- **Keep lightweight**: bullet points > paragraphs
-- **Cross-reference** related docs
+### Documentation (Consolidation Priority)
+- **Merge scattered docs**: Same topic → single source of truth
+- **Archive old versions**: Historical docs → `docs/archive/`
+- **Streamline verbose sections**: Paragraphs → bullet points
+- **Update only if necessary**: Skip cosmetic changes
+- **Maintain INDEX.md**: Always update master index
 
-### Instructions
-- **Codify** decisions made in 5+ sessions
-- **Add guidance** for common pitfalls
-- **Keep concise**: instructions should fit in one screen
-- **Prioritize** actionable patterns over theory
+### Instructions (Terseness Priority)
+- **Remove rarely-used**: Patterns in <2 sessions → delete
+- **Streamline verbose**: Paragraphs → bullet points, examples → minimal
+- **Add high-frequency only**: >=5 sessions with same decision
+- **Target <150 lines**: Maximum terseness and effectiveness
+- **Single source of truth**: Consolidate overlapping guidance
 
 ### Knowledge
-- **Track** areas modified in 5+ sessions
-- **Document** common integration points
-- **Update** observations with session count and dates
-- **Maintain** clean, deduplicated entries
+- **Add entities**: Areas modified in >=5 sessions
+- **Remove stale**: Entities not touched in 20+ sessions
+- **Update observations**: Session counts and dates
+- **Maintain clean map**: Deduplicate and organize
 
 ---
 
-## Common Patterns
+## Consolidation Patterns
 
-### Pattern: Skill Consolidation
-**Symptom**: Multiple sessions with similar work, but no skill exists
-**Action**: Create comprehensive skill covering the pattern
-**Example**: "ui-consistency.md" for component library work
+### Pattern: Unused Skills Removal
+**Symptom**: Skills created but rarely/never used
+**Action**: Archive to `docs/archive/skills-YYYY-MM-DD/`
+**Threshold**: <2 sessions in analysis period
+**Example**: Remove `git-workflow.md` if only used once in 55 sessions
 
-### Pattern: Documentation Drift
-**Symptom**: Docs mention outdated approaches or missing features
+### Pattern: Overlapping Skills Merge
+**Symptom**: Multiple skills covering similar patterns
+**Action**: Consolidate into single comprehensive skill
+**Example**: Merge `frontend-components.md` and `ui-patterns.md` into `frontend-react.md`
+
+### Pattern: Scattered Documentation Consolidation
+**Symptom**: Multiple docs on same topic in different locations
+**Action**: Merge into single doc, archive old versions
+**Example**: 7 agent docs → `features/AGENTS_C2.md`
+
+### Pattern: Verbose Instructions Streamlining
+**Symptom**: Instructions >200 lines with redundant explanations
+**Action**: Convert to bullet points, remove examples, consolidate patterns
+**Target**: <150 lines total
 **Action**: Update docs based on actual session work
 **Example**: Update API docs after multiple endpoint additions
 
