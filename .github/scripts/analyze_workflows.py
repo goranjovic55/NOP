@@ -300,24 +300,81 @@ def suggest_instruction_updates(logs: List[Dict[str, Any]], patterns: Dict[str, 
 
 
 def analyze_skill_usage(logs: List[Dict[str, Any]], patterns: Dict[str, Any]) -> Dict[str, Any]:
-    """Analyze how skills are being used across sessions."""
+    """Analyze how skills are being used across sessions with age-based usage rate."""
+    from pathlib import Path
+    import subprocess
+    
     skill_mentions = patterns['skill_mentions']
+    total_sessions = len(logs)
+    
+    # Get skill creation dates from git history
+    skills_dir = Path('.github/skills')
+    skill_ages = {}
+    
+    if skills_dir.exists():
+        for skill_file in skills_dir.glob('*.md'):
+            skill_name = skill_file.name
+            try:
+                # Get creation date from git (first commit that added this file)
+                result = subprocess.run(
+                    ['git', 'log', '--diff-filter=A', '--format=%ad', '--date=short', '--', str(skill_file)],
+                    capture_output=True, text=True, check=False
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    creation_date = result.stdout.strip().split('\n')[-1]
+                    
+                    # Calculate sessions since creation
+                    sessions_existed = 0
+                    for log in logs:
+                        if log['date'] >= creation_date:
+                            sessions_existed += 1
+                    
+                    skill_ages[skill_name] = {
+                        'created': creation_date,
+                        'sessions_existed': sessions_existed
+                    }
+            except Exception:
+                # If git fails, assume skill existed for all sessions
+                skill_ages[skill_name] = {
+                    'created': 'unknown',
+                    'sessions_existed': total_sessions
+                }
     
     analysis = {
         'most_used': skill_mentions.most_common(5),
         'rarely_used': [],
-        'missing_patterns': []
+        'missing_patterns': [],
+        'usage_rates': {}
     }
     
-    # Find skills mentioned in less than 2 sessions
-    total_sessions = len(logs)
+    # Calculate usage rates: (times used / sessions existed) * 100
     for skill, count in skill_mentions.items():
-        if count < 2:
+        sessions_existed = skill_ages.get(skill, {}).get('sessions_existed', total_sessions)
+        if sessions_existed == 0:
+            sessions_existed = 1  # Avoid division by zero
+        
+        usage_rate = (count / sessions_existed) * 100
+        
+        analysis['usage_rates'][skill] = {
+            'times_used': count,
+            'sessions_existed': sessions_existed,
+            'usage_rate': round(usage_rate, 1),
+            'created': skill_ages.get(skill, {}).get('created', 'unknown')
+        }
+        
+        # Flag for removal if usage rate < 10%
+        if usage_rate < 10.0:
             analysis['rarely_used'].append({
                 'skill': skill,
                 'usage_count': count,
-                'usage_percent': round(count / total_sessions * 100, 1)
+                'sessions_existed': sessions_existed,
+                'usage_rate': round(usage_rate, 1),
+                'created': skill_ages.get(skill, {}).get('created', 'unknown'),
+                'recommendation': 'REMOVE' if usage_rate < 5.0 else 'REVIEW'
             })
+    
+    # Sort rarely_used by usage_rate (lowest first)
+    analysis['rarely_used'].sort(key=lambda x: x['usage_rate'])
     
     return analysis
 
@@ -497,12 +554,24 @@ def generate_markdown_report(analysis: Dict[str, Any]) -> str:
         lines.append("")
     
     lines.append("### Skill Usage Analysis")
-    most_used = analysis['skills']['usage_analysis']['most_used']
-    if most_used:
+    usage = analysis['skills']['usage_analysis']
+    
+    if usage['most_used']:
         lines.append("**Most Used Skills:**")
-        for skill, count in most_used:
-            lines.append(f"- {skill}: {count} sessions")
-    lines.append("")
+        for skill, count in usage['most_used']:
+            usage_info = usage.get('usage_rates', {}).get(skill, {})
+            if usage_info:
+                lines.append(f"- {skill}: {count} sessions ({usage_info.get('usage_rate', 0)}% usage rate, exists {usage_info.get('sessions_existed', 'unknown')} sessions)")
+            else:
+                lines.append(f"- {skill}: {count} sessions")
+        lines.append("")
+    
+    if usage['rarely_used']:
+        lines.append("**Rarely Used Skills (Usage Rate < 10%):**")
+        for item in usage['rarely_used']:
+            lines.append(f"- **{item['skill']}**: {item['usage_count']} uses / {item['sessions_existed']} sessions existed = **{item['usage_rate']}%** - {item['recommendation']}")
+            lines.append(f"  - Created: {item['created']}")
+        lines.append("")
     
     lines.append("## Documentation Needs")
     lines.append("")
