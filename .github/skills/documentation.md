@@ -236,6 +236,50 @@ Scans assets for known vulnerabilities using NVD database.
 
 ---
 
+## Session-Driven Documentation Updates
+
+**When:** During LEARN phase at end of session
+
+**How:** Run `python .github/scripts/update_docs.py`
+
+**Process:**
+1. Script analyzes session changes (commits, files, workflow log)
+2. Suggests documentation updates based on impact
+3. Agent reviews suggestions and applies approved updates
+4. Updates are lightweight and focused
+
+**Principles:**
+- **Minimal updates only** - only update sections directly affected
+- **No bloat** - keep changes concise and targeted
+- **Avoid duplication** - check existing docs before adding
+- **Update dates** - add date when making significant updates
+- **Preserve structure** - don't reorganize, just update content
+
+**Example workflow:**
+```bash
+# During LEARN phase
+python .github/scripts/update_docs.py
+
+# Review output (JSON with suggestions)
+# Apply approved updates to affected docs
+# Note updates in workflow log
+```
+
+**What to update:**
+- API docs when endpoints change
+- UI/UX docs when components change
+- Deployment docs when infrastructure changes
+- Feature lists when adding features
+- README when user-facing changes occur
+
+**What NOT to update:**
+- Docs unrelated to session changes
+- Docs that are still accurate
+- Minor implementation details
+- Internal refactoring details
+
+---
+
 ## Best Practices
 
 **Do:**

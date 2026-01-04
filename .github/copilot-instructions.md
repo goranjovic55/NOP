@@ -7,7 +7,16 @@
 ## Every Task Flow
 
 ### Start
-`Read project_knowledge.json` → Load entities, check existing patterns
+`Read project_knowledge.json` → Index entities, map available context
+
+**Context Indexing:**
+1. Read line 1 of `project_knowledge.json` (map) for domain overview
+2. Identify relevant documentation paths in `docs/` based on task domain
+3. Note applicable skills in `.github/skills/`
+4. Query specific sections as needed **throughout the workflow**
+
+**During Work (All Phases):**
+Query `project_knowledge.json`, `docs/`, and skills as needed
 
 ### Todo Phases
 
@@ -24,10 +33,11 @@
 
 **LEARN:**
 1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
-2. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
-3. **Show skill suggestions to user** → Wait for approval before writing
-4. If approved: Create/update `.github/skills/{name}.md` with skill content
-5. Pattern obsolete? → Delete skill file
+2. Run `python .github/scripts/update_docs.py` → Apply doc updates automatically (lightweight)
+3. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
+4. **Show skill suggestions to user** → Wait for approval before writing
+5. If approved: Create/update `.github/skills/{name}.md` with skill content
+6. Pattern obsolete? → Delete skill file
 
 **COMPLETE:**
 1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
@@ -39,6 +49,9 @@
 
 **Format:** `project_knowledge.json` (JSONL)
 
+**Line 1 - Map:** `{"type":"map","domains":{...},"quickNav":{...}}` - Read first for overview
+
+**Types:**
 ```json
 {"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
 {"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
@@ -46,17 +59,15 @@
 ```
 
 **Workflow:**
-- Load at start → Understand existing entities
-- Query during work → Avoid duplicates
-- Update before commit → Codemap + manual entities
+- Read line 1 (map) → Get domain overview & quickNav
+- **Query specific domains as needed throughout work** → Use map to locate entities
+- Update before commit → Codemap + manual entities (map auto-updates)
 
 ---
 
 ## Skills
 
-**Announce when loading:** `📘 Using: {skill-name.md}`
-
-Load from `.github/skills/` when task matches:
+Reference from `.github/skills/` when task matches (query as needed during work):
 
 | Task | Skill |
 |------|-------|
@@ -66,9 +77,9 @@ Load from `.github/skills/` when task matches:
 | Error handling, logging | `error-handling.md` |
 | Docker, deployment | `infrastructure.md` |
 | Git, commits, PRs | `git-workflow.md` |
-| Knowledge queries, updates | `knowledge-management.md` |
+| Knowledge queries, updates | `knowledge.md` |
 | Build errors, troubleshooting | `debugging.md` |
-| Workflow logs, READMEs | `documentation.md` |
+| Workflow logs, READMEs, doc updates | `documentation.md` |
 
 ---
 
