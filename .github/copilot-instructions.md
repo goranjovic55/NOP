@@ -41,7 +41,8 @@ Query `project_knowledge.json`, `docs/`, and skills as needed
 
 **COMPLETE:**
 1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
-2. Commit all changes
+2. **Session tracking**: Increment counter, check if maintenance due (every 10 sessions), prompt user
+3. Commit all changes
 
 ---
 
@@ -123,6 +124,19 @@ LEARN → COMPLETE
 
 - `.project/` → Planning docs, blueprints, ADRs
 - `log/workflow/` → Historical work record
+- `.github/prompts/` → Specialized workflow prompts
+
+---
+
+## Cross-Session Analysis
+
+**Purpose**: Analyze all workflow logs to standardize skills, organize docs, and improve framework
+
+**Trigger**: Every 10 sessions (automatic in COMPLETE) or manual anytime
+
+**Workflow**: `.github/prompts/akis-workflow-analyzer.md`
+
+**Outputs**: Skill candidates, doc organization, instruction improvements, knowledge updates
 
 ---
 

@@ -280,6 +280,91 @@ python .github/scripts/update_docs.py
 
 ---
 
+## Cross-Session Workflow Analysis
+
+**When:** 
+- **Automatically**: Every 10 sessions (prompted in COMPLETE phase)
+- **Manually**: User can trigger anytime
+
+**Purpose:** **Maintenance task** - Analyze ALL sessions independently to identify patterns and improve AKIS framework
+
+**Session Tracking:** Uses `.github/scripts/session_tracker.py` to track session numbers and automatically prompt for maintenance
+
+**Important:** This is **NOT part of the regular session LEARN phase**. This is a separate maintenance workflow that runs after session completion when maintenance is due.
+
+**How:** Use the AKIS Workflow Analyzer as a standalone maintenance task
+
+**Process:**
+1. **Check if maintenance is due** (automatic in COMPLETE phase):
+   ```bash
+   python .github/scripts/session_tracker.py check-maintenance
+   ```
+
+2. **Run analyzer script**:
+   ```bash
+   python .github/scripts/analyze_workflows.py --output markdown
+   ```
+
+3. Review analysis output:
+   - Skill candidates (recurring patterns across sessions)
+   - Documentation needs (frequently updated areas)
+   - Instruction improvements (common decisions)
+   - Knowledge updates (cross-session entities)
+
+4. Follow prompt: `.github/prompts/akis-workflow-analyzer.md`
+
+5. Implement approved improvements:
+   - Create/update skills based on patterns
+   - Organize and update documentation
+   - Enhance framework instructions
+   - Update knowledge base
+
+6. **Mark maintenance as complete**:
+   ```bash
+   python .github/scripts/session_tracker.py mark-maintenance-done
+   ```
+
+**Workflow phases:**
+```
+CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
+```
+
+**Difference from single-session LEARN phase:**
+- **Single session (baked into LEARN)**: Analyzes current session only, updates knowledge/skills for that session
+- **Multi-session maintenance (this workflow)**: Analyzes sessions since last maintenance (typically 10), standardizes patterns, cleans documentation, adjusts instructions
+
+**What it provides:**
+- Pattern analysis across all sessions
+- Skill creation suggestions (frequency-based)
+- Documentation organization recommendations
+- Instruction standardization proposals
+- Knowledge base improvements
+
+**Example output:**
+```
+Pattern Analysis:
+- frontend-ui: 12 sessions
+- api-endpoints: 8 sessions
+- docker-deployment: 5 sessions
+
+Skill Candidates:
+- ui-consistency.md (12 sessions, high priority)
+- api-debugging.md (8 sessions, high priority)
+
+Documentation Needs:
+- API Reference (high priority)
+- Component Library Guide (medium priority)
+```
+
+**Use cases:**
+- Standardizing skills across project
+- Organizing scattered documentation
+- Codifying frequently-made decisions
+- Tracking frequently-modified areas
+- Framework continuous improvement
+
+---
+
 ## Best Practices
 
 **Do:**
@@ -315,5 +400,8 @@ Documentation review:
 - [ ] Properly linked
 
 ## Related Skills
-- `knowledge-management.md` - Project knowledge
+- `knowledge.md` - Project knowledge management
 - `git-workflow.md` - Commit documentation
+
+## Related Prompts
+- `.github/prompts/akis-workflow-analyzer.md` - Cross-session analysis and framework improvement

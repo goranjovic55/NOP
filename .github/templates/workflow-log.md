@@ -1,6 +1,7 @@
 # Workflow Log: {TASK_NAME}
 
 **Date**: {YYYY-MM-DD HH:MM}  
+**Session**: #{SESSION_NUMBER}
 **Duration**: ~{N} minutes
 
 ---
