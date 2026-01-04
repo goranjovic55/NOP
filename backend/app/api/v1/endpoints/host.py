@@ -2,10 +2,12 @@
 Host management endpoints for system monitoring and access
 """
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Body
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Body, Request
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 import psutil
 import platform
 import asyncio
@@ -14,6 +16,9 @@ import os
 import shutil
 from datetime import datetime
 from app.core.security import get_current_user
+from app.core.database import get_db
+from app.core.pov_middleware import get_agent_pov
+from app.services.agent_service import AgentService
 
 router = APIRouter()
 
@@ -25,9 +30,28 @@ class WriteFileRequest(BaseModel):
 
 @router.get("/system/info")
 async def get_system_info(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get basic system information"""
+    """Get basic system information (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return agent's host info from metadata
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
+            host_info = agent.agent_metadata['host_info']
+            # Add source indicator
+            host_info['_source'] = 'agent'
+            host_info['_agent_id'] = str(agent.id)
+            host_info['_agent_name'] = agent.name
+            return host_info
+        else:
+            raise HTTPException(status_code=404, detail="Agent host information not available")
+    
+    # Default: return local C2 server host info
     try:
         # Get network interfaces
         network_interfaces = []
@@ -60,9 +84,33 @@ async def get_system_info(
 
 @router.get("/system/metrics")
 async def get_system_metrics(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get real-time system metrics"""
+    """Get real-time system metrics (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return agent's host metrics from metadata
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
+            host_info = agent.agent_metadata['host_info']
+            # Convert to metrics format
+            return {
+                "cpu_percent": host_info.get('cpu_percent', 0),
+                "memory_percent": host_info.get('memory_percent', 0),
+                "disk_percent": host_info.get('disk_percent', 0),
+                "_source": "agent",
+                "_agent_id": str(agent.id),
+                "_agent_name": agent.name,
+                "_last_update": agent.agent_metadata.get('last_host_update')
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Agent metrics not available")
+    
+    # Default: return local C2 server metrics
     try:
         # CPU metrics
         cpu_percent = psutil.cpu_percent(interval=1, percpu=True)
