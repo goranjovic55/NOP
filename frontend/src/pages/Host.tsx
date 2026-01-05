@@ -9,7 +9,7 @@ import { useAccessStore, Protocol } from '../store/accessStore';
 
 const Host: React.FC = () => {
   const { token, logout } = useAuthStore();
-  const { addTab } = useAccessStore();
+  const { } = useAccessStore();
   const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
   const [desktopProtocol, setDesktopProtocol] = useState<Protocol>('vnc');
   const [desktopConnectionTab, setDesktopConnectionTab] = useState<any>(null);
@@ -33,7 +33,7 @@ const Host: React.FC = () => {
   const [transferStatus, setTransferStatus] = useState<string | null>(null);
   const [selectedRemoteFile, setSelectedRemoteFile] = useState<string | null>(null);
   const [pausedUploads, setPausedUploads] = useState<Set<string>>(new Set());
-  const [pausedDownloads, setPausedDownloads] = useState<Set<string>>(new Set());
+  const [, setPausedDownloads] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllers = useRef<{[key: string]: AbortController}>({});
   const directoryHandle = useRef<FileSystemDirectoryHandle | null>(null);

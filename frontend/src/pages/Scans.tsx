@@ -66,7 +66,7 @@ const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, onOpen 
 AssetListItem.displayName = 'AssetListItem';
 
 const Scans: React.FC = () => {
-  const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
+  const { tabs, activeTabId, setActiveTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
   const { token } = useAuthStore();
   const navigate = useNavigate();
 

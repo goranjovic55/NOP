@@ -13,7 +13,7 @@ type AccessMode = 'login' | 'exploit';
 const Access: React.FC = () => {
   const { token } = useAuthStore();
   const location = useLocation();
-  const { tabs, activeTabId, setActiveTab, removeTab, addTab, updateTabStatus } = useAccessStore();
+  const { tabs, activeTabId, setActiveTab, removeTab, addTab } = useAccessStore();
   const { 
     sessions: shellSessions, 
     activeSessionId, 
@@ -47,7 +47,7 @@ const Access: React.FC = () => {
   // Login mode state
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedProtocol, setSelectedProtocol] = useState<Protocol>('ssh');
-  const [selectedService, setSelectedService] = useState<{port: string, service: string} | null>(null);
+  const [, setSelectedService] = useState<{port: string, service: string} | null>(null);
   const [loginCredentials, setLoginCredentials] = useState({ username: '', password: '' });
   
   // Vault state
@@ -86,7 +86,7 @@ const Access: React.FC = () => {
   const terminalEndRef = useRef<HTMLDivElement>(null);
   
   // View state
-  const [showConsole, setShowConsole] = useState(false);
+  const [, setShowConsole] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectionHeight, setConnectionHeight] = useState(600);
   const [isResizing, setIsResizing] = useState(false);

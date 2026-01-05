@@ -86,10 +86,6 @@ export const agentService = {
   },
 
   async createAgent(token: string, agentData: AgentCreate): Promise<Agent> {
-    console.log('[agentService] Creating agent with data:', agentData);
-    console.log('[agentService] Token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
-    console.log('[agentService] API URL:', `${API_BASE_URL}/api/v1/agents/`);
-    
     const response = await fetch(`${API_BASE_URL}/api/v1/agents/`, {
       method: 'POST',
       headers: {
@@ -99,17 +95,12 @@ export const agentService = {
       body: JSON.stringify(agentData),
     });
     
-    console.log('[agentService] Response status:', response.status, response.statusText);
-    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[agentService] Error response:', errorText);
       throw new Error(`Failed to create agent: ${response.status} ${errorText}`);
     }
     
-    const result = await response.json();
-    console.log('[agentService] Agent created successfully:', result);
-    return result;
+    return response.json();
   },
 
   async updateAgent(token: string, agentId: string, agentData: AgentUpdate): Promise<Agent> {

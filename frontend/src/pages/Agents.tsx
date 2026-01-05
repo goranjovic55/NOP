@@ -12,15 +12,12 @@ const Agents: React.FC = () => {
   
   // Agent lists
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   
   // Modals and UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarAgent, setSidebarAgent] = useState<Agent | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editedAgent, setEditedAgent] = useState<Agent | null>(null);
   
   // Network config
   const [localIP, setLocalIP] = useState<string>('localhost');
