@@ -10,8 +10,8 @@
 
 ### 1. CONTEXT
 Execute: `python .github/scripts/session_start.py` (optional helper)
-- Load `project_knowledge.json` (line 1 = map)
-- Query relevant docs from `docs/`
+- Load `project_knowledge.json` **lines 1-50** (navigation map + domain summaries)
+- Query domain details on-demand from line ranges
 - Load skills from `.github/skills/INDEX.md`
 - Check `.github/instructions/structure.md`
 **Output:** Context summary (2-3 lines)

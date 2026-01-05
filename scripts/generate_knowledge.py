@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
+"""
+AKIS Knowledge Generator - Hierarchical Format
+
+Output Structure:
+- Line 1: Navigation map with domain line pointers
+- Lines 2-50: Domain summaries (what, tech, entities, line ranges)
+- Lines 51+: Detailed entities (loaded on-demand)
+
+Usage: python scripts/generate_knowledge.py
+"""
 import os
 import json
 import re
 import ast
 from pathlib import Path
 from datetime import datetime
+from collections import defaultdict
 
 # Configuration
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -15,22 +26,34 @@ BACKUP_FILE = PROJECT_ROOT / f"project_knowledge_backup_{datetime.now().strftime
 entities = []
 relations = []
 codegraph = []
+domains = defaultdict(list)  # domain_name -> [entities]
 
-def add_entity(name, entity_type, observations=None):
+def add_entity(name, entity_type, observations=None, tech=None):
+    """Add entity and categorize into domain."""
     if observations is None:
         observations = []
+    if tech is None:
+        tech = []
     
     # Check if exists
     for e in entities:
         if e["name"] == name and e["type"] == "entity":
             return
-            
-    entities.append({
+    
+    entity = {
         "type": "entity",
         "name": name,
         "entityType": entity_type,
-        "observations": observations + [f"auto-generated:{datetime.now().strftime('%Y-%m-%d')}"]
-    })
+        "observations": observations,
+        "tech": list(set(tech)),  # Deduplicate
+        "updated": datetime.now().strftime('%Y-%m-%d')
+    }
+    
+    entities.append(entity)
+    
+    # Categorize into domain
+    domain = name.split('.')[0]
+    domains[domain].append(name)
 
 def add_relation(source, target, relation_type):
     # Check if exists
@@ -78,14 +101,18 @@ def scan_python_backend():
                 
             file_deps = []
             
-            # Analyze Imports
+            # Analyze Imports and extract tech
+            file_deps = []
+            tech_stack = set()
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         file_deps.append(alias.name)
+                        tech_stack.add(alias.name.split('.')[0])
                 elif isinstance(node, ast.ImportFrom):
                     if node.module:
                         file_deps.append(node.module)
+                        tech_stack.add(node.module.split('.')[0])
 
             # Analyze Classes (Services/Models)
             for node in ast.walk(tree):
@@ -102,7 +129,7 @@ def scan_python_backend():
                     elif "Controller" in class_name or "Router" in class_name:
                         entity_type = "Controller"
                         
-                    add_entity(full_name, entity_type, [f"Defined in {rel_path}"])
+                    add_entity(full_name, entity_type, [f"Defined in {rel_path}"], list(tech_stack))
                     
                     # Link file to class
                     add_relation(str(rel_path), full_name, "DEFINES")
@@ -136,6 +163,7 @@ def scan_react_frontend():
                 
             deps = import_pattern.findall(content)
             clean_deps = []
+            tech_stack = set()
             
             for dep in deps:
                 # Resolve relative paths roughly
@@ -143,17 +171,20 @@ def scan_react_frontend():
                     clean_deps.append(dep)
                 else:
                     clean_deps.append(dep) # NPM package or alias
+                    # Add to tech stack if it's a known library
+                    if not dep.startswith('.'):
+                        tech_stack.add(dep.split('/')[0])
 
             # Heuristic for Component vs Hook
             node_type = "file"
             if filename.endswith(".tsx"):
                 node_type = "component"
                 component_name = filename.replace(".tsx", "")
-                add_entity(f"Frontend.Component.{component_name}", "Component", [f"Defined in {rel_path}"])
+                add_entity(f"Frontend.Component.{component_name}", "Component", [f"Defined in {rel_path}"], list(tech_stack))
             elif filename.startswith("use"):
                 node_type = "hook"
                 hook_name = filename.replace(".ts", "")
-                add_entity(f"Frontend.Hook.{hook_name}", "Hook", [f"Defined in {rel_path}"])
+                add_entity(f"Frontend.Hook.{hook_name}", "Hook", [f"Defined in {rel_path}"], list(tech_stack))
             
             add_codegraph(str(rel_path), node_type, clean_deps)
 
@@ -183,15 +214,49 @@ def scan_docker_infrastructure():
             if in_services:
                 if line.startswith("  ") and not line.startswith("    ") and line.strip().endswith(":"):
                     service_name = line.strip()[:-1]
-                    add_entity(f"Infrastructure.Service.{service_name}", "Container", ["Defined in docker-compose.yml"])
+                    # Extract tech from service name (postgres, redis, guacd, etc.)
+                    tech = [service_name] if service_name in ['postgres', 'redis', 'guacd'] else []
+                    add_entity(f"Infrastructure.Service.{service_name}", "Container", ["Defined in docker-compose.yml"], tech)
                 elif line.startswith("networks:") or line.startswith("volumes:"):
                     in_services = False
 
     except Exception as e:
         print(f"Error parsing docker-compose: {e}")
 
+def generate_domain_summaries():
+    """Generate domain summaries with tech stacks and entity counts."""
+    summaries = []
+    
+    for domain_name, entity_names in sorted(domains.items()):
+        # Get all entities in this domain
+        domain_entities = [e for e in entities if e['name'] in entity_names]
+        
+        # Extract unique tech stack
+        tech_stack = set()
+        entity_types = defaultdict(int)
+        
+        for entity in domain_entities:
+            tech_stack.update(entity.get('tech', []))
+            entity_types[entity['entityType']] += 1
+        
+        # Create summary
+        type_summary = ', '.join([f"{count} {etype}{'s' if count > 1 else ''}" 
+                                  for etype, count in sorted(entity_types.items())])
+        
+        summaries.append({
+            "type": "domain",
+            "name": domain_name,
+            "summary": f"{len(domain_entities)} entities: {type_summary}",
+            "tech": sorted(list(tech_stack))[:10],  # Top 10 tech items
+            "entities": len(entity_names),
+            "entity_types": dict(entity_types)
+        })
+    
+    return summaries
+
+
 def main():
-    print("--- AKIS Knowledge Graph Generator ---")
+    print("--- AKIS Knowledge Graph Generator (Hierarchical) ---")
     
     # 1. Backup existing
     if OUTPUT_FILE.exists():
@@ -200,31 +265,69 @@ def main():
             with open(BACKUP_FILE, "w") as b:
                 b.write(f.read())
 
-    # 2. Scan
+    # 2. Scan codebase
     scan_python_backend()
     scan_react_frontend()
     scan_docker_infrastructure()
     
-    # 3. Merge/Write
-    # We overwrite completely to ensure freshness, but we could merge observations if needed.
-    # For now, fresh generation is safer to avoid stale data.
+    print(f"Scanned: {len(entities)} entities, {len(relations)} relations, {len(codegraph)} files")
     
-    final_output = []
-    final_output.extend(entities)
-    final_output.extend(relations)
-    final_output.extend(codegraph)
+    # 3. Generate hierarchical structure
+    domain_summaries = generate_domain_summaries()
     
-    print(f"Generated {len(entities)} entities, {len(relations)} relations, {len(codegraph)} file nodes.")
+    # Calculate line numbers
+    summary_end_line = 1 + len(domain_summaries)
+    details_start_line = summary_end_line + 1
     
+    # Build domain map with line pointers
+    domain_map = {}
+    current_detail_line = details_start_line
+    
+    for idx, domain in enumerate(sorted(domains.keys())):
+        domain_entities_count = len(domains[domain])
+        domain_map[domain] = {
+            "summary_line": 2 + idx,
+            "details_lines": f"{current_detail_line}-{current_detail_line + domain_entities_count - 1}",
+            "count": domain_entities_count
+        }
+        current_detail_line += domain_entities_count
+    
+    # Create navigation map (Line 1)
+    nav_map = {
+        "type": "map",
+        "version": "2.0-hierarchical",
+        "purpose": f"Read lines 1-{summary_end_line} for overview, then load specific domain details on-demand",
+        "structure": {
+            "line_1": "This navigation map",
+            "lines_2_to_{}".format(summary_end_line): "Domain summaries (tech, entities, line pointers)",
+            "lines_{}_onwards".format(details_start_line): "Detailed entities (load on-demand)"
+        },
+        "domains": domain_map,
+        "updated": datetime.now().strftime('%Y-%m-%d')
+    }
+    
+    # 4. Write hierarchical output
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        # Write as JSONL (Line delimited) as per original format seems to be JSONL based on read_file output
-        # Wait, the read_file output showed: {"type":"entity"...} \n {"type":"entity"...}
-        # Yes, it is JSONL.
+        # Line 1: Navigation map
+        f.write(json.dumps(nav_map) + "\n")
         
-        for item in final_output:
-            f.write(json.dumps(item) + "\n")
-            
-    print(f"Successfully wrote to {OUTPUT_FILE}")
+        # Lines 2-N: Domain summaries
+        for summary in domain_summaries:
+            f.write(json.dumps(summary) + "\n")
+        
+        # Lines N+1 onwards: Detailed entities (grouped by domain)
+        for domain_name in sorted(domains.keys()):
+            domain_entity_names = domains[domain_name]
+            for entity in entities:
+                if entity['name'] in domain_entity_names:
+                    f.write(json.dumps(entity) + "\n")
+    
+    print(f"\n✅ Generated hierarchical knowledge:")
+    print(f"   Line 1: Navigation map")
+    print(f"   Lines 2-{summary_end_line}: {len(domain_summaries)} domain summaries")
+    print(f"   Lines {details_start_line}+: {len(entities)} detailed entities")
+    print(f"   Total: {1 + len(domain_summaries) + len(entities)} lines")
+    print(f"\n📁 Output: {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
