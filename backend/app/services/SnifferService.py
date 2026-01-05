@@ -10,6 +10,7 @@ import time
 import os
 import socket
 import struct
+from app.utils.validators import NetworkValidator
 
 logger = logging.getLogger(__name__)
 
@@ -162,20 +163,16 @@ class SnifferService:
         return mac.upper() == "FF:FF:FF:FF:FF:FF"
     
     def _is_broadcast_ip(self, ip: str) -> bool:
-        """Check if IP is broadcast (ends with .255) or 255.255.255.255"""
-        return ip.endswith(".255") or ip == "255.255.255.255"
+        """Check if IP is broadcast"""
+        return NetworkValidator.is_broadcast_ip(ip)
     
     def _is_multicast_ip(self, ip: str) -> bool:
-        """Check if IP is multicast (224.0.0.0 - 239.255.255.255)"""
-        try:
-            first_octet = int(ip.split('.')[0])
-            return 224 <= first_octet <= 239
-        except:
-            return False
+        """Check if IP is multicast"""
+        return NetworkValidator.is_multicast_ip(ip)
     
     def _is_link_local_ip(self, ip: str) -> bool:
-        """Check if IP is link-local (169.254.x.x)"""
-        return ip.startswith("169.254.")
+        """Check if IP is link-local"""
+        return NetworkValidator.is_link_local_ip(ip)
     
     def _is_valid_source_ip(self, ip: str) -> bool:
         """Check if IP is a valid source address (not broadcast, not 0.0.0.0, not link-local)"""

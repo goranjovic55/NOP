@@ -5,9 +5,9 @@ import asyncio
 import subprocess
 import re
 import time
-import ipaddress
 from typing import Optional, Dict, List, Any
 from datetime import datetime
+from app.utils.validators import NetworkValidator, InputValidator
 
 
 class PingService:
@@ -36,27 +36,17 @@ class PingService:
         if not target:
             raise ValueError("Target cannot be empty")
         
-        # Try to parse as IP address first
-        try:
-            ipaddress.ip_address(target)
+        # Try to validate as IP address first
+        is_valid_ip, _ = NetworkValidator.validate_ip_address(target)
+        if is_valid_ip:
             return target
-        except ValueError:
-            pass
         
-        # Validate as hostname (RFC 1123)
-        # Allow alphanumeric, hyphens, dots, max 253 chars
-        if len(target) > 253:
-            raise ValueError("Hostname too long")
+        # Validate as hostname
+        is_valid_hostname, error = InputValidator.validate_hostname(target)
+        if is_valid_hostname:
+            return target
         
-        # Check for valid hostname pattern
-        hostname_pattern = re.compile(
-            r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$'
-        )
-        
-        if not hostname_pattern.match(target):
-            raise ValueError("Invalid hostname format")
-        
-        return target
+        raise ValueError(error or "Invalid target format")
 
     async def icmp_ping(
         self,
