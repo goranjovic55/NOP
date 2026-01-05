@@ -1,83 +1,17 @@
-# AKIS Framework Templates
+# AKIS Templates
 
-Standardized templates for maintaining consistency across skills, documentation, and workflow logs.
+Standardized templates for consistency.
 
-## Template Usage
+## Available Templates
 
-### Skills Template
+- `skill.md` - Skills (<200 lines, actionable patterns)
+- `feature-doc.md` - Features in `docs/features/`
+- `guide-doc.md` - Guides in `docs/guides/`
+- `workflow-log.md` - Session logs (>15min tasks)
+- `workflow-prompt.md` - Multi-phase workflows
+- `doc-update-notes.md` - Doc update tracking
 
-**Location**: `skill.md`
-
-**When to Use**: Creating or updating any skill in `.github/skills/`
-
-**Format**:
-- One-line description
-- When to Use (4+ scenarios)
-- Checklist (6+ items)
-- Examples (3+ with code)
-- Quick Reference table
-- Related links
-
-**Keep Terse**: Target <200 lines, focus on actionable patterns
-
----
-
-### Feature Documentation Template
-
-**Location**: `feature-doc.md`
-
-**When to Use**: Documenting features in `docs/features/`
-
-**Sections**:
-- Overview with key features
-- Quick Start (3 steps)
-- Usage examples
-- Configuration table
-- API reference
-- Troubleshooting
-- Implementation details
-- Related docs
-
----
-
-### Guide Documentation Template
-
-**Location**: `guide-doc.md`
-
-**When to Use**: Creating guides in `docs/guides/`
-
-**Sections**:
-- Prerequisites
-- Quick Start
-- Step-by-step instructions
-- Configuration
-- Common tasks
-- Troubleshooting
-- Best practices
-- Related resources
-
----
-
-### Workflow Log Template
-
-**Location**: `workflow-log.md`
-
-**When to Use**: Tasks >15 min during COMPLETE phase
-
-**Sections**:
-- Summary
-- Changes (created/modified/deleted)
-- Decisions table
-- Knowledge updates
-- Documentation updates
-- Skills used/created
-- Verification checklist
-- Technical details
-- Notes
-
----
-
-## Standardization Principles
+**Usage:** Copy template, fill sections, follow format conventions.
 
 1. **Terse and Effective**: Bullet points > paragraphs
 2. **Actionable**: Focus on what to do, not theory

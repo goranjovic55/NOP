@@ -1,83 +1,40 @@
 # AKIS Workflow Prompts
 
-This directory contains specialized workflow prompts for the AKIS framework. These prompts guide agents through complex, multi-phase workflows that go beyond typical free-form work.
+Specialized multi-phase workflows for complex tasks.
 
-## Purpose
+**Regular Work:** Free-form, context-driven, query resources when stuck
+**Workflow Prompts:** Prescribed phases (CONTEXT → ANALYZE → ...), step-by-step
 
-Prompts in this folder are designed to:
-- Guide agents through specialized **multi-phase workflows**
-- Standardize complex analysis and improvement processes
-- Provide step-by-step instructions for framework maintenance
-- Enable cross-session insights and improvements
-
-## Key Distinction
-
-**Regular Work (Free-form):**
-- No prescribed phases
-- Context-driven, query resources when stuck
-- Natural workflow based on task requirements
-- Most development work falls here
-
-**Workflow Prompts (Phase-based):**
-- Prescribed phases (CONTEXT → ANALYZE → IMPLEMENT → ...)
-- Step-by-step instructions for each phase
-- Used for specialized, repeatable workflows
-- Examples: Cross-session analysis, major refactoring, framework maintenance
-
-## Available Prompts
+## Available
 
 ### akis-workflow-analyzer.md
 
-**Purpose:** Analyze all workflow sessions to identify patterns and propose framework improvements
+**Purpose:** Analyze sessions to identify patterns and propose improvements
 
-**Type:** Maintenance workflow (runs after session completion when due)
+**Trigger:**
+- Auto: Every 10 sessions (via session_end.py)
+- Manual: Anytime
 
-**Trigger Options:**
-- **Automatic:** Every 10 sessions (prompted by session_end.py)
-- **Manual:** User can trigger anytime
+**Phases:** CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
 
-**Phases:**
-```
-CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
-```
+**Actions:**
+1. Analyze workflow logs
+2. Identify patterns
+3. Suggest skills/docs updates
+4. Propose improvements
+5. Update knowledge base
 
-**What it Does:**
-1. Analyzes all workflow logs in `log/workflow/`
-2. Identifies recurring patterns (tasks, technologies, decisions)
-3. Suggests skills to create/update/remove
-4. Recommends documentation organization and cleanup
-5. Proposes instruction improvements
-6. Suggests knowledge base updates
-
-**Example Usage:**
+**Usage:**
 ```bash
-# Check if maintenance is due
 python .github/scripts/session_tracker.py check-maintenance
-
-# Run analysis (when maintenance is due or manual trigger)
-python .github/scripts/analyze_workflows.py --output markdown
-
-# Follow the prompt workflow
-# See .github/prompts/akis-workflow-analyzer.md for full instructions
+# Follow prompt if maintenance due
 ```
 
-## Creating New Workflow Prompts
+## Creating New Prompts
 
-When you have a **repeatable multi-step workflow** that benefits from prescribed phases:
-
-1. **Use the template:** `.github/templates/workflow-prompt.md`
-
-2. **Define clear phases:**
-   - Each phase has: Objective, Steps, Output
-   - Phases should be sequential and logical
-   - Include commands/tools for each phase
-
-3. **Include examples:**
-   - Show expected inputs and outputs
-   - Demonstrate the workflow in action
-
-4. **Document integration:**
-   - How it relates to regular AKIS workflow
+1. Use template: `templates/workflow-prompt.md`
+2. Define phases with objectives, steps, outputs
+3. Include examples and commands
    - When to trigger (auto/manual)
    - What purpose it serves
 

@@ -1,103 +1,39 @@
-# Workflow: {Name}
+# {Name}
 
-**Purpose:** {What this workflow accomplishes - 1-2 sentences}
+{One-line purpose}
 
-**When to Use:**
-- {Trigger condition 1}
-- {Trigger condition 2}
-- {Manual invocation scenario}
+**Trigger:** {When to use}
 
-**Important:** {Critical context or distinction - 1 sentence}
+## Phases
 
----
-
-## Workflow Overview
-
-This prompt guides through:
-1. {Phase 1 objective}
-2. {Phase 2 objective}
-3. {Phase 3 objective}
-4. {Phase 4 objective}
-
-**Key Principle:** {Core principle or philosophy - 1 sentence}
-
----
-
-## Phase 1: {NAME} - {Action Verb}
-
-**Objective:** {What this phase accomplishes}
-
+### 1. {NAME}
+**Objective:** {What}
 **Steps:**
-1. {Step 1}
-2. {Step 2}
-3. {Step 3}
-
-**Tools/Commands:**
+1. {Step}
+2. {Step}
 ```bash
-# {Action}
 {command}
 ```
+**Output:** {Result}
 
-**Output:** {What should result from this phase}
-
----
-
-## Phase 2: {NAME} - {Action Verb}
-
-**Objective:** {What this phase accomplishes}
-
+### 2. {NAME}
+**Objective:** {What}
 **Steps:**
-1. {Step 1}
-2. {Step 2}
-3. {Step 3}
+1. {Step}
+2. {Step}
+**Output:** {Result}
 
-**Output:** {What should result from this phase}
-
----
-
-## Phase 3: {NAME} - {Action Verb}
-
-**Objective:** {What this phase accomplishes}
-
+### 3. {NAME}
+**Objective:** {What}
 **Steps:**
-1. {Step 1}
-2. {Step 2}
-3. {Step 3}
-
-**Output:** {What should result from this phase}
-
----
-
-## Phase 4: {NAME} - {Action Verb}
-
-**Objective:** {What this phase accomplishes}
-
-**Steps:**
-1. {Step 1}
-2. {Step 2}
-3. {Step 3}
-
-**Output:** {What should result from this phase}
-
----
+1. {Step}
+2. {Step}
+**Output:** {Result}
 
 ## Success Criteria
-
 ✅ {Criterion 1}
 ✅ {Criterion 2}
 ✅ {Criterion 3}
-✅ {Criterion 4}
-
----
-
-## Guidelines
-
-### {Category 1}
-- **Pattern:** {Description}
-- **Action:** {What to do}
-- **Example:** {Concrete example}
-
-### {Category 2}
 - **Pattern:** {Description}
 - **Action:** {What to do}
 - **Example:** {Concrete example}
