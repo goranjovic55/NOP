@@ -1,102 +1,39 @@
-# [Guide Title]
+# {Guide Title}
 
-**[One-sentence description of what this guide covers]**
-
-**Last Updated**: YYYY-MM-DD
-
----
+{One-sentence description}
 
 ## Prerequisites
-
-- [Requirement 1]
-- [Requirement 2]
-- [Requirement 3]
-
----
+- {Requirement 1}
+- {Requirement 2}
 
 ## Quick Start
-
 ```bash
-# [Quick command sequence]
-[command1]
-[command2]
-[command3]
+{command1}
+{command2}
 ```
 
-**Access**: [How to access after setup]
+## Steps
 
----
-
-## Step-by-Step Guide
-
-### Step 1: [First Step Title]
-
-[Brief explanation]
-
+### 1. {Step Title}
 ```bash
-# [What this does]
-[command]
+{command}
 ```
 
-**Verify**:
+### 2. {Step Title}
 ```bash
-[verification command]
+{command}
 ```
-
-### Step 2: [Second Step Title]
-
-[Brief explanation]
-
-```bash
-[command]
-```
-
-### Step 3: [Third Step Title]
-
-[Brief explanation]
-
----
 
 ## Configuration
-
-### [Configuration Section 1]
-
-**Location**: `path/to/config`
-
-```[format]
-[configuration example]
-```
-
-**Options**:
-- `option1`: [Description]
-- `option2`: [Description]
-
-### [Configuration Section 2]
-
-**Environment Variables**:
 ```bash
-VAR_NAME=value  # [Description]
-VAR_NAME2=value  # [Description]
+VAR=value  # {Description}
 ```
-
----
 
 ## Common Tasks
-
-### [Task 1]
-
 ```bash
-# [What this does]
-[command]
+# {Task}
+{command}
 ```
-
-### [Task 2]
-
-```bash
-[command]
-```
-
-### [Task 3]
 
 ```bash
 [command]

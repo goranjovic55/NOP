@@ -1,46 +1,28 @@
-# [Skill Name]
+# {Name}
 
-[One-line description of what this skill covers]
+{One-line description}
 
 ## When to Use
-- [Specific scenario 1]
-- [Specific scenario 2]
-- [Specific scenario 3]
-- [Specific scenario 4]
+- {Scenario 1}
+- {Scenario 2}
+- {Scenario 3}
 
-## Checklist
-- [ ] [Essential requirement 1]
-- [ ] [Essential requirement 2]
-- [ ] [Essential requirement 3]
-- [ ] [Essential requirement 4]
-- [ ] [Essential requirement 5]
-- [ ] [Essential requirement 6]
+## Avoid
+- ❌ {Anti-pattern 1} → ✅ {Correct approach}
+- ❌ {Anti-pattern 2} → ✅ {Correct approach}
 
 ## Examples
 
-### [Example 1 Title]
-```[language]
-[Minimal, focused code example]
+### {Scenario}
+```bash
+# {Action}
+{command}
 ```
 
-### [Example 2 Title]
-```[language]
-[Minimal, focused code example]
+### {Scenario}
+```{language}
+{code}
 ```
-
-### [Example 3 Title]
-```[language]
-[Minimal, focused code example]
-```
-
-## Quick Reference
-
-| Pattern | Solution |
-|---------|----------|
-| [Common case 1] | [Quick fix] |
-| [Common case 2] | [Quick fix] |
-| [Common case 3] | [Quick fix] |
 
 ## Related
-- `related-skill.md` - [Brief description]
-- `docs/category/DOCUMENT.md` - [Brief description]
+- {related-skill.md}
