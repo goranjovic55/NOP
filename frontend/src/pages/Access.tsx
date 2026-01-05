@@ -348,7 +348,6 @@ const Access: React.FC = () => {
         return;
       }
       const allAssets = await assetService.getAssets(authToken);
-      console.log('Fetched assets:', allAssets.length);
       setAssets(allAssets);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
