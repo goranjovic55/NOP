@@ -4,17 +4,15 @@
 
 ---
 
-## Overview
-
-The Agent/C2 system enables deployment of lightweight agents on remote networks to collect data from isolated subnets. Agents connect back to the main NOP instance via WebSocket and support Point of View (POV) switching for seamless multi-network monitoring.
-
-### Key Features
+## Features
 - ✅ Deploy Python, C, or ASM agents to remote networks
 - ✅ WebSocket-based C2 with auto-reconnection
-- ✅ POV switching to view data from agent perspectives
+- ✅ POV (Point of View) switching to view data from agent perspectives
 - ✅ Token-based authentication and capability control
 - ✅ Real-time status monitoring with heartbeats
 - ✅ Code generation with embedded configurations
+- ✅ Go agent obfuscation and persistence options
+- ✅ Multi-platform support (Linux, Windows, macOS, FreeBSD)
 
 ---
 
@@ -41,6 +39,34 @@ The Agent/C2 system enables deployment of lightweight agents on remote networks 
 2. Navigate to **Dashboard** or **Assets**
 3. View data from agent's subnet
 4. Click **EXIT POV** to return
+
+---
+
+## Usage
+
+### Basic Agent Deployment
+
+Deploy an agent to a remote network for monitoring:
+
+```bash
+# Download agent from NOP UI
+# Transfer to remote system
+scp nop_agent_*.py remote-host:/opt/
+
+# Run agent on remote system
+ssh remote-host "python3 /opt/nop_agent_*.py"
+```
+
+### POV Switching Workflow
+
+Monitor remote network from main NOP instance:
+
+```bash
+# 1. Agent deployed at 192.168.50.10
+# 2. Switch POV in NOP UI
+# 3. View assets/traffic from remote network perspective
+# 4. Exit POV to return to normal view
+```
 
 ---
 
@@ -408,3 +434,9 @@ When configured for high stealth:
 - [Deployment Guide](../guides/DEPLOYMENT.md) - Production deployment
 - [Network Architecture](../architecture/ARCH_system_v1.md) - System design
 - [Archived Agent Docs](../archive/agent-docs-2026-01-04/) - Historical implementation details
+
+---
+
+**Document Version**: 2.0  
+**Last Updated**: 2026-01-05  
+**Status**: Production Ready

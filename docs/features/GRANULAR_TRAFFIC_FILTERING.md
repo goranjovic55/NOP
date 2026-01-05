@@ -1,16 +1,63 @@
-# Granular Traffic Filtering Feature
+# Granular Traffic Filtering
 
-## Overview
-Added granular filtering controls for passive discovery to allow fine-tuned detection of hosts based on traffic type.
+Advanced filtering controls for passive network discovery.
 
-## Features Implemented
+## Features
 
-### 1. Track Source Only Toggle
+- ✅ Source-only tracking mode for safe discovery
+- ✅ Granular destination filters (unicast, multicast, broadcast)
+- ✅ Configurable filter combinations for custom scenarios
+- ✅ Real-time filter application without restart
+- ✅ Persistent configuration in database
+
+## Quick Start
+
+```bash
+# Safe mode (default): Track only source IPs
+# Settings → Discovery → "Track Source IPs Only" = ON
+
+# Advanced mode: Detect passive listeners
+# 1. Settings → Discovery → "Track Source IPs Only" = OFF
+# 2. Configure destination filters:
+#    - Unicast: OFF (detect passive listeners)
+#    - Multicast: ON (reduce noise)
+#    - Broadcast: ON (reduce noise)
+```
+
+## Usage
+
+### Detect Passive UDP Listeners
+
+Identify hosts that only receive traffic without sending:
+
+```bash
+# 1. Disable "Track Source IPs Only"
+# 2. Disable "Unicast" filter
+# 3. Enable "Multicast" and "Broadcast" filters
+# 4. Generate traffic to target IP
+# 5. Check if destination appears in Assets
+```
+
+### Safe Discovery (Default Configuration)
+
+Only track hosts that actively send traffic:
+
+```bash
+# Enable "Track Source IPs Only"
+# All destination filters are ignored
+# Only source IPs from outbound traffic are tracked
+```
+
+---
+
+## Filter Details
+
+### Track Source Only Toggle
 - **Default**: Enabled (safe mode)
 - **Description**: When enabled, only tracks hosts that send traffic (source IPs)
 - **When disabled**: Tracks both source and destination IPs with granular filtering
 
-### 2. Granular Destination Filters (when source-only disabled)
+### Granular Destination Filters
 
 #### Unicast Filter
 - **Default**: Disabled
@@ -26,6 +73,21 @@ Added granular filtering controls for passive discovery to allow fine-tuned dete
 - **Default**: Enabled  
 - **Description**: Filter network-wide traffic
 - **Recommended**: Keep enabled to avoid noise
+
+---
+
+## Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `track_source_only` | `true` | Only track hosts that send traffic (safe mode) |
+| `filter_unicast` | `false` | Filter point-to-point traffic when source-only disabled |
+| `filter_multicast` | `true` | Filter group traffic (224.0.0.0/4) |
+| `filter_broadcast` | `true` | Filter network-wide broadcast traffic |
+
+**Note**: Link-local addresses (169.254.0.0/16) are ALWAYS filtered.
+
+---
 
 ## Backend Changes
 
@@ -155,9 +217,34 @@ curl -X PUT http://localhost:12001/api/v1/settings/discovery \
 curl -X POST http://localhost:12001/api/v1/settings/reset/discovery
 ```
 
-## Notes
+---
 
-- Link-local addresses (169.254.0.0/16) are ALWAYS filtered regardless of settings
-- Filters only apply when `track_source_only` is disabled
-- UI automatically hides filter options when source-only mode is enabled
-- Backend logs show current filter configuration on startup
+## Troubleshooting
+
+**Issue**: Passive listeners not appearing in Assets
+
+**Solution**:
+1. Verify "Track Source IPs Only" is disabled
+2. Disable "Unicast" filter
+3. Generate test traffic: `sudo python3 scripts/generate_test_traffic.py --type unicast --target <IP>`
+4. Check backend logs for filter configuration
+
+**Issue**: Too many false positives in discovery
+
+**Solution**:
+1. Enable "Track Source IPs Only" for safer discovery
+2. Or enable "Multicast" and "Broadcast" filters to reduce noise
+
+---
+
+## Related Documentation
+
+- [Storm Feature](STORM_FEATURE.md) - Traffic generation for testing
+- [API Reference](../technical/API_rest_v1.md) - Settings API endpoints
+- [Configuration Guide](../guides/CONFIGURATION.md) - Discovery settings
+
+---
+
+**Document Version**: 1.1  
+**Last Updated**: 2026-01-05  
+**Status**: Production Ready

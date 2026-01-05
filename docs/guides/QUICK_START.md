@@ -40,243 +40,199 @@ FRONTEND_PORT=12000
 BACKEND_PORT=12001
 ```
 
-### 3. Start Services
+### 2. Start Services
 
-#### Start Main Platform
+Start the core platform services:
 
 ```bash
-docker-compose up -d --build
+docker compose up -d
 ```
 
-This starts the core services:
+This starts:
 - Frontend (React UI)
 - Backend (FastAPI)
 - PostgreSQL database
 - Redis cache
 - ntopng traffic analyzer
 
-#### Start Test Environment (Optional)
-
-For testing connection capabilities:
+Optional - Start test environment for protocol testing:
 
 ```bash
-docker-compose -f docker-compose.test.yml up -d --build
+docker compose -f docker-compose.test.yml up -d
 ```
 
-This creates test targets for SSH, VNC, RDP, FTP, and other protocols.
-
-### 4. Access the Platform
+### 3. Access Platform
 
 Once services are running:
 
 - **Web Interface**: http://localhost:12000
 - **API Documentation**: http://localhost:12001/docs
-- **API Base URL**: http://localhost:12001/api/v1
 
-## First Login
+**Default Credentials**: `admin` / `admin123` (⚠️ change immediately!)
+
+---
+
+## Steps
+
+### Step 1: First Login
 
 1. Navigate to http://localhost:12000
-2. Use default credentials:
-   - **Username**: `admin`
-   - **Password**: `admin123` (or what you set in `.env`)
-3. **Important**: Change your password immediately after first login
+2. Login with `admin` / `admin123`
+3. **Change password immediately** after first login
 
-## Quick Tour
+### Step 2: Enable Network Discovery
 
-### Dashboard
-- View network statistics at a glance
-- See active connections and recent activity
-- Monitor system health
+1. Go to **Settings** → **Discovery**
+2. Enable **Passive Discovery**
+3. Select network interface
+4. Assets appear in **Assets** page as traffic is detected
 
-### Topology View
-- Visualize network topology in real-time
-- Color-coded connections by protocol
-- Interactive graph with traffic flow animation
-- Filter by traffic volume
+### Step 3: View Network Topology
 
-### Assets
-- Browse discovered network devices
-- View detailed asset information
-- Initiate scans or connections
-- Manage asset groups
+1. Go to **Topology** page
+2. View discovered hosts and connections
+3. Hover over nodes/links for details
+4. Use filters to adjust traffic threshold
 
-### Traffic Analysis
-- Capture and analyze network packets
-- Advanced ping tools (ICMP, TCP, UDP, HTTP/HTTPS)
-- View protocol distribution
-- Monitor bandwidth usage
-
-### Access Hub
-- Connect to network assets via browser
-- SSH, VNC, RDP support
-- Credential vault for quick access
-- Session management
-
-## Common Tasks
-
-### Connect to an Asset via SSH
+### Step 4: Connect to Remote Host
 
 1. Go to **Access Hub**
 2. Click **New Connection**
-3. Select **SSH** protocol
-4. Enter:
-   - Host: IP address or hostname
-   - Port: 22 (default)
-   - Username: your username
-   - Password: your password
+3. Select protocol (SSH/RDP/VNC)
+4. Enter host, credentials
 5. Click **Connect**
 
-### Run Network Discovery
+---
 
-1. Go to **Assets**
-2. Click **Start Discovery**
-3. Choose scan profile:
-   - **Light**: Fast ping sweep
-   - **Medium**: Service detection
-   - **Deep**: Full port scan with OS detection
-4. Click **Execute**
+## Configuration
+
+Common configuration tasks:
+
+```bash
+# Edit environment variables
+nano .env
+
+# Set custom ports
+FRONTEND_PORT=12000
+BACKEND_PORT=12001
+
+# Set secure passwords
+POSTGRES_PASSWORD=your_secure_password
+JWT_SECRET_KEY=your_secret_key_here
+ADMIN_PASSWORD=admin123
+
+# Restart services to apply
+docker compose restart
+```
+
+---
+
+## Common Tasks
+
+### Run Active Scan
+
+```bash
+# From Assets page
+Assets → Start Discovery → Select Profile → Execute
+```
+
+Profiles:
+- **Light**: Fast ping sweep
+- **Medium**: Service detection  
+- **Deep**: Full port scan with OS detection
 
 ### Advanced Ping Test
 
-1. Go to **Traffic** page
-2. Click **Advanced Ping** tab
-3. Select protocol (ICMP, TCP, UDP, HTTP)
-4. Enter target and configure options
-5. Click **Execute Ping**
+```bash
+# From Traffic page
+Traffic → Advanced Ping → Select Protocol → Configure → Execute
+```
 
-### View Network Topology
+Protocols: ICMP, TCP, UDP, HTTP/HTTPS
 
-1. Go to **Topology** page
-2. Wait for graph to load
-3. Use filters to adjust traffic threshold
-4. Hover over nodes and links for details
-5. Drag nodes to rearrange layout
+---
 
-## Test Credentials
+## Test Environment
 
-If using the test environment, use these credentials:
+If using test environment (`docker-compose.test.yml`), use these credentials:
 
 | Service | Host | Username | Password |
 |---------|------|----------|----------|
 | SSH | ssh-server | testuser | testpass123 |
-| SSH | ssh-server | admin | admin123 |
 | VNC | vnc-server | vncuser | vnc123 |
 | RDP | rdp-server | rdpuser | rdp123 |
-| FTP | ftp-server | ftpuser | ftp123 |
-| SMB | file-server | smbuser | smbpass123 |
+
+---
 
 ## Troubleshooting
 
 ### Services Won't Start
 
-Check Docker logs:
-```bash
-docker-compose logs -f
-```
+**Problem**: Containers fail to start
 
-Ensure ports are not already in use:
+**Solution**:
 ```bash
-netstat -tuln | grep -E '12000|12001|5432|6379'
+# Check logs
+docker compose logs -f
+
+# Verify ports not in use
+netstat -tuln | grep -E '12000|12001|5432'
+
+# Restart services
+docker compose down && docker compose up -d
 ```
 
 ### Can't Access Web Interface
 
-1. Verify frontend is running:
-   ```bash
-   docker-compose ps frontend
-   ```
+**Problem**: Frontend not loading at localhost:12000
 
-2. Check frontend logs:
-   ```bash
-   docker-compose logs frontend
-   ```
-
-3. Ensure firewall allows port 12000
+**Solution**:
+1. Check frontend status: `docker compose ps frontend`
+2. View logs: `docker compose logs frontend`
+3. Verify firewall allows port 12000
 
 ### Database Connection Errors
 
-1. Check PostgreSQL is running:
-   ```bash
-   docker-compose ps postgres
-   ```
+**Problem**: Backend can't connect to database
 
-2. Verify database credentials in `.env`
-
-3. Reset database if needed:
-   ```bash
-   docker-compose down -v
-   docker-compose up -d
-   ```
+**Solution**:
+1. Check PostgreSQL: `docker compose ps postgres`
+2. Verify credentials in `.env`
+3. Reset if needed: `docker compose down -v && docker compose up -d`
 
 ### Network Discovery Not Working
 
-Ensure the backend has necessary permissions:
+**Problem**: No assets being discovered
+
+**Solution**:
 ```bash
-# The containers need NET_ADMIN capability
-# Check docker-compose.yml for cap_add settings
+# Ensure NET_ADMIN capability in docker-compose.yml
+# Verify passive discovery enabled in Settings
+# Check network interface selection
 ```
-
-## Performance Optimization
-
-### For Production Use
-
-1. **Increase resource limits** in `docker-compose.yml`:
-   ```yaml
-   backend:
-     deploy:
-       resources:
-         limits:
-           memory: 4G
-   ```
-
-2. **Enable Redis persistence**:
-   ```yaml
-   redis:
-     command: redis-server --appendonly yes
-   ```
-
-3. **Configure PostgreSQL** for better performance:
-   - Edit `volumes/postgres/postgresql.conf`
-   - Adjust `shared_buffers`, `work_mem`
-
-### For Low-Resource Devices
-
-1. Reduce PostgreSQL memory:
-   ```yaml
-   postgres:
-     command: postgres -c shared_buffers=128MB
-   ```
-
-2. Limit ntopng data retention:
-   ```yaml
-   ntopng:
-     command: --data-retention-days 7
-   ```
-
-## Next Steps
-
-- Read the [Configuration Guide](CONFIGURATION.md) for detailed settings
-- Review the [Deployment Guide](DEPLOYMENT.md) for production deployment
-- Check [API Documentation](../technical/API_rest_v1.md) for programmatic access
-- Explore [Implemented Features](../features/IMPLEMENTED_FEATURES.md)
-
-## Getting Help
-
-- Check the documentation in `docs/`
-- Review logs: `docker-compose logs [service-name]`
-- Open an issue on GitHub
-
-## Security Notes
-
-⚠️ **Important Security Considerations**:
-
-1. **Change default passwords** immediately
-2. **Use HTTPS** in production (configure reverse proxy)
-3. **Restrict network access** to the platform
-4. **Regularly update** Docker images
-5. **Enable firewall** rules
-6. **Review access logs** regularly
 
 ---
 
-**Ready to explore?** Visit http://localhost:12000 and start monitoring your network!
+## Best Practices
+
+- ✅ Change default passwords immediately
+- ✅ Use HTTPS in production (configure reverse proxy)
+- ✅ Restrict network access to the platform
+- ✅ Regularly update Docker images
+- ✅ Enable firewall rules
+- ✅ Review access logs regularly
+
+---
+
+## Related Resources
+
+- [Configuration Guide](CONFIGURATION.md) - Detailed settings
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment
+- [API Documentation](../technical/API_rest_v1.md) - REST API reference
+- [Implemented Features](../features/IMPLEMENTED_FEATURES.md) - Complete feature list
+
+---
+
+**Document Version**: 2.0  
+**Last Updated**: 2026-01-05  
+**Status**: Production Ready
