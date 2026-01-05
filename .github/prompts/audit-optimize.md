@@ -1,8 +1,8 @@
-# Documentation Standardization Workflow
+# Audit & Optimize Workflow
 
-Audit, organize, and optimize project documentation to match AKIS templates with comprehensive indexing.
+Audit, organize, and optimize any project component (documentation, skills, code, AKIS framework) to match templates and reduce redundancy.
 
-**Trigger:** When documentation is scattered, verbose, or doesn't follow templates. Typically every major release or when onboarding new contributors.
+**Trigger:** When any component is scattered, verbose, redundant, or doesn't follow standards. Applicable to docs, skills, code refactoring, or framework cleanup.
 
 ---
 
@@ -453,15 +453,27 @@ AUDIT → PLAN → STANDARDIZE → INDEX → VERIFY → DOCUMENT → COMPLETE
 
 ## Reusability
 
-This workflow is **project-agnostic** and can be applied to any repository:
+This workflow is **universal** and can be applied to:
 
-1. Adjust thematic categories based on project type
-2. Use project-specific templates if available
-3. Customize INDEX.md structure for project needs
-4. Adapt compliance checks for project standards
+**Documentation**: Organize docs, create INDEX, standardize to templates
+**Skills**: Consolidate overlapping skills, remove unused, standardize format
+**Code**: Refactor for consistency, reduce duplication, improve structure
+**AKIS Framework**: Streamline instructions, optimize workflows, clean scripts
 
-The core process (AUDIT → STANDARDIZE → INDEX → VERIFY) remains the same across projects.
+The core process (AUDIT → PLAN → STANDARDIZE → INDEX → VERIFY) adapts to any component while maintaining the same methodology.
 
 ---
 
-*This prompt was created from session work on 2026-01-05 and is subject to improvement.*
+## Applicability
+
+Use this workflow for:
+- 📄 **Documentation**: Scattered docs, verbose content, no index
+- 🛠️ **Skills**: Overlapping skills, unused patterns, inconsistent format
+- 💻 **Code**: Duplication, inconsistent patterns, refactoring needs
+- ⚙️ **AKIS Framework**: Verbose instructions, scattered scripts, framework cleanup
+
+Adapt the phases and steps to your specific target while keeping the core methodology.
+
+---
+
+*This prompt was created from documentation standardization work on 2026-01-05 and is subject to improvement.*

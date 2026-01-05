@@ -32,34 +32,45 @@ python .github/scripts/session_tracker.py check-maintenance
 
 ---
 
-### documentation-standardization.md
+### audit-optimize.md
 
-**Purpose:** Audit, organize, and optimize project documentation to match AKIS templates
+**Purpose:** Audit, organize, and optimize any project component to match standards
 
 **Trigger:**
-- Manual: When documentation is scattered or verbose
-- Periodic: Every major release or 6-12 months
+- Manual: When any component (docs/skills/code/framework) is scattered or verbose
+- Periodic: Every major release or refactoring cycle
 - When template compliance <50%
-- When onboarding new contributors
+- When reducing redundancy or improving organization
 
 **Phases:** AUDIT → PLAN → STANDARDIZE → INDEX → VERIFY → DOCUMENT → COMPLETE
 
 **Actions:**
-1. Audit all documentation files
-2. Check template compliance
-3. Organize by thematic categories
-4. Standardize to templates
-5. Create comprehensive INDEX.md
+1. Audit component files (docs, skills, code, etc.)
+2. Check compliance to standards/templates
+3. Organize by logical categories
+4. Standardize to templates/patterns
+5. Create comprehensive index/map
 6. Reduce verbosity and redundancy
+
+**Applicable to:**
+- 📄 Documentation (organize, index, standardize)
+- 🛠️ Skills (consolidate, remove unused)
+- 💻 Code (refactor, reduce duplication)
+- ⚙️ AKIS Framework (streamline, optimize)
 
 **Usage:**
 ```
-"Please audit and organize all documentation in docs/ folder. 
-Check template compliance, organize by theme, create comprehensive 
-INDEX, and make content terse following AKIS templates."
+"Please audit and optimize [component] in [location]. 
+Check compliance, organize logically, create index, 
+and reduce verbosity following standards."
 ```
 
-**Reusability:** Project-agnostic, can be applied to any repository
+Examples:
+- "Audit and optimize documentation in docs/"
+- "Audit and optimize skills in .github/skills/"
+- "Audit and optimize AKIS framework instructions"
+
+**Reusability:** Universal - adapts to docs, skills, code, or framework
 
 ## Creating New Prompts
 
