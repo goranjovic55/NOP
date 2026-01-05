@@ -34,7 +34,7 @@ Quick reference for common problems → solutions. Query skills during work when
 - **State management:** Context-based filtering in frontend-react.md
 
 ### DevOps
-- Docker/containers: TBD (create when pattern emerges)
+- **Docker/containers:** [docker.md](docker.md) - Development workflow, reload issues, compose file selection
 - CI/CD: TBD (create when pattern emerges)
 
 ---

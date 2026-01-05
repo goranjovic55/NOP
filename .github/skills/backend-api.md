@@ -169,6 +169,22 @@ result = await db.execute(
 )
 ```
 
+### POV Mode Filtering
+**Use when:** Filtering data to agent perspective
+
+```python
+@router.get("/data", response_model=list[DataResponse])
+async def get_data(
+    agent_id: Optional[UUID] = None,  # POV parameter
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(Model)
+    if agent_id:  # Filter to agent's view
+        query = query.where(Model.agent_id == agent_id)
+    return (await db.execute(query)).scalars().all()
+```
+
 ## Related Skills
 - `debugging.md` - Troubleshooting endpoints
 - `frontend-react.md` - API integration patterns
+- `docker.md` - Container reload issues
