@@ -275,6 +275,7 @@ class NOPAgent:
                 try:
                     if packet.haslayer(scapy.IP):
                         src_ip = packet[scapy.IP].src
+                        print(f"[{datetime.now()}] Passive discovery: captured packet from {src_ip}")
                         
                         # Extract MAC if available
                         src_mac = None
@@ -292,6 +293,7 @@ class NOPAgent:
                                 "method": "passive"
                             }
                             self.passive_hosts.append(host_info)
+                            print(f"[{datetime.now()}] Passive discovery: added host {src_ip}")
                 except Exception as e:
                     pass  # Silently ignore packet processing errors
             

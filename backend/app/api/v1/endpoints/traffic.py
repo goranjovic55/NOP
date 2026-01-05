@@ -33,7 +33,7 @@ async def get_interfaces(
     logger = logging.getLogger(__name__)
     logger.info(f"[INTERFACES] POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
     
-    # If viewing from agent POV, return agent's interfaces
+    # If viewing from agent POV, return agent's interfaces with activity data
     if agent_pov:
         from app.services.agent_service import AgentService
         agent = await AgentService.get_agent(db, agent_pov)  # agent_pov is already a UUID
@@ -41,8 +41,19 @@ async def get_interfaces(
         if agent and agent.agent_metadata and "host_info" in agent.agent_metadata:
             host_info = agent.agent_metadata["host_info"]
             if "interfaces" in host_info:
-                logger.info(f"[INTERFACES] Returning {len(host_info['interfaces'])} agent interfaces")
-                return host_info["interfaces"]
+                # Get C2 interface activity history to enrich agent interfaces
+                c2_interfaces = sniffer_service.get_interfaces()
+                c2_activity_map = {iface['name']: iface.get('activity', [0]*30) for iface in c2_interfaces}
+                
+                # Add activity data to agent interfaces
+                agent_interfaces = host_info["interfaces"]
+                for iface in agent_interfaces:
+                    iface_name = iface.get('name')
+                    # Use C2's activity data if available, otherwise use zeros
+                    iface['activity'] = c2_activity_map.get(iface_name, [0]*30)
+                
+                logger.info(f"[INTERFACES] Returning {len(agent_interfaces)} agent interfaces with activity")
+                return agent_interfaces
         logger.info("[INTERFACES] No agent interfaces found, returning C2 interfaces")
     
     # Default: return C2 server's interfaces
