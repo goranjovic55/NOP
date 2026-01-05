@@ -127,25 +127,45 @@ class Agent:
 **Use when:** Real-time data needs REST API access
 
 ```python
-# WebSocket handler - receive ephemeral data
+from sqlalchemy.orm.attributes import flag_modified
+
+# WebSocket handler - receive and persist data
 @router.websocket("/ws/agent/{agent_id}")
 async def websocket_endpoint(websocket: WebSocket, agent_id: str, db: AsyncSession):
-    data = await websocket.receive_json()
-    
-    if data["type"] == "host_data":
-        # Store in persistent database field
-        agent = await db.get(Agent, agent_id)
-        agent.agent_metadata["host_info"] = data["data"]
-        await db.commit()
+    while True:
+        message = await websocket.receive_json()
+        msg_type = message.get("type")
+        
+        if msg_type == "host_data":
+            # Store in persistent database field
+            agent = await db.get(Agent, agent_id)
+            if not agent.agent_metadata:
+                agent.agent_metadata = {}
+            
+            agent.agent_metadata["host_info"] = message.get("host", {})
+            agent.agent_metadata["last_update"] = datetime.utcnow().isoformat()
+            
+            # CRITICAL: Flag JSONB field as modified
+            flag_modified(agent, 'agent_metadata')
+            await db.commit()
 
 # REST endpoint - query persistent data
 @router.get("/interfaces")
-async def get_interfaces(agent_pov: str | None, db: AsyncSession):
+async def get_interfaces(request: Request, db: AsyncSession):
+    agent_pov = get_agent_pov(request)
     if agent_pov:
         agent = await db.get(Agent, agent_pov)
-        return agent.agent_metadata.get("host_info", {}).get("interfaces", [])
+        if agent and agent.agent_metadata:
+            return agent.agent_metadata.get("host_info", {}).get("interfaces", [])
+        return []  # No C2 fallback in POV mode
     # ... C2 interfaces
 ```
+
+**Data Flow:**
+- WebSocket: Ephemeral connection, receives real-time updates
+- Database: Persistent storage via `agent_metadata` JSONB field
+- REST API: Queries latest persisted data from database
+- Timing: First data arrives based on agent's `data_interval` config (10-60s)
 
 ### Database INET Type Casting
 **Use when:** Querying PostgreSQL network types (INET, CIDR)
@@ -170,19 +190,64 @@ result = await db.execute(
 ```
 
 ### POV Mode Filtering
-**Use when:** Filtering data to agent perspective
+**Use when:** Showing only agent-specific data without C2 fallback
 
 ```python
-@router.get("/data", response_model=list[DataResponse])
-async def get_data(
-    agent_id: Optional[UUID] = None,  # POV parameter
+from app.middleware.agent_pov import get_agent_pov
+
+@router.get("/endpoint")
+async def endpoint(
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Model)
-    if agent_id:  # Filter to agent's view
-        query = query.where(Model.agent_id == agent_id)
-    return (await db.execute(query)).scalars().all()
+    # Extract agent POV from X-Agent-POV header
+    agent_pov = get_agent_pov(request)  # Returns UUID or None
+    
+    if agent_pov:
+        # Get agent and check for data
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and 'required_key' in agent.agent_metadata:
+            data = agent.agent_metadata['required_key']
+            # Add metadata indicators
+            data['_source'] = 'agent'
+            data['_agent_id'] = str(agent.id)
+            return data
+        else:
+            # CRITICAL: No C2 fallback - return empty or 404
+            return []  # or {} or raise HTTPException(404)
+    
+    # Default: return C2 server data
+    return get_c2_data()
 ```
+
+**Key Points:**
+- Never fallback to C2 data in POV mode
+- Return appropriate empty structure ([], {}) or 404
+- Add `_source`, `_agent_id` metadata to track data origin
+
+### SQLAlchemy JSONB Persistence
+**Use when:** Nested changes to JSONB/JSON fields not saving
+
+```python
+from sqlalchemy.orm.attributes import flag_modified
+
+# ❌ WRONG - SQLAlchemy doesn't detect nested mutations
+agent.agent_metadata['host_info'] = new_data
+await db.commit()  # Changes NOT saved!
+
+# ✅ CORRECT - Must flag field as modified
+agent.agent_metadata['host_info'] = new_data
+flag_modified(agent, 'agent_metadata')  # Mark as dirty
+await db.commit()  # Changes saved!
+
+# Alternative: Replace entire object (also works)
+new_metadata = agent.agent_metadata.copy()
+new_metadata['host_info'] = new_data
+agent.agent_metadata = new_metadata  # Triggers change detection
+await db.commit()
+```
+
+**Why:** SQLAlchemy tracks object replacement but not nested mutations in mutable types (dict, list)
 
 ## Related Skills
 - `debugging.md` - Troubleshooting endpoints
