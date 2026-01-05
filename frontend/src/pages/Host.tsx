@@ -117,7 +117,10 @@ const Host: React.FC = () => {
       
       // Connect WebSocket
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
+      let wsUrl = `${wsProtocol}//${window.location.host}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
+      if (activeAgent) {
+        wsUrl += `&agent_pov=${encodeURIComponent(activeAgent.id)}`;
+      }
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;

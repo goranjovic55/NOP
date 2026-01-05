@@ -523,7 +523,12 @@ async def download_file(
 
 
 @router.websocket("/terminal")
-async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
+async def terminal_websocket(
+    websocket: WebSocket, 
+    token: Optional[str] = None,
+    agent_pov: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
     """
     WebSocket endpoint for terminal access using PTY
     
@@ -531,6 +536,7 @@ async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     - Proper PTY (pseudo-terminal) emulation
     - Window resize support
     - Signal handling
+    - Agent POV support for remote agent terminal access
     """
     import pty
     import struct
@@ -547,6 +553,30 @@ async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     # For now, just check that token is provided
     
     await websocket.accept()
+    
+    # Check if POV mode is active
+    if agent_pov:
+        try:
+            agent_uuid = UUID(agent_pov)
+            agent = await AgentService.get_agent(db, agent_uuid)
+            if agent:
+                # POV mode: show SOCKS proxy info
+                await websocket.send_text(f"\x1b[1;33m[Agent POV Mode: {agent.name}]\x1b[0m\r\n")
+                
+                if agent.agent_metadata and "socks_proxy_port" in agent.agent_metadata:
+                    socks_port = agent.agent_metadata["socks_proxy_port"]
+                    await websocket.send_text(f"\x1b[90mAgent SOCKS proxy available on: 127.0.0.1:{socks_port}\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[90mTo access agent terminal, SSH to agent via SOCKS proxy:\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[36m  ssh -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target\x1b[0m\r\n")
+                else:
+                    await websocket.send_text(f"\x1b[90mAgent offline - SOCKS proxy not available\x1b[0m\r\n")
+                
+                await websocket.send_text(f"\x1b[1;31m[Direct terminal relay not implemented - use SOCKS proxy]\x1b[0m\r\n")
+                await websocket.close(code=1000, reason="Use SOCKS proxy for agent access")
+                return
+        except (ValueError, Exception) as e:
+            await websocket.send_text(f"\x1b[1;31m[Error activating POV mode: {str(e)}]\x1b[0m\r\n")
+            # Fall back to C2 terminal
     
     # Create PTY
     master_fd, slave_fd = pty.openpty()

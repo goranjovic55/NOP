@@ -178,19 +178,25 @@ class AssetService:
         await self.db.commit()
         return result.rowcount
 
-    async def get_asset_stats(self) -> AssetStats:
+    async def get_asset_stats(self, agent_id: Optional[UUID] = None) -> AssetStats:
         # Total assets
         total_query = select(func.count(Asset.id))
+        if agent_id:
+            total_query = total_query.where(Asset.agent_id == agent_id)
         total_result = await self.db.execute(total_query)
         total_assets = total_result.scalar() or 0
 
         # Online assets
         online_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.ONLINE)
+        if agent_id:
+            online_query = online_query.where(Asset.agent_id == agent_id)
         online_result = await self.db.execute(online_query)
         online_assets = online_result.scalar() or 0
 
         # Offline assets
         offline_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.OFFLINE)
+        if agent_id:
+            offline_query = offline_query.where(Asset.agent_id == agent_id)
         offline_result = await self.db.execute(offline_query)
         offline_assets = offline_result.scalar() or 0
 

@@ -41,10 +41,14 @@ async def get_assets(
 
 
 @router.get("/stats", response_model=AssetStats)
-async def get_asset_stats(db: AsyncSession = Depends(get_db)):
-    """Get asset statistics"""
+async def get_asset_stats(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get asset statistics (supports agent POV)"""
+    agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
-    return await asset_service.get_asset_stats()
+    return await asset_service.get_asset_stats(agent_id=agent_pov)
 
 
 @router.get("/online", response_model=List[dict])

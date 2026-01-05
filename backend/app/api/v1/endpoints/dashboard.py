@@ -2,13 +2,14 @@
 Dashboard endpoints for metrics and recent activity
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.services.dashboard_service import DashboardService
 from app.schemas.dashboard import DashboardMetrics, RecentActivityResponse
 from app.core.security import get_current_user
+from app.core.pov_middleware import get_agent_pov
 from app.models.user import User
 
 router = APIRouter()
@@ -16,19 +17,23 @@ router = APIRouter()
 
 @router.get("/metrics", response_model=DashboardMetrics)
 async def get_dashboard_metrics(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get dashboard metrics (requires authentication)"""
+    """Get dashboard metrics (requires authentication, supports agent POV)"""
+    agent_pov = get_agent_pov(request)
     dashboard_service = DashboardService(db)
-    return await dashboard_service.get_metrics()
+    return await dashboard_service.get_metrics(agent_id=agent_pov)
 
 
 @router.get("/recent-activity", response_model=RecentActivityResponse)
 async def get_recent_activity(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get recent activity (discovered hosts, scans, exploits)"""
+    """Get recent activity (discovered hosts, scans, exploits, supports agent POV)"""
+    agent_pov = get_agent_pov(request)
     dashboard_service = DashboardService(db)
-    return await dashboard_service.get_recent_activity()
+    return await dashboard_service.get_recent_activity(agent_id=agent_pov)

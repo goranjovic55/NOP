@@ -118,8 +118,38 @@ async def get_traffic_flows():
     return {"flows": [], "total": 0}
 
 @router.get("/stats")
-async def get_traffic_stats():
-    """Get traffic statistics"""
+async def get_traffic_stats(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get traffic statistics (agent POV aware)"""
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Get agent's traffic data from metadata
+        from app.services.agent_service import AgentService
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and "traffic_stats" in agent.agent_metadata:
+            # Return cached agent traffic stats
+            stats = agent.agent_metadata["traffic_stats"]
+            stats["note"] = "Agent POV: Traffic data from agent's network"
+            stats["agent_id"] = str(agent_pov)
+            return stats
+        else:
+            # Return empty stats if no data available
+            return {
+                "total_packets": 0,
+                "total_bytes": 0,
+                "packets_per_second": 0,
+                "bytes_per_second": 0,
+                "protocols": {},
+                "top_talkers": [],
+                "traffic_history": [],
+                "connections": [],
+                "note": "Agent POV: No traffic data available (agent may not be connected)",
+                "agent_id": str(agent_pov)
+            }
+    
     return sniffer_service.get_stats()
 
 @router.post("/craft")
@@ -189,12 +219,46 @@ async def ping_host(request: PingRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/ping/advanced")
-async def advanced_ping(request: AdvancedPingRequest):
+async def advanced_ping(
+    request: AdvancedPingRequest,
+    req: Request = None,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Advanced ping with support for multiple protocols (ICMP, TCP, UDP, HTTP, DNS)
-    and optional route tracing
+    and optional route tracing (agent POV aware via SOCKS proxy)
     """
     try:
+        # Check for agent POV mode
+        agent_pov = None
+        if req:
+            agent_pov = get_agent_pov(req)
+        
+        if agent_pov:
+            # Get agent's SOCKS proxy port
+            from app.services.agent_service import AgentService
+            agent = await AgentService.get_agent(db, agent_pov)
+            if agent and agent.agent_metadata and "socks_proxy_port" in agent.agent_metadata:
+                proxy_port = agent.agent_metadata["socks_proxy_port"]
+                # Route through SOCKS proxy (agent executes the ping)
+                # For now, indicate this would use SOCKS proxy
+                return {
+                    "target": request.target,
+                    "protocol": request.protocol,
+                    "success": False,
+                    "note": f"Agent POV: Would route via SOCKS proxy on port {proxy_port} - agent executes ping",
+                    "agent_pov": str(agent_pov),
+                    "socks_port": proxy_port
+                }
+            else:
+                return {
+                    "target": request.target,
+                    "protocol": request.protocol,
+                    "success": False,
+                    "note": "Agent POV: Agent not connected or SOCKS proxy not available",
+                    "agent_pov": str(agent_pov)
+                }
+        
         # Run advanced ping with optional route tracing
         if request.include_route:
             # Use parallel ping which includes traceroute

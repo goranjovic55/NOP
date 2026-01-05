@@ -41,17 +41,21 @@ export interface ProtocolBreakdown {
 }
 
 export const dashboardService = {
-  getAssetStats: async (token: string): Promise<DashboardStats> => {
-    const response = await axios.get(`${API_URL}/assets/stats`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  getAssetStats: async (token: string, agentPOV?: string): Promise<DashboardStats> => {
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/assets/stats`, { headers });
     return response.data;
   },
 
-  getTrafficStats: async (token: string): Promise<TrafficStats> => {
-    const response = await axios.get(`${API_URL}/traffic/stats`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  getTrafficStats: async (token: string, agentPOV?: string): Promise<TrafficStats> => {
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/traffic/stats`, { headers });
     return response.data;
   },
 
