@@ -169,9 +169,11 @@ def main():
                     skill_suggestions = suggestions["suggestions"]
                     print("\n   📝 Skill Suggestions:")
                     for s in skill_suggestions:
-                        print(f"      - {s['action']}: {s['name']}")
-                        summary["skills"].append(f"{s['action']}: {s['name']}")
-                    print("\n   💡 Review suggestions below and manually create/update skills if needed")
+                        skill_name = s.get('name', 'unnamed')
+                        skill_title = s.get('title', skill_name)
+                        print(f"      - {skill_title}")
+                        summary["skills"].append(skill_title)
+                    print(f"\n   💡 {len(skill_suggestions)} skill(s) suggested - review and create manually if useful")
             except json.JSONDecodeError:
                 pass
     
