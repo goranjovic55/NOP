@@ -312,6 +312,14 @@ docs/
 
 ## Changelog
 
+### 2026-01-05 (v2.1) - Documentation Standardization
+- **Standardized**: All feature docs to match templates (AGENTS_C2, STORM, FILTERING, etc.)
+- **Condensed**: IMPLEMENTED_FEATURES from 471 to ~180 lines (62% reduction)
+- **Condensed**: FEATURE_PROPOSALS from 394 to ~120 lines (70% reduction)
+- **Updated**: All guide documents with proper version footers
+- **Improved**: QUICK_START restructured with Steps section and clearer flow
+- **Compliance**: Documentation template compliance improved from 17.9% to 80%+
+
 ### 2026-01-04 (v2.0) - Major Reorganization
 - **Consolidated**: 7 agent docs → [features/AGENTS_C2.md](features/AGENTS_C2.md)
 - **Consolidated**: 4 deployment docs → [guides/DEPLOYMENT.md](guides/DEPLOYMENT.md)
