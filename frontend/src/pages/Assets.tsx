@@ -138,7 +138,7 @@ const Assets: React.FC = () => {
       if (showLoading) setLoading(false);
       setTimeout(() => setIsRefreshing(false), 1000);
     }
-  }, [token, statusFilter]);
+  }, [token, statusFilter, activeAgent]);
 
   useEffect(() => {
     setOnScanComplete((ip, data) => {

@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y \
     tcptraceroute \
     dnsutils \
     git \
-    proxychains4 \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 

@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func, or_
+from sqlalchemy import select, update, delete, func, or_, cast
+from sqlalchemy.dialects.postgresql import INET
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 import uuid
@@ -122,7 +123,7 @@ class AssetService:
             query = select(Asset).where(Asset.id == asset_uuid)
         except ValueError:
             # If not a UUID, try to find by IP
-            query = select(Asset).where(Asset.ip_address == asset_id)
+            query = select(Asset).where(Asset.ip_address == cast(asset_id, INET))
 
         result = await self.db.execute(query)
         a = result.scalar_one_or_none()

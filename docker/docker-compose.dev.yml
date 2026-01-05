@@ -38,6 +38,7 @@ services:
       - redis
       - guacd
     volumes:
+      - ../backend/app:/app/app
       - ../volumes/evidence:/app/evidence
       - ../volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock

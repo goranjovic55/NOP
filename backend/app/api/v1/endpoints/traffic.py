@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import FileResponse
 from typing import List, Dict
 from app.services.SnifferService import sniffer_service
 from app.services.PingService import ping_service
 from app.schemas.traffic import StormConfig, PingRequest as AdvancedPingRequest
+from app.core.pov_middleware import get_agent_pov
+from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 from pydantic import BaseModel
 import asyncio
 import json
@@ -17,8 +21,32 @@ class PingRequest(BaseModel):
     host: str
 
 @router.get("/interfaces")
-async def get_interfaces():
-    """Get available network interfaces"""
+async def get_interfaces(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get available network interfaces (agent POV aware)"""
+    agent_pov = get_agent_pov(request)
+    
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[INTERFACES] POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
+    
+    # If viewing from agent POV, return agent's interfaces
+    if agent_pov:
+        from app.services.agent_service import AgentService
+        agent = await AgentService.get_agent(db, agent_pov)  # agent_pov is already a UUID
+        logger.info(f"[INTERFACES] Agent found: {agent.name if agent else None}, has metadata: {bool(agent and agent.agent_metadata)}")
+        if agent and agent.agent_metadata and "host_info" in agent.agent_metadata:
+            host_info = agent.agent_metadata["host_info"]
+            if "interfaces" in host_info:
+                logger.info(f"[INTERFACES] Returning {len(host_info['interfaces'])} agent interfaces")
+                return host_info["interfaces"]
+        logger.info("[INTERFACES] No agent interfaces found, returning C2 interfaces")
+    
+    # Default: return C2 server's interfaces
+    logger.info("[INTERFACES] No POV mode, returning C2 interfaces")
     return sniffer_service.get_interfaces()
 
 @router.websocket("/ws")

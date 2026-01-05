@@ -296,6 +296,13 @@ async def agent_websocket(
                     success = await AgentDataService.ingest_host_data(db, agent_id, host_info)
                     print(f"Agent {agent.name} host data: {success}")
                     
+                    # Store host_info in agent_metadata for POV interface access
+                    if host_info and agent:
+                        if not agent.agent_metadata:
+                            agent.agent_metadata = {}
+                        agent.agent_metadata["host_info"] = host_info
+                        await db.commit()
+                    
                 elif msg_type == "pong":
                     # Pong response
                     pass

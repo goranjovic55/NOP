@@ -3,7 +3,8 @@ Dashboard service for metrics and activity aggregation
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, cast
+from sqlalchemy.dialects.postgresql import INET
 from typing import List
 from datetime import datetime, timedelta
 
@@ -115,7 +116,7 @@ class DashboardService:
             # Try to find asset by IP for hostname
             hostname = None
             if ip_address != "N/A":
-                asset_query = select(Asset).where(Asset.ip_address == ip_address)
+                asset_query = select(Asset).where(Asset.ip_address == cast(ip_address, INET))
                 asset_result = await self.db.execute(asset_query)
                 asset = asset_result.scalar_one_or_none()
                 if asset:

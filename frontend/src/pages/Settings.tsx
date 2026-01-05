@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CyberPageTitle } from '../components/CyberUI';
+import { usePOV, getPOVHeaders } from '../context/POVContext';
 
 interface ScanSettings {
   profile_name: string;
@@ -100,23 +101,41 @@ interface AllSettings {
 }
 
 const Settings: React.FC = () => {
+  const { activeAgent, isAgentPOV } = usePOV();
   const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'system'>('scan');
   const [settings, setSettings] = useState<AllSettings | null>(null);
+  const [agentSettings, setAgentSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [interfaces, setInterfaces] = useState<Array<{ name: string; ip: string; status: string }>>([]);
 
   useEffect(() => {
-    fetchSettings();
-    fetchInterfaces();
-    const interval = setInterval(fetchInterfaces, 5000); // Poll interfaces every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
+    // Define fetchInterfaces inside useEffect to capture current activeAgent value
+    // This prevents stale closure issues with the polling interval
+    const fetchInterfacesWithAgent = async () => {
+      try {
+        const response = await axios.get('/api/v1/traffic/interfaces', {
+          headers: getPOVHeaders(activeAgent)
+        });
+        setInterfaces(response.data);
+      } catch (error) {
+        console.error('Error fetching interfaces:', error);
+      }
+    };
 
+    fetchSettings();
+    fetchInterfacesWithAgent();
+    const interval = setInterval(fetchInterfacesWithAgent, 5000);
+    return () => clearInterval(interval);
+  }, [isAgentPOV, activeAgent]);
+
+  // Keep external version for manual refresh if needed
   const fetchInterfaces = async () => {
     try {
-      const response = await axios.get('/api/v1/traffic/interfaces');
+      const response = await axios.get('/api/v1/traffic/interfaces', {
+        headers: getPOVHeaders(activeAgent)
+      });
       setInterfaces(response.data);
     } catch (error) {
       console.error('Error fetching interfaces:', error);
@@ -126,6 +145,8 @@ const Settings: React.FC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      
+      // Always fetch global settings as base
       const response = await axios.get('/api/v1/settings/');
       
       // Validate response structure
@@ -134,7 +155,32 @@ const Settings: React.FC = () => {
           response.data.discovery && 
           response.data.access && 
           response.data.system) {
-        setSettings(response.data);
+        
+        // If in agent POV mode, fetch and merge agent-specific settings
+        if (isAgentPOV && activeAgent) {
+          try {
+            const agentResponse = await axios.get('/api/v1/agent-settings/current/settings', {
+              headers: getPOVHeaders(activeAgent)
+            });
+            setAgentSettings(agentResponse.data);
+            
+            // Merge agent settings with global settings (agent settings take priority)
+            const mergedSettings = {
+              scan: { ...response.data.scan, ...(agentResponse.data.scan || {}) },
+              discovery: { ...response.data.discovery, ...(agentResponse.data.discovery || {}) },
+              access: { ...response.data.access, ...(agentResponse.data.access || {}) },
+              system: { ...response.data.system, ...(agentResponse.data.system || {}) }
+            };
+            setSettings(mergedSettings);
+          } catch (error) {
+            console.error('Error fetching agent settings:', error);
+            setAgentSettings(null);
+            setSettings(response.data);
+          }
+        } else {
+          setAgentSettings(null);
+          setSettings(response.data);
+        }
       } else {
         throw new Error('Invalid settings response structure');
       }
@@ -156,8 +202,25 @@ const Settings: React.FC = () => {
     
     try {
       setSaving(true);
-      await axios.put(`/api/v1/settings/${activeTab}`, settings[activeTab]);
-      showMessage('success', `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings saved successfully`);
+      
+      // If in agent POV mode, save agent-specific settings
+      if (isAgentPOV && activeAgent) {
+        // Merge current tab settings with agent settings
+        const updatedAgentSettings = {
+          ...agentSettings,
+          [activeTab]: settings[activeTab]
+        };
+        
+        await axios.put('/api/v1/agent-settings/current/settings', updatedAgentSettings, {
+          headers: getPOVHeaders(activeAgent)
+        });
+        setAgentSettings(updatedAgentSettings);
+        showMessage('success', `Agent "${activeAgent.name}" ${activeTab} settings saved`);
+      } else {
+        // Save global C2 settings
+        await axios.put(`/api/v1/settings/${activeTab}`, settings[activeTab]);
+        showMessage('success', `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings saved successfully`);
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
       showMessage('error', 'Failed to save settings');
@@ -183,14 +246,27 @@ const Settings: React.FC = () => {
   };
 
   const updateSetting = (key: string, value: string | number | boolean) => {
-    if (!settings) return;
-    setSettings({
-      ...settings,
-      [activeTab]: {
-        ...settings[activeTab],
-        [key]: value
+    if (settings) {
+      // Update the settings state (works for both C2 and agent POV)
+      setSettings({
+        ...settings,
+        [activeTab]: {
+          ...settings[activeTab],
+          [key]: value
+        }
+      });
+      
+      // Also update agent settings state if in POV mode
+      if (isAgentPOV && agentSettings) {
+        setAgentSettings({
+          ...agentSettings,
+          [activeTab]: {
+            ...(agentSettings[activeTab] || {}),
+            [key]: value
+          }
+        });
       }
-    });
+    }
   };
 
   if (loading) {
@@ -256,9 +332,18 @@ const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with POV indicator */}
       <div className="flex justify-between items-center">
-        <CyberPageTitle color="red">System Configuration</CyberPageTitle>
+        <div className="flex items-center space-x-4">
+          <CyberPageTitle color="red">
+            {isAgentPOV && activeAgent ? `Agent Settings: ${activeAgent.name}` : 'System Configuration'}
+          </CyberPageTitle>
+          {isAgentPOV && activeAgent && (
+            <div className="px-3 py-1 bg-purple-900/30 border border-purple-500 text-purple-400 text-xs uppercase tracking-wider">
+              Agent POV Mode
+            </div>
+          )}
+        </div>
         {message && (
           <div className={`px-4 py-2 border ${message.type === 'success' ? 'border-green-500 text-green-500' : 'border-cyber-red text-cyber-red'} bg-cyber-darker`}>
             {message.text}
@@ -286,8 +371,21 @@ const Settings: React.FC = () => {
 
       {/* Content */}
       <div className="dashboard-card p-6">
+        {isAgentPOV && activeAgent && (
+          <div className="mb-4 p-3 bg-purple-900/20 border border-purple-500/30 text-purple-300 text-sm">
+            <strong>Agent POV Mode:</strong> You are configuring settings for agent "{activeAgent.name}". 
+            These settings are stored separately and will be used by this agent.
+          </div>
+        )}
+        
         {activeTab === 'scan' && <ScanSettingsPanel settings={settings.scan} onChange={updateSetting} />}
-        {activeTab === 'discovery' && <DiscoverySettingsPanel settings={settings.discovery} onChange={updateSetting} interfaces={interfaces} />}
+        {activeTab === 'discovery' && (
+          <DiscoverySettingsPanel 
+            settings={settings.discovery} 
+            onChange={updateSetting} 
+            interfaces={interfaces} 
+          />
+        )}
         {activeTab === 'access' && <AccessSettingsPanel settings={settings.access} onChange={updateSetting} />}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
       </div>

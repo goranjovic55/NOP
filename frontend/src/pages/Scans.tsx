@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore, Vulnerability } from '../store/scanStore';
+import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 
 interface AssetListItemProps {
@@ -68,6 +69,7 @@ AssetListItem.displayName = 'AssetListItem';
 const Scans: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const navigate = useNavigate();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -83,11 +85,11 @@ const Scans: React.FC = () => {
   useEffect(() => {
     if (!token) return;
     setLoadingAssets(true);
-    assetService.getAssets(token)
+    assetService.getAssets(token, undefined, activeAgent?.id)
       .then((resp) => setAssets(resp))
       .catch((err) => console.error('Failed to load assets', err))
       .finally(() => setLoadingAssets(false));
-  }, [token]);
+  }, [token, activeAgent]);
 
   useEffect(() => {
     if (activeTab?.logs && logEndRef.current) {

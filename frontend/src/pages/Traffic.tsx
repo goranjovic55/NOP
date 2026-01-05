@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
+import { usePOV, getPOVHeaders } from '../context/POVContext';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
 import { CyberTabs } from '../components/CyberUI';
@@ -212,16 +213,31 @@ const Traffic: React.FC = () => {
   const packetListEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
   const { setIsPinging, setIsCapturing, setIsCrafting, setIsStorming } = useTrafficStore();
+  const { activeAgent } = usePOV();
 
   useEffect(() => {
+    const fetchInterfaces = async () => {
+      try {
+        const response = await fetch(`/api/v1/traffic/interfaces`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            ...getPOVHeaders(activeAgent)
+          }
+        });
+        const data = await response.json();
+        setInterfaces(data);
+      } catch (err) {
+        console.error('Failed to fetch interfaces:', err);
+      }
+    };
+
     fetchInterfaces();
     const interval = setInterval(fetchInterfaces, 1000); // Poll interfaces every second
     return () => {
       clearInterval(interval);
       if (wsRef.current) wsRef.current.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, activeAgent]);
 
   useEffect(() => {
     // Fetch online assets when ping or craft tab is active
@@ -262,22 +278,13 @@ const Traffic: React.FC = () => {
     }
   }, [interfaces, selectedIface]);
 
-  const fetchInterfaces = async () => {
-    try {
-      const response = await fetch(`/api/v1/traffic/interfaces`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setInterfaces(data);
-    } catch (err) {
-      console.error('Failed to fetch interfaces:', err);
-    }
-  };
-
   const fetchOnlineAssets = async () => {
     try {
       const response = await fetch(`/api/v1/assets/online`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          ...getPOVHeaders(activeAgent)
+        }
       });
       if (response.ok) {
         const data = await response.json();

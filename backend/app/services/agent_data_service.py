@@ -8,6 +8,8 @@ with proper agent_id tagging.
 from typing import List, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import cast, select
+from sqlalchemy.dialects.postgresql import INET
 from datetime import datetime
 from ipaddress import ip_address
 
@@ -46,11 +48,10 @@ class AgentDataService:
                     continue
                 
                 # Check if asset already exists
-                from sqlalchemy import select
                 from app.models.asset import Asset
                 
                 result = await db.execute(
-                    select(Asset).where(Asset.ip_address == ip)
+                    select(Asset).where(Asset.ip_address == cast(ip, INET))
                 )
                 asset = result.scalar_one_or_none()
                 

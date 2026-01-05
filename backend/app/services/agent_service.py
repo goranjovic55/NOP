@@ -135,6 +135,10 @@ class AgentService:
         # Convert capabilities dict to Python repr (True/False instead of true/false)
         capabilities_repr = repr(agent.capabilities)
         
+        # Get config from agent_metadata or use defaults
+        config = agent.agent_metadata or {}
+        config_repr = repr(config)
+        
         template = f'''#!/usr/bin/env python3
 """
 NOP Agent - {agent.name}
@@ -149,7 +153,7 @@ on the main NOP instance.
 Download URL: {{BASE_URL}}/api/v1/agents/download/{agent.download_token}
 
 INSTALLATION:
-  pip3 install websockets psutil scapy cryptography
+  pip3 install websockets psutil scapy cryptography netifaces
   
   OR run this agent with sudo (for scapy):
   sudo python3 agent.py
@@ -166,7 +170,8 @@ def check_and_install_deps():
         'websockets': 'websockets',
         'psutil': 'psutil', 
         'scapy': 'scapy',
-        'cryptography': 'cryptography'
+        'cryptography': 'cryptography',
+        'netifaces': 'netifaces'
     }}
     
     missing = []
@@ -195,6 +200,7 @@ import platform
 import socket
 import psutil
 import scapy.all as scapy
+import threading
 from datetime import datetime
 from typing import Dict, List, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -210,6 +216,7 @@ AUTH_TOKEN = "{agent.auth_token}"
 ENCRYPTION_KEY = "{agent.encryption_key}"
 SERVER_URL = "{server_url}"
 CAPABILITIES = {capabilities_repr}
+CONFIG = {config_repr}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -221,9 +228,11 @@ class NOPAgent:
         self.encryption_key = ENCRYPTION_KEY.encode()
         self.server_url = SERVER_URL
         self.capabilities = CAPABILITIES
+        self.config = CONFIG
         self.ws = None
         self.running = True
         self.cipher = self._init_cipher()
+        self.passive_hosts = []  # Track passively discovered hosts
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
@@ -353,12 +362,26 @@ class NOPAgent:
     # ASSET MODULE - Network asset discovery and monitoring
     # ============================================================================
     async def asset_module(self):
-        """Asset Discovery Module - Discovers devices on network"""
+        """Asset Discovery Module - Discovers network hosts via ARP and passive sniffing"""
         print(f"[{{datetime.now()}}] Asset module started")
+        
+        # Start passive discovery if enabled
+        passive_enabled = self.config.get('passive_discovery', False)
+        if passive_enabled:
+            asyncio.create_task(self.passive_discovery())
+            print(f"[{{datetime.now()}}] Passive discovery enabled")
+        
         while self.running:
             try:
-                await asyncio.sleep(300)  # Run every 5 minutes
+                await asyncio.sleep(300)  # Run active scan every 5 minutes
                 assets = await self.discover_assets()
+                
+                # Include passively discovered hosts
+                if passive_enabled and self.passive_hosts:
+                    print(f"[{{datetime.now()}}] Including {{len(self.passive_hosts)}} passively discovered hosts")
+                    assets.extend(self.passive_hosts)
+                    self.passive_hosts = []  # Clear after sending
+                
                 await self.relay_to_c2({{
                     "type": "asset_data",
                     "agent_id": self.agent_id,
@@ -367,19 +390,129 @@ class NOPAgent:
                 }})
             except Exception as e:
                 print(f"[{{datetime.now()}}] Asset module error: {{e}}")
+    
+    async def passive_discovery(self):
+        """Passive network discovery via packet sniffing"""
+        try:
+            import netifaces
+            
+            # Get interface to sniff on
+            sniff_iface = self.config.get('sniff_interface')
+            if not sniff_iface:
+                # Auto-select best non-loopback interface
+                for iface in netifaces.interfaces():
+                    if iface != 'lo' and iface.startswith('eth'):
+                        sniff_iface = iface
+                        break
+            
+            if not sniff_iface:
+                print(f"[{{datetime.now()}}] No suitable interface for passive discovery")
+                return
+            
+            print(f"[{{datetime.now()}}] Starting passive discovery on {{sniff_iface}}")
+            
+            def packet_handler(packet):
+                """Process captured packets"""
+                try:
+                    if packet.haslayer(scapy.IP):
+                        src_ip = packet[scapy.IP].src
+                        
+                        # Extract MAC if available
+                        src_mac = None
+                        if packet.haslayer(scapy.Ether):
+                            src_mac = packet[scapy.Ether].src
+                        
+                        # Simple dedup by IP
+                        existing_ips = [h.get('ip') for h in self.passive_hosts]
+                        if src_ip not in existing_ips:
+                            host_info = {{
+                                "ip": src_ip,
+                                "mac": src_mac,
+                                "status": "online",
+                                "discovered_at": datetime.utcnow().isoformat(),
+                                "method": "passive"
+                            }}
+                            self.passive_hosts.append(host_info)
+                except Exception as e:
+                    pass  # Silently ignore packet processing errors
+            
+            # Sniff packets in separate thread (blocking call)
+            def start_sniffer():
+                try:
+                    scapy.sniff(iface=sniff_iface, prn=packet_handler, store=0)
+                except Exception as e:
+                    print(f"[{{datetime.now()}}] Sniffer thread error: {{e}}")
+            
+            sniffer_thread = threading.Thread(target=start_sniffer, daemon=True)
+            sniffer_thread.start()
+            print(f"[{{datetime.now()}}] Passive discovery thread started")
+            
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Passive discovery error: {{e}}")
                 
     async def discover_assets(self) -> List[Dict]:
         """Discover network assets via ARP scan"""
         try:
-            # Get local network
-            local_ip = socket.gethostbyname(socket.gethostname())
-            network = '.'.join(local_ip.split('.')[:3]) + '.0/24'
+            # Check if custom scan subnet is configured
+            scan_subnet = self.config.get('scan_subnet')
+            
+            if not scan_subnet:
+                # Auto-detect network from interfaces
+                # Get all interfaces and find the best one for scanning
+                # Prefer interfaces that are NOT on common docker/internal networks
+                import netifaces
+                from ipaddress import IPv4Network, IPv4Interface
+                
+                best_interface = None
+                best_ip = None
+                best_netmask = None
+                
+                for iface in netifaces.interfaces():
+                    if iface == 'lo':
+                        continue
+                    addrs = netifaces.ifaddresses(iface)
+                    if netifaces.AF_INET in addrs:
+                        for addr in addrs[netifaces.AF_INET]:
+                            ip = addr.get('addr', '')
+                            netmask = addr.get('netmask', '255.255.255.0')
+                            if ip and not ip.startswith('127.'):
+                                # Prefer non-172.28.x.x networks (docker internal)
+                                if not ip.startswith('172.28.'):
+                                    best_interface = iface
+                                    best_ip = ip
+                                    best_netmask = netmask
+                                    break
+                                elif best_ip is None:
+                                    best_interface = iface
+                                    best_ip = ip
+                                    best_netmask = netmask
+                
+                if not best_ip:
+                    # Fallback to original method
+                    best_ip = socket.gethostbyname(socket.gethostname())
+                    best_netmask = '255.255.255.0'
+                
+                # Calculate network using actual netmask from interface
+                try:
+                    iface_obj = IPv4Interface(f"{{best_ip}}/{{best_netmask}}")
+                    network = str(iface_obj.network)
+                except:
+                    network = '.'.join(best_ip.split('.')[:3]) + '.0/24'
+            else:
+                # Use configured subnet
+                network = scan_subnet
+                best_interface = 'custom'
+            
+            print(f"[{{datetime.now()}}] Scanning network: {{network}} (interface: {{best_interface or 'default'}})")
+            
+            # Get timeout from config (default 2 seconds for larger networks)
+            scan_timeout = self.config.get('scan_timeout', 2)
             
             # ARP scan
             arp_request = scapy.ARP(pdst=network)
             broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
             arp_request_broadcast = broadcast/arp_request
-            answered_list = scapy.srp(arp_request_broadcast, timeout=1, verbose=False)[0]
+            answered_list = scapy.srp(arp_request_broadcast, timeout=scan_timeout, verbose=False)[0]
             
             assets = []
             for element in answered_list:
@@ -391,7 +524,7 @@ class NOPAgent:
                 }}
                 assets.append(asset)
                 
-            print(f"[{{datetime.now()}}] Discovered {{len(assets)}} assets")
+            print(f"[{{datetime.now()}}] Discovered {{len(assets)}} assets via ARP")
             return assets
         except Exception as e:
             print(f"[{{datetime.now()}}] Asset discovery error: {{e}}")
@@ -454,6 +587,22 @@ class NOPAgent:
     async def collect_host_info(self) -> Dict:
         """Collect host system information"""
         try:
+            # Collect network interfaces
+            interfaces = []
+            try:
+                import netifaces
+                for iface in netifaces.interfaces():
+                    addrs = netifaces.ifaddresses(iface)
+                    if netifaces.AF_INET in addrs:
+                        for addr in addrs[netifaces.AF_INET]:
+                            interfaces.append({{
+                                "name": iface,
+                                "ip": addr.get('addr', ''),
+                                "status": "up"
+                            }})
+            except Exception as e:
+                print(f"[{{datetime.now()}}] Interface collection error: {{e}}")
+            
             return {{
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
@@ -464,7 +613,8 @@ class NOPAgent:
                 "cpu_percent": psutil.cpu_percent(interval=1),
                 "memory_percent": psutil.virtual_memory().percent,
                 "disk_percent": psutil.disk_usage('/').percent,
-                "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat()
+                "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat(),
+                "interfaces": interfaces
             }}
         except Exception as e:
             print(f"[{{datetime.now()}}] Host info collection error: {{e}}")
