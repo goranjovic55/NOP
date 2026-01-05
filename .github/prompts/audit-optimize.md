@@ -6,52 +6,243 @@ Audit, organize, and optimize any project component (documentation, skills, code
 
 ---
 
+## Quick Reference
+
+**One-liner invocations by component:**
+```bash
+# Documentation
+"Audit and optimize documentation in docs/"
+
+# Skills  
+"Audit and optimize skills in .github/skills/"
+
+# Instructions
+"Audit and optimize .github/copilot-instructions.md"
+
+# Knowledge
+"Audit and optimize project_knowledge.json"
+
+# Prompts
+"Audit and optimize workflow prompts in .github/prompts/"
+
+# AKIS Framework (all components)
+"Audit and optimize AKIS framework"
+```
+
+**Process:** AUDIT → PLAN → MERGE & CONSOLIDATE → STANDARDIZE → INDEX → VERIFY → DOCUMENT → COMPLETE
+
+---
+
+## Component Configuration
+
+**Set these variables based on your target component:**
+
+### Documentation
+```bash
+TARGET_DIR="docs"
+FILE_PATTERN="*.md"
+TEMPLATE="feature-doc.md"  # or guide-doc.md
+INDEX_FILE="docs/INDEX.md"
+```
+
+### Skills
+```bash
+TARGET_DIR=".github/skills"
+FILE_PATTERN="*.md"
+TEMPLATE="skill.md"
+INDEX_FILE=".github/skills/INDEX.md"
+```
+
+### Instructions
+```bash
+TARGET_FILE=".github/copilot-instructions.md"
+MAX_LINES=150
+# No template - keep terse
+```
+
+### Knowledge
+```bash
+TARGET_FILE="project_knowledge.json"
+FORMAT="JSONL"
+# Line 1 = map
+```
+
+### Prompts
+```bash
+TARGET_DIR=".github/prompts"
+FILE_PATTERN="*.md"
+TEMPLATE="workflow-prompt.md"
+INDEX_FILE=".github/prompts/README.md"
+```
+
+### Code
+```bash
+TARGET_DIR="backend/app"  # or frontend/src
+FILE_PATTERN="*.py"  # or *.ts, *.tsx
+# Component-specific patterns
+```
+
+---
+
+## Template Reference Matrix
+
+| Component | Template | Required Sections | Max Length |
+|-----------|----------|-------------------|------------|
+| Feature Doc | `feature-doc.md` | Features, Quick Start, Usage, Config, Troubleshooting, Related Docs | ~300 lines |
+| Guide Doc | `guide-doc.md` | Prerequisites, Quick Start, Steps, Troubleshooting, Related Resources | ~400 lines |
+| Skill | `skill.md` | When to Use, Avoid, Overview, Examples | <100 lines |
+| Workflow Prompt | `workflow-prompt.md` | Phases, Success Criteria, Patterns, Anti-Patterns, Example, Integration | 300-600 lines |
+| Instructions | None | Terse guidance only | <150 lines |
+| Knowledge | None | JSONL format, line 1 = map | No limit |
+
+---
+
 ## Phases
 
-### 1. AUDIT - Document Discovery & Analysis
+### 1. AUDIT - Component Discovery & Analysis
 
-**Objective:** Inventory all documentation and assess current state
+**Objective:** Inventory target component and assess current state
 
-**Steps:**
-1. Count and list all markdown files:
-   ```bash
-   find docs -type f -name "*.md" | wc -l
-   find docs -type f -name "*.md" | sort
-   ```
+**Step 1: Identify Component Type**
 
-2. Create audit script to check template compliance:
-   ```python
-   # Script checks for required sections in each document type
-   # Feature docs: Features, Quick Start, Usage, Related Documentation
-   # Guide docs: Prerequisites, Steps, Troubleshooting, Related Resources
-   # Workflow logs: Date, Summary, Changes, Decisions
-   ```
+Determine what you're auditing:
+- [ ] Documentation (docs/)
+- [ ] Skills (.github/skills/)
+- [ ] Instructions (.github/copilot-instructions.md)
+- [ ] Knowledge (project_knowledge.json)
+- [ ] Prompts (.github/prompts/)
+- [ ] Code (backend/, frontend/)
+- [ ] AKIS Framework (multiple components)
 
-3. Analyze current organization:
-   - Check thematic directory structure (features/, guides/, technical/, etc.)
-   - Identify duplicate content across files
-   - Find verbose or redundant sections
-   - Note missing INDEX or navigation
+**Step 2: Run Component-Specific Audit**
 
-4. **Identify gaps from workflow logs** (important for completeness):
-   ```bash
-   # Review recent workflow logs to find undocumented work
-   ls -t log/workflow/*.md | head -20
-   
-   # Look for patterns indicating missing documentation:
-   # - Features implemented but not documented
-   # - Skills used repeatedly but not captured
-   # - Code patterns that should be standardized
-   # - Knowledge entities mentioned but not tracked
-   ```
-   
-   **What to look for in logs:**
-   - **Missing docs**: Features/changes implemented without documentation
-   - **Missing skills**: Recurring patterns (3+ sessions) without skill files
-   - **Missing knowledge**: Entities/relations referenced but not in project_knowledge.json
-   - **Missing instructions**: Repeated decisions that should be codified
+#### For Documentation:
+```bash
+find ${TARGET_DIR:-docs} -type f -name "*.md" | wc -l
+find ${TARGET_DIR:-docs} -type f -name "*.md" | sort
+python /tmp/doc_audit.py  # Check template compliance
+```
 
-5. Generate compliance report:
+#### For Skills:
+```bash
+find .github/skills -name "*.md" -not -name "INDEX.md" | wc -l
+
+# Check template compliance (4 required sections)
+for skill in .github/skills/*.md; do
+  [ "$skill" = ".github/skills/INDEX.md" ] && continue
+  echo "Checking $skill..."
+  grep -q "## When to Use" "$skill" || echo "  ❌ Missing: When to Use"
+  grep -q "## Avoid" "$skill" || echo "  ❌ Missing: Avoid"
+  grep -q "## Overview" "$skill" || echo "  ❌ Missing: Overview"
+  grep -q "## Examples" "$skill" || echo "  ❌ Missing: Examples"
+  wc -l "$skill" | awk '$1 > 100 {print "  ⚠️  Too long: " $1 " lines (target <100)"}'
+done
+```
+
+#### For Instructions:
+```bash
+wc -l .github/copilot-instructions.md
+# Target: <150 lines
+[ $(wc -l < .github/copilot-instructions.md) -gt 150 ] && \
+  echo "⚠️ Instructions too long (>150 lines)"
+```
+
+#### For Knowledge:
+```bash
+wc -l project_knowledge.json
+# Validate line 1 is map
+head -1 project_knowledge.json | python3 -c "import sys, json; json.loads(sys.stdin.read())" && \
+  echo "✅ Line 1 is valid map" || echo "❌ Line 1 is not valid JSON"
+# Validate all lines
+python3 -c "import json; [json.loads(line) for line in open('project_knowledge.json')]" && \
+  echo "✅ All lines valid JSONL" || echo "❌ Invalid JSONL found"
+```
+
+#### For Prompts:
+```bash
+find .github/prompts -name "*.md" -not -name "README.md" | wc -l
+
+# Check template compliance
+for prompt in .github/prompts/*.md; do
+  [ "$prompt" = ".github/prompts/README.md" ] && continue
+  echo "Checking $prompt..."
+  grep -q "## Phases" "$prompt" || echo "  ❌ Missing: Phases"
+  grep -q "## Success Criteria" "$prompt" || echo "  ❌ Missing: Success Criteria"
+  grep -q "## Anti-Patterns" "$prompt" || echo "  ❌ Missing: Anti-Patterns"
+  grep -q "## Example Session" "$prompt" || echo "  ❌ Missing: Example Session"
+done
+```
+
+#### For Code:
+```bash
+# Find duplicate function names
+find ${TARGET_DIR:-backend} -name "*.py" -exec grep -h "^def " {} \; | \
+  cut -d"(" -f1 | sort | uniq -c | sort -rn | awk '$1 > 1'
+
+# Find long files (>500 lines)
+find ${TARGET_DIR:-backend} -name "*.py" -exec wc -l {} \; | \
+  awk '$1 > 500 {print $0}' | sort -rn
+```
+
+**Step 3: Analyze Current Organization**
+**Step 3: Analyze Current Organization**
+- Check directory structure matches component type
+- Identify duplicate content across files
+- Find verbose or redundant sections
+- Note missing INDEX or navigation
+- Check cross-references and links
+
+**Step 4: Identify Gaps from Workflow Logs** (critical for completeness)
+
+#### Documentation Gaps:
+```bash
+# Find features in logs but not in docs/features/
+grep -rh "Implemented\|Created.*feature\|Added.*feature" log/workflow/*.md | \
+  grep -v "^#" | sort | uniq > /tmp/implemented_features.txt
+ls docs/features/*.md 2>/dev/null | xargs -n1 basename | sed 's/\.md//' | \
+  sort > /tmp/existing_features.txt
+comm -23 /tmp/implemented_features.txt /tmp/existing_features.txt | head -10
+```
+
+#### Skill Gaps:
+```bash
+# Find patterns used 3+ times but no skill file
+grep -rh "pattern\|technique\|approach" log/workflow/*.md | \
+  grep -v "^#" | tr '[:upper:]' '[:lower:]' | \
+  sort | uniq -c | sort -rn | awk '$1 >= 3 {print $1, $2, $3, $4}'
+  
+# Compare with existing skills
+echo "Existing skills:"
+ls .github/skills/*.md 2>/dev/null | xargs -n1 basename | sed 's/\.md//'
+```
+
+#### Instruction Gaps:
+```bash
+# Find repeated decisions (3+ sessions)
+grep -rh "always\|never\|prefer\|avoid\|must\|should" log/workflow/*.md | \
+  grep -v "^#" | sort | uniq -c | sort -rn | awk '$1 >= 3 {print}'
+
+# Check if already in instructions
+grep -i "always\|never\|prefer\|avoid" .github/copilot-instructions.md
+```
+
+#### Knowledge Gaps:
+```bash
+# Find entities mentioned 5+ times but not tracked
+grep -rh "Frontend\.\|Backend\.\|Docker\.\|Agent\." log/workflow/*.md | \
+  grep -v "^#" | sort | uniq -c | sort -rn | awk '$1 >= 5 {print}'
+  
+# Check against project_knowledge.json
+grep '"name":' project_knowledge.json | cut -d'"' -f4 | sort
+```
+
+**What to look for in logs:**
+- **Missing docs**: Features/changes implemented without documentation
+- **Missing skills**: Recurring patterns (3+ sessions) without skill files
+- **Missing knowledge**: Entities/relations referenced but not tracked  
+- **Missing instructions**: Repeated decisions that should be codified
+
+**Step 5: Generate Compliance Report**
    ```bash
    python /tmp/doc_audit.py
    ```
@@ -411,19 +602,57 @@ grep -l "Document Version" docs/**/*.md
 
 ## Success Criteria
 
+### Universal (All Components):
 ✅ All components inventoried and categorized by theme
 ✅ **Workflow logs reviewed for gaps** (missing docs/skills/knowledge/instructions)
 ✅ **Gaps identified and filled** from recent sessions
 ✅ **Duplicate/redundant content identified and merged**
 ✅ **Old versions archived with datestamps**
-✅ Template compliance >80% for core components
-✅ Comprehensive INDEX/map with navigation and summaries
-✅ Content reduced by 60-70% while maintaining clarity
-✅ All documents have version footers (vX.Y | YYYY-MM-DD | Status)
 ✅ **No broken internal links after merging**
 ✅ **Cross-references updated to canonical sources**
-✅ Consistent formatting (bullets, tables, code blocks)
+✅ Consistent formatting throughout
+
+### Component-Specific Validation:
+
+**For Documentation:**
+✅ Template compliance >80% for core docs
+✅ Comprehensive INDEX.md with navigation and summaries
+✅ Content reduced by 60-70% while maintaining clarity
+✅ All documents have version footers (vX.Y | YYYY-MM-DD | Status)
 ✅ Quick Start sections for practical value
+
+**For Skills:**
+✅ All skills follow `skill.md` template (4 required sections: When to Use, Avoid, Overview, Examples)
+✅ Each skill <100 lines
+✅ Patterns from 3+ sessions captured as skills
+✅ INDEX.md categorizes all skills by type
+✅ No overlapping skills (>50% content overlap)
+
+**For Instructions:**
+✅ Length <150 lines total
+✅ No redundant guidance (consolidated or removed)
+✅ Repeated decisions (3+ sessions) codified
+✅ Skills referenced instead of duplicating patterns
+✅ Clear, actionable guidance only
+
+**For Knowledge:**
+✅ Line 1 is valid JSON map
+✅ All lines valid JSONL format
+✅ Entities from 5+ sessions tracked
+✅ Relations between entities defined
+✅ Stale entities (<20 sessions) reviewed/archived
+
+**For Prompts:**
+✅ All prompts follow `workflow-prompt.md` template
+✅ Required sections present (Phases, Success Criteria, Anti-Patterns, Example, Integration)
+✅ README.md updated with new prompts
+✅ Each prompt 300-600 lines (comprehensive but not verbose)
+
+**For Code:**
+✅ No duplicate functions across modules
+✅ All files <500 lines
+✅ Type hints present (Python/TypeScript)
+✅ Consistent patterns across codebase
 
 ---
 
