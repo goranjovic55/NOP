@@ -43,18 +43,11 @@ Execute: `python .github/scripts/session_end.py`
 - Generate codemap → Update project_knowledge.json
 - Suggest skills → Propose new/update/remove (show to user, wait approval)
 - Increment session counter → Check if maintenance due (every 10 sessions)
-- Create workflow log → AUTO-FILLED from git changes and session data
-  * Log named: `YYYY-MM-DD_HHMMSS_<task-name>.md` (task from branch name)
-  * Auto-fills: Summary, Changes, Skills, timestamp
-  * Agent should review and enhance with: Decisions, Gotchas, Future work
+- Create workflow log → AUTO-FILLED (`YYYY-MM-DD_HHMMSS_<task>.md`)
+  * Auto: Summary, Changes, Skills from git/session
+  * Manual: Review + enhance with Decisions, Gotchas, Future work
 - Commit all changes
 **Output:** Session summary + skill suggestions + workflow log path
-
-**IMPORTANT:** Workflow logs are auto-generated but need manual enhancement:
-- Add specific technical decisions and rationale
-- Document gotchas or issues encountered  
-- Note future work or improvements needed
-- Provide context for next session
 
 ---
 
