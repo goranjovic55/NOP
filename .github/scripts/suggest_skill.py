@@ -50,29 +50,57 @@ def get_recent_commits(count: int = 5) -> List[Dict[str, str]]:
 
 
 def get_recent_workflow_log() -> Dict[str, Any]:
-    """Get the most recent workflow log."""
+    """Get the most recent workflow log by modification time."""
     log_dir = Path('log/workflow')
     if not log_dir.exists():
         return {}
     
-    log_files = sorted(log_dir.glob('*.md'), reverse=True)
+    # Sort by modification time, most recent first
+    log_files = sorted(log_dir.glob('*.md'), key=lambda p: p.stat().st_mtime, reverse=True)
     if not log_files:
         return {}
     
     latest = log_files[0]
     content = latest.read_text()
     
-    # Extract sections
-    summary_match = re.search(r'## Summary\n\n(.+?)(?=\n##)', content, re.DOTALL)
-    changes_match = re.search(r'## Changes\n\n(.+?)(?=\n##)', content, re.DOTALL)
-    decisions_match = re.search(r'## Decisions\n\n(.+?)(?=\n##)', content, re.DOTALL)
+    # Extract all sections - handle any order and varying whitespace
+    def extract_section(section_name: str) -> str:
+        # Match section until next ## or end of file, flexible whitespace
+        pattern = rf'## {section_name}\s*\n(.+?)(?=\n## |\Z)'
+        match = re.search(pattern, content, re.DOTALL)
+        return match.group(1).strip() if match else ''
     
     return {
         'file': latest.name,
-        'summary': summary_match.group(1).strip() if summary_match else '',
-        'changes': changes_match.group(1).strip() if changes_match else '',
-        'decisions': decisions_match.group(1).strip() if decisions_match else ''
+        'content': content,
+        'summary': extract_section('Summary'),
+        'changes': extract_section('Changes'),
+        'decisions': extract_section('Decisions'),
+        'notes': extract_section('Notes'),
+        'updates': extract_section('Updates')
     }
+
+
+def get_multiple_workflow_logs(count: int = 5) -> List[Dict[str, Any]]:
+    """Get multiple workflow logs for pattern analysis."""
+    log_dir = Path('log/workflow')
+    if not log_dir.exists():
+        return []
+    
+    log_files = sorted(log_dir.glob('*.md'), reverse=True)[:count]
+    logs = []
+    
+    for log_file in log_files:
+        content = log_file.read_text()
+        notes_match = re.search(r'## Notes\n\n(.+?)(?=\n##|\Z)', content, re.DOTALL)
+        
+        logs.append({
+            'file': log_file.name,
+            'content': content,
+            'notes': notes_match.group(1).strip() if notes_match else ''
+        })
+    
+    return logs
 
 
 def get_changed_files(commits: int = 5) -> List[str]:
@@ -137,6 +165,189 @@ def extract_technologies(diff: str, files: List[str]) -> Set[str]:
         tech.add('sqlalchemy-orm')
     
     return tech
+
+
+def extract_problem_solution_patterns(workflow: Dict, commits: List[Dict]) -> List[Dict[str, Any]]:
+    """Extract problem-solution patterns from workflow logs and commits."""
+    patterns = []
+    
+    notes = workflow.get('notes', '')
+    decisions = workflow.get('decisions', '')
+    content = workflow.get('content', '')
+    
+    # Pattern: Gotchas section with solutions
+    if 'Gotchas' in notes:
+        gotchas_section = notes.split('Gotchas')[1].split('Future')[0] if 'Future' in notes else notes.split('Gotchas')[1]
+        
+        # SQLAlchemy JSON field issue
+        if 'flag_modified' in gotchas_section or 'flag_modified' in content:
+            patterns.append({
+                'name': 'troubleshoot-sqlalchemy-json-persistence',
+                'title': 'Troubleshooting SQLAlchemy JSON Field Persistence',
+                'type': 'troubleshooting',
+                'problem': 'JSON column modifications not persisting to database after commit',
+                'symptoms': [
+                    'Changes to dict/list in JSON field disappear after refresh',
+                    'commit() called but database shows old values',
+                    'In-memory object has changes but DB doesnt'
+                ],
+                'root_cause': 'SQLAlchemy doesnt track in-place modifications to mutable objects (dict, list) in JSON columns',
+                'solution_steps': [
+                    '1. Verify: Check if youre modifying dict in-place (obj.json_field["key"] = val)',
+                    '2. Add: from sqlalchemy.orm.attributes import flag_modified',
+                    '3. Call: flag_modified(obj, "field_name") after modification',
+                    '4. Commit: await db.commit() will now persist changes'
+                ],
+                'verification': 'Query database directly or refresh object - changes should persist',
+                'avoid': [
+                    {'wrong': 'Replacing entire dict to trigger change', 'right': 'Use flag_modified()'},
+                    {'wrong': 'Manual JSON serialization', 'right': 'Let SQLAlchemy handle it'},
+                    {'wrong': 'Assuming SQLAlchemy tracks all changes', 'right': 'Explicitly flag mutable changes'}
+                ],
+                'confidence': 'high',
+                'evidence': ['Documented in workflow gotchas', 'flag_modified in code changes'],
+                'portable': True,
+                'applies_to': ['SQLAlchemy', 'PostgreSQL JSONB', 'MySQL JSON', 'any ORM with JSON columns']
+            })
+        
+        # Docker network conflict
+        if 'subnet' in gotchas_section.lower() or 'network' in gotchas_section.lower():
+            patterns.append({
+                'name': 'troubleshoot-docker-network-conflicts',
+                'title': 'Troubleshooting Docker Network Subnet Conflicts',
+                'type': 'troubleshooting',
+                'problem': 'Docker compose fails with "network already exists" or subnet conflicts',
+                'symptoms': [
+                    'Error: "network with name X already exists"',
+                    'Services cant communicate across environments',
+                    'IP address conflicts between containers',
+                    'docker-compose up fails with network errors'
+                ],
+                'root_cause': 'Multiple docker-compose files using same network name or overlapping subnet ranges',
+                'solution_steps': [
+                    '1. Diagnose: docker network ls - check existing networks',
+                    '2. Inspect: docker network inspect <name> - check subnet ranges',
+                    '3. Identify: Find overlapping subnets (e.g., both using 172.28.0.0/16)',
+                    '4. Fix: Change dev/test subnets to unique ranges (172.29, 172.30, etc)',
+                    '5. Clean: docker-compose down && docker network prune',
+                    '6. Rebuild: docker-compose up with new subnet config'
+                ],
+                'verification': 'docker network ls shows unique subnets, docker-compose up succeeds',
+                'avoid': [
+                    {'wrong': 'Using same subnet for all environments', 'right': 'Plan subnet allocation (dev=.29, prod=.28)'},
+                    {'wrong': 'Ignoring network errors', 'right': 'Check existing networks first'},
+                    {'wrong': 'Deleting networks manually', 'right': 'Use docker-compose down properly'}
+                ],
+                'confidence': 'high',
+                'evidence': ['Network conflict mentioned in gotchas', 'docker-compose changes'],
+                'portable': True,
+                'applies_to': ['Docker Compose', 'multi-environment setups', 'microservices', 'dev containers']
+            })
+    
+    # Pattern: Syntax errors from multi-replace operations
+    if 'syntax' in content.lower() and 'duplicate' in content.lower():
+        patterns.append({
+            'name': 'troubleshoot-syntax-errors-after-refactor',
+            'title': 'Troubleshooting Syntax Errors After Bulk Edits',
+            'type': 'troubleshooting',
+            'problem': 'Syntax errors appear after multi-file or multi-replace operations',
+            'symptoms': [
+                'SyntaxError: unmatched )',
+                'ImportError: cannot import module',
+                'Duplicate function parameters or statements',
+                'Code worked before bulk edit, now crashes on startup'
+            ],
+            'root_cause': 'Multi-replace operations can create duplicates or mismatched brackets when context overlaps',
+            'solution_steps': [
+                '1. Check logs: Look for exact error line number',
+                '2. Inspect file: Read around error line for duplicates or extra brackets',
+                '3. Compare: git diff to see what actually changed',
+                '4. Look for: Duplicate function signatures, extra closing brackets, misplaced code',
+                '5. Fix: Remove duplicates, balance brackets',
+                '6. Verify: Run syntax checker or try importing module'
+            ],
+            'verification': 'Code runs without SyntaxError, imports succeed, no duplicate definitions',
+            'avoid': [
+                {'wrong': 'Replacing without enough context', 'right': 'Include 3-5 lines before/after'},
+                {'wrong': 'Multi-replace on overlapping code', 'right': 'Single targeted edits'},
+                {'wrong': 'No syntax check after edit', 'right': 'Always verify compilation'}
+            ],
+            'confidence': 'medium',
+            'evidence': ['Syntax error fix in commits or workflow'],
+            'portable': True,
+            'applies_to': ['Any language', 'refactoring', 'automated code edits', 'find-replace operations']
+        })
+    
+    # Pattern: Dev container rebuild vs file copying
+    if 'rebuild' in decisions.lower() or 'dev container' in content.lower():
+        patterns.append({
+            'name': 'decide-dev-rebuild-vs-hotreload',
+            'title': 'Deciding: Dev Container Rebuild vs Hot-Reload',
+            'type': 'decision-making',
+            'problem': 'When to rebuild dev containers from source vs copying files for quick iteration',
+            'decision_factors': [
+                'Changed dependencies (requirements.txt, package.json) → REBUILD',
+                'Changed Dockerfile (system packages, ENV vars) → REBUILD',
+                'Changed source code only (.py, .ts files) → HOT-RELOAD',
+                'Changed config files (docker-compose) → REBUILD',
+                'Testing quick fix → HOT-RELOAD, then rebuild if it works'
+            ],
+            'rebuild_approach': [
+                '1. Stop containers: docker-compose down',
+                '2. Rebuild: docker-compose build <service>',
+                '3. Start: docker-compose up -d',
+                '4. Verify: Check logs for clean startup'
+            ],
+            'hotreload_approach': [
+                '1. Copy file: docker cp file.py container:/app/path/',
+                '2. Restart service: docker exec container supervisorctl restart app',
+                '3. Test changes',
+                '4. If works: Update source and rebuild properly'
+            ],
+            'tradeoffs': {
+                'rebuild': 'Slow (minutes) but guaranteed correct environment',
+                'hotreload': 'Fast (seconds) but changes lost on container restart'
+            },
+            'confidence': 'high',
+            'evidence': ['Dev container rebuild discussed in workflow'],
+            'portable': True,
+            'applies_to': ['Docker development', 'dev containers', 'microservices', 'any containerized dev env']
+        })
+    
+    # Pattern: Missing dependencies in container
+    if 'proxychains' in content or ('installed' in content.lower() and 'dockerfile' in content.lower()):
+        patterns.append({
+            'name': 'troubleshoot-missing-container-dependencies',
+            'title': 'Troubleshooting Missing Dependencies in Containers',
+            'type': 'troubleshooting',
+            'problem': 'Command not found or module missing inside running container',
+            'symptoms': [
+                'bash: command not found',
+                'ModuleNotFoundError or ImportError',
+                'which <command> returns nothing',
+                'Code works locally but fails in container'
+            ],
+            'root_cause': 'Dependency not installed in Dockerfile, only available on host system',
+            'solution_steps': [
+                '1. Verify: docker exec <container> which <command> - confirm missing',
+                '2. Quick test: docker exec <container> apt-get install -y <package>',
+                '3. If works: Add to Dockerfile RUN apt-get install line',
+                '4. Rebuild: docker-compose build <service>',
+                '5. Verify: Check dependency available in new container'
+            ],
+            'verification': 'which <command> returns path, import succeeds, command executes',
+            'avoid': [
+                {'wrong': 'Installing in running container permanently', 'right': 'Add to Dockerfile'},
+                {'wrong': 'Assuming host dependencies in container', 'right': 'Explicitly install all deps'},
+                {'wrong': 'No apt cleanup', 'right': 'rm -rf /var/lib/apt/lists/* after install'}
+            ],
+            'confidence': 'high',
+            'evidence': ['Dependency added to Dockerfile in changes'],
+            'portable': True,
+            'applies_to': ['Docker', 'Kubernetes', 'any containerized app', 'CI/CD pipelines']
+        })
+    
+    return patterns
 
 
 def detect_code_patterns(diff: str, workflow: Dict) -> List[Dict[str, Any]]:
@@ -406,7 +617,11 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
     """Analyze session patterns intelligently."""
     suggestions = []
     
-    # First: Detect patterns from actual code changes
+    # First: Extract problem-solution patterns from workflow (learning from issues)
+    problem_patterns = extract_problem_solution_patterns(workflow, commits)
+    suggestions.extend(problem_patterns)
+    
+    # Second: Detect code patterns from actual changes
     code_patterns = detect_code_patterns(diff, workflow)
     suggestions.extend(code_patterns)
     
@@ -559,6 +774,9 @@ def main():
     """Generate skill suggestions from current session."""
     parser = argparse.ArgumentParser(description='Suggest skills from session patterns')
     parser.add_argument('--commits', type=int, default=5, help='Number of commits to analyze')
+    parser.add_argument('--workflow-logs', type=int, default=1, help='Number of workflow logs to analyze')
+    parser.add_argument('--type', choices=['all', 'code', 'troubleshooting', 'decision'], 
+                       default='all', help='Type of skills to suggest')
     args = parser.parse_args()
     
     # Gather session data
@@ -571,6 +789,15 @@ def main():
     # Analyze and suggest
     suggestions = analyze_patterns(commits, workflow, files, diff)
     
+    # Filter by type if specified
+    if args.type != 'all':
+        suggestions = [s for s in suggestions if s.get('type', 'code') == args.type or s.get('pattern') == 'detected']
+    
+    # Add metadata
+    for s in suggestions:
+        if 'type' not in s:
+            s['type'] = 'code'
+    
     # Output as JSON for agent to parse
     output = {
         'session': {
@@ -579,7 +806,16 @@ def main():
             'files_changed': len(files),
             'technologies': sorted(list(tech))
         },
-        'suggestions': suggestions
+        'suggestions': suggestions,
+        'summary': {
+            'total': len(suggestions),
+            'by_type': {
+                'troubleshooting': len([s for s in suggestions if s.get('type') == 'troubleshooting']),
+                'code': len([s for s in suggestions if s.get('type') == 'code' or s.get('pattern') == 'detected']),
+                'decision': len([s for s in suggestions if s.get('type') == 'decision-making'])
+            },
+            'high_confidence': len([s for s in suggestions if s.get('confidence') == 'high'])
+        }
     }
     
     print(json.dumps(output, indent=2))
