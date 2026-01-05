@@ -4,7 +4,7 @@
 services:
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     ports:
       - "12000:3000"
@@ -21,12 +21,12 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     network_mode: host
     environment:
-      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.28.0.10:5432/nop
-      - REDIS_URL=redis://172.28.0.11:6379/0
+      - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.29.0.10:5432/nop
+      - REDIS_URL=redis://172.29.0.11:6379/0
       - GUACD_HOST=127.0.0.1
       - GUACD_PORT=14822
       - SECRET_KEY=your-secret-key-change-this
@@ -38,8 +38,8 @@ services:
       - redis
       - guacd
     volumes:
-      - ./volumes/evidence:/app/evidence
-      - ./volumes/logs:/app/logs
+      - ../volumes/evidence:/app/evidence
+      - ../volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     privileged: true
@@ -58,12 +58,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       nop-internal:
-        ipv4_address: 172.28.0.10
+        ipv4_address: 172.29.0.10
     restart: unless-stopped
 
   guacd:
     build:
-      context: ./docker/guacd
+      context: ../docker/guacd
       dockerfile: Dockerfile
     container_name: nop-guacd
     network_mode: host
@@ -85,7 +85,7 @@ services:
       - redis_data:/data
     networks:
       nop-internal:
-        ipv4_address: 172.28.0.11
+        ipv4_address: 172.29.0.11
     restart: unless-stopped
 
 networks:
@@ -93,7 +93,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.29.0.0/16  # Different subnet for dev
   test-network:
     external: true
     name: nop_test-network

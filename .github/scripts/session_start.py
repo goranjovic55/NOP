@@ -91,9 +91,25 @@ def main():
         print("   (No workflow prompts found)")
     
     print("\n" + "="*70)
-    print("  Query resources throughout work as needed")
-    print("  Run 'python .github/scripts/session_end.sh' when done")
-    print("="*70 + "\n")
+    print("  SESSION START SUMMARY")
+    print("="*70)
+    
+    # Summary statistics
+    domain_count = len(kn_map.get("domains", {})) if kn_map else 0
+    quicknav_count = len(kn_map.get("quickNav", {})) if kn_map else 0
+    doc_count = len(docs)
+    skill_count = len(skills)
+    prompt_count = len(prompts)
+    
+    print(f"\n   Knowledge: {domain_count} domains, {quicknav_count} quick nav entries")
+    print(f"   Documentation: {doc_count} categories available")
+    print(f"   Skills: {skill_count} solutions ready")
+    print(f"   Prompts: {prompt_count} workflows available")
+    
+    print(f"\n   🎯 Context loaded - ready for MANDATORY 5 PHASES workflow")
+    print(f"   📋 Use manage_todo_list to plan work with <PHASE> prefixes")
+    
+    print("\n" + "="*70 + "\n")
 
 if __name__ == "__main__":
     main()

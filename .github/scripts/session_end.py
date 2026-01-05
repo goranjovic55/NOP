@@ -127,6 +127,17 @@ def main():
     print("  AKIS v3 - Session End")
     print("="*70)
     
+    # Track summary data
+    summary = {
+        "cleaned": [],
+        "knowledge_updated": False,
+        "skills": [],
+        "session": None,
+        "maintenance_due": False,
+        "workflow_log": None,
+        "has_changes": False
+    }
+    
     # Step 0: Clean repository
     print("\n▶️  Cleaning repository...")
     moved_files = clean_repository()
@@ -134,6 +145,7 @@ def main():
         print(f"   ✅ Moved {len(moved_files)} file(s):")
         for filename, target in moved_files:
             print(f"      • {filename} → {target}/")
+            summary["cleaned"].append(f"{filename} → {target}/")
     else:
         print("   ✅ Repository is clean")
     
@@ -141,65 +153,112 @@ def main():
     result = run_script("generate_codemap.py", "Generating codemap")
     if result and result.returncode == 0:
         print("   ✅ Knowledge map updated")
+        summary["knowledge_updated"] = True
     else:
         print("   ⚠️  Codemap generation had issues (check output)")
     
     # Step 2: Suggest skills
     result = run_script("suggest_skill.py", "Analyzing session for skills")
+    skill_suggestions = []
     if result and result.returncode == 0:
         print("   ✅ Skill suggestions complete")
         if result.stdout:
             try:
                 suggestions = json.loads(result.stdout)
                 if suggestions.get("suggestions"):
+                    skill_suggestions = suggestions["suggestions"]
                     print("\n   📝 Skill Suggestions:")
-                    for s in suggestions["suggestions"]:
+                    for s in skill_suggestions:
                         print(f"      - {s['action']}: {s['name']}")
-                    print("\n   ⏸  Review suggestions and approve/modify before continuing")
-                    input("\n   Press Enter when ready to continue...")
+                        summary["skills"].append(f"{s['action']}: {s['name']}")
+                    print("\n   💡 Review suggestions below and manually create/update skills if needed")
             except json.JSONDecodeError:
                 pass
     
     # Step 3: Session counter and maintenance check
     result = run_script("session_tracker.py", "Checking session counter")
-    if result and "Maintenance due" in result.stdout:
-        print("\n   🔔 MAINTENANCE DUE (every 10 sessions)")
-        print("   Consider running: .github/prompts/akis-workflow-analyzer.md")
-    
-    # Step 4: Workflow log
-    if check_git_changes():
-        print("\n▶️  Changes detected")
-        response = input("   Create workflow log? (y/n, default=n): ").strip().lower()
+    if result and result.stdout:
+        # Extract session number
+        import re
+        match = re.search(r'Session (\d+)', result.stdout)
+        if match:
+            summary["session"] = match.group(1)
         
-        if response == 'y':
-            task_name = input("   Task name: ").strip()
-            if task_name:
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-                log_file = Path(f"log/workflow/{timestamp}_{task_name}.md")
-                log_file.parent.mkdir(parents=True, exist_ok=True)
-                
-                # Use template
-                template = Path(".github/templates/workflow-log.md")
-                if template.exists():
-                    content = template.read_text()
-                    content = content.replace("{TASK_NAME}", task_name)
-                    content = content.replace("{YYYY-MM-DD HH:MM}", datetime.now().strftime("%Y-%m-%d %H:%M"))
-                    log_file.write_text(content)
-                    print(f"   ✅ Created workflow log: {log_file}")
-                    print(f"   📝 Fill in details before committing")
-                else:
-                    print("   ⚠️  Template not found, skipping log creation")
+        if "Maintenance due" in result.stdout:
+            print("\n   🔔 MAINTENANCE DUE (every 10 sessions)")
+            print("   Consider running: .github/prompts/akis-workflow-analyzer.md")
+            summary["maintenance_due"] = True
     
-    # Step 5: Commit prompt
+    # Step 4: Workflow log (auto-create if changes detected)
+    summary["has_changes"] = check_git_changes()
+    if summary["has_changes"]:
+        # Auto-detect task name from branch
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True
+        )
+        branch_name = result.stdout.strip()
+        
+        # Extract task name from branch (e.g., "copilot/create-agent-page" -> "create-agent-page")
+        if '/' in branch_name:
+            task_name = branch_name.split('/', 1)[1]
+        else:
+            task_name = branch_name if branch_name != 'main' else 'session'
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        log_file = Path(f"log/workflow/{timestamp}_{task_name}.md")
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Use template
+        template = Path(".github/templates/workflow-log.md")
+        if template.exists():
+            content = template.read_text()
+            content = content.replace("{TASK_NAME}", task_name)
+            content = content.replace("{YYYY-MM-DD HH:MM}", datetime.now().strftime("%Y-%m-%d %H:%M"))
+            log_file.write_text(content)
+            print(f"\n▶️  Created workflow log: {log_file}")
+            print(f"   📝 Fill in details before committing")
+            summary["workflow_log"] = str(log_file)
+        else:
+            print("\n   ⚠️  Template not found, skipping log creation")
+    
+    # Final Summary
     print("\n" + "="*70)
-    if check_git_changes():
-        print("  📦 Uncommitted changes detected")
-        print("  Review changes with: git status")
-        print("  Commit with: git add -A && git commit -m 'your message'")
-    else:
-        print("  ✅ No uncommitted changes")
+    print("  SESSION END SUMMARY")
+    print("="*70)
     
-    print("="*70 + "\n")
+    if summary["session"]:
+        print(f"\n  📊 Session: #{summary['session']}")
+    
+    if summary["cleaned"]:
+        print(f"\n  🧹 Repository Cleaned:")
+        for item in summary["cleaned"]:
+            print(f"     • {item}")
+    
+    if summary["knowledge_updated"]:
+        print(f"\n  📚 Knowledge: Updated (project_knowledge.json)")
+    
+    if summary["skills"]:
+        print(f"\n  🎯 Skill Suggestions:")
+        for skill in summary["skills"]:
+            print(f"     • {skill}")
+    
+    if summary["maintenance_due"]:
+        print(f"\n  ⚠️  Maintenance: DUE (run akis-workflow-analyzer.md)")
+    
+    if summary["workflow_log"]:
+        print(f"\n  📝 Workflow Log: {summary['workflow_log']}")
+    
+    if summary["has_changes"]:
+        print(f"\n  📦 Next Steps:")
+        print(f"     1. Review: git status")
+        print(f"     2. Fill workflow log with details")
+        print(f"     3. Commit: git add -A && git commit -m 'your message'")
+    else:
+        print(f"\n  ✅ No uncommitted changes")
+    
+    print("\n" + "="*70 + "\n")
 
 if __name__ == "__main__":
     main()

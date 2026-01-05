@@ -2,12 +2,14 @@
 Network discovery endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
+from uuid import UUID
 from app.core.database import get_db
 from app.models.event import Event, EventType, EventSeverity
+from app.models.agent import Agent
 from app.services.scanner import scanner
 from app.services.SnifferService import sniffer_service
 import uuid
@@ -34,6 +36,26 @@ class HostScanRequest(BaseModel):
 # Store active scans
 active_scans = {}
 
+
+async def get_agent_pov(agent_id_str: Optional[str], db: AsyncSession) -> Optional[int]:
+    """Get SOCKS proxy port for agent POV mode"""
+    if not agent_id_str:
+        return None
+    
+    try:
+        from sqlalchemy import select
+        agent_id = UUID(agent_id_str)
+        result = await db.execute(select(Agent).where(Agent.id == agent_id))
+        agent = result.scalar_one_or_none()
+        
+        if agent and agent.agent_metadata:
+            return agent.agent_metadata.get("socks_proxy_port")
+    except Exception as e:
+        logger.warning(f"Failed to get agent POV: {e}")
+    
+    return None
+
+
 @router.get("/status")
 async def get_discovery_status(db: AsyncSession = Depends(get_db)):
     """Get discovery service status"""
@@ -49,6 +71,7 @@ async def get_discovery_status(db: AsyncSession = Depends(get_db)):
 async def start_discovery_scan(
     request: DiscoveryRequest,
     background_tasks: BackgroundTasks,
+    x_agent_pov: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Start network discovery scan"""
@@ -150,10 +173,15 @@ async def get_discovery_scan(scan_id: str, db: AsyncSession = Depends(get_db)):
     }
 
 @router.post("/ping/{host}")
-async def ping_host(host: str):
+async def ping_host(
+    host: str,
+    x_agent_pov: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
     """Ping a specific host"""
     try:
-        hosts = await scanner.ping_sweep(host)
+        proxy_port = await get_agent_pov(x_agent_pov, db)
+        hosts = await scanner.ping_sweep(host, proxy_port=proxy_port)
         is_alive = host in hosts
         return {
             "host": host,
@@ -164,10 +192,16 @@ async def ping_host(host: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/port-scan/{host}")
-async def scan_host_ports(host: str, ports: str = "1-1000"):
+async def scan_host_ports(
+    host: str,
+    ports: str = "1-1000",
+    x_agent_pov: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
     """Scan ports on a specific host"""
     try:
-        results = await scanner.port_scan(host, ports)
+        proxy_port = await get_agent_pov(x_agent_pov, db)
+        results = await scanner.port_scan(host, ports, proxy_port=proxy_port)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

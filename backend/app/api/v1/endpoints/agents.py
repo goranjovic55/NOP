@@ -5,10 +5,12 @@ Agent management endpoints
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 from uuid import UUID
 import json
 import asyncio
+import logging
 from datetime import datetime
 
 from app.core.database import get_db
@@ -24,11 +26,17 @@ from app.schemas.agent import (
 )
 from app.services.agent_service import AgentService
 from app.services.agent_data_service import AgentDataService
+from app.services.agent_socks_proxy import AgentSOCKSProxy
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 # Connected agents tracking
 connected_agents = {}
+agent_socks_proxies = {}  # agent_id -> AgentSOCKSProxy
+SOCKS_PORT_START = 10080
+next_socks_port = SOCKS_PORT_START
 
 
 @router.get("/", response_model=AgentListResponse)
@@ -365,3 +373,122 @@ async def get_agent_status(
         "last_seen": agent.last_seen,
         "connected_at": agent.connected_at
     }
+
+
+@router.websocket("/ws")
+async def agent_websocket_endpoint(
+    websocket: WebSocket,
+    db: AsyncSession = Depends(get_db)
+):
+    """WebSocket endpoint for agent connections - supports SOCKS proxy"""
+    
+    await websocket.accept()
+    agent_id = None
+    socks_proxy = None
+    
+    try:
+        # Wait for registration
+        data = await websocket.receive_text()
+        message = json.loads(data)
+        
+        if message.get("type") != "register":
+            await websocket.close(code=1008, reason="Expected register message")
+            return
+        
+        agent_id_str = message.get("agent_id")
+        auth_token = message.get("auth_token")
+        
+        if not agent_id_str or not auth_token:
+            await websocket.close(code=1008, reason="Missing credentials")
+            return
+        
+        agent_id = UUID(agent_id_str)
+        agent = await AgentService.get_agent(db, agent_id)
+        
+        if not agent or agent.auth_token != auth_token:
+            await websocket.close(code=1008, reason="Invalid credentials")
+            return
+        
+        # Update agent status
+        await AgentService.update_agent_status(db, agent_id, AgentStatus.ONLINE)
+        connected_agents[agent_id_str] = websocket
+        
+        # Create SOCKS proxy for this agent
+        global next_socks_port
+        socks_port = next_socks_port
+        next_socks_port += 1
+        
+        socks_proxy = AgentSOCKSProxy(agent_id, websocket, socks_port)
+        await socks_proxy.start()
+        agent_socks_proxies[agent_id_str] = socks_proxy
+        
+        # Store SOCKS port in agent metadata
+        if not agent.agent_metadata:
+            agent.agent_metadata = {}
+        agent.agent_metadata["socks_proxy_port"] = socks_port
+        flag_modified(agent, "agent_metadata")  # Tell SQLAlchemy JSON was modified
+        await db.commit()
+        
+        logger.info(f"Agent {agent.name} connected with SOCKS proxy on port {socks_port}")
+        
+        # Send registration confirmation
+        await websocket.send_json({
+            "type": "registered",
+            "status": "success",
+            "socks_port": socks_port
+        })
+        
+        # Message loop
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            msg_type = message.get("type")
+            
+            if msg_type == "heartbeat":
+                await AgentService.update_agent_status(
+                    db, agent_id, AgentStatus.ONLINE, update_last_seen=True
+                )
+            
+            elif msg_type == "asset_data":
+                assets = message.get('assets', [])
+                if assets:
+                    await AgentDataService.process_assets(db, agent_id, assets)
+            
+            elif msg_type == "traffic_data":
+                traffic = message.get('traffic', [])
+                if traffic:
+                    await AgentDataService.process_traffic(db, agent_id, traffic)
+            
+            elif msg_type == "host_data":
+                host_info = message.get('host_info')
+                if host_info:
+                    agent.agent_metadata["host_info"] = host_info
+                    agent.agent_metadata["last_host_update"] = datetime.utcnow().isoformat()
+                    await db.commit()
+            
+            # SOCKS proxy messages
+            elif msg_type in ["socks_connected", "socks_data", "socks_error", "socks_close"]:
+                if socks_proxy:
+                    await socks_proxy.handle_agent_message(message)
+    
+    except WebSocketDisconnect:
+        logger.info(f"Agent {agent_id} disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error for agent {agent_id}: {e}")
+    finally:
+        # Cleanup
+        if agent_id:
+            agent_id_str = str(agent_id)
+            if agent_id_str in connected_agents:
+                del connected_agents[agent_id_str]
+            
+            if socks_proxy:
+                await socks_proxy.stop()
+                if agent_id_str in agent_socks_proxies:
+                    del agent_socks_proxies[agent_id_str]
+            
+            # Update agent status
+            try:
+                await AgentService.update_agent_status(db, agent_id, AgentStatus.OFFLINE)
+            except:
+                pass
