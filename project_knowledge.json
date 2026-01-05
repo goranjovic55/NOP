@@ -428,3 +428,4 @@
 {"type": "codegraph", "name": "frontend/postcss.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
 {"type": "codegraph", "name": "frontend/tailwind.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
 {"type": "codegraph", "name": "frontend/src/setupProxy.js", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "entity", "name": "AKIS.Framework.GitHubDirectory", "entityType": "module", "observations": ["AKIS v3 framework files in .github/", "Modified across 17+ sessions for framework improvements", "Contains: skills/, prompts/, scripts/, templates/, instructions/", "Core scripts: session_start.py, session_end.py, analyze_workflows.py, generate_codemap.py", "upd:2026-01-05"]}
