@@ -119,7 +119,7 @@ BACKEND_PORT=12001
 # Set secure passwords
 POSTGRES_PASSWORD=your_secure_password
 JWT_SECRET_KEY=your_secret_key_here
-ADMIN_PASSWORD=changeme
+ADMIN_PASSWORD=admin123
 
 # Restart services to apply
 docker compose restart

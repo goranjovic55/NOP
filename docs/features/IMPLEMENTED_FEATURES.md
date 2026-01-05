@@ -53,7 +53,7 @@ Complete feature list for Network Observatory Platform.
 docker compose up -d
 
 # Access at http://localhost:12000
-# Default credentials: admin / changeme
+# Default credentials: admin / admin123
 ```
 
 ## Usage
