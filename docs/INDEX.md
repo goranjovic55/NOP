@@ -27,6 +27,7 @@
 |----------|---------|----------|
 | [Quick Start](guides/QUICK_START.md) | Get running in 5 minutes | All users |
 | [Deployment Guide](guides/DEPLOYMENT.md) | Full installation & production setup | DevOps/SysAdmins |
+| [Portable Executable Quick Start](PORTABLE_EXECUTABLE_QUICK_START.md) | **NEW**: Docker-free portable deployment options | DevOps/Developers |
 | [API Reference](technical/API_rest_v1.md) | REST API documentation | Developers |
 | [Contributing](development/CONTRIBUTING.md) | How to contribute | Contributors |
 
@@ -63,6 +64,23 @@
 
 ---
 
+### [PORTABLE_BUILD_GUIDE_NUITKA.md](guides/PORTABLE_BUILD_GUIDE_NUITKA.md)
+**Portable Executable Build Guide (Nuitka)**
+- Single executable without Docker
+- Database migration (PostgreSQL → SQLite)
+- Redis replacement with in-memory cache
+- Guacamole handling options
+- Frontend embedding
+- Nuitka compilation process
+- Cross-platform builds (Windows/Linux/macOS)
+- Distribution and packaging
+
+**Audience**: Developers, DevOps, Portable deployment users
+
+**Time to implement**: 1-2 weeks
+
+---
+
 ### [CONFIGURATION.md](guides/CONFIGURATION.md)
 **Configuration Guide**
 - Environment variables
@@ -87,6 +105,23 @@
 - Data flow and security architecture
 
 **Topics**: System design, Component architecture, Security architecture
+
+---
+
+### [PORTABLE_EXECUTABLE_SOLUTIONS.md](architecture/PORTABLE_EXECUTABLE_SOLUTIONS.md)
+**Portable Executable Solutions - Comprehensive Analysis**
+- Overview of 4 different approaches for Docker-free deployment
+- **Option 1**: Nuitka-based all-in-one executable (1-2 weeks)
+- **Option 2**: Electron/Tauri desktop application (2-4 weeks)
+- **Option 3**: Separate server-client architecture (1-3 weeks)
+- **Option 4**: Go/Rust complete rewrite (4-6 months)
+- Detailed comparison matrix and use case recommendations
+- Implementation steps, pros/cons, and effort estimates
+- Hybrid approach and migration paths
+
+**Topics**: Deployment options, Portable executables, Architecture decisions
+
+**Related**: [PORTABLE_EXECUTABLE_QUICK_START.md](PORTABLE_EXECUTABLE_QUICK_START.md), [PORTABLE_BUILD_GUIDE_NUITKA.md](guides/PORTABLE_BUILD_GUIDE_NUITKA.md)
 
 ---
 
