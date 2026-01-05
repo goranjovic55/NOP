@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-AKIS Skill Suggester
+AKIS Skill Suggester - Enhanced Pattern Detection
 
-Analyzes current session (recent commits, workflow logs, file changes) and suggests
-skills that would have been useful. Outputs proposals for agent to present to user.
+Analyzes session by examining:
+1. Git diffs - actual code patterns added/modified
+2. Workflow logs - decisions and technical choices
+3. File changes - scope and technology stack
+4. Commit messages - intent and features
+
+Suggests reusable skills based on detected patterns.
 
 Usage:
-    python .github/scripts/suggest_skill.py
+    python .github/scripts/suggest_skill.py [--commits N]
     
 Output: JSON array of skill suggestions for user approval
-
-Format: Each suggestion includes name, title, description, when_to_use, avoid, 
-related_skills, and example code snippets to generate complete skill files.
 """
 
 import json
@@ -19,15 +21,15 @@ import re
 import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
+import argparse
 
 
-def get_recent_commits(hours: int = 2) -> List[Dict[str, str]]:
-    """Get commits from the last N hours."""
+def get_recent_commits(count: int = 5) -> List[Dict[str, str]]:
+    """Get last N commits regardless of time."""
     try:
-        since = (datetime.now() - timedelta(hours=hours)).isoformat()
         result = subprocess.run(
-            ['git', 'log', f'--since={since}', '--pretty=format:%H|%s|%b'],
+            ['git', 'log', f'-{count}', '--pretty=format:%H|%s|%b'],
             capture_output=True,
             text=True,
             check=True
@@ -73,11 +75,11 @@ def get_recent_workflow_log() -> Dict[str, Any]:
     }
 
 
-def get_changed_files() -> List[str]:
+def get_changed_files(commits: int = 5) -> List[str]:
     """Get list of files modified in recent commits."""
     try:
         result = subprocess.run(
-            ['git', 'diff', '--name-only', 'HEAD~5', 'HEAD'],
+            ['git', 'diff', '--name-only', f'HEAD~{commits}', 'HEAD'],
             capture_output=True,
             text=True,
             check=True
@@ -87,14 +89,333 @@ def get_changed_files() -> List[str]:
         return []
 
 
-def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> List[Dict[str, Any]]:
-    """Analyze session patterns and suggest skills in new format."""
+def get_code_diff(commits: int = 5) -> str:
+    """Get actual code diff to analyze patterns."""
+    try:
+        result = subprocess.run(
+            ['git', 'diff', f'HEAD~{commits}', 'HEAD'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError:
+        return ""
+
+
+def extract_technologies(diff: str, files: List[str]) -> Set[str]:
+    """Detect technologies/frameworks used in changes."""
+    tech = set()
+    
+    # Check file extensions and paths
+    for f in files:
+        if '.tsx' in f or '.jsx' in f:
+            tech.add('react')
+        if '.py' in f:
+            tech.add('python')
+        if 'docker' in f.lower():
+            tech.add('docker')
+        if 'backend' in f and '.py' in f:
+            tech.add('fastapi')
+        if 'sql' in f.lower() or 'alembic' in f.lower():
+            tech.add('sqlalchemy')
+    
+    # Check import statements and code patterns
+    if 'websocket' in diff.lower():
+        tech.add('websockets')
+    if 'sqlalchemy' in diff.lower():
+        tech.add('sqlalchemy')
+    if 'asyncio' in diff.lower():
+        tech.add('asyncio')
+    if 'docker-compose' in diff.lower():
+        tech.add('docker-compose')
+    if 'proxychains' in diff.lower():
+        tech.add('proxychains')
+    if '@router.websocket' in diff:
+        tech.add('fastapi-websockets')
+    if 'flag_modified' in diff:
+        tech.add('sqlalchemy-orm')
+    
+    return tech
+
+
+def detect_code_patterns(diff: str, workflow: Dict) -> List[Dict[str, Any]]:
+    """Detect reusable code patterns from actual changes."""
+    patterns = []
+    
+    # Pattern: WebSocket endpoint with lifecycle management
+    if '@router.websocket' in diff and 'await websocket.accept()' in diff:
+        evidence = []
+        if 'cleanup' in diff.lower() or 'finally:' in diff:
+            evidence.append('Cleanup/finally blocks for resource management')
+        if 'auth' in diff.lower() and 'token' in diff.lower():
+            evidence.append('Authentication validation in WebSocket')
+        if 'register' in diff.lower():
+            evidence.append('Agent/client registration pattern')
+        
+        patterns.append({
+            'name': 'websocket-lifecycle-management',
+            'title': 'WebSocket Lifecycle Management',
+            'description': 'Managing WebSocket connections with authentication, service binding, and cleanup',
+            'when_to_use': [
+                'Creating WebSocket endpoints with FastAPI',
+                'Binding services to WebSocket connection lifetime',
+                'Implementing authentication for WebSocket connections',
+                'Managing cleanup when connections close'
+            ],
+            'avoid': [
+                {'wrong': 'No cleanup on disconnect', 'right': 'Use try/finally for resource cleanup'},
+                {'wrong': 'Accepting before auth', 'right': 'Validate credentials after accept()'},
+                {'wrong': 'Storing websocket globally', 'right': 'Track by client ID in dict'}
+            ],
+            'pattern': 'detected',
+            'confidence': 'high',
+            'evidence': evidence,
+            'code_example': '''@router.websocket("/ws")
+async def endpoint(websocket: WebSocket, db: AsyncSession):
+    await websocket.accept()
+    client_id = None
+    service = None
+    
+    try:
+        # 1. Wait for registration with auth
+        data = await websocket.receive_text()
+        message = json.loads(data)
+        client_id = validate_credentials(message)
+        
+        # 2. Create service bound to connection
+        service = SomeService(client_id, websocket)
+        await service.start()
+        
+        # 3. Message loop
+        while True:
+            data = await websocket.receive_text()
+            await handle_message(data)
+    finally:
+        # 4. Cleanup resources
+        if service:
+            await service.stop()
+        if client_id:
+            del connected_clients[client_id]'''
+        })
+    
+    # Pattern: SQLAlchemy JSON field modification
+    if 'flag_modified' in diff and 'agent_metadata' in diff.lower():
+        patterns.append({
+            'name': 'sqlalchemy-json-field-modification',
+            'title': 'SQLAlchemy JSON Field Modification',
+            'description': 'Properly updating JSON columns so SQLAlchemy detects changes',
+            'when_to_use': [
+                'Modifying nested dict/list in JSON column',
+                'In-place updates to JSON fields not being persisted',
+                'Working with PostgreSQL JSONB or MySQL JSON columns',
+                'Need to trigger SQLAlchemy change detection'
+            ],
+            'avoid': [
+                {'wrong': 'obj.json_field["key"] = value; commit()', 'right': 'Use flag_modified() after change'},
+                {'wrong': 'Replacing entire dict unnecessarily', 'right': 'Modify in place + flag'},
+                {'wrong': 'Manual JSON serialization', 'right': 'Let SQLAlchemy handle it'}
+            ],
+            'pattern': 'detected',
+            'confidence': 'high',
+            'evidence': ['flag_modified usage detected', 'JSON metadata field modification'],
+            'code_example': '''from sqlalchemy.orm.attributes import flag_modified
+
+# Modifying JSON field in-place
+if not agent.agent_metadata:
+    agent.agent_metadata = {}
+agent.agent_metadata["new_key"] = "value"
+
+# CRITICAL: Tell SQLAlchemy the field changed
+flag_modified(agent, "agent_metadata")
+
+await db.commit()  # Now changes will persist'''
+        })
+    
+    # Pattern: Docker network isolation
+    if 'docker-compose' in diff and 'networks:' in diff and '172.' in diff:
+        patterns.append({
+            'name': 'docker-network-isolation',
+            'title': 'Docker Network Isolation for Dev/Prod',
+            'description': 'Using separate Docker networks to avoid subnet conflicts between environments',
+            'when_to_use': [
+                'Running multiple docker-compose environments simultaneously',
+                'Separating dev/test/prod network spaces',
+                'Avoiding "network already exists" errors',
+                'Need different subnet ranges for isolation'
+            ],
+            'avoid': [
+                {'wrong': 'Same subnet for all environments', 'right': 'Unique subnets (172.28 vs 172.29)'},
+                {'wrong': 'Overlapping IP ranges', 'right': 'Plan subnet allocation upfront'},
+                {'wrong': 'No network name prefix', 'right': 'Use project-specific names'}
+            ],
+            'pattern': 'detected',
+            'confidence': 'high',
+            'evidence': ['Multiple subnet configurations', 'docker-compose network definitions'],
+            'code_example': '''# docker-compose.dev.yml
+networks:
+  dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16  # Dev uses .29
+
+# docker-compose.yml (production)
+networks:
+  prod-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16  # Prod uses .28'''
+        })
+    
+    # Pattern: ProxyChains dynamic configuration
+    if 'proxychains' in diff.lower() and 'tempfile' in diff:
+        patterns.append({
+            'name': 'proxychains-dynamic-config',
+            'title': 'ProxyChains Dynamic Configuration',
+            'description': 'Generating temporary ProxyChains configs for per-operation SOCKS routing',
+            'when_to_use': [
+                'Need different SOCKS proxy per operation',
+                'Routing tools (nmap, curl) through agent proxies',
+                'Temporary proxy configs to avoid conflicts',
+                'Point-of-view scanning through remote agents'
+            ],
+            'avoid': [
+                {'wrong': 'Modifying global /etc/proxychains.conf', 'right': 'Generate temp configs'},
+                {'wrong': 'Hardcoded proxy ports', 'right': 'Accept port as parameter'},
+                {'wrong': 'Not cleaning up temp files', 'right': 'Use finally block for cleanup'}
+            ],
+            'pattern': 'detected',
+            'confidence': 'high',
+            'evidence': ['Temp file creation for ProxyChains', 'Dynamic SOCKS port configuration'],
+            'code_example': '''import tempfile
+import os
+
+def create_proxychains_config(socks_port: int) -> str:
+    """Generate temp ProxyChains config for specific SOCKS port."""
+    config_content = f"""strict_chain
+proxy_dns
+[ProxyList]
+socks5 127.0.0.1 {socks_port}
+"""
+    fd, path = tempfile.mkstemp(suffix='.conf', text=True)
+    with os.fdopen(fd, 'w') as f:
+        f.write(config_content)
+    return path
+
+# Usage
+config_path = None
+try:
+    config_path = create_proxychains_config(10080)
+    cmd = ["proxychains4", "-f", config_path, "-q", "nmap", target]
+    result = subprocess.run(cmd, capture_output=True)
+finally:
+    if config_path and os.path.exists(config_path):
+        os.unlink(config_path)'''
+        })
+    
+    # Pattern: E2E test automation
+    if 'test_' in diff and 'asyncio.run' in diff and 'assert' in diff.lower():
+        patterns.append({
+            'name': 'e2e-integration-testing',
+            'title': 'E2E Integration Test Automation',
+            'description': 'Automated end-to-end testing of multi-component integrations',
+            'when_to_use': [
+                'Testing WebSocket connections and handshakes',
+                'Verifying database persistence after operations',
+                'Testing service lifecycle and cleanup',
+                'Validating multi-step workflows'
+            ],
+            'avoid': [
+                {'wrong': 'Manual testing only', 'right': 'Automated test scripts'},
+                {'wrong': 'Testing in production', 'right': 'Separate test environment'},
+                {'wrong': 'No cleanup between tests', 'right': 'Reset state or use unique IDs'}
+            ],
+            'pattern': 'detected',
+            'confidence': 'medium',
+            'evidence': ['Test script with async/await patterns', 'Multiple test phases'],
+            'code_example': '''import asyncio
+
+async def test_websocket_integration():
+    """Test WebSocket connection and service creation."""
+    print("TEST 1: Connection")
+    
+    async with websockets.connect(WS_URL) as ws:
+        # Send registration
+        await ws.send(json.dumps({"type": "register", "id": "test"}))
+        
+        # Verify response
+        response = await asyncio.wait_for(ws.recv(), timeout=5)
+        data = json.loads(response)
+        assert data["type"] == "registered"
+        
+        return data["service_port"]
+
+if __name__ == "__main__":
+    result = asyncio.run(test_websocket_integration())
+    print(f"✅ Test passed: {result}")'''
+        })
+    
+    # Pattern: Workflow decisions (from workflow log)
+    if workflow.get('decisions'):
+        decisions_text = workflow['decisions']
+        if 'port' in decisions_text.lower() and 'auto' in decisions_text.lower():
+            patterns.append({
+                'name': 'auto-port-allocation',
+                'title': 'Auto Port Allocation Pattern',
+                'description': 'Automatically assigning incremental ports to avoid conflicts',
+                'when_to_use': [
+                    'Creating multiple services that need unique ports',
+                    'SOCKS proxies, databases, or servers per client',
+                    'Development environments with dynamic services',
+                    'Avoiding port conflict errors'
+                ],
+                'avoid': [
+                    {'wrong': 'Hardcoded port numbers', 'right': 'Auto-increment from base'},
+                    {'wrong': 'No port tracking', 'right': 'Global counter or registry'},
+                    {'wrong': 'Ports below 1024', 'right': 'Use 10000+ range'}
+                ],
+                'pattern': 'inferred',
+                'confidence': 'medium',
+                'evidence': ['Port allocation mentioned in workflow decisions'],
+                'code_example': '''# Global state
+next_port = 10080
+port_registry = {}
+
+def allocate_port(client_id: str) -> int:
+    """Allocate unique port for client."""
+    global next_port
+    
+    if client_id in port_registry:
+        return port_registry[client_id]
+    
+    port = next_port
+    next_port += 1
+    port_registry[client_id] = port
+    
+    return port
+
+def release_port(client_id: str):
+    """Release port when client disconnects."""
+    port_registry.pop(client_id, None)'''
+            })
+    
+    return patterns
+def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff: str) -> List[Dict[str, Any]]:
+    """Analyze session patterns intelligently."""
     suggestions = []
     
-    # Pattern 1: Styling/UI consistency work
+    # First: Detect patterns from actual code changes
+    code_patterns = detect_code_patterns(diff, workflow)
+    suggestions.extend(code_patterns)
+    
+    # Legacy patterns (kept for backward compatibility)
+    
+    # UI consistency work
     if any('styling' in c['subject'].lower() or 'unified' in c['subject'].lower() for c in commits):
         ui_files = [f for f in files if 'components' in f or 'pages' in f or 'index.css' in f]
-        if ui_files:
+        if ui_files and not any(s['name'] == 'ui-consistency' for s in suggestions):
             suggestions.append({
                 'name': 'ui-consistency',
                 'title': 'UI Consistency Patterns',
@@ -120,10 +441,10 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
                 'example_files': ui_files[:3]
             })
     
-    # Pattern 2: API endpoint creation/fixes
+    # API endpoint patterns
     if any('endpoint' in c['subject'].lower() or 'api' in c['subject'].lower() for c in commits):
         api_files = [f for f in files if 'endpoints' in f or 'api' in f]
-        if api_files:
+        if api_files and not any(s['name'] == 'api-endpoint-patterns' for s in suggestions):
             suggestions.append({
                 'name': 'api-endpoint-patterns',
                 'title': 'REST API Endpoint Patterns',
@@ -236,22 +557,27 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str]) -> L
 
 def main():
     """Generate skill suggestions from current session."""
-    root = Path.cwd()
+    parser = argparse.ArgumentParser(description='Suggest skills from session patterns')
+    parser.add_argument('--commits', type=int, default=5, help='Number of commits to analyze')
+    args = parser.parse_args()
     
     # Gather session data
-    commits = get_recent_commits(hours=2)
+    commits = get_recent_commits(count=args.commits)
     workflow = get_recent_workflow_log()
-    files = get_changed_files()
+    files = get_changed_files(commits=args.commits)
+    diff = get_code_diff(commits=args.commits)
+    tech = extract_technologies(diff, files)
     
     # Analyze and suggest
-    suggestions = analyze_patterns(commits, workflow, files)
+    suggestions = analyze_patterns(commits, workflow, files, diff)
     
     # Output as JSON for agent to parse
     output = {
         'session': {
             'commits': len(commits),
             'workflow_log': workflow.get('file', 'none'),
-            'files_changed': len(files)
+            'files_changed': len(files),
+            'technologies': sorted(list(tech))
         },
         'suggestions': suggestions
     }
