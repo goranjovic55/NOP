@@ -30,6 +30,37 @@ python .github/scripts/session_tracker.py check-maintenance
 # Follow prompt if maintenance due
 ```
 
+---
+
+### documentation-standardization.md
+
+**Purpose:** Audit, organize, and optimize project documentation to match AKIS templates
+
+**Trigger:**
+- Manual: When documentation is scattered or verbose
+- Periodic: Every major release or 6-12 months
+- When template compliance <50%
+- When onboarding new contributors
+
+**Phases:** AUDIT → PLAN → STANDARDIZE → INDEX → VERIFY → DOCUMENT → COMPLETE
+
+**Actions:**
+1. Audit all documentation files
+2. Check template compliance
+3. Organize by thematic categories
+4. Standardize to templates
+5. Create comprehensive INDEX.md
+6. Reduce verbosity and redundancy
+
+**Usage:**
+```
+"Please audit and organize all documentation in docs/ folder. 
+Check template compliance, organize by theme, create comprehensive 
+INDEX, and make content terse following AKIS templates."
+```
+
+**Reusability:** Project-agnostic, can be applied to any repository
+
 ## Creating New Prompts
 
 1. Use template: `templates/workflow-prompt.md`
