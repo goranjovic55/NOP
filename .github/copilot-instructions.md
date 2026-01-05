@@ -20,6 +20,8 @@ Execute: `python .github/scripts/session_start.py` (optional helper)
 - Use `manage_todo_list` to create actionable steps
 - Break work into <50 line chunks
 - Identify knowledge/skills needed
+- **TODO format:** `<PHASE> Description` (e.g., `<EXECUTION> Implement feature X`)
+- All todos must belong to a phase (CONTEXT/PLAN/EXECUTION/REVIEW/SESSION END)
 **Output:** TODO list with clear steps
 
 ### 3. EXECUTION
