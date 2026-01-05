@@ -772,133 +772,109 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
 
 def merge_skills(suggestions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Merge granular skills into broader, more reusable categories.
+    Aggressively merge skills to create MINIMUM number while maintaining utility.
     
-    Goal: Max 3 skills per session to avoid context bloat while maintaining utility.
-    - Too specific = too many skills to load
-    - Too broad = not helpful for solving issues
+    Goal: 1-2 skills per session max. Only separate if domains are truly incompatible.
+    Strategy: Merge into broad categories - Backend (app code) and Infrastructure (DevOps)
     """
     
-    # Group skills by domain
-    websocket_related = []
-    database_related = []
-    docker_related = []
-    testing_related = []
+    # Categorize into TWO broad domains
+    backend_skills = []  # WebSocket, API, Database, ORM, Services
+    infrastructure_skills = []  # Docker, Network, Dependencies, DevOps
     
     for skill in suggestions:
-        name = skill.get('name', '')
-        title = skill.get('title', '')
+        name_title = (skill.get('name', '') + ' ' + skill.get('title', '')).lower()
         
-        # Categorize by technology/domain
-        if any(kw in name.lower() or kw in title.lower() 
-               for kw in ['websocket', 'connection', 'port', 'proxy', 'service']):
-            websocket_related.append(skill)
-        elif any(kw in name.lower() or kw in title.lower() 
-                 for kw in ['sqlalchemy', 'database', 'json', 'persistence', 'orm']):
-            database_related.append(skill)
-        elif any(kw in name.lower() or kw in title.lower() 
-                 for kw in ['docker', 'network', 'container', 'dependency']):
-            docker_related.append(skill)
-        elif any(kw in name.lower() or kw in title.lower() 
-                 for kw in ['test', 'e2e', 'integration']):
-            testing_related.append(skill)
+        # Backend = application code patterns
+        if any(kw in name_title for kw in ['websocket', 'api', 'sqlalchemy', 'database',
+                                            'orm', 'fastapi', 'service', 'endpoint',
+                                            'json', 'persistence', 'proxy', 'connection', 'port']):
+            backend_skills.append(skill)
+        # Infrastructure = deployment, containers, networks
+        elif any(kw in name_title for kw in ['docker', 'network', 'container', 'compose',
+                                               'dependency', 'devops', 'subnet', 'image']):
+            infrastructure_skills.append(skill)
+        # Testing: merge into backend if it exists, otherwise ignore unless substantial
+        elif any(kw in name_title for kw in ['test', 'e2e', 'integration']):
+            if backend_skills:
+                backend_skills.append(skill)  # Merge testing into backend
     
     merged = []
     
-    # Merge WebSocket/Service patterns
-    if websocket_related:
-        when_to_use = set()
-        avoid_pairs = []
-        examples = []
-        all_evidence = []
+    # BACKEND SKILL: Merge everything backend-related into ONE comprehensive skill
+    if backend_skills:
+        when_to_use, avoid_pairs, examples, all_evidence, gotchas = set(), [], [], [], []
+        checklist_items, applies_to = set(), set()
         
-        for skill in websocket_related:
+        for skill in backend_skills:
             when_to_use.update(skill.get('when_to_use', []))
             avoid_pairs.extend(skill.get('avoid', []))
-            if 'code_example' in skill:
-                examples.append(skill['code_example'])
             all_evidence.extend(skill.get('evidence', []))
+            applies_to.update(skill.get('applies_to', []))
+            
+            # Add code examples with titles
+            if 'code_example' in skill:
+                examples.append({'title': skill.get('title', 'Pattern'), 'code': skill['code_example']})
+            
+            # Extract troubleshooting from both types
+            if 'symptoms' in skill:
+                gotchas.append({
+                    'problem': skill.get('problem', skill.get('title')),
+                    'symptoms': skill.get('symptoms', []),
+                    'solution': skill.get('solution_steps', [])
+                })
+            if 'gotchas' in skill:
+                gotchas.extend(skill['gotchas'])
+        
+        # Build unified checklist
+        checklist_items.update([
+            '[ ] Validate credentials before accepting connections',
+            '[ ] Use try/finally for resource cleanup',
+            '[ ] Track connections/clients by ID',
+            '[ ] Type hint return values',
+            '[ ] Use async/await for I/O operations'
+        ])
+        
+        # Add SQLAlchemy-specific if present
+        if any('sqlalchemy' in str(s).lower() for s in backend_skills):
+            checklist_items.add('[ ] Use flag_modified() for in-place JSON changes')
+            checklist_items.add('[ ] Commit after modifications, refresh to see changes')
+        
+        # Add port management if present
+        if any('port' in str(s).lower() or 'proxy' in str(s).lower() for s in backend_skills):
+            checklist_items.add('[ ] Allocate unique ports per service (10000+ range)')
+            checklist_items.add('[ ] Clean up ports/resources on disconnect')
         
         merged.append({
-            'name': 'websocket-service-management',
-            'title': 'WebSocket & Service Management',
-            'description': 'Managing WebSocket connections with lifecycle, authentication, service binding, and dynamic port allocation',
-            'when_to_use': sorted(list(when_to_use))[:8],  # Limit to most relevant
-            'avoid': avoid_pairs[:6],
-            'examples': examples[:2],  # Max 2 code examples
-            'checklist': [
-                '[ ] Validate credentials after websocket.accept()',
-                '[ ] Use try/finally for resource cleanup',
-                '[ ] Track connections by client ID',
-                '[ ] Allocate unique ports per service (10000+ range)',
-                '[ ] Clean up ports on disconnect',
-                '[ ] Bind service lifecycle to WebSocket connection'
-            ],
+            'name': 'backend-development-patterns',
+            'title': 'Backend Development Patterns',
+            'description': 'Comprehensive backend patterns: FastAPI WebSocket lifecycle, SQLAlchemy ORM, JSON persistence, service management, port allocation, and troubleshooting',
+            'when_to_use': sorted(list(when_to_use))[:15],
+            'avoid': avoid_pairs[:10],
+            'examples': examples[:3],
+            'checklist': sorted(list(checklist_items)),
+            'gotchas': gotchas[:4],
             'confidence': 'high',
             'evidence': list(set(all_evidence)),
             'portable': True,
+            'applies_to': sorted(list(applies_to)) if applies_to else ['FastAPI', 'SQLAlchemy', 'WebSockets', 'Python async'],
             'type': 'code'
         })
     
-    # Merge Database/ORM patterns
-    if database_related:
-        # Combine code patterns AND troubleshooting
-        code_skills = [s for s in database_related if s.get('type') == 'code']
-        troubleshooting_skills = [s for s in database_related if s.get('type') == 'troubleshooting']
+    # INFRASTRUCTURE SKILL: Merge everything infrastructure-related into ONE skill
+    if infrastructure_skills:
+        when_to_use, avoid_pairs, examples, all_evidence, gotchas = set(), [], [], [], []
+        applies_to = set()
         
-        when_to_use = set()
-        avoid_pairs = []
-        examples = []
-        gotchas = []
-        
-        for skill in database_related:
+        for skill in infrastructure_skills:
             when_to_use.update(skill.get('when_to_use', []))
             avoid_pairs.extend(skill.get('avoid', []))
+            all_evidence.extend(skill.get('evidence', []))
+            applies_to.update(skill.get('applies_to', []))
+            
             if 'code_example' in skill:
-                examples.append(skill['code_example'])
-            if 'symptoms' in skill:  # Troubleshooting skill
-                gotchas.append({
-                    'problem': skill.get('problem'),
-                    'solution': skill.get('solution_steps', [])
-                })
-        
-        merged.append({
-            'name': 'sqlalchemy-patterns',
-            'title': 'SQLAlchemy Patterns & Troubleshooting',
-            'description': 'Working with SQLAlchemy ORM, JSON fields, and common persistence gotchas',
-            'when_to_use': sorted(list(when_to_use))[:8],
-            'avoid': avoid_pairs[:6],
-            'examples': examples[:2],
-            'checklist': [
-                '[ ] Use flag_modified() for in-place JSON changes',
-                '[ ] Type hint return values',
-                '[ ] Use async/await for I/O operations',
-                '[ ] Commit after modifications',
-                '[ ] Refresh objects to see DB changes'
-            ],
-            'gotchas': gotchas[:2],  # Include troubleshooting context
-            'confidence': 'high',
-            'evidence': ['SQLAlchemy usage detected', 'JSON field modifications'],
-            'portable': True,
-            'applies_to': ['SQLAlchemy', 'PostgreSQL', 'MySQL', 'any ORM with JSON columns'],
-            'type': 'code'
-        })
-    
-    # Merge Docker/Infrastructure patterns
-    if docker_related:
-        code_skills = [s for s in docker_related if s.get('type') == 'code']
-        troubleshooting_skills = [s for s in docker_related if s.get('type') == 'troubleshooting']
-        
-        when_to_use = set()
-        avoid_pairs = []
-        examples = []
-        gotchas = []
-        
-        for skill in docker_related:
-            when_to_use.update(skill.get('when_to_use', []))
-            avoid_pairs.extend(skill.get('avoid', []))
-            if 'code_example' in skill:
-                examples.append(skill['code_example'])
+                examples.append({'title': skill.get('title', 'Pattern'), 'code': skill['code_example']})
+            
             if 'symptoms' in skill:
                 gotchas.append({
                     'problem': skill.get('problem'),
@@ -907,62 +883,30 @@ def merge_skills(suggestions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 })
         
         merged.append({
-            'name': 'docker-development-workflow',
-            'title': 'Docker Development Workflow',
-            'description': 'Docker Compose patterns, network isolation, troubleshooting conflicts, and dependency management',
-            'when_to_use': sorted(list(when_to_use))[:8],
-            'avoid': avoid_pairs[:6],
+            'name': 'infrastructure-development',
+            'title': 'Infrastructure & DevOps Patterns',
+            'description': 'Docker Compose, networking, containerization, dependency management, and troubleshooting deployment issues',
+            'when_to_use': sorted(list(when_to_use))[:12],
+            'avoid': avoid_pairs[:10],
             'examples': examples[:2],
             'checklist': [
                 '[ ] Unique subnets per environment (172.28, 172.29, etc)',
                 '[ ] Add all dependencies to Dockerfile',
                 '[ ] Use docker network inspect to diagnose conflicts',
                 '[ ] Clean with docker-compose down && docker network prune',
-                '[ ] Rebuild after Dockerfile changes'
+                '[ ] Rebuild containers after Dockerfile changes',
+                '[ ] Test dependency availability before deployment'
             ],
-            'gotchas': gotchas[:3],  # Include multiple troubleshooting scenarios
+            'gotchas': gotchas[:4],
             'confidence': 'high',
-            'evidence': ['Docker Compose configuration', 'Network setup', 'Container dependency management'],
+            'evidence': list(set(all_evidence)),
             'portable': True,
-            'applies_to': ['Docker', 'Docker Compose', 'Kubernetes', 'any containerized development'],
+            'applies_to': sorted(list(applies_to)) if applies_to else ['Docker', 'Docker Compose', 'Kubernetes', 'containerized development'],
             'type': 'code'
         })
     
-    # Only include testing if it's substantial
-    if len(testing_related) >= 2:
-        when_to_use = set()
-        avoid_pairs = []
-        examples = []
-        
-        for skill in testing_related:
-            when_to_use.update(skill.get('when_to_use', []))
-            avoid_pairs.extend(skill.get('avoid', []))
-            if 'code_example' in skill:
-                examples.append(skill['code_example'])
-        
-        # Only add if we have substantial content
-        if when_to_use:
-            merged.append({
-                'name': 'integration-testing',
-                'title': 'Integration Testing Patterns',
-                'description': 'E2E testing of multi-component integrations with async operations',
-                'when_to_use': sorted(list(when_to_use))[:6],
-                'avoid': avoid_pairs[:4],
-                'examples': examples[:1],
-                'checklist': [
-                    '[ ] Separate test environment',
-                    '[ ] Use asyncio.run() for async tests',
-                    '[ ] Clean up resources in finally blocks',
-                    '[ ] Verify each integration point',
-                    '[ ] Use unique IDs to avoid conflicts'
-                ],
-                'confidence': 'medium',
-                'evidence': ['E2E test patterns detected'],
-                'portable': True,
-                'type': 'code'
-            })
-    
-    return merged[:3]  # Max 3 skills
+    # Return max 2 skills (backend + infrastructure)
+    return merged[:2]
 
 
 def format_skill_as_markdown(skill: Dict[str, Any]) -> str:
@@ -1009,13 +953,18 @@ def format_skill_as_markdown(skill: Dict[str, Any]) -> str:
                     lines.append(f"{step}")
             lines.append("")
     
-    # Examples section
+    # Examples section with optional titles
     if skill.get('examples'):
         lines.append("## Examples")
         for i, example in enumerate(skill['examples'], 1):
-            if i > 1:
-                lines.append("---\n")
-            lines.append(f"```python\n{example}\n```\n")
+            # Handle dict format (with title) or string format
+            if isinstance(example, dict):
+                lines.append(f"### {example.get('title', f'Example {i}')}")
+                code = example.get('code', '')
+            else:
+                code = example
+            
+            lines.append(f"```python\n{code}\n```\n")
     
     return '\n'.join(lines)
 
