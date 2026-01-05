@@ -33,7 +33,25 @@ Audit, organize, and optimize any project component (documentation, skills, code
    - Find verbose or redundant sections
    - Note missing INDEX or navigation
 
-4. Generate compliance report:
+4. **Identify gaps from workflow logs** (important for completeness):
+   ```bash
+   # Review recent workflow logs to find undocumented work
+   ls -t log/workflow/*.md | head -20
+   
+   # Look for patterns indicating missing documentation:
+   # - Features implemented but not documented
+   # - Skills used repeatedly but not captured
+   # - Code patterns that should be standardized
+   # - Knowledge entities mentioned but not tracked
+   ```
+   
+   **What to look for in logs:**
+   - **Missing docs**: Features/changes implemented without documentation
+   - **Missing skills**: Recurring patterns (3+ sessions) without skill files
+   - **Missing knowledge**: Entities/relations referenced but not in project_knowledge.json
+   - **Missing instructions**: Repeated decisions that should be codified
+
+5. Generate compliance report:
    ```bash
    python /tmp/doc_audit.py
    ```
@@ -70,11 +88,30 @@ Audit, organize, and optimize any project component (documentation, skills, code
    - Plan archive strategy: Move old versions to archive/ with date stamp
    - Update cross-references: Note all docs that link to merged files
 
-3. Create checklist:
+4. **Identify gaps to fill from workflow logs**:
+   - Review `log/workflow/` for recent sessions (last 10-20)
+   - **Documentation gaps**: Features implemented without docs
+   - **Skill gaps**: Recurring patterns (3+ sessions) not captured as skills
+   - **Code gaps**: Repeated refactorings that need standardization
+   - **Knowledge gaps**: Entities/relations mentioned but not tracked
+   - **Instruction gaps**: Decisions made repeatedly that should be codified
+   
+   Example gap analysis:
+   ```bash
+   # Find features mentioned in logs but missing from docs/features/
+   grep -h "Implemented\|Added\|Created" log/workflow/*.md | grep -i feature
+   
+   # Find skills used >3 times but not in .github/skills/
+   grep -h "pattern\|skill\|used" log/workflow/*.md | sort | uniq -c | sort -nr
+   ```
+
+5. Create checklist:
    - [ ] Audit complete with metrics
+   - [ ] **Gaps identified from workflow logs**
    - [ ] **Merging/consolidation plan created**
    - [ ] **Duplicate content merged**
    - [ ] **Old versions archived**
+   - [ ] **Missing docs/skills/knowledge created**
    - [ ] Feature docs standardized
    - [ ] Guide docs standardized  
    - [ ] Technical docs updated
@@ -375,6 +412,8 @@ grep -l "Document Version" docs/**/*.md
 ## Success Criteria
 
 ✅ All components inventoried and categorized by theme
+✅ **Workflow logs reviewed for gaps** (missing docs/skills/knowledge/instructions)
+✅ **Gaps identified and filled** from recent sessions
 ✅ **Duplicate/redundant content identified and merged**
 ✅ **Old versions archived with datestamps**
 ✅ Template compliance >80% for core components
@@ -416,6 +455,24 @@ grep -l "Document Version" docs/**/*.md
 **Symptom:** Multiple docs covering same topic
 **Action:** Consolidate into single source, archive old versions
 **Example:** 7 agent docs → features/AGENTS_C2.md
+
+### Pattern: Missing Documentation/Skills/Knowledge (Gap from Workflow Logs)
+**Symptom:** Work completed in sessions but not captured in docs/skills/knowledge
+**Action:**
+1. Review recent workflow logs: `ls -t log/workflow/*.md | head -20`
+2. **For missing docs**: Create feature/guide doc for implemented work
+3. **For missing skills**: Extract recurring pattern (3+ sessions) into skill file
+4. **For missing knowledge**: Add entities/relations to project_knowledge.json
+5. **For missing instructions**: Codify repeated decisions into framework instructions
+6. Document source: "Based on sessions: log/workflow/YYYY-MM-DD_*.md"
+
+**What to look for:**
+- Features implemented without documentation
+- Patterns used 3+ times without skill files
+- Entities referenced but not in knowledge base
+- Decisions repeated without codified guidance
+
+**Example:** Agent C2 feature implemented across 5 sessions → created `features/AGENTS_C2.md`
 
 ### Pattern: Verbose Feature Documentation
 **Symptom:** Feature docs >400 lines with detailed explanations
@@ -465,12 +522,16 @@ grep -l "Document Version" docs/**/*.md
 ❌ **Silent consolidation:** Don't merge without documenting what was merged
 ✅ Note in INDEX: "Consolidated from: file1, file2, file3"
 
+❌ **Ignoring workflow logs:** Don't skip gap analysis from recent sessions
+✅ Review workflow logs to identify missing docs/skills/knowledge/instructions
+
 ---
 
 ## Example Session
 
 ### Input
 - 72 markdown files in docs/ folder
+- 20 recent workflow logs in log/workflow/
 - No master index
 - Template compliance: 17.9%
 - Verbose documents (471+ lines)
@@ -478,18 +539,23 @@ grep -l "Document Version" docs/**/*.md
 
 ### Actions Taken
 1. Audited all 72 files with compliance script
-2. Organized into 8 thematic categories
-3. Standardized 5 feature docs (AGENTS_C2, STORM, FILTERING, etc.)
-4. Standardized 3 guide docs (QUICK_START, DEPLOYMENT, CONFIGURATION)
-5. Created comprehensive INDEX.md (418 lines)
-6. Condensed IMPLEMENTED_FEATURES: 471→180 lines
-7. Condensed FEATURE_PROPOSALS: 394→120 lines
-8. Added version footers to all docs
-9. Verified all links and template compliance
+2. **Reviewed 20 workflow logs** to identify gaps
+3. **Found gaps**: Agent C2 feature in 5 sessions but no doc, Docker patterns in 8 sessions but no skill
+4. Organized into 8 thematic categories
+5. Standardized 5 feature docs (AGENTS_C2, STORM, FILTERING, etc.)
+6. **Created missing AGENTS_C2.md** based on workflow logs
+7. **Created docker-hot-reload.md skill** from repeated patterns
+8. Standardized 3 guide docs (QUICK_START, DEPLOYMENT, CONFIGURATION)
+9. Created comprehensive INDEX.md (418 lines)
+10. Condensed IMPLEMENTED_FEATURES: 471→180 lines
+11. Condensed FEATURE_PROPOSALS: 394→120 lines
+12. Added version footers to all docs
+13. Verified all links and template compliance
 
 ### Outcome
 - Template compliance: 17.9% → 80%
 - Content reduction: 865 → 300 lines (65%)
+- **Gaps filled**: 1 feature doc, 1 skill created from logs
 - Created master INDEX with full navigation
 - All core docs follow templates
 - Easy discovery with thematic organization
