@@ -5,7 +5,7 @@ Session End - Complete session workflow
 2. Generate codemap → Update project_knowledge.json
 3. Suggest skills → Propose new/update/remove
 4. Increment session counter → Check maintenance due
-5. Create workflow log (if complex)
+5. Create workflow log (if complex) - AUTO-FILLED
 6. Commit changes
 """
 import json
@@ -15,6 +15,103 @@ import subprocess
 import shutil
 from pathlib import Path
 from datetime import datetime
+
+
+def generate_workflow_log(task_name: str, session_number: str, skills: list) -> str:
+    """Generate auto-filled workflow log from session data."""
+    
+    # Get git changes for Changes section
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-status"],
+        capture_output=True,
+        text=True
+    )
+    staged_changes = result.stdout.strip()
+    
+    # Also check unstaged changes
+    result = subprocess.run(
+        ["git", "diff", "--name-status"],
+        capture_output=True,
+        text=True
+    )
+    unstaged_changes = result.stdout.strip()
+    
+    all_changes = staged_changes + "\n" + unstaged_changes
+    
+    # Parse changes
+    changes_list = []
+    for line in all_changes.strip().split('\n'):
+        if not line:
+            continue
+        parts = line.split('\t')
+        if len(parts) >= 2:
+            status = parts[0]
+            filepath = parts[1]
+            
+            if status == 'A':
+                changes_list.append(f"- Created: `{filepath}` - {task_name} implementation")
+            elif status == 'M':
+                changes_list.append(f"- Modified: `{filepath}` - {task_name} updates")
+            elif status == 'D':
+                changes_list.append(f"- Deleted: `{filepath}` - cleanup")
+    
+    changes_section = '\n'.join(changes_list) if changes_list else "- Modified: Various files - session work"
+    
+    # Get recent commits for Summary
+    result = subprocess.run(
+        ["git", "log", "-5", "--oneline"],
+        capture_output=True,
+        text=True
+    )
+    recent_commits = result.stdout.strip().split('\n') if result.stdout else []
+    
+    # Generate summary from commit messages
+    summary = f"Session focused on {task_name.replace('-', ' ')}. "
+    if recent_commits:
+        summary += f"Completed {len(recent_commits)} commits including implementation and testing."
+    
+    # Skills section
+    skills_text = ", ".join(skills) if skills else "None suggested"
+    
+    # Generate log content
+    log_content = f"""# {task_name.replace('-', ' ').title()}
+
+**Date**: {datetime.now().strftime("%Y-%m-%d %H:%M")}
+**Session**: #{session_number}
+**Duration**: ~{len(recent_commits) * 10} minutes (estimated)
+
+## Summary
+{summary}
+
+## Changes
+{changes_section}
+
+## Decisions
+| Decision | Rationale |
+|----------|-----------|
+| Implementation approach | Based on {task_name} requirements |
+
+## Updates
+**Knowledge**: project_knowledge.json updated with current codebase structure
+**Docs**: Workflow log auto-generated
+**Skills**: {skills_text}
+
+## Verification
+- [ ] Code changes reviewed
+- [ ] Knowledge map updated
+- [ ] Session committed
+
+## Notes
+**Auto-generated workflow log** - Review and add:
+- Specific technical decisions made
+- Gotchas or issues encountered
+- Future work or improvements needed
+- Context for next session
+
+*Edit this log to add session-specific details before final commit.*
+"""
+    
+    return log_content
 
 def run_script(script_name, description):
     """Run a script and return output"""
@@ -191,7 +288,7 @@ def main():
             print("   Consider running: .github/prompts/akis-workflow-analyzer.md")
             summary["maintenance_due"] = True
     
-    # Step 4: Workflow log (auto-create if changes detected)
+    # Step 4: Workflow log (auto-create and fill if changes detected)
     summary["has_changes"] = check_git_changes()
     if summary["has_changes"]:
         # Auto-detect task name from branch
@@ -212,18 +309,16 @@ def main():
         log_file = Path(f"log/workflow/{timestamp}_{task_name}.md")
         log_file.parent.mkdir(parents=True, exist_ok=True)
         
-        # Use template
-        template = Path(".github/templates/workflow-log.md")
-        if template.exists():
-            content = template.read_text()
-            content = content.replace("{TASK_NAME}", task_name)
-            content = content.replace("{YYYY-MM-DD HH:MM}", datetime.now().strftime("%Y-%m-%d %H:%M"))
-            log_file.write_text(content)
-            print(f"\n▶️  Created workflow log: {log_file}")
-            print(f"   📝 Fill in details before committing")
-            summary["workflow_log"] = str(log_file)
-        else:
-            print("\n   ⚠️  Template not found, skipping log creation")
+        # Auto-fill workflow log with session data
+        log_file.write_text(generate_workflow_log(
+            task_name=task_name,
+            session_number=summary.get("session", "N"),
+            skills=summary.get("skills", [])
+        ))
+        
+        print(f"\n▶️  Created workflow log: {log_file}")
+        print(f"   📝 Auto-filled with session data - review and edit if needed")
+        summary["workflow_log"] = str(log_file)
     
     # Final Summary
     print("\n" + "="*70)
