@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NOP Agent - po_test_ifaces
-Generated: 2026-01-05T18:46:45.542634
+NOP Agent - c2_filter_Agent
+Generated: 2026-01-05T23:05:46.038013
 Type: Python Proxy Agent
 Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
@@ -9,7 +9,7 @@ This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
-Download URL: {BASE_URL}/api/v1/agents/download/Y2eXpiTGR5O_LPYsnFAb1fwCxyYBFNrZve3fY2gy4tM
+Download URL: {BASE_URL}/api/v1/agents/download/5wXUpdd4ZBfWIYHZl0SeTs4wXgpbC_XTGDGgNSlQGlQ
 
 INSTALLATION:
   pip3 install websockets psutil scapy cryptography netifaces
@@ -69,13 +69,13 @@ import base64
 import os
 
 # Agent Configuration
-AGENT_ID = "7b17de60-3e63-4951-831d-684cdfc9bd20"
-AGENT_NAME = "po_test_ifaces"
-AUTH_TOKEN = "CuJssIH9IcsKYUssk-FQVK4G1F9ZgyNkiquJBQHwTtM"
-ENCRYPTION_KEY = "mF0v-jGpK7VMwfNfG5P5xzusT3R8Mhd8cRJ1EZek_Ww"
-SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/7b17de60-3e63-4951-831d-684cdfc9bd20/connect"
+AGENT_ID = "7c7c59e1-6cc0-4d52-a272-2c312dcf2c68"
+AGENT_NAME = "c2_filter_Agent"
+AUTH_TOKEN = "dO7kVeMEsCuWwVh32On_-YhWyrywBIbA3oqwKTLgooM"
+ENCRYPTION_KEY = "FYInWpQBM7DrJEvUCo7P75fEooKIqwfSoExQsp-zw2g"
+SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/7c7c59e1-6cc0-4d52-a272-2c312dcf2c68/connect"
 CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': True}
-CONFIG = {'scan_subnet': '10.10.2.0/24', 'scan_timeout': 3, 'passive_discovery': True, 'sniff_interface': 'eth1'}
+CONFIG = {'connectback_interval': 10, 'heartbeat_interval': 10, 'data_interval': 10, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -275,7 +275,6 @@ class NOPAgent:
                 try:
                     if packet.haslayer(scapy.IP):
                         src_ip = packet[scapy.IP].src
-                        print(f"[{datetime.now()}] Passive discovery: captured packet from {src_ip}")
                         
                         # Extract MAC if available
                         src_mac = None
@@ -293,7 +292,6 @@ class NOPAgent:
                                 "method": "passive"
                             }
                             self.passive_hosts.append(host_info)
-                            print(f"[{datetime.now()}] Passive discovery: added host {src_ip}")
                 except Exception as e:
                     pass  # Silently ignore packet processing errors
             

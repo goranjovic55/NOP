@@ -42,7 +42,21 @@ async def get_system_info(
         # Return agent's host info from metadata
         agent = await AgentService.get_agent(db, agent_pov)
         if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
-            host_info = agent.agent_metadata['host_info']
+            host_info = agent.agent_metadata['host_info'].copy()
+            
+            # Transform 'interfaces' to 'network_interfaces' for frontend compatibility
+            if 'interfaces' in host_info:
+                host_info['network_interfaces'] = [
+                    {
+                        'name': iface['name'],
+                        'address': iface['ip']  # Map 'ip' to 'address'
+                    }
+                    for iface in host_info['interfaces']
+                    if not iface['ip'].startswith('127.')  # Skip loopback like C2 does
+                ]
+                # Keep original interfaces for other uses
+                # del host_info['interfaces']
+            
             # Add source indicator
             host_info['_source'] = 'agent'
             host_info['_agent_id'] = str(agent.id)
@@ -224,10 +238,20 @@ async def get_system_metrics(
 
 @router.get("/system/processes")
 async def get_processes(
+    request: Request,
     current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     limit: int = 50
 ) -> List[Dict[str, Any]]:
-    """Get list of running processes"""
+    """Get list of running processes (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty list for agent POV (processes not tracked from agent yet)
+        return []
+    
+    # Default: return local C2 server processes
     try:
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent', 'status']):
@@ -253,10 +277,20 @@ async def get_processes(
 
 @router.get("/system/connections")
 async def get_network_connections(
+    request: Request,
     current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     limit: int = 50
 ) -> List[Dict[str, Any]]:
-    """Get list of network connections (netstat-like)"""
+    """Get list of network connections (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty list for agent POV (connections not tracked from agent yet)
+        return []
+    
+    # Default: return local C2 server connections
     try:
         connections = []
         for conn in psutil.net_connections(kind='inet'):
@@ -285,8 +319,8 @@ async def get_network_connections(
             except (AttributeError, OSError):
                 continue
         
-        # Sort by status (ESTABLISHED first, then LISTEN)
-        status_order = {"ESTABLISHED": 0, "LISTEN": 1, "TIME_WAIT": 2}
+        # Sort by status (ESTABLISHED first)
+        status_order = {"ESTABLISHED": 0, "LISTEN": 1, "TIME_WAIT": 2, "CLOSE_WAIT": 3}
         connections.sort(key=lambda x: status_order.get(x['status'], 99))
         return connections[:limit]
     except Exception as e:
@@ -295,9 +329,19 @@ async def get_network_connections(
 
 @router.get("/system/disk-io")
 async def get_disk_io(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get disk I/O statistics"""
+    """Get disk I/O statistics (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty dict for agent POV (disk I/O not tracked from agent yet)
+        return {}
+    
+    # Default: return local C2 server disk I/O
     try:
         disk_io = psutil.disk_io_counters(perdisk=True)
         result = {}
@@ -318,9 +362,28 @@ async def get_disk_io(
 @router.get("/filesystem/browse")
 async def browse_filesystem(
     path: str = "/",
-    current_user: Dict = Depends(get_current_user)
+    request: Request = None,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Browse filesystem directory"""
+    """Browse filesystem directory (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request) if request else None
+    
+    if agent_pov:
+        # POV mode: return message that filesystem browsing requires SOCKS proxy
+        return {
+            "current_path": path,
+            "parent_path": None,
+            "items": [{
+                "name": "[Agent POV Mode]",
+                "path": path,
+                "type": "unknown",
+                "error": "Filesystem access requires SOCKS proxy connection to agent"
+            }]
+        }
+    
+    # Default: browse C2 server filesystem
     try:
         target_path = Path(path).resolve()
         
@@ -367,9 +430,24 @@ async def browse_filesystem(
 @router.get("/filesystem/read")
 async def read_file(
     path: str,
-    current_user: Dict = Depends(get_current_user)
+    request: Request = None,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Read file contents"""
+    """Read file contents (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request) if request else None
+    
+    if agent_pov:
+        # POV mode: return message that file access requires SOCKS proxy
+        return {
+            "path": path,
+            "content": "[Agent POV Mode] File access requires SOCKS proxy connection to agent",
+            "is_binary": False,
+            "size": 0
+        }
+    
+    # Default: read from C2 server filesystem
     try:
         target_path = Path(path).resolve()
         

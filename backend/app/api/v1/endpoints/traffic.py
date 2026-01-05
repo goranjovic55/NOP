@@ -54,7 +54,9 @@ async def get_interfaces(
                 
                 logger.info(f"[INTERFACES] Returning {len(agent_interfaces)} agent interfaces with activity")
                 return agent_interfaces
-        logger.info("[INTERFACES] No agent interfaces found, returning C2 interfaces")
+        # POV mode but no agent data - return empty list, don't fallback to C2
+        logger.info("[INTERFACES] POV mode active but no agent data available, returning empty list")
+        return []
     
     # Default: return C2 server's interfaces
     logger.info("[INTERFACES] No POV mode, returning C2 interfaces")

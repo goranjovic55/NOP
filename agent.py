@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NOP Agent - pov_terminal_test
-Generated: 2026-01-05T21:34:09.350850
+NOP Agent - fresh_pov_test
+Generated: 2026-01-05T22:14:38.145113
 Type: Python Proxy Agent
 Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
@@ -9,7 +9,7 @@ This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
-Download URL: {BASE_URL}/api/v1/agents/download/fTk4QJeZv205Zqh9r9br-FDuo-dpybkv7FYJVe8BnFw
+Download URL: {BASE_URL}/api/v1/agents/download/_Z7kNWVaaO0hf23YyzqcyLmiEO9fnX7HdLVCMPJqGZE
 
 INSTALLATION:
   pip3 install websockets psutil scapy cryptography netifaces
@@ -69,13 +69,13 @@ import base64
 import os
 
 # Agent Configuration
-AGENT_ID = "0bf97e46-29bb-470d-9632-d8e0a0d62a58"
-AGENT_NAME = "pov_terminal_test"
-AUTH_TOKEN = "8_BlxdjplKzYCwU_W7bmqMzZlLlwg5YTYbZQlVUqdFU"
-ENCRYPTION_KEY = "8DQ6j8llUEKqbJB7U5zf0BX0R7YiQLcDUqnwp5pF9SY"
-SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/0bf97e46-29bb-470d-9632-d8e0a0d62a58/connect"
-CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': True}
-CONFIG = {'connectback_interval': 30, 'heartbeat_interval': 30, 'data_interval': 60, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1}
+AGENT_ID = "73042a64-76f4-4209-9b3c-e2f7b087859e"
+AGENT_NAME = "fresh_pov_test"
+AUTH_TOKEN = "ghIDpQmPkkbJO82qO8T0KNNB_IgmCuE7RmPV6-uy8Og"
+ENCRYPTION_KEY = "W4BrjyTwmBqWv3LadauNJmzXszv7vkW8krSimwa5koc"
+SERVER_URL = "http://backend:8000"
+CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': False}
+CONFIG = {}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""

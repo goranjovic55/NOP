@@ -144,6 +144,82 @@ async def delete_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
 
 
+@router.post("/{agent_id}/kill")
+async def kill_agent(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kill agent process and delete from database (forceful termination)"""
+    agent_id_str = str(agent_id)
+    
+    # Forcefully close websocket connection
+    if agent_id_str in connected_agents:
+        try:
+            websocket = connected_agents[agent_id_str]
+            await websocket.send_json({
+                "type": "terminate",
+                "message": "Forceful termination by C2"
+            })
+            await websocket.close()
+            del connected_agents[agent_id_str]
+        except:
+            pass
+    
+    # Clean up SOCKS proxy
+    if agent_id_str in agent_socks_proxies:
+        try:
+            proxy = agent_socks_proxies[agent_id_str]
+            proxy.stop()
+            del agent_socks_proxies[agent_id_str]
+        except:
+            pass
+    
+    # Delete from database
+    success = await AgentService.delete_agent(db, agent_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    return {"status": "killed", "agent_id": str(agent_id), "message": "Agent terminated and removed"}
+
+
+@router.post("/kill-all")
+async def kill_all_agents(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kill all agents and remove them from database"""
+    agents = await AgentService.get_agents(db)
+    killed_count = 0
+    
+    for agent in agents:
+        agent_id_str = str(agent.id)
+        
+        # Forcefully close websocket
+        if agent_id_str in connected_agents:
+            try:
+                websocket = connected_agents[agent_id_str]
+                await websocket.send_json({"type": "terminate", "message": "Mass termination"})
+                await websocket.close()
+                del connected_agents[agent_id_str]
+            except:
+                pass
+        
+        # Clean up SOCKS proxy
+        if agent_id_str in agent_socks_proxies:
+            try:
+                agent_socks_proxies[agent_id_str].stop()
+                del agent_socks_proxies[agent_id_str]
+            except:
+                pass
+        
+        # Delete from database
+        await AgentService.delete_agent(db, agent.id)
+        killed_count += 1
+    
+    return {"status": "success", "killed": killed_count, "message": f"Terminated and removed {killed_count} agents"}
+
+
 @router.post("/{agent_id}/generate", response_model=AgentGenerateResponse)
 async def generate_agent(
     agent_id: UUID,

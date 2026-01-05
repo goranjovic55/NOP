@@ -231,7 +231,7 @@ const Host: React.FC = () => {
   const fetchProcesses = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getProcesses(token, 15);
+      const data = await hostService.getProcesses(token, 15, activeAgent?.id);
       setProcesses(data);
     } catch (error) {
       console.error('Failed to fetch processes:', error);
@@ -241,7 +241,7 @@ const Host: React.FC = () => {
   const fetchConnections = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getNetworkConnections(token, 20);
+      const data = await hostService.getNetworkConnections(token, 20, activeAgent?.id);
       setConnections(data);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
@@ -251,7 +251,7 @@ const Host: React.FC = () => {
   const fetchDiskIO = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getDiskIO(token);
+      const data = await hostService.getDiskIO(token, activeAgent?.id);
       setDiskIO(data);
     } catch (error) {
       console.error('Failed to fetch disk I/O:', error);
@@ -261,7 +261,7 @@ const Host: React.FC = () => {
   const browseDirectory = async (path: string) => {
     if (!token) return;
     try {
-      const data = await hostService.browseFileSystem(token, path);
+      const data = await hostService.browseFileSystem(token, path, activeAgent?.id);
       setCurrentPath(data.current_path);
       setFileItems(data.items);
     } catch (error) {
@@ -274,7 +274,7 @@ const Host: React.FC = () => {
       setCurrentPath(item.path);
     } else if (item.type === 'file' && token) {
       try {
-        const content = await hostService.readFile(token, item.path);
+        const content = await hostService.readFile(token, item.path, activeAgent?.id);
         setSelectedFile(item.path);
         setFileContent(content.content);
         setEditMode(false);
@@ -287,7 +287,7 @@ const Host: React.FC = () => {
   const handleSaveFile = async () => {
     if (!token || !selectedFile) return;
     try {
-      await hostService.writeFile(token, selectedFile, fileContent);
+      await hostService.writeFile(token, selectedFile, fileContent, activeAgent?.id);
       setEditMode(false);
       alert('File saved successfully');
     } catch (error) {

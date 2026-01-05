@@ -102,12 +102,33 @@ class AgentDataService:
             Success status
         """
         try:
-            # For now, we'll store aggregate stats
-            # In a real implementation, you might store this differently
-            # or update flow records with agent data
+            # Store traffic data in agent_metadata for POV interface access
+            from app.models.agent import Agent
+            from sqlalchemy import select
+            from sqlalchemy.orm.attributes import flag_modified
+            from datetime import datetime
             
-            # This is a placeholder - you might want to create a separate
-            # AgentStats table or update flows with agent context
+            result = await db.execute(
+                select(Agent).where(Agent.id == agent_id)
+            )
+            agent = result.scalar_one_or_none()
+            
+            if agent:
+                if not agent.agent_metadata:
+                    agent.agent_metadata = {}
+                
+                # Store interfaces for POV mode
+                print(f"[TRAFFIC INGEST] Traffic data keys: {traffic.keys()}")
+                if 'interfaces' in traffic:
+                    print(f"[TRAFFIC INGEST] Storing {len(traffic['interfaces'])} interfaces")
+                    agent.agent_metadata['interfaces'] = traffic['interfaces']
+                    agent.agent_metadata['last_traffic_update'] = datetime.utcnow().isoformat()
+                    # Mark JSONB field as modified for SQLAlchemy
+                    flag_modified(agent, 'agent_metadata')
+                else:
+                    print(f"[TRAFFIC INGEST] No 'interfaces' key in traffic data")
+                
+                await db.commit()
             
             return True
         except Exception as e:
@@ -135,6 +156,7 @@ class AgentDataService:
             # Update agent metadata with host info
             from app.models.agent import Agent
             from sqlalchemy import select
+            from sqlalchemy.orm.attributes import flag_modified
             
             result = await db.execute(
                 select(Agent).where(Agent.id == agent_id)
@@ -147,6 +169,8 @@ class AgentDataService:
                 
                 agent.agent_metadata['host_info'] = host_info
                 agent.agent_metadata['last_host_update'] = datetime.utcnow().isoformat()
+                # Mark JSONB field as modified for SQLAlchemy
+                flag_modified(agent, 'agent_metadata')
                 
                 await db.commit()
                 return True
