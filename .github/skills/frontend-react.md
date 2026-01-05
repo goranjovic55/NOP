@@ -55,6 +55,32 @@ docker-compose build frontend  # <-- DON'T DO THIS
 - ❌ Direct DOM manipulation → ✅ Use React refs
 - ❌ Large component files → ✅ Extract subcomponents
 
+### POV (Point of View) Mode Pattern
+**Use when:** Agent-specific data filtering, multi-tenant isolation
+
+```tsx
+// Context-based filtering
+import { usePOV, getPOVHeaders } from '../context/POVContext';
+
+const MyComponent = () => {
+  const { activeAgent } = usePOV();
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch('/api/data', {
+        headers: {
+          ...getPOVHeaders(activeAgent),  // Adds X-Agent-POV header
+          Authorization: `Bearer ${token}`
+        }
+      });
+    };
+    fetchData();
+  }, [token, activeAgent]);  // Include activeAgent in deps!
+};
+```
+
+**Critical:** Add `activeAgent` to dependencies to prevent stale closures
+
 React components with TypeScript and hooks.
 
 ## Checklist

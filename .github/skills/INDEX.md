@@ -26,12 +26,12 @@ Quick reference for common problems → solutions. Query skills during work when
 ## By Technology
 
 ### Backend Development
-- API patterns: TBD (create when pattern emerges)
-- Database: TBD (create when pattern emerges)
+- **API patterns:** [backend-api.md](backend-api.md) - CRUD, services, agent config, websocket persistence
+- **Database:** INET casting in backend-api.md
 
 ### Frontend Development
-- Component patterns: TBD (create when pattern emerges)
-- State management: TBD (create when pattern emerges)
+- **Component patterns:** [frontend-react.md](frontend-react.md) - Components, hooks, POV mode
+- **State management:** Context-based filtering in frontend-react.md
 
 ### DevOps
 - Docker/containers: TBD (create when pattern emerges)

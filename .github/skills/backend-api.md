@@ -96,6 +96,79 @@ class ItemResponse(ItemBase):
         from_attributes = True
 ```
 
+### Agent Configuration via Metadata
+**Use when:** Dynamic agent behavior without code redeployment
+
+```python
+# 1. Store config in agent_metadata (JSON field)
+agent.agent_metadata = {
+    "scan_subnet": "10.10.2.0/24",
+    "passive_discovery": True,
+    "scan_timeout": 300
+}
+db.commit()
+
+# 2. Inject into agent template
+config_repr = repr(agent.agent_metadata)
+agent_code = f'''CONFIG = {config_repr}
+
+class Agent:
+    def __init__(self):
+        self.config = CONFIG
+    
+    def discover(self):
+        subnet = self.config.get("scan_subnet", "192.168.1.0/24")
+'''
+
+# 3. Agent reads at runtime (no redeployment needed)
+```
+
+### WebSocket State Persistence
+**Use when:** Real-time data needs REST API access
+
+```python
+# WebSocket handler - receive ephemeral data
+@router.websocket("/ws/agent/{agent_id}")
+async def websocket_endpoint(websocket: WebSocket, agent_id: str, db: AsyncSession):
+    data = await websocket.receive_json()
+    
+    if data["type"] == "host_data":
+        # Store in persistent database field
+        agent = await db.get(Agent, agent_id)
+        agent.agent_metadata["host_info"] = data["data"]
+        await db.commit()
+
+# REST endpoint - query persistent data
+@router.get("/interfaces")
+async def get_interfaces(agent_pov: str | None, db: AsyncSession):
+    if agent_pov:
+        agent = await db.get(Agent, agent_pov)
+        return agent.agent_metadata.get("host_info", {}).get("interfaces", [])
+    # ... C2 interfaces
+```
+
+### Database INET Type Casting
+**Use when:** Querying PostgreSQL network types (INET, CIDR)
+
+```python
+from sqlalchemy import cast, String
+from sqlalchemy.dialects.postgresql import INET
+
+# ❌ WRONG - Type mismatch error
+result = await db.execute(
+    select(Asset).where(Asset.ip == ip_string)
+)
+
+# ✅ CORRECT - Cast for comparison
+result = await db.execute(
+    select(Asset).where(cast(Asset.ip, String) == ip_string)
+)
+# OR cast input
+result = await db.execute(
+    select(Asset).where(Asset.ip == cast(ip_string, INET))
+)
+```
+
 ## Related Skills
 - `debugging.md` - Troubleshooting endpoints
 - `frontend-react.md` - API integration patterns
