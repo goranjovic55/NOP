@@ -58,17 +58,28 @@ Audit, organize, and optimize any project component (documentation, skills, code
    - **archive/** - Historical/deprecated documentation
 
 2. Identify optimization opportunities:
-   - Documents to merge (same topic, redundant content)
+   - **Documents/Skills to merge** (same topic, redundant content, >50% overlap)
+   - **Scattered components** to consolidate into single source
    - Verbose sections to condense (>500 lines, repetitive)
    - Missing template sections to add
    - Content to make more terse (paragraphs → bullets)
 
+3. **Prioritize merging/consolidation**:
+   - Map duplicate content: Which files cover same topic?
+   - Identify canonical source: Which version is most complete/recent?
+   - Plan archive strategy: Move old versions to archive/ with date stamp
+   - Update cross-references: Note all docs that link to merged files
+
 3. Create checklist:
    - [ ] Audit complete with metrics
+   - [ ] **Merging/consolidation plan created**
+   - [ ] **Duplicate content merged**
+   - [ ] **Old versions archived**
    - [ ] Feature docs standardized
    - [ ] Guide docs standardized  
    - [ ] Technical docs updated
    - [ ] INDEX.md created/updated
+   - [ ] **All cross-references updated**
    - [ ] Template compliance verified
 
 **Output:** Actionable checklist with prioritized items
@@ -80,6 +91,45 @@ Audit, organize, and optimize any project component (documentation, skills, code
 **Objective:** Update documents to match templates
 
 **Steps:**
+
+#### 3.0 Merge & Consolidate (Priority Step)
+
+**Before applying templates, consolidate duplicate content:**
+
+1. **Identify merge candidates:**
+   - Documents covering same topic (e.g., multiple deployment guides)
+   - Skills with >50% overlapping content
+   - Code modules with duplicate functions
+   - Framework components with similar purposes
+
+2. **Consolidation process:**
+   ```bash
+   # Example for documentation
+   # 1. Identify best source (most complete/recent)
+   # 2. Extract unique content from others
+   # 3. Merge into single canonical document
+   # 4. Archive old versions with datestamp
+   
+   mkdir -p docs/archive/deployment-docs-2026-01-05/
+   mv docs/old-deploy-v1.md docs/archive/deployment-docs-2026-01-05/
+   mv docs/old-deploy-v2.md docs/archive/deployment-docs-2026-01-05/
+   # Keep only docs/DEPLOYMENT.md with merged content
+   ```
+
+3. **Update cross-references:**
+   - Find all links to merged files: `grep -r "old-deploy" docs/`
+   - Update to point to new canonical source
+   - Add redirect notes in archived files
+
+4. **Document consolidation:**
+   - Note in INDEX.md: "Consolidated from: file1, file2, file3"
+   - Keep archive notes for historical reference
+   - Update changelog with merge details
+
+**Example consolidations:**
+- 7 agent docs → `features/AGENTS_C2.md`
+- 4 deployment docs → `guides/DEPLOYMENT.md`
+- Multiple overlapping skills → single comprehensive skill
 
 #### 3.1 Feature Documentation
 Template: `.github/templates/feature-doc.md`
@@ -324,28 +374,53 @@ grep -l "Document Version" docs/**/*.md
 
 ## Success Criteria
 
-✅ All documents inventoried and categorized by theme
-✅ Template compliance >80% for core documentation
-✅ Comprehensive INDEX.md with navigation and summaries
+✅ All components inventoried and categorized by theme
+✅ **Duplicate/redundant content identified and merged**
+✅ **Old versions archived with datestamps**
+✅ Template compliance >80% for core components
+✅ Comprehensive INDEX/map with navigation and summaries
 ✅ Content reduced by 60-70% while maintaining clarity
 ✅ All documents have version footers (vX.Y | YYYY-MM-DD | Status)
-✅ No broken internal links
+✅ **No broken internal links after merging**
+✅ **Cross-references updated to canonical sources**
 ✅ Consistent formatting (bullets, tables, code blocks)
 ✅ Quick Start sections for practical value
 
 ---
 
-## Consolidation Patterns
+## Consolidation & Merging Patterns
 
-### Pattern: Verbose Feature Documentation
-**Symptom:** Feature docs >400 lines with detailed explanations
-**Action:** Extract key points, use bullets, add Quick Start
-**Example:** IMPLEMENTED_FEATURES: 471→180 lines (62% reduction)
+### Pattern: Duplicate Documentation/Skills
+**Symptom:** Multiple files/components covering same topic or functionality
+**Action:** 
+1. Identify best canonical source (most complete, recent, well-structured)
+2. Extract unique content from duplicates
+3. Merge into single authoritative source
+4. Archive old versions: `component-archive-YYYY-MM-DD/`
+5. Update all cross-references
+6. Note consolidation in INDEX/changelog
+
+**Example:** 7 agent docs → `features/AGENTS_C2.md` (consolidated with archive)
+
+### Pattern: Overlapping Skills/Code
+**Symptom:** Similar patterns/functions with >50% overlap
+**Action:**
+1. Compare content/functionality side-by-side
+2. Merge into comprehensive version with all patterns
+3. Remove redundant files
+4. Update references in instructions/imports
+
+**Example:** `frontend-components.md` + `ui-patterns.md` → `frontend-react.md`
 
 ### Pattern: Scattered Documentation
 **Symptom:** Multiple docs covering same topic
 **Action:** Consolidate into single source, archive old versions
 **Example:** 7 agent docs → features/AGENTS_C2.md
+
+### Pattern: Verbose Feature Documentation
+**Symptom:** Feature docs >400 lines with detailed explanations
+**Action:** Extract key points, use bullets, add Quick Start
+**Example:** IMPLEMENTED_FEATURES: 471→180 lines (62% reduction)
 
 ### Pattern: Missing Templates
 **Symptom:** Documents without standard sections
@@ -366,20 +441,29 @@ grep -l "Document Version" docs/**/*.md
 
 ## Anti-Patterns to Avoid
 
+❌ **Merging without archiving:** Don't delete old versions permanently
+✅ Archive with datestamp: `archive/component-YYYY-MM-DD/`
+
+❌ **Losing unique content:** Don't merge without extracting all valuable info
+✅ Review each file, extract unique sections before merging
+
 ❌ **Over-condensing:** Don't remove essential information
 ✅ Keep key details, remove only redundancy
 
-❌ **Breaking links:** Don't move files without updating references
-✅ Update INDEX.md and all cross-references
+❌ **Breaking links:** Don't move/merge files without updating references
+✅ Update INDEX.md and all cross-references, add redirect notes
 
 ❌ **Template rigidity:** Don't force templates where inappropriate
 ✅ Adapt templates for different document types (catalog vs feature)
 
-❌ **Ignoring existing structure:** Don't reorganize well-organized docs
-✅ Focus on problematic areas, leave good docs alone
+❌ **Ignoring existing structure:** Don't reorganize well-organized components
+✅ Focus on problematic areas, leave good organization alone
 
-❌ **No version tracking:** Don't update docs without version footers
+❌ **No version tracking:** Don't update without version footers
 ✅ Always add version, date, and status to documents
+
+❌ **Silent consolidation:** Don't merge without documenting what was merged
+✅ Note in INDEX: "Consolidated from: file1, file2, file3"
 
 ---
 
