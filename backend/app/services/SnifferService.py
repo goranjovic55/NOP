@@ -11,15 +11,11 @@ import os
 import socket
 import struct
 from app.utils.validators import NetworkValidator
+from app.utils import constants as const
 
 logger = logging.getLogger(__name__)
 
 class SnifferService:
-    # Constants for packet crafting
-    PACKET_SEND_TIMEOUT = 3  # seconds
-    RESPONSE_HEX_MAX_LENGTH = 200  # characters
-    STORM_THREAD_STOP_TIMEOUT = 2.0  # seconds
-    
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
@@ -28,7 +24,7 @@ class SnifferService:
         self.interface: Optional[str] = None
         self.filter: Optional[str] = None
         self.captured_packets = []
-        self.max_stored_packets = 1000
+        self.max_stored_packets = const.MAX_STORED_PACKETS
         self.stats = {
             "total_flows": 0,
             "total_bytes": 0,
@@ -41,10 +37,10 @@ class SnifferService:
         self.last_bytes_check = 0
         self.last_if_stats = {}
         self.discovered_hosts = {}  # Format: {ip_address: {"first_seen": timestamp, "last_seen": timestamp, "mac_address": mac}}
-        self.track_source_only = True  # Default to safer mode (source IPs only)
-        self.filter_unicast = False  # Don't filter unicast by default (allows passive listener detection)
-        self.filter_multicast = True  # Filter multicast by default
-        self.filter_broadcast = True  # Filter broadcast by default
+        self.track_source_only = const.DEFAULT_TRACK_SOURCE_ONLY
+        self.filter_unicast = const.DEFAULT_FILTER_UNICAST
+        self.filter_multicast = const.DEFAULT_FILTER_MULTICAST
+        self.filter_broadcast = const.DEFAULT_FILTER_BROADCAST
         
         # Storm-related attributes
         self.is_storming = False
@@ -938,7 +934,7 @@ class SnifferService:
             # Single packet mode - wait for response
             try:
                 # sr1 sends packet and receives first response
-                response = sr1(packet, timeout=self.PACKET_SEND_TIMEOUT, verbose=0)
+                response = sr1(packet, timeout=const.PACKET_SEND_TIMEOUT, verbose=0)
                 elapsed = time.time() - start_time
                 
                 if response:
@@ -952,7 +948,7 @@ class SnifferService:
                         "source": None,
                         "destination": None,
                         "length": len(response),
-                        "raw_hex": response.build().hex()[:self.RESPONSE_HEX_MAX_LENGTH]
+                        "raw_hex": response.build().hex()[:const.RESPONSE_HEX_MAX_LENGTH]
                     }
                     
                     if IP in response:
@@ -986,7 +982,7 @@ class SnifferService:
                         "trace": trace
                     }
                 else:
-                    trace.append(f"No response received (timeout: {self.PACKET_SEND_TIMEOUT}s)")
+                    trace.append(f"No response received (timeout: {const.PACKET_SEND_TIMEOUT}s)")
                     return {
                         "success": True,
                         "sent_packet": {
@@ -1038,18 +1034,17 @@ class SnifferService:
                 }
             
             # Validate PPS
-            if not isinstance(pps, int) or pps < 1 or pps > 10000000:
+            if not isinstance(pps, int) or pps < const.MIN_PPS or pps > const.MAX_PPS:
                 return {
                     "success": False,
-                    "error": "PPS must be between 1 and 10,000,000"
+                    "error": f"PPS must be between {const.MIN_PPS} and {const.MAX_PPS:,}"
                 }
             
             # Validate packet type
-            valid_types = ["broadcast", "multicast", "tcp", "udp", "raw_ip"]
-            if packet_type not in valid_types:
+            if packet_type not in const.VALID_PACKET_TYPES:
                 return {
                     "success": False,
-                    "error": f"Invalid packet type. Must be one of: {', '.join(valid_types)}"
+                    "error": f"Invalid packet type. Must be one of: {', '.join(const.VALID_PACKET_TYPES)}"
                 }
             
             # Validate ports for TCP/UDP
@@ -1428,7 +1423,7 @@ class SnifferService:
         self.is_storming = False
         
         if self.storm_thread:
-            self.storm_thread.join(timeout=self.STORM_THREAD_STOP_TIMEOUT)
+            self.storm_thread.join(timeout=const.STORM_THREAD_STOP_TIMEOUT)
         
         return {
             "success": True,
