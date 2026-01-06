@@ -253,11 +253,6 @@ const Agents: React.FC = () => {
       alert('Failed to send kill command to agent');
     }
   };
-    } catch (error) {
-      console.error('Failed to terminate agent:', error);
-      alert(`Failed to terminate agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const handleGenerateAgent = async (agent: Agent, platform?: string) => {
     if (!token) return;
