@@ -146,6 +146,17 @@ export const agentService = {
     return response.json();
   },
 
+  async killAgent(token: string, agentId: string): Promise<{ status: string; message?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/kill`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to kill agent');
+    return response.json();
+  },
+
   async generateAgent(token: string, agentId: string, platform?: string): Promise<{ content: string; filename: string; agent_type: string; is_binary?: boolean }> {
     let url = `${API_BASE_URL}/api/v1/agents/${agentId}/generate`;
     if (platform) {
