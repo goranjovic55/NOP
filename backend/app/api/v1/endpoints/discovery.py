@@ -80,7 +80,7 @@ async def start_discovery_scan(
     scan_id = str(uuid.uuid4())
     agent_pov = get_agent_pov(req)  # Get agent POV from request
     
-    logger.info(f"[SCAN] Starting scan {scan_id} - Network: {request.network}, POV: {agent_pov}")
+    logger.info(f"[SCAN] Starting scan {scan_id} - Network: {request.network}, Type: {request.scan_type}, POV: {agent_pov}")
     
     # Store scan info
     active_scans[scan_id] = {
@@ -291,10 +291,15 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest, agent_p
         
         if request.scan_type == "ping_only":
             hosts = await scanner.ping_sweep(request.network, proxy_port=proxy_port)
+            # Convert to format compatible with process_scan_results
             results = {
                 "network": request.network,
                 "live_hosts": hosts,
-                "total_hosts": len(hosts)
+                "total_hosts": len(hosts),
+                "hosts": [
+                    {"addresses": [{"addr": ip, "addrtype": "ipv4"}], "hostnames": [], "ports": [], "os": {}, "scripts": []}
+                    for ip in hosts
+                ]
             }
         elif is_single_host:
             # Single host scan - use port_scan directly with appropriate port range

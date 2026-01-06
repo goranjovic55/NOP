@@ -428,14 +428,19 @@ socks5 127.0.0.1 {socks_port}
             logger.error(f"Error processing nmap results: {str(e)}")
             return {"error": str(e)}
 
-    async def discover_network(self, network: str) -> Dict[str, Any]:
-        """Discover all hosts in a network"""
+    async def discover_network(self, network: str, proxy_port: Optional[int] = None) -> Dict[str, Any]:
+        """Discover all hosts in a network
+        
+        Args:
+            network: Network CIDR to scan
+            proxy_port: Optional SOCKS proxy port for agent POV mode
+        """
         try:
             # Validate network
             ipaddress.ip_network(network, strict=False)
 
-            # Perform ping sweep
-            live_hosts = await self.ping_sweep(network)
+            # Perform ping sweep (with proxy if POV mode)
+            live_hosts = await self.ping_sweep(network, proxy_port=proxy_port)
 
             result = {
                 "network": network,
@@ -450,7 +455,7 @@ socks5 127.0.0.1 {socks_port}
                     # Use -sn -PR for ARP scan if in same network, but nmap -sn is usually enough
                     # For detailed info we need at least some port scanning
                     # We use -Pn to skip ping since we already know it's alive
-                    host_result = await self.port_scan(host, "1-1000")
+                    host_result = await self.port_scan(host, "1-1000", proxy_port=proxy_port)
                     
                     if "error" not in host_result and host_result.get("hosts"):
                         result["hosts"].extend(host_result.get("hosts", []))

@@ -98,10 +98,22 @@ const Assets: React.FC = () => {
     activeScanIdRef.current = activeScanId;
   }, [activeScanId]);
 
-  // Fetch agent settings when in POV mode and update network range
+  // Fetch agent settings when in POV mode, reset to C2 settings when leaving POV
   useEffect(() => {
     const fetchAgentSettings = async () => {
-      if (!activeAgent || !token) return;
+      if (!activeAgent || !token) {
+        // Not in POV mode - restore C2 settings from localStorage
+        const saved = localStorage.getItem('nop_scan_settings');
+        if (saved) {
+          try {
+            const c2Settings = JSON.parse(saved);
+            setScanSettings(c2Settings);
+          } catch (e) {
+            // Keep current settings if parse fails
+          }
+        }
+        return;
+      }
       
       try {
         const response = await axios.get('/api/v1/agent-settings/current/settings', {
@@ -111,14 +123,18 @@ const Assets: React.FC = () => {
           }
         });
         
-        // Get network_range from agent's discovery settings
-        const agentNetworkRange = response.data?.discovery?.network_range;
-        if (agentNetworkRange) {
-          setScanSettings(prev => ({
-            ...prev,
-            networkRange: agentNetworkRange
-          }));
-        }
+        // Get settings from agent's discovery settings
+        const discovery = response.data?.discovery || {};
+        setScanSettings(prev => ({
+          ...prev,
+          networkRange: discovery.network_range || prev.networkRange,
+          pps: discovery.packets_per_second || prev.pps,
+          manualScanType: discovery.discovery_method === 'ping' ? 'ping' : 'arp',
+          autoScanType: discovery.discovery_method === 'ping' ? 'ping' : 'arp',
+          autoScanEnabled: discovery.discovery_enabled || false,
+          autoScanInterval: Math.round((discovery.discovery_interval || 300) / 60),
+          passiveDiscoveryEnabled: discovery.passive_discovery || false
+        }));
       } catch (err) {
         console.log('Could not fetch agent settings, using defaults');
       }
@@ -636,6 +652,8 @@ const Assets: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={scanSettings}
         onSave={handleSaveSettings}
+        activeAgent={activeAgent}
+        token={token ?? undefined}
       />
     </div>
   );

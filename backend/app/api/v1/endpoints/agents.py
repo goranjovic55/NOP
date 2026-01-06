@@ -358,6 +358,49 @@ async def agent_websocket(
                 if msg_type == "register":
                     # Agent registration
                     print(f"Agent {agent.name} registered: {message}")
+                    
+                    # Extract agent IP and auto-generate /24 network for discovery
+                    # Prefer internal network IPs (10.x, 192.168.x) over Docker bridge IPs (172.x)
+                    system_info = message.get("system_info", {})
+                    agent_ip = system_info.get("ip_address")
+                    
+                    # Check interfaces for better IP if available (from host_info)
+                    host_info = agent.agent_metadata.get("host_info", {})
+                    interfaces = host_info.get("interfaces", [])
+                    if interfaces:
+                        for iface in interfaces:
+                            ip = iface.get("ip")
+                            if ip and iface.get("status") == "up" and iface.get("name") != "lo":
+                                # Prefer 10.x or 192.168.x networks
+                                if ip.startswith("10.") or ip.startswith("192.168."):
+                                    agent_ip = ip
+                                    break
+                    
+                    if agent_ip:
+                        try:
+                            import ipaddress
+                            ip_obj = ipaddress.ip_address(agent_ip)
+                            # Calculate /24 subnet from agent IP
+                            network = ipaddress.ip_network(f"{agent_ip}/24", strict=False)
+                            default_network = str(network)
+                            
+                            # Store in settings if not already set
+                            if "settings" not in agent.agent_metadata:
+                                agent.agent_metadata["settings"] = {}
+                            if "discovery" not in agent.agent_metadata["settings"]:
+                                agent.agent_metadata["settings"]["discovery"] = {}
+                            
+                            # Set default network range from agent's subnet (always update to preferred IP)
+                            agent.agent_metadata["settings"]["discovery"]["network_range"] = default_network
+                            logger.info(f"Auto-configured discovery network {default_network} from agent IP {agent_ip}")
+                            
+                            # Store agent IP for reference
+                            agent.agent_metadata["agent_ip"] = agent_ip
+                            flag_modified(agent, "agent_metadata")
+                            await db.commit()
+                        except Exception as e:
+                            logger.warning(f"Could not parse agent IP {agent_ip}: {e}")
+                    
                     await websocket.send_json({
                         "type": "registered",
                         "status": "success"
@@ -544,6 +587,36 @@ async def agent_websocket_endpoint(
         if not agent.agent_metadata:
             agent.agent_metadata = {}
         agent.agent_metadata["socks_proxy_port"] = socks_port
+        
+        # Extract agent IP and auto-generate /24 network for discovery
+        system_info = message.get("system_info", {})
+        agent_ip = system_info.get("ip_address")
+        logger.info(f"Agent registration - system_info: {system_info}, agent_ip: {agent_ip}")
+        if agent_ip:
+            try:
+                import ipaddress
+                ip_obj = ipaddress.ip_address(agent_ip)
+                # Calculate /24 subnet from agent IP
+                network = ipaddress.ip_network(f"{agent_ip}/24", strict=False)
+                default_network = str(network)
+                logger.info(f"Calculated network {default_network} from IP {agent_ip}")
+                
+                # Store in settings if not already set
+                if "settings" not in agent.agent_metadata:
+                    agent.agent_metadata["settings"] = {}
+                if "discovery" not in agent.agent_metadata["settings"]:
+                    agent.agent_metadata["settings"]["discovery"] = {}
+                
+                # Set default network range from agent's subnet
+                if not agent.agent_metadata["settings"]["discovery"].get("network_range"):
+                    agent.agent_metadata["settings"]["discovery"]["network_range"] = default_network
+                    logger.info(f"Auto-configured discovery network {default_network} from agent IP {agent_ip}")
+                
+                # Store agent IP for reference
+                agent.agent_metadata["agent_ip"] = agent_ip
+            except Exception as e:
+                logger.warning(f"Could not parse agent IP {agent_ip}: {e}")
+        
         flag_modified(agent, "agent_metadata")  # Tell SQLAlchemy JSON was modified
         await db.commit()
         
