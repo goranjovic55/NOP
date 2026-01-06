@@ -371,16 +371,96 @@ async def browse_filesystem(
     agent_pov = get_agent_pov(request) if request else None
     
     if agent_pov:
-        # POV mode: return message that filesystem browsing requires SOCKS proxy
+        # Get agent to check SOCKS proxy status
+        from uuid import UUID
+        agent_id = agent_pov if isinstance(agent_pov, UUID) else UUID(agent_pov)
+        agent = await AgentService.get_agent(db, agent_id)
+        socks_port = None
+        if agent and agent.agent_metadata:
+            socks_port = agent.agent_metadata.get("socks_proxy_port")
+        
+        # POV mode: return instructions for filesystem access via SOCKS proxy
+        instructions = {
+            "name": "📁 Agent POV Mode - Filesystem Access Instructions",
+            "path": path,
+            "type": "instructions",
+            "instructions": []
+        }
+        
+        if socks_port:
+            instructions["instructions"] = [
+                {
+                    "title": "✓ SOCKS Proxy Active",
+                    "detail": f"127.0.0.1:{socks_port}",
+                    "type": "success"
+                },
+                {
+                    "title": "🗂️ FILESYSTEM ACCESS VIA SOCKS PROXY",
+                    "type": "header"
+                },
+                {
+                    "title": "Method 1: SFTP over SOCKS",
+                    "detail": f"sftp -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target",
+                    "type": "command"
+                },
+                {
+                    "title": "Method 2: SCP over SOCKS",
+                    "detail": f"scp -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target:/path/file .",
+                    "type": "command"
+                },
+                {
+                    "title": "Method 3: Mount via SSHFS + SOCKS",
+                    "detail": f"sshfs -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target:/path /mnt/point",
+                    "type": "command"
+                },
+                {
+                    "title": "Method 4: rsync over SOCKS",
+                    "detail": f"rsync -e \"ssh -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p'\" user@target:/path .",
+                    "type": "command"
+                },
+                {
+                    "title": "🎯 Example Targets",
+                    "type": "header"
+                },
+                {
+                    "title": "SSH/SFTP Server",
+                    "detail": "10.10.1.10 (user: debian, pass: password)",
+                    "type": "target"
+                },
+                {
+                    "title": "File Server",
+                    "detail": "10.10.1.60 (SMB/CIFS via smbclient + SOCKS)",
+                    "type": "target"
+                },
+                {
+                    "title": "FTP Server",
+                    "detail": "10.10.1.70 (use ProxyChains: proxychains4 ftp 10.10.1.70)",
+                    "type": "target"
+                },
+                {
+                    "title": "⚠️ Direct Filesystem Relay",
+                    "detail": "Direct browser-based filesystem access not implemented. Use SOCKS proxy methods above to browse and transfer files.",
+                    "type": "warning"
+                }
+            ]
+        else:
+            instructions["instructions"] = [
+                {
+                    "title": "✗ Agent Offline",
+                    "detail": "SOCKS proxy not available",
+                    "type": "error"
+                },
+                {
+                    "title": "Agent must be connected to access filesystem",
+                    "detail": "Check agent status on Agents page",
+                    "type": "info"
+                }
+            ]
+        
         return {
             "current_path": path,
             "parent_path": None,
-            "items": [{
-                "name": "[Agent POV Mode]",
-                "path": path,
-                "type": "unknown",
-                "error": "Filesystem access requires SOCKS proxy connection to agent"
-            }]
+            "items": [instructions]
         }
     
     # Default: browse C2 server filesystem
@@ -638,18 +718,43 @@ async def terminal_websocket(
             agent_uuid = UUID(agent_pov)
             agent = await AgentService.get_agent(db, agent_uuid)
             if agent:
-                # POV mode: show SOCKS proxy info
-                await websocket.send_text(f"\x1b[1;33m[Agent POV Mode: {agent.name}]\x1b[0m\r\n")
+                # POV mode: show SOCKS proxy info and detailed instructions
+                await websocket.send_text(f"\x1b[1;33m╔══════════════════════════════════════════════════════════════╗\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[1;33m║  Agent POV Mode: {agent.name:<43}║\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[1;33m╚══════════════════════════════════════════════════════════════╝\x1b[0m\r\n\r\n")
                 
                 if agent.agent_metadata and "socks_proxy_port" in agent.agent_metadata:
                     socks_port = agent.agent_metadata["socks_proxy_port"]
-                    await websocket.send_text(f"\x1b[90mAgent SOCKS proxy available on: 127.0.0.1:{socks_port}\x1b[0m\r\n")
-                    await websocket.send_text(f"\x1b[90mTo access agent terminal, SSH to agent via SOCKS proxy:\x1b[0m\r\n")
-                    await websocket.send_text(f"\x1b[36m  ssh -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[1;32m✓ SOCKS Proxy Active: 127.0.0.1:{socks_port}\x1b[0m\r\n\r\n")
+                    
+                    # Terminal Access Instructions
+                    await websocket.send_text(f"\x1b[1;36m📟 TERMINAL ACCESS VIA SOCKS PROXY:\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[90m─────────────────────────────────────────────────────────────\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[33mMethod 1: SSH with ProxyCommand\x1b[0m\r\n")
+                    await websocket.send_text(f"  ssh -o ProxyCommand='nc -x 127.0.0.1:{socks_port} %h %p' user@target\r\n\r\n")
+                    
+                    await websocket.send_text(f"\x1b[33mMethod 2: ProxyChains\x1b[0m\r\n")
+                    await websocket.send_text(f"  echo 'socks5 127.0.0.1 {socks_port}' > /tmp/proxychains.conf\r\n")
+                    await websocket.send_text(f"  proxychains4 -f /tmp/proxychains.conf ssh user@target\r\n\r\n")
+                    
+                    await websocket.send_text(f"\x1b[33mMethod 3: Direct SOCKS in SSH config\x1b[0m\r\n")
+                    await websocket.send_text(f"  ssh -o ProxyCommand='socat - SOCKS5:127.0.0.1:%h:%p,socksport={socks_port}' user@target\r\n\r\n")
+                    
+                    # Example targets from agent's network
+                    await websocket.send_text(f"\x1b[90m─────────────────────────────────────────────────────────────\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[1;36m🎯 EXAMPLE TARGETS (from agent network):\x1b[0m\r\n")
+                    await websocket.send_text(f"  SSH Server:     10.10.1.10 (Debian 12)\r\n")
+                    await websocket.send_text(f"  RDP Server:     10.10.1.20 (Windows Server 2019)\r\n")
+                    await websocket.send_text(f"  VNC Server:     10.10.1.30 (Ubuntu 22.04)\r\n")
+                    await websocket.send_text(f"  Database:       10.10.1.40 (PostgreSQL)\r\n")
+                    await websocket.send_text(f"  Web Server:     10.10.1.50 (nginx/Apache)\r\n\r\n")
                 else:
-                    await websocket.send_text(f"\x1b[90mAgent offline - SOCKS proxy not available\x1b[0m\r\n")
+                    await websocket.send_text(f"\x1b[1;31m✗ Agent offline - SOCKS proxy not available\x1b[0m\r\n\r\n")
                 
-                await websocket.send_text(f"\x1b[1;31m[Direct terminal relay not implemented - use SOCKS proxy]\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[90m─────────────────────────────────────────────────────────────\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[1;31m⚠  Direct terminal relay not implemented\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[90m   Use one of the SOCKS proxy methods above to access\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[90m   terminals on targets within the agent's network.\x1b[0m\r\n\r\n")
                 await websocket.close(code=1000, reason="Use SOCKS proxy for agent access")
                 return
         except (ValueError, Exception) as e:

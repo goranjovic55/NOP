@@ -32,6 +32,36 @@ class AgentSettingsUpdate(BaseModel):
     system: Dict[str, Any] | None = None
 
 
+# POV mode convenience endpoints - MUST come before /{agent_id}/settings
+@router.get("/current/settings")
+async def get_current_agent_settings(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get settings for the current agent POV (convenience endpoint)"""
+    agent_pov = get_agent_pov(request)
+    if not agent_pov:
+        raise HTTPException(status_code=400, detail="No agent POV active")
+    
+    agent_id = agent_pov if isinstance(agent_pov, UUID) else UUID(str(agent_pov))
+    return await get_agent_settings(agent_id, db)
+
+
+@router.put("/current/settings")
+async def update_current_agent_settings(
+    request: Request,
+    settings: AgentSettingsUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update settings for the current agent POV (convenience endpoint)"""
+    agent_pov = get_agent_pov(request)
+    if not agent_pov:
+        raise HTTPException(status_code=400, detail="No agent POV active")
+    
+    agent_id = agent_pov if isinstance(agent_pov, UUID) else UUID(str(agent_pov))
+    return await update_agent_settings(agent_id, settings, db)
+
+
 @router.get("/{agent_id}/settings")
 async def get_agent_settings(
     agent_id: UUID,
@@ -121,32 +151,3 @@ async def update_agent_settings(
             pass  # Agent will sync on next heartbeat
     
     return agent.agent_metadata["settings"]
-
-
-@router.get("/current/settings")
-async def get_current_agent_settings(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get settings for the current agent POV (convenience endpoint)"""
-    agent_pov = get_agent_pov(request)
-    if not agent_pov:
-        raise HTTPException(status_code=400, detail="No agent POV active")
-    
-    agent_id = UUID(agent_pov)
-    return await get_agent_settings(agent_id, db)
-
-
-@router.put("/current/settings")
-async def update_current_agent_settings(
-    request: Request,
-    settings: AgentSettingsUpdate,
-    db: AsyncSession = Depends(get_db)
-):
-    """Update settings for the current agent POV (convenience endpoint)"""
-    agent_pov = get_agent_pov(request)
-    if not agent_pov:
-        raise HTTPException(status_code=400, detail="No agent POV active")
-    
-    agent_id = UUID(agent_pov)
-    return await update_agent_settings(agent_id, settings, db)

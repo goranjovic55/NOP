@@ -302,8 +302,9 @@ async def agent_websocket(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    """WebSocket endpoint for agent connections"""
+    """WebSocket endpoint for agent connections with SOCKS proxy support"""
     await websocket.accept()
+    socks_proxy = None
     
     try:
         # Get agent
@@ -319,11 +320,30 @@ async def agent_websocket(
         await AgentService.update_agent_status(db, agent_id, AgentStatus.ONLINE)
         connected_agents[str(agent_id)] = websocket
         
+        # Create SOCKS proxy for this agent
+        global next_socks_port
+        socks_port = next_socks_port
+        next_socks_port += 1
+        
+        socks_proxy = AgentSOCKSProxy(agent_id, websocket, socks_port)
+        await socks_proxy.start()
+        agent_socks_proxies[str(agent_id)] = socks_proxy
+        
+        # Store SOCKS port in agent metadata
+        if not agent.agent_metadata:
+            agent.agent_metadata = {}
+        agent.agent_metadata["socks_proxy_port"] = socks_port
+        flag_modified(agent, "agent_metadata")
+        await db.commit()
+        
+        logger.info(f"Agent {agent.name} connected with SOCKS proxy on port {socks_port}")
+        
         # Send welcome message
         await websocket.send_json({
             "type": "welcome",
             "message": f"Connected to NOP as agent {agent.name}",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "socks_port": socks_port
         })
         
         # Message loop
@@ -382,6 +402,11 @@ async def agent_websocket(
                 elif msg_type == "pong":
                     # Pong response
                     pass
+                
+                # SOCKS proxy messages
+                elif msg_type in ["socks_connected", "socks_data", "socks_error", "socks_close"]:
+                    if socks_proxy:
+                        await socks_proxy.handle_agent_message(message)
                     
             except json.JSONDecodeError:
                 print(f"Invalid JSON from agent {agent.name}")
@@ -394,6 +419,12 @@ async def agent_websocket(
         # Cleanup
         if str(agent_id) in connected_agents:
             del connected_agents[str(agent_id)]
+        
+        if socks_proxy:
+            await socks_proxy.stop()
+            if str(agent_id) in agent_socks_proxies:
+                del agent_socks_proxies[str(agent_id)]
+        
         await AgentService.update_agent_status(db, agent_id, AgentStatus.OFFLINE, update_last_seen=True)
         await websocket.close()
 
@@ -448,13 +479,17 @@ async def get_agent_status(
         raise HTTPException(status_code=404, detail="Agent not found")
     
     is_connected = str(agent_id) in connected_agents
+    socks_proxy_port = None
+    if agent.agent_metadata:
+        socks_proxy_port = agent.agent_metadata.get("socks_proxy_port")
     
     return {
         "agent_id": agent_id,
         "status": agent.status,
         "is_connected": is_connected,
         "last_seen": agent.last_seen,
-        "connected_at": agent.connected_at
+        "connected_at": agent.connected_at,
+        "socks_proxy_port": socks_proxy_port
     }
 
 
