@@ -343,6 +343,20 @@ class NOPAgent:
                     print(f"[{{datetime.now()}}] Message: {{data.get('message', 'Shutting down...')}}")
                     self.running = False
                     break
+                elif msg_type == "kill":
+                    print(f"[{{datetime.now()}}] KILL command received - Self-destructing...")
+                    print(f"[{{datetime.now()}}] Message: {{data.get('message', '')}}")
+                    self.running = False
+                    # Delete self
+                    try:
+                        import os
+                        agent_file = os.path.abspath(__file__)
+                        print(f"[{{datetime.now()}}] Deleting agent file: {{agent_file}}")
+                        os.remove(agent_file)
+                        print(f"[{{datetime.now()}}] Agent file deleted successfully")
+                    except Exception as e:
+                        print(f"[{{datetime.now()}}] Failed to delete agent file: {{e}}")
+                    break
                 elif msg_type == "command":
                     await self.handle_command(data)
                 elif msg_type == "ping":

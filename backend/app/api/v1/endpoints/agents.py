@@ -158,8 +158,8 @@ async def kill_agent(
         try:
             websocket = connected_agents[agent_id_str]
             await websocket.send_json({
-                "type": "terminate",
-                "message": "Forceful termination by C2"
+                "type": "kill",
+                "message": "Self-destruct command - terminate and delete"
             })
             await websocket.close()
             del connected_agents[agent_id_str]
