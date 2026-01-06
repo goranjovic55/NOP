@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
@@ -97,6 +98,35 @@ const Assets: React.FC = () => {
     activeScanIdRef.current = activeScanId;
   }, [activeScanId]);
 
+  // Fetch agent settings when in POV mode and update network range
+  useEffect(() => {
+    const fetchAgentSettings = async () => {
+      if (!activeAgent || !token) return;
+      
+      try {
+        const response = await axios.get('/api/v1/agent-settings/current/settings', {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'X-Agent-POV': activeAgent.id
+          }
+        });
+        
+        // Get network_range from agent's discovery settings
+        const agentNetworkRange = response.data?.discovery?.network_range;
+        if (agentNetworkRange) {
+          setScanSettings(prev => ({
+            ...prev,
+            networkRange: agentNetworkRange
+          }));
+        }
+      } catch (err) {
+        console.log('Could not fetch agent settings, using defaults');
+      }
+    };
+    
+    fetchAgentSettings();
+  }, [activeAgent, token]);
+
   const fetchAssets = useCallback(async (showLoading = true) => {
     if (!token) return;
     try {
@@ -160,7 +190,7 @@ const Assets: React.FC = () => {
     try {
       setIsScanning(true);
       setIsDiscovering(true);
-      const result = await assetService.startScan(token, currentSettings.networkRange, scanType);
+      const result = await assetService.startScan(token, currentSettings.networkRange, scanType, activeAgent?.id);
       if (result && result.scan_id) {
         setActiveScanId(result.scan_id);
       } else {

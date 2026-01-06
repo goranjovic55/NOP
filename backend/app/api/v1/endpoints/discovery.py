@@ -2,7 +2,7 @@
 Network discovery endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
@@ -71,11 +71,16 @@ async def get_discovery_status(db: AsyncSession = Depends(get_db)):
 async def start_discovery_scan(
     request: DiscoveryRequest,
     background_tasks: BackgroundTasks,
-    x_agent_pov: Optional[str] = Header(None),
+    req: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Start network discovery scan"""
+    from app.core.pov_middleware import get_agent_pov
+    
     scan_id = str(uuid.uuid4())
+    agent_pov = get_agent_pov(req)  # Get agent POV from request
+    
+    logger.info(f"[SCAN] Starting scan {scan_id} - Network: {request.network}, POV: {agent_pov}")
     
     # Store scan info
     active_scans[scan_id] = {
@@ -83,11 +88,12 @@ async def start_discovery_scan(
         "network": request.network,
         "scan_type": request.scan_type,
         "started_at": None,
-        "results": None
+        "results": None,
+        "agent_id": agent_pov  # Store agent_id for POV context
     }
     
-    # Start scan in background
-    background_tasks.add_task(run_network_discovery, scan_id, request)
+    # Start scan in background with agent_pov
+    background_tasks.add_task(run_network_discovery, scan_id, request, agent_pov)
     
     # Log event for scan started
     async def log_scan_started():
@@ -103,6 +109,13 @@ async def start_discovery_scan(
             await db.commit()
     
     background_tasks.add_task(log_scan_started)
+    
+    return {
+        "message": "Discovery scan started",
+        "scan_id": scan_id,
+        "network": request.network,
+        "scan_type": request.scan_type
+    }
     
     return {
         "message": "Discovery scan started",
@@ -251,10 +264,17 @@ async def discover_test_environment():
 from app.services.discovery_service import DiscoveryService
 from app.core.database import AsyncSessionLocal
 
-async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
+async def run_network_discovery(scan_id: str, request: DiscoveryRequest, agent_pov: UUID = None):
     """Run network discovery scan in background"""
     try:
         active_scans[scan_id]["started_at"] = "now"
+        
+        # Get SOCKS proxy port if agent POV is set
+        proxy_port = None
+        if agent_pov:
+            async with AsyncSessionLocal() as db:
+                proxy_port = await get_agent_pov(str(agent_pov), db)
+                logger.info(f"[SCAN] Using agent POV {agent_pov} with SOCKS proxy port {proxy_port}")
         
         # Determine discovery method based on scan type
         if request.scan_type == "ping_only" or request.scan_type == "ping":
@@ -270,7 +290,7 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         is_single_host = "/" not in request.network
         
         if request.scan_type == "ping_only":
-            hosts = await scanner.ping_sweep(request.network)
+            hosts = await scanner.ping_sweep(request.network, proxy_port=proxy_port)
             results = {
                 "network": request.network,
                 "live_hosts": hosts,
@@ -280,7 +300,7 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
             # Single host scan - use port_scan directly with appropriate port range
             port_range = "1-65535" if request.scan_type == "comprehensive" else "1-1000"
             logger.info(f"Single host scan on {request.network} with ports {port_range}")
-            host_result = await scanner.port_scan(request.network, port_range)
+            host_result = await scanner.port_scan(request.network, port_range, proxy_port=proxy_port)
             
             results = {
                 "network": request.network,
@@ -290,7 +310,7 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
             }
         else:
             # Network scan
-            results = await scanner.discover_network(request.network)
+            results = await scanner.discover_network(request.network, proxy_port=proxy_port)
         
         active_scans[scan_id]["results"] = results
         active_scans[scan_id]["status"] = "completed"
@@ -298,7 +318,13 @@ async def run_network_discovery(scan_id: str, request: DiscoveryRequest):
         # Process results and update assets
         async with AsyncSessionLocal() as db:
             discovery_service = DiscoveryService(db)
-            await discovery_service.process_scan_results(results, discovery_method=discovery_method)
+            # Pass agent_id if this scan is from POV context (stored in active_scans)
+            scan_agent_id = active_scans[scan_id].get("agent_id")
+            await discovery_service.process_scan_results(
+                results, 
+                discovery_method=discovery_method,
+                agent_id=scan_agent_id
+            )
             
             # Log event for scan completed
             event = Event(

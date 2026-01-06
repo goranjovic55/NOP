@@ -88,6 +88,20 @@ class AgentService:
         await db.commit()
         await db.refresh(agent)
         
+        # Send settings update to connected agent
+        if 'settings' in update_data:
+            from app.api.v1.endpoints.agents import connected_agents
+            agent_id_str = str(agent_id)
+            if agent_id_str in connected_agents:
+                try:
+                    websocket = connected_agents[agent_id_str]
+                    await websocket.send_json({
+                        "type": "settings_update",
+                        "settings": agent.settings or {}
+                    })
+                except Exception as e:
+                    print(f"Failed to send settings update to agent {agent_id}: {e}")
+        
         return agent
     
     @staticmethod
@@ -387,13 +401,18 @@ class NOPAgent:
                 self.config["passive_discovery"] = discovery.get("passive_discovery", False)
                 self.config["sniff_interface"] = discovery.get("interface_name", "eth1")
                 self.config["scan_subnet"] = discovery.get("network_range", "")
+                self.config["auto_discovery"] = discovery.get("auto_discovery", False)
                 self.config["discovery_interval"] = discovery.get("discovery_interval", 300)
+                self.config["discovery_method"] = discovery.get("discovery_method", "arp")
                 self.config["track_source_only"] = discovery.get("track_source_only", False)
                 
                 print(f"[{{datetime.now()}}] Discovery config updated:")
                 print(f"  - Passive discovery: {{self.config.get('passive_discovery')}}")
+                print(f"  - Auto discovery: {{self.config.get('auto_discovery')}}")
                 print(f"  - Interface: {{self.config.get('sniff_interface')}}")
                 print(f"  - Network: {{self.config.get('scan_subnet')}}")
+                print(f"  - Interval: {{self.config.get('discovery_interval')}}s")
+                print(f"  - Method: {{self.config.get('discovery_method')}}")
                 
                 # Restart passive discovery if enabled
                 if self.config.get("passive_discovery"):
@@ -417,7 +436,17 @@ class NOPAgent:
         
         while self.running:
             try:
-                await asyncio.sleep(300)  # Run active scan every 5 minutes
+                # Get auto-discovery settings
+                auto_discovery = self.config.get('auto_discovery', False)
+                discovery_interval = self.config.get('discovery_interval', 300)
+                
+                # Wait for configured interval
+                await asyncio.sleep(discovery_interval)
+                
+                # Only run auto-discovery if enabled
+                if not auto_discovery:
+                    continue
+                
                 assets = await self.discover_assets()
                 
                 # Include passively discovered hosts
@@ -477,19 +506,35 @@ class NOPAgent:
                                 "method": "passive"
                             }}
                             self.passive_hosts.append(host_info)
+                            print(f"[{{datetime.now()}}] Passive: discovered {{src_ip}} ({{src_mac}})")
                 except Exception as e:
                     pass  # Silently ignore packet processing errors
             
-            # Sniff packets in separate thread (blocking call)
+            # Sniff packets in separate thread (blocking call) with root privileges
             def start_sniffer():
                 try:
-                    scapy.sniff(iface=sniff_iface, prn=packet_handler, store=0)
+                    # Use promisc mode for better packet capture
+                    # Note: Requires NET_ADMIN capability or root
+                    scapy.sniff(
+                        iface=sniff_iface, 
+                        prn=packet_handler, 
+                        store=0, 
+                        promisc=True,
+                        filter="ip"  # Only capture IP packets to reduce noise
+                    )
+                except PermissionError:
+                    print(f"[{{datetime.now()}}] Warning: Insufficient permissions for promiscuous mode")
+                    print(f"[{{datetime.now()}}] Attempting normal mode (may miss some packets)...")
+                    try:
+                        scapy.sniff(iface=sniff_iface, prn=packet_handler, store=0)
+                    except Exception as e:
+                        print(f"[{{datetime.now()}}] Sniffer failed: {{e}}")
                 except Exception as e:
                     print(f"[{{datetime.now()}}] Sniffer thread error: {{e}}")
             
             sniffer_thread = threading.Thread(target=start_sniffer, daemon=True)
             sniffer_thread.start()
-            print(f"[{{datetime.now()}}] Passive discovery thread started")
+            print(f"[{{datetime.now()}}] Passive discovery thread started (promisc mode, filter=ip)")
             
         except Exception as e:
             print(f"[{{datetime.now()}}] Passive discovery error: {{e}}")
@@ -543,31 +588,62 @@ class NOPAgent:
                 except:
                     network = '.'.join(best_ip.split('.')[:3]) + '.0/24'
             else:
-                # Use configured subnet
+                # Use configured subnet - support multiple subnets via comma separation
                 network = scan_subnet
                 best_interface = 'custom'
+                
+                # If multiple subnets configured (comma-separated), scan each
+                if ',' in scan_subnet:
+                    networks_to_scan = [n.strip() for n in scan_subnet.split(',')]
+                    discovered = []
+                    for net in networks_to_scan:
+                        discovered.extend(await self._scan_network(net, best_interface))
+                    return discovered
             
             print(f"[{{datetime.now()}}] Scanning network: {{network}} (interface: {{best_interface or 'default'}})")
             
-            # Get timeout from config (default 2 seconds for larger networks)
-            scan_timeout = self.config.get('scan_timeout', 2)
+            # For large networks (/16, /8), scan targeted subnets instead of entire network
+            from ipaddress import IPv4Network
+            try:
+                net_obj = IPv4Network(network)
+                # If network is larger than /24, limit scope or scan in chunks
+                if net_obj.prefixlen < 24:
+                    # For networks like 10.10.0.0/16, scan multiple /24 subnets
+                    print(f"[{{datetime.now()}}] Large network detected, scanning targeted /24 subnets...")
+                    # Scan first 10 /24 subnets (e.g., 10.10.0.0/24, 10.10.1.0/24, etc.)
+                    base_octets = str(net_obj.network_address).split('.')
+                    scan_subnets = []
+                    for third_octet in range(0, min(10, 256)):  # Limit to first 10 subnets
+                        subnet = f"{{base_octets[0]}}.{{base_octets[1]}}.{{third_octet}}.0/24"
+                        scan_subnets.append(subnet)
+                else:
+                    scan_subnets = [network]
+            except:
+                scan_subnets = [network]
             
-            # ARP scan
-            arp_request = scapy.ARP(pdst=network)
-            broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
-            arp_request_broadcast = broadcast/arp_request
-            answered_list = scapy.srp(arp_request_broadcast, timeout=scan_timeout, verbose=False)[0]
+            # Get timeout from config (default 1 second for better responsiveness)
+            scan_timeout = self.config.get('scan_timeout', 1)
             
             assets = []
-            for element in answered_list:
-                asset = {{
-                    "ip": element[1].psrc,
-                    "mac": element[1].hwsrc,
-                    "status": "online",
-                    "discovered_at": datetime.utcnow().isoformat()
-                }}
-                assets.append(asset)
-                
+            for subnet in scan_subnets:
+                try:
+                    # ARP scan this subnet
+                    arp_request = scapy.ARP(pdst=subnet)
+                    broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
+                    arp_request_broadcast = broadcast/arp_request
+                    answered_list = scapy.srp(arp_request_broadcast, timeout=scan_timeout, verbose=False)[0]
+                    
+                    for element in answered_list:
+                        asset = {{
+                            "ip": element[1].psrc,
+                            "mac": element[1].hwsrc,
+                            "status": "online",
+                            "discovered_at": datetime.utcnow().isoformat()
+                        }}
+                        assets.append(asset)
+                except Exception as e:
+                    print(f"[{{datetime.now()}}] Scan error for {{subnet}}: {{e}}")
+                    
             print(f"[{{datetime.now()}}] Discovered {{len(assets)}} assets via ARP")
             return assets
         except Exception as e:

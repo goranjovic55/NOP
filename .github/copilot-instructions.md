@@ -4,48 +4,60 @@
 
 ---
 
+## Quick Facts (Testable Rules)
+
+| ID | Rule | Value |
+|----|------|-------|
+| F1 | Max file lines | 500 |
+| F2 | Max function lines | 50 |
+| F3 | Total phases | 5 |
+| F4 | Phase order | CONTEXT→PLAN→EXECUTION→REVIEW→SESSION END |
+| F5 | User approval phase | REVIEW (phase 4) |
+| F6 | Knowledge file line 1 | map (navigation) |
+| F7 | Checkpoint triggers | phase transition, 3-5 todos, stuck |
+| F8 | Todo prefix format | `<PHASE>` |
+| F9 | Root .py allowed | agent.py only |
+| F10 | Scripts location | `scripts/` folder |
+| F11 | Docs location | `docs/` folder |
+| F12 | Workflow logs | `log/workflow/` |
+
+---
+
 ## Session Flow (MANDATORY 5 PHASES)
 
-**ALL sessions MUST follow these phases in order:**
+**Checkpoints:** Run `python .github/scripts/session_emit.py` at phase transitions, every 3-5 todos, or when stuck
 
 ### 1. CONTEXT
-Execute: `python .github/scripts/session_start.py` (optional helper)
-- Load `project_knowledge.json` **lines 1-50** (navigation map + domain summaries)
-- Query domain details on-demand from line ranges
-- Load skills from `.github/skills/INDEX.md`
-- Check `.github/instructions/structure.md`
+- Load `project_knowledge.json` **lines 1-50** (map + domains)
+- Load `.github/skills/INDEX.md`, check `structure.md`
+- Optional: `python .github/scripts/session_start.py`
 **Output:** Context summary (2-3 lines)
 
 ### 2. PLAN
-- Use `manage_todo_list` to create actionable steps
-- Break work into <50 line chunks
-- Identify knowledge/skills/docs needed (specify which skills from INDEX.md)
-- **TODO format:** `<PHASE> Description` (e.g., `<EXECUTION> Implement feature X`)
+- Use `manage_todo_list` with `<PHASE>` prefix
+- Break work into <50 line chunks, identify skills from INDEX.md
 - All todos must belong to a phase (CONTEXT/PLAN/EXECUTION/REVIEW/SESSION END)
-**Output:** TODO list with clear steps + skills to use
+**Output:** TODO list with steps + skills
+**Checkpoint:** `session_emit` before execution
 
 ### 3. EXECUTION
-- Execute TODOs sequentially
-- Mark in-progress → completed individually
+- Execute todos sequentially, mark in-progress → completed individually
 - Query resources as needed
 **Output:** Completed implementation
+**Checkpoint:** `session_emit` every 3-5 todos
 
 ### 4. REVIEW (User Confirmation REQUIRED)
-- Review all changes for quality
-- Verify structure.md compliance
-- Run tests if applicable
+- Verify quality, structure.md compliance, run tests
 - **STOP - Request user approval to proceed**
 **Output:** Change summary + await confirmation
+**Checkpoint:** `session_emit` before approval
 
 ### 5. SESSION END
 Execute: `python .github/scripts/session_end.py`
 - Clean repository → Move misplaced files per structure.md
 - Generate codemap → Update project_knowledge.json
 - Suggest skills → Propose new/update/remove (show to user, wait approval)
-- Increment session counter → Check if maintenance due (every 10 sessions)
 - Create workflow log → AUTO-FILLED (`YYYY-MM-DD_HHMMSS_<task>.md`)
-  * Auto: Summary, Changes, Skills from git/session
-  * Manual: Review + enhance with Decisions, Gotchas, Future work
 - Commit all changes
 **Output:** Session summary + skill suggestions + workflow log path
 
@@ -53,20 +65,11 @@ Execute: `python .github/scripts/session_end.py`
 
 ## Knowledge System
 
-**File:** `project_knowledge.json` (JSONL format)
-**Line 1 = Map:** Read first for domain overview and quickNav
-
-**Workflow:** Query throughout work, update at session end (auto via codemap)
-
----
+`project_knowledge.json` (JSONL) - Line 1 = map, query on-demand, auto-update at session end
 
 ## Skills Library
 
-**Location:** `.github/skills/INDEX.md` - Problem→solution lookup
-**Format:** Copy-paste ready, <50 lines, executable patterns
-**Usage:** Query INDEX when stuck
-
----
+`.github/skills/INDEX.md` - Problem→solution lookup, <50 lines, query when stuck
 
 ## Standards
 

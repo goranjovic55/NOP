@@ -25,9 +25,14 @@ async def get_assets(
     search: Optional[str] = Query(None),
     asset_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    exclude_agent_assets: bool = Query(True, description="Exclude agent-discovered assets (C2 view)"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get list of assets with pagination and filtering"""
+    """Get list of assets with pagination and filtering
+    
+    - In C2 view (no POV): exclude_agent_assets=True (default) shows only C2-scanned assets
+    - In POV view: agent_id filter overrides exclude_agent_assets
+    """
     agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
     return await asset_service.get_assets(
@@ -36,19 +41,24 @@ async def get_assets(
         search=search,
         asset_type=asset_type,
         status=status,
-        agent_id=agent_pov
+        agent_id=agent_pov,
+        exclude_agent_assets=exclude_agent_assets if not agent_pov else False
     )
 
 
 @router.get("/stats", response_model=AssetStats)
 async def get_asset_stats(
     request: Request,
+    exclude_agent_assets: bool = Query(True, description="Exclude agent-discovered assets"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get asset statistics (supports agent POV)"""
+    """Get asset statistics (supports agent POV and C2 filtering)"""
     agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
-    return await asset_service.get_asset_stats(agent_id=agent_pov)
+    return await asset_service.get_asset_stats(
+        agent_id=agent_pov,
+        exclude_agent_assets=exclude_agent_assets if not agent_pov else False
+    )
 
 
 @router.get("/online", response_model=List[dict])

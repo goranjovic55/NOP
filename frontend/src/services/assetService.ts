@@ -46,12 +46,17 @@ export const assetService = {
     }
   },
 
-  startScan: async (token: string, network: string = '172.21.0.0/24', scanType: string = 'basic'): Promise<any> => {
+  startScan: async (token: string, network: string = '172.21.0.0/24', scanType: string = 'basic', agentPOV?: string): Promise<any> => {
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    
     const response = await axios.post(`${API_URL}/discovery/scan`, {
       network: network,
       scan_type: scanType
     }, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers
     });
     return response.data;
   },
