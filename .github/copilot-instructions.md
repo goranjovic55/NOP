@@ -2,27 +2,6 @@
 
 **A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (solutions)
 
----
-
-## Quick Facts (Testable Rules)
-
-| ID | Rule | Value |
-|----|------|-------|
-| F1 | Max file lines | 500 |
-| F2 | Max function lines | 50 |
-| F3 | Total phases | 5 |
-| F4 | Phase order | CONTEXT→PLAN→EXECUTION→REVIEW→SESSION END |
-| F5 | User approval phase | REVIEW (phase 4) |
-| F6 | Knowledge file line 1 | map (navigation) |
-| F7 | Checkpoint triggers | user interrupt, phase transition, 3-5 todos, stuck |
-| F8 | Todo prefix format | `<PHASE>` |
-| F9 | Root .py allowed | agent.py only |
-| F10 | Scripts location | `scripts/` folder |
-| F11 | Docs location | `docs/` folder |
-| F12 | Workflow logs | `log/workflow/` |
-
----
-
 ## Session Flow (MANDATORY 5 PHASES)
 
 **Checkpoints:** Run `python .github/scripts/session_emit.py`:
@@ -85,3 +64,22 @@ Execute: `python .github/scripts/session_end.py`
 ---
 
 *Context over Process. Knowledge over Ceremony.*
+
+---
+
+## Quick Facts (Testable Rules)
+
+| ID | Rule | Value |
+|----|------|-------|
+| F1 | Max file lines | 500 |
+| F2 | Max function lines | 50 |
+| F3 | Total phases | 5 |
+| F4 | Phase order | CONTEXT→PLAN→EXECUTION→REVIEW→SESSION END |
+| F5 | User approval phase | REVIEW (phase 4) |
+| F6 | Knowledge file line 1 | map (navigation) |
+| F7 | Checkpoint triggers | user interrupt, phase transition, 3-5 todos, stuck |
+| F8 | Todo prefix format | `<PHASE>` |
+| F9 | Root .py allowed | agent.py only |
+| F10 | Scripts location | `scripts/` folder |
+| F11 | Docs location | `docs/` folder |
+| F12 | Workflow logs | `log/workflow/` |

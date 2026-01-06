@@ -1,22 +1,5 @@
 # Project Structure
 
-## Quick Rules (Testable)
-
-| Rule | Allowed | Location |
-|------|---------|----------|
-| Root .py | agent.py only | / |
-| Root .sh | deploy.sh only | / |
-| Root .md | README, CHANGELOG, CONTRIBUTING, LICENSE | / |
-| Root config | docker-compose.yml, .env, .gitignore | / |
-| Python scripts | *.py (non-app) | scripts/ |
-| Shell scripts | *.sh (non-deploy) | scripts/ |
-| Test files | test_*.py | scripts/ |
-| Documentation | *.md (non-root) | docs/{category}/ |
-| Workflow logs | YYYY-MM-DD_*.md | log/workflow/ |
-| App code | source files | {service}/app/ or {service}/src/ |
-
----
-
 ## Standard Folders
 
 **`.github/`** - AKIS framework files
@@ -63,3 +46,20 @@ Organize by component/service:
 - Automation scripts → `scripts/`
 - Dependencies with code → In service folder
 - Infrastructure config → Root (docker-compose.yml, .env)
+
+---
+
+## Quick Rules (Testable)
+
+| Rule | Allowed | Location |
+|------|---------|----------|
+| Root .py | agent.py only | / |
+| Root .sh | deploy.sh only | / |
+| Root .md | README, CHANGELOG, CONTRIBUTING, LICENSE | / |
+| Root config | docker-compose.yml, .env, .gitignore | / |
+| Python scripts | *.py (non-app) | scripts/ |
+| Shell scripts | *.sh (non-deploy) | scripts/ |
+| Test files | test_*.py | scripts/ |
+| Documentation | *.md (non-root) | docs/{category}/ |
+| Workflow logs | YYYY-MM-DD_*.md | log/workflow/ |
+| App code | source files | {service}/app/ or {service}/src/ |

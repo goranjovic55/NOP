@@ -46,8 +46,15 @@ def read_knowledge(lines: int = 50):
     return kn_map, entities
 
 
-def generate_workflow_log(task_name: str, session_number: str, skills: list) -> str:
-    """Generate auto-filled workflow log from session data."""
+def generate_workflow_log(task_name: str, session_number: str, skills: list, skill_details: list = None) -> str:
+    """Generate auto-filled workflow log from session data.
+    
+    Args:
+        task_name: Name of the task/branch
+        session_number: Session counter number
+        skills: List of skill titles (for backward compatibility)
+        skill_details: Full skill suggestion objects with description, evidence, etc.
+    """
     
     # Get ALL changes using git status (captures staged, unstaged, and untracked)
     result = subprocess.run(
@@ -128,11 +135,86 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list) -> 
     
     summary = '\n'.join(summary_items)
     
-    # Skills section
-    skills_text = ", ".join(skills) if skills else "None suggested"
+    # Skills section - detailed listing
+    if skill_details:
+        skills_lines = []
+        for skill in skill_details:
+            skill_name = skill.get('name', 'unnamed')
+            skill_title = skill.get('title', skill_name)
+            description = skill.get('description', 'No description')
+            confidence = skill.get('confidence', 'medium')
+            evidence = skill.get('evidence', [])
+            
+            skills_lines.append(f"### {skill_title}")
+            skills_lines.append(f"**Confidence**: {confidence}")
+            skills_lines.append(f"\n{description}")
+            
+            if evidence:
+                skills_lines.append("\n**Evidence:**")
+                for e in evidence[:3]:
+                    skills_lines.append(f"- {e}")
+            
+            # Add when_to_use if available
+            when_to_use = skill.get('when_to_use', [])
+            if when_to_use:
+                skills_lines.append("\n**When to use:**")
+                for w in when_to_use[:3]:
+                    skills_lines.append(f"- {w}")
+            
+            skills_lines.append("")  # Empty line between skills
+        
+        skills_text = '\n'.join(skills_lines) if skills_lines else "None suggested"
+    elif skills:
+        # Fallback to simple list
+        skills_text = "**Suggested skills:**\n" + '\n'.join(f"- {s}" for s in skills)
+    else:
+        skills_text = "None suggested"
     
     # Session number fallback
     session_display = session_number if session_number and session_number != "None" else "N/A"
+    
+    # Auto-generate notes based on session context
+    notes_items = []
+    
+    # Analyze what was worked on
+    if changes_list:
+        # Categorize changes by area
+        areas = set()
+        for change in changes_list:
+            filepath = change.split('`')[1] if '`' in change else change
+            if 'frontend' in filepath or 'components' in filepath or '.tsx' in filepath:
+                areas.add('frontend')
+            elif 'backend' in filepath or 'app/' in filepath:
+                areas.add('backend')
+            elif 'docker' in filepath.lower():
+                areas.add('infrastructure')
+            elif 'test' in filepath.lower():
+                areas.add('testing')
+            elif 'docs' in filepath or '.md' in filepath:
+                areas.add('documentation')
+        
+        if areas:
+            notes_items.append(f"**Areas touched:** {', '.join(sorted(areas))}")
+    
+    # Add context from commits
+    if today_commits:
+        # Look for patterns in commit messages
+        feat_commits = [c for c in today_commits if c.startswith('feat')]
+        fix_commits = [c for c in today_commits if c.startswith('fix')]
+        if feat_commits:
+            notes_items.append(f"**Features added:** {len(feat_commits)}")
+        if fix_commits:
+            notes_items.append(f"**Bugs fixed:** {len(fix_commits)}")
+    
+    # Suggest future work based on skill suggestions
+    if skill_details:
+        related = set()
+        for skill in skill_details:
+            related.update(skill.get('related_skills', []))
+        if related:
+            notes_items.append(f"**Related skills to review:** {', '.join(list(related)[:3])}")
+    
+    notes_section = '\n'.join(notes_items) if notes_items else "*Session completed successfully. Add manual notes if needed.*"
     
     # Generate log content
     log_content = f"""# {task_name.replace('-', ' ').title()}
@@ -156,7 +238,7 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list) -> 
 - [ ] Session committed
 
 ## Notes
-*Add session-specific notes: decisions, gotchas, future work*
+{notes_section}
 """
     
     return log_content
@@ -291,6 +373,7 @@ def main():
         "cleaned": [],
         "knowledge_updated": False,
         "skills": [],
+        "skill_details": [],  # Full skill objects for detailed logging
         "session": None,
         "maintenance_due": False,
         "workflow_log": None,
@@ -327,11 +410,16 @@ def main():
                 suggestions = json.loads(result.stdout)
                 if suggestions.get("suggestions"):
                     skill_suggestions = suggestions["suggestions"]
+                    summary["skill_details"] = skill_suggestions  # Store full details
                     print("\n   📝 Skill Suggestions:")
                     for s in skill_suggestions:
                         skill_name = s.get('name', 'unnamed')
                         skill_title = s.get('title', skill_name)
-                        print(f"      - {skill_title}")
+                        confidence = s.get('confidence', 'medium')
+                        description = s.get('description', '')
+                        print(f"      - {skill_title} [{confidence}]")
+                        if description:
+                            print(f"        {description[:80]}...")
                         summary["skills"].append(skill_title)
                     print(f"\n   💡 {len(skill_suggestions)} skill(s) suggested - review and create manually if useful")
             except json.JSONDecodeError:
@@ -383,7 +471,8 @@ def main():
         log_file.write_text(generate_workflow_log(
             task_name=task_name,
             session_number=summary.get("session", "N"),
-            skills=summary.get("skills", [])
+            skills=summary.get("skills", []),
+            skill_details=summary.get("skill_details", [])
         ))
         
         print(f"\n▶️  Created workflow log: {log_file}")
@@ -406,7 +495,26 @@ def main():
     if summary["knowledge_updated"]:
         print(f"\n  📚 Knowledge: Updated (project_knowledge.json)")
     
-    if summary["skills"]:
+    if summary["skill_details"]:
+        print(f"\n  🎯 Skill Suggestions ({len(summary['skill_details'])} total):")
+        print("  " + "-"*40)
+        for skill in summary["skill_details"]:
+            skill_title = skill.get('title', skill.get('name', 'unnamed'))
+            confidence = skill.get('confidence', 'medium')
+            description = skill.get('description', 'No description')
+            print(f"\n     📌 {skill_title}")
+            print(f"        Confidence: {confidence}")
+            print(f"        {description[:100]}...")
+            
+            # Show evidence
+            evidence = skill.get('evidence', [])
+            if evidence:
+                print(f"        Evidence:")
+                for e in evidence[:2]:
+                    print(f"          - {e}")
+        print("\n  " + "-"*40)
+        print("  💡 Review skills above and create manually if useful")
+    elif summary["skills"]:
         print(f"\n  🎯 Skill Suggestions:")
         for skill in summary["skills"]:
             print(f"     • {skill}")
