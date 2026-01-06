@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
@@ -12,6 +13,7 @@ type AccessMode = 'login' | 'exploit';
 
 const Access: React.FC = () => {
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const location = useLocation();
   const { tabs, activeTabId, setActiveTab, removeTab, addTab, updateTabStatus } = useAccessStore();
   const { 
@@ -105,16 +107,32 @@ const Access: React.FC = () => {
     localStorage.setItem('access_mode', accessMode);
   }, [accessMode]);
 
-  useEffect(() => {
-    fetchAllAssets();
-  }, []);
+  // Fetch assets with POV filtering
+  const fetchAllAssets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const authToken = token || localStorage.getItem('token') || '';
+      if (!authToken) {
+        console.warn('No auth token available');
+        setLoading(false);
+        return;
+      }
+      // Pass agent POV ID to filter assets to agent's perspective
+      const agentPOV = activeAgent?.id;
+      const allAssets = await assetService.getAssets(authToken, undefined, agentPOV);
+      console.log('Fetched assets:', allAssets.length, 'POV:', agentPOV || 'none');
+      setAssets(allAssets);
+    } catch (error) {
+      console.error('Failed to fetch assets:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, activeAgent]);
 
   useEffect(() => {
-    // Refresh assets when token changes
-    if (token) {
-      fetchAllAssets();
-    }
-  }, [token]);
+    // Fetch assets when token or agent POV changes
+    fetchAllAssets();
+  }, [fetchAllAssets]);
 
   // Handle navigation from Scans page with state
   useEffect(() => {
@@ -337,25 +355,6 @@ const Access: React.FC = () => {
       localStorage.setItem('vaultCredentials', JSON.stringify(vaultCredentialsRaw));
     }
   }, [vaultCredentialsRaw]);
-
-  const fetchAllAssets = async () => {
-    setLoading(true);
-    try {
-      const authToken = token || localStorage.getItem('token') || '';
-      if (!authToken) {
-        console.warn('No auth token available');
-        setLoading(false);
-        return;
-      }
-      const allAssets = await assetService.getAssets(authToken);
-      console.log('Fetched assets:', allAssets.length);
-      setAssets(allAssets);
-    } catch (error) {
-      console.error('Failed to fetch assets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getFilteredAssets = () => {
     let filtered = assets;

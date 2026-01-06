@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Session End - Complete session workflow
-1. Clean repository → Move misplaced files
+AKIS v4 Session End - Complete session workflow
+
+1. Clean repository → Move misplaced files per structure.md
 2. Generate codemap → Update project_knowledge.json
-3. Suggest skills → Propose new/update/remove
-4. Increment session counter → Check maintenance due
-5. Create workflow log (if complex) - AUTO-FILLED
-6. Commit changes
+3. Suggest skills → Detailed suggestions for review
+4. Create workflow log → AUTO-FILLED with session data
+5. Show summary → Ready for commit
 
 Usage:
     python session_end.py                    # Auto-detect from branch
-    python session_end.py "session name"    # Custom session name for workflow log
+    python session_end.py "session name"    # Custom session name
 """
 import json
 import os
@@ -355,18 +355,18 @@ def main():
     if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
         session_name = sys.argv[1]
     
-    print("\n" + "="*70)
-    print("  AKIS v3 - Session End")
-    print("="*70)
+    print("\n" + "="*60)
+    print("  AKIS v4 - Session End")
+    print("="*60)
     
     # Load knowledge context (50 lines)
-    print("\n▶️  Loading knowledge context...")
+    print("\n▶️  Loading context...")
     kn_map, entities = read_knowledge(50)
     if kn_map:
         domains = kn_map.get("domains", {})
-        print(f"   ✅ Map loaded: {len(domains)} domains, {len(entities)} entities")
+        print(f"   ✅ {len(domains)} domains, {len(entities)} entities")
     else:
-        print("   ⚠️  No knowledge map found")
+        print("   ⚠️  No knowledge map")
     
     # Track summary data
     summary = {
@@ -480,60 +480,29 @@ def main():
         summary["workflow_log"] = str(log_file)
     
     # Final Summary
-    print("\n" + "="*70)
-    print("  SESSION END SUMMARY")
-    print("="*70)
-    
-    if summary["session"]:
-        print(f"\n  📊 Session: #{summary['session']}")
+    print("\n" + "="*60)
+    print("  SESSION SUMMARY")
+    print("="*60)
     
     if summary["cleaned"]:
-        print(f"\n  🧹 Repository Cleaned:")
-        for item in summary["cleaned"]:
-            print(f"     • {item}")
+        print(f"\n🧹 Cleaned: {len(summary['cleaned'])} files moved")
     
     if summary["knowledge_updated"]:
-        print(f"\n  📚 Knowledge: Updated (project_knowledge.json)")
+        print(f"📚 Knowledge: Updated")
     
     if summary["skill_details"]:
-        print(f"\n  🎯 Skill Suggestions ({len(summary['skill_details'])} total):")
-        print("  " + "-"*40)
+        print(f"\n🎯 Skills Suggested ({len(summary['skill_details'])}):")
         for skill in summary["skill_details"]:
             skill_title = skill.get('title', skill.get('name', 'unnamed'))
             confidence = skill.get('confidence', 'medium')
-            description = skill.get('description', 'No description')
-            print(f"\n     📌 {skill_title}")
-            print(f"        Confidence: {confidence}")
-            print(f"        {description[:100]}...")
-            
-            # Show evidence
-            evidence = skill.get('evidence', [])
-            if evidence:
-                print(f"        Evidence:")
-                for e in evidence[:2]:
-                    print(f"          - {e}")
-        print("\n  " + "-"*40)
-        print("  💡 Review skills above and create manually if useful")
-    elif summary["skills"]:
-        print(f"\n  🎯 Skill Suggestions:")
-        for skill in summary["skills"]:
-            print(f"     • {skill}")
-    
-    if summary["maintenance_due"]:
-        print(f"\n  ⚠️  Maintenance: DUE (run akis-workflow-analyzer.md)")
+            print(f"   • {skill_title} [{confidence}]")
     
     if summary["workflow_log"]:
-        print(f"\n  📝 Workflow Log: {summary['workflow_log']}")
+        print(f"\n📝 Log: {summary['workflow_log']}")
     
-    if summary["has_changes"]:
-        print(f"\n  📦 Next Steps:")
-        print(f"     1. Review: git status")
-        print(f"     2. Fill workflow log with details")
-        print(f"     3. Commit: git add -A && git commit -m 'your message'")
-    else:
-        print(f"\n  ✅ No uncommitted changes")
+    print(f"\n📦 Commit: git add -A && git commit -m 'message'")
     
-    print("\n" + "="*70 + "\n")
+    print("\n" + "="*60)
 
 if __name__ == "__main__":
     main()

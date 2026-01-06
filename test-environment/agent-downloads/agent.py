@@ -1,162 +1,7 @@
+#!/usr/bin/env python3
 """
-Agent service for C2 management
-"""
-
-import secrets
-import base64
-import json
-from typing import List, Optional, Dict, Any
-from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from datetime import datetime
-
-from app.models.agent import Agent, AgentType, AgentStatus
-from app.schemas.agent import AgentCreate, AgentUpdate
-
-
-class AgentService:
-    """Service for managing agents"""
-    
-    @staticmethod
-    def generate_auth_token() -> str:
-        """Generate a secure authentication token"""
-        return secrets.token_urlsafe(32)
-    
-    @staticmethod
-    def generate_encryption_key() -> str:
-        """Generate a secure encryption key for agent-C2 tunnel"""
-        return secrets.token_urlsafe(32)
-    
-    @staticmethod
-    def generate_download_token() -> str:
-        """Generate a one-time download token"""
-        return secrets.token_urlsafe(32)
-    
-    @staticmethod
-    async def create_agent(db: AsyncSession, agent_data: AgentCreate) -> Agent:
-        """Create a new agent"""
-        auth_token = AgentService.generate_auth_token()
-        encryption_key = AgentService.generate_encryption_key()
-        download_token = AgentService.generate_download_token()
-        
-        agent = Agent(
-            name=agent_data.name,
-            description=agent_data.description,
-            agent_type=agent_data.agent_type,
-            connection_url=agent_data.connection_url,
-            auth_token=auth_token,
-            encryption_key=encryption_key,
-            download_token=download_token,
-            capabilities=agent_data.capabilities,
-            obfuscate=agent_data.obfuscate,
-            startup_mode=agent_data.startup_mode,
-            persistence_level=agent_data.persistence_level,
-            agent_metadata=agent_data.agent_metadata or {},
-            status=AgentStatus.DISCONNECTED
-        )
-        
-        db.add(agent)
-        await db.commit()
-        await db.refresh(agent)
-        
-        return agent
-    
-    @staticmethod
-    async def get_agent(db: AsyncSession, agent_id: UUID) -> Optional[Agent]:
-        """Get agent by ID"""
-        result = await db.execute(select(Agent).where(Agent.id == agent_id))
-        return result.scalar_one_or_none()
-    
-    @staticmethod
-    async def get_agents(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Agent]:
-        """Get all agents"""
-        result = await db.execute(select(Agent).offset(skip).limit(limit))
-        return list(result.scalars().all())
-    
-    @staticmethod
-    async def update_agent(db: AsyncSession, agent_id: UUID, agent_data: AgentUpdate) -> Optional[Agent]:
-        """Update agent"""
-        agent = await AgentService.get_agent(db, agent_id)
-        if not agent:
-            return None
-        
-        update_data = agent_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(agent, field, value)
-        
-        await db.commit()
-        await db.refresh(agent)
-        
-        # Send settings update to connected agent
-        if 'settings' in update_data:
-            from app.api.v1.endpoints.agents import connected_agents
-            agent_id_str = str(agent_id)
-            if agent_id_str in connected_agents:
-                try:
-                    websocket = connected_agents[agent_id_str]
-                    await websocket.send_json({
-                        "type": "settings_update",
-                        "settings": agent.settings or {}
-                    })
-                except Exception as e:
-                    print(f"Failed to send settings update to agent {agent_id}: {e}")
-        
-        return agent
-    
-    @staticmethod
-    async def delete_agent(db: AsyncSession, agent_id: UUID) -> bool:
-        """Delete agent"""
-        agent = await AgentService.get_agent(db, agent_id)
-        if not agent:
-            return False
-        
-        await db.delete(agent)
-        await db.commit()
-        
-        return True
-    
-    @staticmethod
-    async def update_agent_status(
-        db: AsyncSession, 
-        agent_id: UUID, 
-        status: AgentStatus,
-        update_last_seen: bool = True
-    ) -> Optional[Agent]:
-        """Update agent status and last seen time"""
-        agent = await AgentService.get_agent(db, agent_id)
-        if not agent:
-            return None
-        
-        agent.status = status
-        if update_last_seen:
-            agent.last_seen = datetime.utcnow()
-        
-        if status == AgentStatus.ONLINE and not agent.connected_at:
-            agent.connected_at = datetime.utcnow()
-        
-        await db.commit()
-        await db.refresh(agent)
-        
-        return agent
-    
-    @staticmethod
-    def generate_python_agent(agent: Agent) -> str:
-        """Generate Python agent script with all modules (Asset, Traffic, Host, Access)"""
-        # Replace {agent_id} placeholder in connection URL  
-        server_url = agent.connection_url.replace('{agent_id}', str(agent.id))
-        
-        # Convert capabilities dict to Python repr (True/False instead of true/false)
-        capabilities_repr = repr(agent.capabilities)
-        
-        # Get config from agent_metadata or use defaults
-        config = agent.agent_metadata or {}
-        config_repr = repr(config)
-        
-        template = f'''#!/usr/bin/env python3
-"""
-NOP Agent - {agent.name}
-Generated: {datetime.utcnow().isoformat()}
+NOP Agent - final_agent_test
+Generated: 2026-01-06T21:50:38.559868
 Type: Python Proxy Agent
 Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
@@ -164,7 +9,7 @@ This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
-Download URL: {{BASE_URL}}/api/v1/agents/download/{agent.download_token}
+Download URL: {BASE_URL}/api/v1/agents/download/3hF_BvlgsiDAK5O2aH08ONX9kOh1hO3OLH4ovlr8_Gs
 
 INSTALLATION:
   pip3 install websockets psutil scapy cryptography netifaces
@@ -180,13 +25,13 @@ import importlib.util
 
 def check_and_install_deps():
     """Check and install required dependencies"""
-    deps = {{
+    deps = {
         'websockets': 'websockets',
         'psutil': 'psutil', 
         'scapy': 'scapy',
         'cryptography': 'cryptography',
         'netifaces': 'netifaces'
-    }}
+    }
     
     missing = []
     for module, package in deps.items():
@@ -194,15 +39,15 @@ def check_and_install_deps():
             missing.append(package)
     
     if missing:
-        print(f"Missing dependencies: {{', '.join(missing)}}")
+        print(f"Missing dependencies: {', '.join(missing)}")
         print("Installing dependencies...")
         try:
             subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user'] + missing)
             print("Dependencies installed successfully. Please run the agent again.")
             sys.exit(0)
         except subprocess.CalledProcessError as e:
-            print(f"Failed to install dependencies: {{e}}")
-            print(f"Please install manually: pip3 install {{' '.join(missing)}}")
+            print(f"Failed to install dependencies: {e}")
+            print(f"Please install manually: pip3 install {' '.join(missing)}")
             sys.exit(1)
 
 check_and_install_deps()
@@ -224,13 +69,13 @@ import base64
 import os
 
 # Agent Configuration
-AGENT_ID = "{agent.id}"
-AGENT_NAME = "{agent.name}"
-AUTH_TOKEN = "{agent.auth_token}"
-ENCRYPTION_KEY = "{agent.encryption_key}"
-SERVER_URL = "{server_url}"
-CAPABILITIES = {capabilities_repr}
-CONFIG = {config_repr}
+AGENT_ID = "3dd15635-bb9c-4a1b-ada3-76548bcf0cd7"
+AGENT_NAME = "final_agent_test"
+AUTH_TOKEN = "Knckx4jJi1b5X2Y_OPKF4jvsxUUAMrt_EHNGG3FmYUk"
+ENCRYPTION_KEY = "39WFmeB7Een_CZaaBGDm7X_nqyOxlJRTVdE1pdSMB_g"
+SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/3dd15635-bb9c-4a1b-ada3-76548bcf0cd7/connect"
+CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': True}
+CONFIG = {'connectback_interval': 30, 'heartbeat_interval': 30, 'data_interval': 60, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1, 'socks_proxy_port': 10082, 'settings': {'discovery': {'network_range': '10.10.1.0/24', 'packets_per_second': 100, 'discovery_method': 'arp', 'discovery_enabled': True, 'discovery_interval': 900, 'passive_discovery': True}}, 'agent_ip': '10.10.1.10', 'host_info': {'hostname': 'agent-host', 'platform': 'Linux', 'platform_release': '6.8.0-1030-azure', 'platform_version': '#35~22.04.1-Ubuntu SMP Mon May 26 18:08:30 UTC 2025', 'architecture': 'x86_64', 'processor': 'x86_64', 'cpu_percent': 3.5, 'memory_percent': 44.9, 'disk_percent': 53.1, 'boot_time': '2026-01-06T20:53:44', 'interfaces': [{'name': 'lo', 'ip': '127.0.0.1', 'status': 'up'}, {'name': 'eth0', 'ip': '172.28.0.150', 'status': 'up'}, {'name': 'eth1', 'ip': '10.10.1.10', 'status': 'up'}]}, 'last_host_update': '2026-01-06T21:48:45.995452'}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -290,19 +135,19 @@ class NOPAgent:
         """Send encrypted message to C2"""
         json_str = json.dumps(message)
         encrypted = self.encrypt_message(json_str)
-        await self.ws.send(json.dumps({{
+        await self.ws.send(json.dumps({
             "encrypted": True,
             "data": encrypted
-        }}))
+        }))
         
     async def connect(self):
         """Connect to NOP C2 server with encrypted tunnel"""
         try:
-            print(f"[{{datetime.now()}}] Connecting to C2 server: {{self.server_url}}...")
+            print(f"[{datetime.now()}] Connecting to C2 server: {self.server_url}...")
             # Connect without extra_headers for compatibility with older websockets versions
             async with websockets.connect(self.server_url) as websocket:
                 self.ws = websocket
-                print(f"[{{datetime.now()}}] Connected! Establishing encrypted tunnel...")
+                print(f"[{datetime.now()}] Connected! Establishing encrypted tunnel...")
                 
                 # Register with C2
                 await self.register()
@@ -317,7 +162,7 @@ class NOPAgent:
                     self.access_module() if self.capabilities.get("access") else self.noop()
                 )
         except Exception as e:
-            print(f"[{{datetime.now()}}] Connection error: {{e}}")
+            print(f"[{datetime.now()}] Connection error: {e}")
             await asyncio.sleep(5)
             
     async def noop(self):
@@ -326,34 +171,34 @@ class NOPAgent:
         
     async def register(self):
         """Register agent with C2 server"""
-        registration = {{
+        registration = {
             "type": "register",
             "agent_id": self.agent_id,
             "agent_name": self.agent_name,
             "capabilities": self.capabilities,
-            "system_info": {{
+            "system_info": {
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
                 "version": platform.version(),
                 "ip_address": socket.gethostbyname(socket.gethostname())
-            }}
-        }}
+            }
+        }
         await self.ws.send(json.dumps(registration))
-        print(f"[{{datetime.now()}}] Registered with C2 server")
+        print(f"[{datetime.now()}] Registered with C2 server")
         
     async def heartbeat(self):
         """Send periodic heartbeat to C2"""
         while self.running:
             try:
                 await asyncio.sleep(30)
-                heartbeat = {{
+                heartbeat = {
                     "type": "heartbeat",
                     "agent_id": self.agent_id,
                     "timestamp": datetime.utcnow().isoformat()
-                }}
+                }
                 await self.ws.send(json.dumps(heartbeat))
             except Exception as e:
-                print(f"[{{datetime.now()}}] Heartbeat error: {{e}}")
+                print(f"[{datetime.now()}] Heartbeat error: {e}")
                 break
                 
     async def message_handler(self):
@@ -364,23 +209,23 @@ class NOPAgent:
                 msg_type = data.get("type")
                 
                 if msg_type == "terminate":
-                    print(f"[{{datetime.now()}}] Terminate command received from C2")
-                    print(f"[{{datetime.now()}}] Message: {{data.get('message', 'Shutting down...')}}")
+                    print(f"[{datetime.now()}] Terminate command received from C2")
+                    print(f"[{datetime.now()}] Message: {data.get('message', 'Shutting down...')}")
                     self.running = False
                     break
                 elif msg_type == "kill":
-                    print(f"[{{datetime.now()}}] KILL command received - Self-destructing...")
-                    print(f"[{{datetime.now()}}] Message: {{data.get('message', '')}}")
+                    print(f"[{datetime.now()}] KILL command received - Self-destructing...")
+                    print(f"[{datetime.now()}] Message: {data.get('message', '')}")
                     self.running = False
                     # Delete self
                     try:
                         import os
                         agent_file = os.path.abspath(__file__)
-                        print(f"[{{datetime.now()}}] Deleting agent file: {{agent_file}}")
+                        print(f"[{datetime.now()}] Deleting agent file: {agent_file}")
                         os.remove(agent_file)
-                        print(f"[{{datetime.now()}}] Agent file deleted successfully")
+                        print(f"[{datetime.now()}] Agent file deleted successfully")
                     except Exception as e:
-                        print(f"[{{datetime.now()}}] Failed to delete agent file: {{e}}")
+                        print(f"[{datetime.now()}] Failed to delete agent file: {e}")
                     break
                 elif msg_type == "command":
                     await self.handle_command(data)
@@ -389,12 +234,12 @@ class NOPAgent:
                 elif msg_type == "settings_update":
                     await self.handle_settings_update(data)
             except Exception as e:
-                print(f"[{{datetime.now()}}] Message handling error: {{e}}")
+                print(f"[{datetime.now()}] Message handling error: {e}")
                 
     async def handle_command(self, data):
         """Execute command from C2 based on module capabilities"""
         command = data.get("command")
-        print(f"[{{datetime.now()}}] Received command: {{command}}")
+        print(f"[{datetime.now()}] Received command: {command}")
         
         # Commands are handled by respective modules
         # This is just a placeholder for custom C2 commands
@@ -402,11 +247,11 @@ class NOPAgent:
     async def handle_settings_update(self, data):
         """Handle settings update from C2"""
         try:
-            settings = data.get("settings", {{}})
-            print(f"[{{datetime.now()}}] Settings update received from C2")
+            settings = data.get("settings", {})
+            print(f"[{datetime.now()}] Settings update received from C2")
             
             # Extract discovery settings
-            discovery = settings.get("discovery", {{}})
+            discovery = settings.get("discovery", {})
             if discovery:
                 # Update config with discovery settings
                 self.config["passive_discovery"] = discovery.get("passive_discovery", False)
@@ -417,33 +262,33 @@ class NOPAgent:
                 self.config["discovery_method"] = discovery.get("discovery_method", "arp")
                 self.config["track_source_only"] = discovery.get("track_source_only", False)
                 
-                print(f"[{{datetime.now()}}] Discovery config updated:")
-                print(f"  - Passive discovery: {{self.config.get('passive_discovery')}}")
-                print(f"  - Auto discovery: {{self.config.get('auto_discovery')}}")
-                print(f"  - Interface: {{self.config.get('sniff_interface')}}")
-                print(f"  - Network: {{self.config.get('scan_subnet')}}")
-                print(f"  - Interval: {{self.config.get('discovery_interval')}}s")
-                print(f"  - Method: {{self.config.get('discovery_method')}}")
+                print(f"[{datetime.now()}] Discovery config updated:")
+                print(f"  - Passive discovery: {self.config.get('passive_discovery')}")
+                print(f"  - Auto discovery: {self.config.get('auto_discovery')}")
+                print(f"  - Interface: {self.config.get('sniff_interface')}")
+                print(f"  - Network: {self.config.get('scan_subnet')}")
+                print(f"  - Interval: {self.config.get('discovery_interval')}s")
+                print(f"  - Method: {self.config.get('discovery_method')}")
                 
                 # Restart passive discovery if enabled
                 if self.config.get("passive_discovery"):
-                    print(f"[{{datetime.now()}}] Starting passive discovery...")
+                    print(f"[{datetime.now()}] Starting passive discovery...")
                     asyncio.create_task(self.passive_discovery())
         except Exception as e:
-            print(f"[{{datetime.now()}}] Settings update error: {{e}}")
+            print(f"[{datetime.now()}] Settings update error: {e}")
         
     # ============================================================================
     # ASSET MODULE - Network asset discovery and monitoring
     # ============================================================================
     async def asset_module(self):
         """Asset Discovery Module - Discovers network hosts via ARP and passive sniffing"""
-        print(f"[{{datetime.now()}}] Asset module started")
+        print(f"[{datetime.now()}] Asset module started")
         
         # Start passive discovery if enabled
         passive_enabled = self.config.get('passive_discovery', False)
         if passive_enabled:
             asyncio.create_task(self.passive_discovery())
-            print(f"[{{datetime.now()}}] Passive discovery enabled")
+            print(f"[{datetime.now()}] Passive discovery enabled")
         
         while self.running:
             try:
@@ -462,18 +307,18 @@ class NOPAgent:
                 
                 # Include passively discovered hosts
                 if passive_enabled and self.passive_hosts:
-                    print(f"[{{datetime.now()}}] Including {{len(self.passive_hosts)}} passively discovered hosts")
+                    print(f"[{datetime.now()}] Including {len(self.passive_hosts)} passively discovered hosts")
                     assets.extend(self.passive_hosts)
                     self.passive_hosts = []  # Clear after sending
                 
-                await self.relay_to_c2({{
+                await self.relay_to_c2({
                     "type": "asset_data",
                     "agent_id": self.agent_id,
                     "assets": assets,
                     "timestamp": datetime.utcnow().isoformat()
-                }})
+                })
             except Exception as e:
-                print(f"[{{datetime.now()}}] Asset module error: {{e}}")
+                print(f"[{datetime.now()}] Asset module error: {e}")
     
     async def passive_discovery(self):
         """Passive network discovery via packet sniffing"""
@@ -490,10 +335,10 @@ class NOPAgent:
                         break
             
             if not sniff_iface:
-                print(f"[{{datetime.now()}}] No suitable interface for passive discovery")
+                print(f"[{datetime.now()}] No suitable interface for passive discovery")
                 return
             
-            print(f"[{{datetime.now()}}] Starting passive discovery on {{sniff_iface}}")
+            print(f"[{datetime.now()}] Starting passive discovery on {sniff_iface}")
             
             def packet_handler(packet):
                 """Process captured packets for host discovery AND flow capture"""
@@ -512,15 +357,15 @@ class NOPAgent:
                         # === HOST DISCOVERY ===
                         existing_ips = [h.get('ip') for h in self.passive_hosts]
                         if src_ip not in existing_ips:
-                            host_info = {{
+                            host_info = {
                                 "ip": src_ip,
                                 "mac": src_mac,
                                 "status": "online",
                                 "discovered_at": datetime.utcnow().isoformat(),
                                 "method": "passive"
-                            }}
+                            }
                             self.passive_hosts.append(host_info)
-                            print(f"[{{datetime.now()}}] Passive: discovered {{src_ip}} ({{src_mac}})")
+                            print(f"[{datetime.now()}] Passive: discovered {src_ip} ({src_mac})")
                         
                         # === FLOW CAPTURE ===
                         protocol = "other"
@@ -539,7 +384,7 @@ class NOPAgent:
                             protocol = "icmp"
                         
                         # Create flow record
-                        flow = {{
+                        flow = {
                             "src_ip": src_ip,
                             "dst_ip": dst_ip,
                             "src_port": src_port,
@@ -547,7 +392,7 @@ class NOPAgent:
                             "protocol": protocol,
                             "bytes": len(packet),
                             "timestamp": datetime.utcnow().isoformat()
-                        }}
+                        }
                         
                         with self.flow_lock:
                             self.captured_flows.append(flow)
@@ -571,21 +416,21 @@ class NOPAgent:
                         filter="ip"  # Only capture IP packets to reduce noise
                     )
                 except PermissionError:
-                    print(f"[{{datetime.now()}}] Warning: Insufficient permissions for promiscuous mode")
-                    print(f"[{{datetime.now()}}] Attempting normal mode (may miss some packets)...")
+                    print(f"[{datetime.now()}] Warning: Insufficient permissions for promiscuous mode")
+                    print(f"[{datetime.now()}] Attempting normal mode (may miss some packets)...")
                     try:
                         scapy.sniff(iface=sniff_iface, prn=packet_handler, store=0)
                     except Exception as e:
-                        print(f"[{{datetime.now()}}] Sniffer failed: {{e}}")
+                        print(f"[{datetime.now()}] Sniffer failed: {e}")
                 except Exception as e:
-                    print(f"[{{datetime.now()}}] Sniffer thread error: {{e}}")
+                    print(f"[{datetime.now()}] Sniffer thread error: {e}")
             
             sniffer_thread = threading.Thread(target=start_sniffer, daemon=True)
             sniffer_thread.start()
-            print(f"[{{datetime.now()}}] Passive discovery thread started (promisc mode, filter=ip)")
+            print(f"[{datetime.now()}] Passive discovery thread started (promisc mode, filter=ip)")
             
         except Exception as e:
-            print(f"[{{datetime.now()}}] Passive discovery error: {{e}}")
+            print(f"[{datetime.now()}] Passive discovery error: {e}")
                 
     async def discover_assets(self) -> List[Dict]:
         """Discover network assets via ARP scan"""
@@ -631,7 +476,7 @@ class NOPAgent:
                 
                 # Calculate network using actual netmask from interface
                 try:
-                    iface_obj = IPv4Interface(f"{{best_ip}}/{{best_netmask}}")
+                    iface_obj = IPv4Interface(f"{best_ip}/{best_netmask}")
                     network = str(iface_obj.network)
                 except:
                     network = '.'.join(best_ip.split('.')[:3]) + '.0/24'
@@ -648,7 +493,7 @@ class NOPAgent:
                         discovered.extend(await self._scan_network(net, best_interface))
                     return discovered
             
-            print(f"[{{datetime.now()}}] Scanning network: {{network}} (interface: {{best_interface or 'default'}})")
+            print(f"[{datetime.now()}] Scanning network: {network} (interface: {best_interface or 'default'})")
             
             # For large networks (/16, /8), scan targeted subnets instead of entire network
             from ipaddress import IPv4Network
@@ -657,12 +502,12 @@ class NOPAgent:
                 # If network is larger than /24, limit scope or scan in chunks
                 if net_obj.prefixlen < 24:
                     # For networks like 10.10.0.0/16, scan multiple /24 subnets
-                    print(f"[{{datetime.now()}}] Large network detected, scanning targeted /24 subnets...")
+                    print(f"[{datetime.now()}] Large network detected, scanning targeted /24 subnets...")
                     # Scan first 10 /24 subnets (e.g., 10.10.0.0/24, 10.10.1.0/24, etc.)
                     base_octets = str(net_obj.network_address).split('.')
                     scan_subnets = []
                     for third_octet in range(0, min(10, 256)):  # Limit to first 10 subnets
-                        subnet = f"{{base_octets[0]}}.{{base_octets[1]}}.{{third_octet}}.0/24"
+                        subnet = f"{base_octets[0]}.{base_octets[1]}.{third_octet}.0/24"
                         scan_subnets.append(subnet)
                 else:
                     scan_subnets = [network]
@@ -682,20 +527,20 @@ class NOPAgent:
                     answered_list = scapy.srp(arp_request_broadcast, timeout=scan_timeout, verbose=False)[0]
                     
                     for element in answered_list:
-                        asset = {{
+                        asset = {
                             "ip": element[1].psrc,
                             "mac": element[1].hwsrc,
                             "status": "online",
                             "discovered_at": datetime.utcnow().isoformat()
-                        }}
+                        }
                         assets.append(asset)
                 except Exception as e:
-                    print(f"[{{datetime.now()}}] Scan error for {{subnet}}: {{e}}")
+                    print(f"[{datetime.now()}] Scan error for {subnet}: {e}")
                     
-            print(f"[{{datetime.now()}}] Discovered {{len(assets)}} assets via ARP")
+            print(f"[{datetime.now()}] Discovered {len(assets)} assets via ARP")
             return assets
         except Exception as e:
-            print(f"[{{datetime.now()}}] Asset discovery error: {{e}}")
+            print(f"[{datetime.now()}] Asset discovery error: {e}")
             return []
     
     # ============================================================================
@@ -703,7 +548,7 @@ class NOPAgent:
     # ============================================================================
     async def traffic_module(self):
         """Traffic Monitoring Module - Captures and analyzes network traffic"""
-        print(f"[{{datetime.now()}}] Traffic module started")
+        print(f"[{datetime.now()}] Traffic module started")
         while self.running:
             try:
                 await asyncio.sleep(30)  # Send flows every 30 seconds
@@ -715,11 +560,11 @@ class NOPAgent:
                     self.captured_flows = []  # Clear after getting
                 
                 # Aggregate flows by connection tuple
-                aggregated = {{}}
+                aggregated = {}
                 for flow in flows_to_send:
                     key = (flow['src_ip'], flow['dst_ip'], flow['protocol'], flow['dst_port'])
                     if key not in aggregated:
-                        aggregated[key] = {{
+                        aggregated[key] = {
                             "src_ip": flow['src_ip'],
                             "dst_ip": flow['dst_ip'],
                             "src_port": flow['src_port'],
@@ -729,7 +574,7 @@ class NOPAgent:
                             "packets": 0,
                             "first_seen": flow['timestamp'],
                             "last_seen": flow['timestamp']
-                        }}
+                        }
                     aggregated[key]['bytes'] += flow['bytes']
                     aggregated[key]['packets'] += 1
                     aggregated[key]['last_seen'] = flow['timestamp']
@@ -737,52 +582,52 @@ class NOPAgent:
                 flows_list = list(aggregated.values())
                 
                 if flows_list:
-                    print(f"[{{datetime.now()}}] Sending {{len(flows_list)}} aggregated flows")
+                    print(f"[{datetime.now()}] Sending {len(flows_list)} aggregated flows")
                 
-                await self.relay_to_c2({{
+                await self.relay_to_c2({
                     "type": "traffic_data",
                     "agent_id": self.agent_id,
                     "traffic": traffic_stats,
                     "flows": flows_list,
                     "timestamp": datetime.utcnow().isoformat()
-                }})
+                })
             except Exception as e:
-                print(f"[{{datetime.now()}}] Traffic module error: {{e}}")
+                print(f"[{datetime.now()}] Traffic module error: {e}")
                 
     async def capture_traffic_stats(self) -> Dict:
         """Capture network traffic statistics"""
         try:
             net_io = psutil.net_io_counters()
-            return {{
+            return {
                 "bytes_sent": net_io.bytes_sent,
                 "bytes_recv": net_io.bytes_recv,
                 "packets_sent": net_io.packets_sent,
                 "packets_recv": net_io.packets_recv,
                 "errors_in": net_io.errin,
                 "errors_out": net_io.errout
-            }}
+            }
         except Exception as e:
-            print(f"[{{datetime.now()}}] Traffic capture error: {{e}}")
-            return {{}}
+            print(f"[{datetime.now()}] Traffic capture error: {e}")
+            return {}
     
     # ============================================================================
     # HOST MODULE - Host system information and monitoring
     # ============================================================================
     async def host_module(self):
         """Host Monitoring Module - Monitors local system resources"""
-        print(f"[{{datetime.now()}}] Host module started")
+        print(f"[{datetime.now()}] Host module started")
         while self.running:
             try:
                 await asyncio.sleep(120)  # Send stats every 2 minutes
                 host_info = await self.collect_host_info()
-                await self.relay_to_c2({{
+                await self.relay_to_c2({
                     "type": "host_data",
                     "agent_id": self.agent_id,
                     "host": host_info,
                     "timestamp": datetime.utcnow().isoformat()
-                }})
+                })
             except Exception as e:
-                print(f"[{{datetime.now()}}] Host module error: {{e}}")
+                print(f"[{datetime.now()}] Host module error: {e}")
                 
     async def collect_host_info(self) -> Dict:
         """Collect host system information"""
@@ -795,15 +640,15 @@ class NOPAgent:
                     addrs = netifaces.ifaddresses(iface)
                     if netifaces.AF_INET in addrs:
                         for addr in addrs[netifaces.AF_INET]:
-                            interfaces.append({{
+                            interfaces.append({
                                 "name": iface,
                                 "ip": addr.get('addr', ''),
                                 "status": "up"
-                            }})
+                            })
             except Exception as e:
-                print(f"[{{datetime.now()}}] Interface collection error: {{e}}")
+                print(f"[{datetime.now()}] Interface collection error: {e}")
             
-            return {{
+            return {
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
                 "platform_release": platform.release(),
@@ -815,17 +660,17 @@ class NOPAgent:
                 "disk_percent": psutil.disk_usage('/').percent,
                 "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat(),
                 "interfaces": interfaces
-            }}
+            }
         except Exception as e:
-            print(f"[{{datetime.now()}}] Host info collection error: {{e}}")
-            return {{}}
+            print(f"[{datetime.now()}] Host info collection error: {e}")
+            return {}
     
     # ============================================================================
     # ACCESS MODULE - Remote access and command execution
     # ============================================================================
     async def access_module(self):
         """Access Module - Provides remote access capabilities"""
-        print(f"[{{datetime.now()}}] Access module started (listen-only mode)")
+        print(f"[{datetime.now()}] Access module started (listen-only mode)")
         # Access module only responds to C2 commands for security
         # No autonomous actions
         
@@ -835,419 +680,33 @@ class NOPAgent:
             if self.ws:
                 await self.ws.send(json.dumps(data))
         except Exception as e:
-            print(f"[{{datetime.now()}}] Relay error: {{e}}")
+            print(f"[{datetime.now()}] Relay error: {e}")
             
     async def send_pong(self):
         """Respond to ping from C2"""
-        pong = {{
+        pong = {
             "type": "pong",
             "agent_id": self.agent_id,
             "timestamp": datetime.utcnow().isoformat()
-        }}
+        }
         await self.ws.send(json.dumps(pong))
         
     async def run(self):
         """Main run loop"""
-        print(f"[{{datetime.now()}}] NOP Agent '{{self.agent_name}}' starting...")
-        print(f"[{{datetime.now()}}] Enabled modules: {{', '.join([k for k, v in self.capabilities.items() if v])}}")
+        print(f"[{datetime.now()}] NOP Agent '{self.agent_name}' starting...")
+        print(f"[{datetime.now()}] Enabled modules: {', '.join([k for k, v in self.capabilities.items() if v])}")
         
         while self.running:
             try:
                 await self.connect()
             except KeyboardInterrupt:
-                print(f"[{{datetime.now()}}] Agent stopped by user")
+                print(f"[{datetime.now()}] Agent stopped by user")
                 self.running = False
                 break
             except Exception as e:
-                print(f"[{{datetime.now()}}] Error: {{e}}")
+                print(f"[{datetime.now()}] Error: {e}")
                 await asyncio.sleep(5)
 
 if __name__ == "__main__":
     agent = NOPAgent()
     asyncio.run(agent.run())
-'''
-        return template
-    
-    @staticmethod
-    def generate_go_agent(agent: Agent) -> str:
-        """Generate Go agent for cross-platform compilation"""
-        capabilities_json = json.dumps(agent.capabilities)
-        return f'''package main
-
-/*
-NOP Agent - {agent.name}
-Generated: {datetime.utcnow().isoformat()}
-Type: Go (cross-platform)
-
-Build commands:
-  Linux:   GOOS=linux GOARCH=amd64 go build -o nop-agent-linux
-  Windows: GOOS=windows GOARCH=amd64 go build -o nop-agent.exe
-  macOS:   GOOS=darwin GOARCH=amd64 go build -o nop-agent-macos
-  ARM:     GOOS=linux GOARCH=arm64 go build -o nop-agent-arm
-*/
-
-import (
-\t"encoding/json"
-\t"fmt"
-\t"log"
-\t"net/url"
-\t"os"
-\t"os/signal"
-\t"runtime"
-\t"syscall"
-\t"time"
-
-\t"github.com/gorilla/websocket"
-)
-
-const (
-\tAgentID    = "{agent.id}"
-\tAgentName  = "{agent.name}"
-\tAuthToken  = "{agent.auth_token}"
-\tServerURL  = "{agent.connection_url}"
-)
-
-var Capabilities = map[string]bool{capabilities_json}
-
-type NOPAgent struct {{
-\tconn         *websocket.Conn
-\tagentID      string
-\tagentName    string
-\tauthToken    string
-\tserverURL    string
-\tcapabilities map[string]bool
-\trunning      bool
-}}
-
-type Message struct {{
-\tType      string                 `json:"type"`
-\tAgentID   string                 `json:"agent_id,omitempty"`
-\tAgentName string                 `json:"agent_name,omitempty"`
-\tData      map[string]interface{{}} `json:"data,omitempty"`
-\tTimestamp string                 `json:"timestamp"`
-}}
-
-func NewNOPAgent() *NOPAgent {{
-\treturn &NOPAgent{{
-\t\tagentID:      AgentID,
-\t\tagentName:    AgentName,
-\t\tauthToken:    AuthToken,
-\t\tserverURL:    ServerURL,
-\t\tcapabilities: Capabilities,
-\t\trunning:      true,
-\t}}
-}}
-
-func (a *NOPAgent) Connect() error {{
-\tlog.Printf("[%s] Connecting to C2 server: %s", time.Now().Format(time.RFC3339), a.serverURL)
-\t
-\tu, err := url.Parse(a.serverURL)
-\tif err != nil {{
-\t\treturn fmt.Errorf("invalid server URL: %v", err)
-\t}}
-
-\theader := make(map[string][]string)
-\theader["Authorization"] = []string{{fmt.Sprintf("Bearer %s", a.authToken)}}
-
-\tconn, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-\tif err != nil {{
-\t\treturn fmt.Errorf("connection failed: %v", err)
-\t}}
-
-\ta.conn = conn
-\tlog.Printf("[%s] Connected to C2 server!", time.Now().Format(time.RFC3339))
-
-\treturn nil
-}}
-
-func (a *NOPAgent) Register() error {{
-\treg := Message{{
-\t\tType:      "register",
-\t\tAgentID:   a.agentID,
-\t\tAgentName: a.agentName,
-\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
-\t\tData: map[string]interface{{}}{{
-\t\t\t"capabilities": a.capabilities,
-\t\t\t"system_info": map[string]string{{
-\t\t\t\t"os":      runtime.GOOS,
-\t\t\t\t"arch":    runtime.GOARCH,
-\t\t\t\t"version": runtime.Version(),
-\t\t\t}},
-\t\t}},
-\t}}
-
-\terr := a.conn.WriteJSON(reg)
-\tif err != nil {{
-\t\treturn fmt.Errorf("registration failed: %v", err)
-\t}}
-
-\tlog.Printf("[%s] Registered with C2 server", time.Now().Format(time.RFC3339))
-\treturn nil
-}}
-
-func (a *NOPAgent) Heartbeat() {{
-\tticker := time.NewTicker(30 * time.Second)
-\tdefer ticker.Stop()
-
-\tfor a.running {{
-\t\tselect {{
-\t\tcase <-ticker.C:
-\t\t\thb := Message{{
-\t\t\t\tType:      "heartbeat",
-\t\t\t\tAgentID:   a.agentID,
-\t\t\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
-\t\t\t}}
-\t\t\tif err := a.conn.WriteJSON(hb); err != nil {{
-\t\t\t\tlog.Printf("[%s] Heartbeat error: %v", time.Now().Format(time.RFC3339), err)
-\t\t\t\treturn
-\t\t\t}}
-\t\t}}
-\t}}
-}}
-
-func (a *NOPAgent) MessageHandler() {{
-\tfor a.running {{
-\t\tvar msg Message
-\t\terr := a.conn.ReadJSON(&msg)
-\t\tif err != nil {{
-\t\t\tlog.Printf("[%s] Read error: %v", time.Now().Format(time.RFC3339), err)
-\t\t\treturn
-\t\t}}
-
-\t\tswitch msg.Type {{
-\t\tcase "command":
-\t\t\ta.handleCommand(msg)
-\t\tcase "ping":
-\t\t\ta.sendPong()
-\t\t}}
-\t}}
-}}
-
-func (a *NOPAgent) handleCommand(msg Message) {{
-\tlog.Printf("[%s] Received command: %v", time.Now().Format(time.RFC3339), msg.Data)
-\t// Implement command handling based on modules
-}}
-
-func (a *NOPAgent) sendPong() {{
-\tpong := Message{{
-\t\tType:      "pong",
-\t\tAgentID:   a.agentID,
-\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
-\t}}
-\ta.conn.WriteJSON(pong)
-}}
-
-// Module: Asset Discovery
-func (a *NOPAgent) AssetModule() {{
-\tif !a.capabilities["asset"] {{
-\t\treturn
-\t}}
-\tlog.Printf("[%s] Asset module started", time.Now().Format(time.RFC3339))
-\t// Implement asset discovery
-}}
-
-// Module: Traffic Monitoring
-func (a *NOPAgent) TrafficModule() {{
-\tif !a.capabilities["traffic"] {{
-\t\treturn
-\t}}
-\tlog.Printf("[%s] Traffic module started", time.Now().Format(time.RFC3339))
-\t// Implement traffic monitoring
-}}
-
-// Module: Host Monitoring
-func (a *NOPAgent) HostModule() {{
-\tif !a.capabilities["host"] {{
-\t\treturn
-\t}}
-\tlog.Printf("[%s] Host module started", time.Now().Format(time.RFC3339))
-\t// Implement host monitoring
-}}
-
-// Module: Remote Access
-func (a *NOPAgent) AccessModule() {{
-\tif !a.capabilities["access"] {{
-\t\treturn
-\t}}
-\tlog.Printf("[%s] Access module started", time.Now().Format(time.RFC3339))
-\t// Implement remote access (command execution)
-}}
-
-func (a *NOPAgent) Run() {{
-\tlog.Printf("[%s] NOP Agent '%s' starting...", time.Now().Format(time.RFC3339), a.agentName)
-\t
-\tenabled := []string{{}}
-\tfor module, enabled := range a.capabilities {{
-\t\tif enabled {{
-\t\t\tenabled = append(enabled, module)
-\t\t}}
-\t}}
-\tlog.Printf("[%s] Enabled modules: %v", time.Now().Format(time.RFC3339), enabled)
-
-\tfor a.running {{
-\t\tif err := a.Connect(); err != nil {{
-\t\t\tlog.Printf("[%s] Connection error: %v", time.Now().Format(time.RFC3339), err)
-\t\t\ttime.Sleep(5 * time.Second)
-\t\t\tcontinue
-\t\t}}
-
-\t\tif err := a.Register(); err != nil {{
-\t\t\tlog.Printf("[%s] Registration error: %v", time.Now().Format(time.RFC3339), err)
-\t\t\ttime.Sleep(5 * time.Second)
-\t\t\tcontinue
-\t\t}}
-
-\t\t// Start modules
-\t\tgo a.Heartbeat()
-\t\tgo a.AssetModule()
-\t\tgo a.TrafficModule()
-\t\tgo a.HostModule()
-\t\tgo a.AccessModule()
-
-\t\t// Handle messages
-\t\ta.MessageHandler()
-
-\t\tif a.conn != nil {{
-\t\t\ta.conn.Close()
-\t\t}}
-
-\t\tif a.running {{
-\t\t\tlog.Printf("[%s] Reconnecting in 5 seconds...", time.Now().Format(time.RFC3339))
-\t\t\ttime.Sleep(5 * time.Second)
-\t\t}}
-\t}}
-}}
-
-func main() {{
-\tagent := NewNOPAgent()
-
-\t// Handle graceful shutdown
-\tsigChan := make(chan os.Signal, 1)
-\tsignal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-\tgo func() {{
-\t\t<-sigChan
-\t\tlog.Printf("[%s] Agent stopped by user", time.Now().Format(time.RFC3339))
-\t\tagent.running = false
-\t\tif agent.conn != nil {{
-\t\t\tagent.conn.Close()
-\t\t}}
-\t\tos.Exit(0)
-\t}}()
-
-\tagent.Run()
-}}
-'''
-    
-    @staticmethod
-    async def compile_go_agent(source_code: str, platform: str = "linux-amd64", obfuscate: bool = False) -> bytes:
-        """
-        Compile Go agent to binary for specified platform
-        
-        Platform options:
-        - linux-amd64: Linux x64
-        - windows-amd64: Windows x64
-        - darwin-amd64: macOS x64 (Intel)
-        - darwin-arm64: macOS ARM (M1/M2)
-        - linux-arm64: Linux ARM64 (Raspberry Pi, etc)
-        """
-        import tempfile
-        import subprocess
-        import os
-        
-        # Parse platform
-        parts = platform.split('-')
-        if len(parts) != 2:
-            raise ValueError(f"Invalid platform format: {platform}. Use format: OS-ARCH")
-        
-        goos, goarch = parts
-        
-        # Create temporary directory for Go project
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Write source code
-            main_file = os.path.join(tmpdir, "main.go")
-            with open(main_file, 'w') as f:
-                f.write(source_code)
-            
-            # Create go.mod
-            go_mod = os.path.join(tmpdir, "go.mod")
-            with open(go_mod, 'w') as f:
-                f.write("""module nop-agent
-
-go 1.21
-
-require (
-\tgithub.com/gorilla/websocket v1.5.1
-)
-""")
-            
-            # Determine output filename
-            output_name = "nop-agent"
-            if goos == "windows":
-                output_name += ".exe"
-            
-            output_path = os.path.join(tmpdir, output_name)
-            
-            # Set environment for cross-compilation
-            env = os.environ.copy()
-            env['GOOS'] = goos
-            env['GOARCH'] = goarch
-            env['CGO_ENABLED'] = '0'  # Disable CGO for static binaries
-            
-            try:
-                # Download dependencies
-                subprocess.run(
-                    ['go', 'mod', 'download'],
-                    cwd=tmpdir,
-                    env=env,
-                    check=True,
-                    capture_output=True,
-                    text=True
-                )
-                
-                # Build command
-                if obfuscate:
-                    # Use garble for obfuscation
-                    build_cmd = [
-                        'garble',
-                        '-tiny',
-                        '-literals',
-                        'build',
-                        '-ldflags=-w -s',  # Strip debug info
-                        '-o', output_path,
-                        'main.go'
-                    ]
-                else:
-                    build_cmd = [
-                        'go',
-                        'build',
-                        '-ldflags=-w -s',  # Strip debug info
-                        '-o', output_path,
-                        'main.go'
-                    ]
-                
-                # Compile
-                result = subprocess.run(
-                    build_cmd,
-                    cwd=tmpdir,
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                    timeout=120
-                )
-                
-                if result.returncode != 0:
-                    raise RuntimeError(f"Compilation failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
-                
-                # Read compiled binary
-                with open(output_path, 'rb') as f:
-                    return f.read()
-                    
-            except subprocess.TimeoutExpired:
-                raise RuntimeError("Compilation timeout (>120s)")
-            except FileNotFoundError as e:
-                if 'garble' in str(e) and obfuscate:
-                    raise RuntimeError("Garble not installed. Install with: go install mvdan.cc/garble@latest")
-                elif 'go' in str(e):
-                    raise RuntimeError("Go compiler not found. Install Go 1.21+")
-                raise

@@ -1,31 +1,18 @@
 # {TASK_NAME}
 
 **Date**: {YYYY-MM-DD HH:MM}
-**Session**: #{SESSION_NUMBER}
-**Duration**: ~{N} minutes
+**Files**: {count}
 
 ## Summary
-{One paragraph}
+{Auto-generated from commits and changes}
 
 ## Changes
-- Created: `path/file.ext` - {why}
-- Modified: `path/file.ext` - {what}
-- Deleted: `path/file.ext` - {why}
+- Created: `path/file.ext`
+- Modified: `path/file.ext`
+- Deleted: `path/file.ext`
 
-## Decisions
-| Decision | Rationale |
-|----------|-----------|
-| {Choice} | {Why} |
-
-## Updates
-**Knowledge**: {entities/relations added}
-**Docs**: {files updated}
-**Skills**: {used/created}
-
-## Verification
-- [ ] Tests pass
-- [ ] Knowledge updated
-- [ ] Committed
+## Skills Suggested
+{Detailed skill suggestions from session}
 
 ## Notes
-{Context/gotchas/future}
+{Auto-generated: areas touched, related skills}

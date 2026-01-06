@@ -1,6 +1,18 @@
 # Skills Index
 
-Quick reference for common problems → solutions. Query skills during work when stuck.
+Quick reference for common problems → solutions. **Load skills by domain trigger.**
+
+---
+
+## Domain Triggers (MANDATORY)
+
+| Touching These Files | Load This Skill |
+|---------------------|-----------------|
+| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react.md](frontend-react.md) |
+| `backend/app/`, `endpoints/`, `*.py` API | [backend-api.md](backend-api.md) |
+| `docker-compose*`, `Dockerfile` | [docker.md](docker.md) |
+| Error/exception in output | [debugging.md](debugging.md) |
+| Creating/updating docs | [documentation.md](documentation.md) |
 
 ---
 
@@ -9,49 +21,34 @@ Quick reference for common problems → solutions. Query skills during work when
 ### Build & Runtime Errors
 - **Problem:** Build fails, runtime crashes, dependency issues
 - **Skill:** [debugging.md](debugging.md)
-- **Keywords:** error, exception, build, crash, dependency
 
 ### Knowledge System
-- **Problem:** Query/update project_knowledge.json, understand entities
+- **Problem:** Query/update project_knowledge.json
 - **Skill:** [knowledge.md](knowledge.md)
-- **Keywords:** knowledge, entities, relations, codegraph, map
 
 ### Documentation
-- **Problem:** Create/update docs, organize documentation structure
+- **Problem:** Create/update docs
 - **Skill:** [documentation.md](documentation.md)
-- **Keywords:** docs, README, guides, INDEX
 
 ---
 
 ## By Technology
 
 ### Backend Development
-- **API patterns:** [backend-api.md](backend-api.md) - CRUD, services, agent config, websocket persistence
-- **Database:** INET casting in backend-api.md
+- **API patterns:** [backend-api.md](backend-api.md) - CRUD, services, websocket, agent config
 
-### Frontend Development
-- **Component patterns:** [frontend-react.md](frontend-react.md) - Components, hooks, POV mode
-- **State management:** Context-based filtering in frontend-react.md
+### Frontend Development  
+- **Component patterns:** [frontend-react.md](frontend-react.md) - JSX, hooks, POV mode
 
 ### DevOps
-- **Docker/containers:** [docker.md](docker.md) - Development workflow, reload issues, compose file selection
-- CI/CD: TBD (create when pattern emerges)
+- **Docker/containers:** [docker.md](docker.md) - Compose, hot-reload, dev workflow
 
 ---
 
-## Skill Creation Guidelines
+## Skill Creation
 
-**When to create:**
-- Pattern appears in >=5 sessions
-- Solution is reusable across projects
-- Commands/code can be copy-pasted
-
-**When NOT to create:**
-- Project-specific implementation details
-- One-off solutions
-- Frequently changing patterns
-
-**Format:** <50 lines, executable patterns (see `.github/templates/skill.md`)
+**Create when:** Pattern in >=5 sessions, reusable, copy-paste ready
+**Format:** <50 lines (see `.github/templates/skill.md`)
 
 ---
 

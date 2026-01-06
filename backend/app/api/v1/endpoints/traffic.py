@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import FileResponse
-from typing import List, Dict
+from typing import List, Dict, Optional
 from app.services.SnifferService import sniffer_service
 from app.services.PingService import ping_service
 from app.schemas.traffic import StormConfig, PingRequest as AdvancedPingRequest
@@ -115,30 +115,121 @@ async def export_traffic():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/flows")
-async def get_traffic_flows():
-    """Get network traffic flows (Placeholder for ntopng integration)"""
-    return {"flows": [], "total": 0}
+async def get_traffic_flows(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    limit: int = 100,
+    protocol: Optional[str] = None
+):
+    """Get network traffic flows (POV aware - returns flows from agent or sniffer)"""
+    from app.models.flow import Flow
+    from sqlalchemy import select, desc
+    
+    agent_pov = get_agent_pov(request)
+    
+    try:
+        query = select(Flow)
+        
+        if agent_pov:
+            # Filter by agent when in POV mode
+            query = query.where(Flow.agent_id == agent_pov)
+        
+        if protocol:
+            query = query.where(Flow.protocol == protocol.upper())
+        
+        query = query.order_by(desc(Flow.last_seen)).limit(limit)
+        
+        result = await db.execute(query)
+        flows = result.scalars().all()
+        
+        flows_list = [{
+            "id": str(f.id),
+            "src_ip": str(f.src_ip),
+            "dst_ip": str(f.dst_ip),
+            "src_port": f.src_port,
+            "dst_port": f.dst_port,
+            "protocol": f.protocol,
+            "bytes": f.bytes_sent + f.bytes_received,
+            "packets": f.packets_sent + f.packets_received,
+            "first_seen": f.first_seen.isoformat() if f.first_seen else None,
+            "last_seen": f.last_seen.isoformat() if f.last_seen else None,
+            "agent_id": str(f.agent_id) if f.agent_id else None
+        } for f in flows]
+        
+        return {"flows": flows_list, "total": len(flows_list)}
+    except Exception as e:
+        print(f"Error getting flows: {e}")
+        return {"flows": [], "total": 0}
 
 @router.get("/stats")
 async def get_traffic_stats(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get traffic statistics (agent POV aware)"""
+    """Get traffic statistics (agent POV aware) - includes connections from flows"""
+    from app.models.flow import Flow
+    from sqlalchemy import select, func, desc
+    from collections import defaultdict
+    
     agent_pov = get_agent_pov(request)
     
     if agent_pov:
-        # Get agent's traffic data from metadata
-        from app.services.agent_service import AgentService
-        agent = await AgentService.get_agent(db, agent_pov)
-        if agent and agent.agent_metadata and "traffic_stats" in agent.agent_metadata:
-            # Return cached agent traffic stats
-            stats = agent.agent_metadata["traffic_stats"]
-            stats["note"] = "Agent POV: Traffic data from agent's network"
-            stats["agent_id"] = str(agent_pov)
-            return stats
-        else:
-            # Return empty stats if no data available
+        # Get connections from flows database for this agent
+        try:
+            # Aggregate flows into connections
+            query = select(
+                Flow.src_ip,
+                Flow.dst_ip,
+                Flow.protocol,
+                func.sum(Flow.bytes_sent + Flow.bytes_received).label('total_bytes'),
+                func.sum(Flow.packets_sent + Flow.packets_received).label('total_packets')
+            ).where(Flow.agent_id == agent_pov).group_by(
+                Flow.src_ip, Flow.dst_ip, Flow.protocol
+            ).limit(200)
+            
+            result = await db.execute(query)
+            rows = result.fetchall()
+            
+            # Build connections list for topology
+            connections = []
+            protocol_counts = defaultdict(int)
+            total_bytes = 0
+            total_packets = 0
+            
+            for row in rows:
+                src_ip = str(row.src_ip)
+                dst_ip = str(row.dst_ip)
+                protocol = row.protocol or 'OTHER'
+                bytes_val = row.total_bytes or 0
+                packets_val = row.total_packets or 0
+                
+                connections.append({
+                    "source": src_ip,
+                    "target": dst_ip,
+                    "value": bytes_val,
+                    "protocols": [protocol]
+                })
+                
+                protocol_counts[protocol] += packets_val
+                total_bytes += bytes_val
+                total_packets += packets_val
+            
+            return {
+                "total_packets": total_packets,
+                "total_bytes": total_bytes,
+                "packets_per_second": 0,
+                "bytes_per_second": 0,
+                "protocols": dict(protocol_counts),
+                "top_talkers": [],
+                "traffic_history": [],
+                "connections": connections,
+                "note": f"Agent POV: {len(connections)} connections from flows database",
+                "agent_id": str(agent_pov)
+            }
+        except Exception as e:
+            print(f"Error getting agent traffic stats: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "total_packets": 0,
                 "total_bytes": 0,
@@ -148,7 +239,7 @@ async def get_traffic_stats(
                 "top_talkers": [],
                 "traffic_history": [],
                 "connections": [],
-                "note": "Agent POV: No traffic data available (agent may not be connected)",
+                "note": f"Agent POV: Error fetching data - {str(e)}",
                 "agent_id": str(agent_pov)
             }
     

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NOP Agent - test_agent_deicovery
-Generated: 2026-01-06T10:50:18.000636
+NOP Agent - final_agent_test
+Generated: 2026-01-06T21:40:27.934144
 Type: Python Proxy Agent
 Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
@@ -9,7 +9,7 @@ This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
-Download URL: {BASE_URL}/api/v1/agents/download/RWCO6Pm-L4TQ4zqZtyFmSX28WTc5KIoqqj2Q5NmPGzg
+Download URL: {BASE_URL}/api/v1/agents/download/3hF_BvlgsiDAK5O2aH08ONX9kOh1hO3OLH4ovlr8_Gs
 
 INSTALLATION:
   pip3 install websockets psutil scapy cryptography netifaces
@@ -69,13 +69,13 @@ import base64
 import os
 
 # Agent Configuration
-AGENT_ID = "31fdd4d2-0713-4ad0-8fa9-4699b28c67ea"
-AGENT_NAME = "test_agent_deicovery"
-AUTH_TOKEN = "RvziZ2QAFRjzldqK2hn4aT-oJi2W9C5UsxNK-XVl5Vo"
-ENCRYPTION_KEY = "hNO0SFq7MQgLZhghDrtZThPblZGppjUA6-M12L2P5xY"
-SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/31fdd4d2-0713-4ad0-8fa9-4699b28c67ea/connect"
+AGENT_ID = "3dd15635-bb9c-4a1b-ada3-76548bcf0cd7"
+AGENT_NAME = "final_agent_test"
+AUTH_TOKEN = "Knckx4jJi1b5X2Y_OPKF4jvsxUUAMrt_EHNGG3FmYUk"
+ENCRYPTION_KEY = "39WFmeB7Een_CZaaBGDm7X_nqyOxlJRTVdE1pdSMB_g"
+SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/3dd15635-bb9c-4a1b-ada3-76548bcf0cd7/connect"
 CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': True}
-CONFIG = {'connectback_interval': 30, 'heartbeat_interval': 30, 'data_interval': 60, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1}
+CONFIG = {'connectback_interval': 30, 'heartbeat_interval': 30, 'data_interval': 60, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1, 'socks_proxy_port': 10080, 'settings': {'discovery': {'network_range': '10.10.2.0/24', 'packets_per_second': 100, 'discovery_method': 'arp', 'discovery_enabled': True, 'discovery_interval': 900, 'passive_discovery': True}}, 'agent_ip': '172.28.0.150', 'host_info': {'hostname': 'agent-host', 'platform': 'Linux', 'platform_release': '6.8.0-1030-azure', 'platform_version': '#35~22.04.1-Ubuntu SMP Mon May 26 18:08:30 UTC 2025', 'architecture': 'x86_64', 'processor': 'x86_64', 'cpu_percent': 6.3, 'memory_percent': 45.6, 'disk_percent': 53.1, 'boot_time': '2026-01-06T20:53:44', 'interfaces': [{'name': 'lo', 'ip': '127.0.0.1', 'status': 'up'}, {'name': 'eth0', 'ip': '172.28.0.150', 'status': 'up'}, {'name': 'eth1', 'ip': '10.10.1.10', 'status': 'up'}]}, 'last_host_update': '2026-01-06T21:39:26.033134'}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -92,8 +92,6 @@ class NOPAgent:
         self.running = True
         self.cipher = self._init_cipher()
         self.passive_hosts = []  # Track passively discovered hosts
-        self.captured_flows = []  # Track captured network flows
-        self.flow_lock = threading.Lock()  # Thread-safe flow access
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
@@ -159,33 +157,6 @@ class NOPAgent:
     async def noop(self):
         """No-op for disabled modules"""
         pass
-    def get_best_ip(self):
-        """Get best IP address, preferring internal networks (10.x, 192.168.x) over Docker"""
-        try:
-            import netifaces
-            best_ip = None
-            fallback_ip = None
-            
-            for iface in netifaces.interfaces():
-                if iface == 'lo':
-                    continue
-                addrs = netifaces.ifaddresses(iface)
-                if netifaces.AF_INET in addrs:
-                    for addr in addrs[netifaces.AF_INET]:
-                        ip = addr.get('addr')
-                        if ip:
-                            # Prefer 10.x or 192.168.x networks
-                            if ip.startswith('10.') or ip.startswith('192.168.'):
-                                best_ip = ip
-                                break
-                            elif not fallback_ip:
-                                fallback_ip = ip
-                if best_ip:
-                    break
-            
-            return best_ip or fallback_ip or socket.gethostbyname(socket.gethostname())
-        except Exception:
-            return socket.gethostbyname(socket.gethostname())
         
     async def register(self):
         """Register agent with C2 server"""
@@ -198,7 +169,7 @@ class NOPAgent:
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
                 "version": platform.version(),
-                "ip_address": self.get_best_ip()
+                "ip_address": socket.gethostbyname(socket.gethostname())
             }
         }
         await self.ws.send(json.dumps(registration))
@@ -275,13 +246,18 @@ class NOPAgent:
                 self.config["passive_discovery"] = discovery.get("passive_discovery", False)
                 self.config["sniff_interface"] = discovery.get("interface_name", "eth1")
                 self.config["scan_subnet"] = discovery.get("network_range", "")
+                self.config["auto_discovery"] = discovery.get("auto_discovery", False)
                 self.config["discovery_interval"] = discovery.get("discovery_interval", 300)
+                self.config["discovery_method"] = discovery.get("discovery_method", "arp")
                 self.config["track_source_only"] = discovery.get("track_source_only", False)
                 
                 print(f"[{datetime.now()}] Discovery config updated:")
                 print(f"  - Passive discovery: {self.config.get('passive_discovery')}")
+                print(f"  - Auto discovery: {self.config.get('auto_discovery')}")
                 print(f"  - Interface: {self.config.get('sniff_interface')}")
                 print(f"  - Network: {self.config.get('scan_subnet')}")
+                print(f"  - Interval: {self.config.get('discovery_interval')}s")
+                print(f"  - Method: {self.config.get('discovery_method')}")
                 
                 # Restart passive discovery if enabled
                 if self.config.get("passive_discovery"):
@@ -305,7 +281,17 @@ class NOPAgent:
         
         while self.running:
             try:
-                await asyncio.sleep(300)  # Run active scan every 5 minutes
+                # Get auto-discovery settings
+                auto_discovery = self.config.get('auto_discovery', False)
+                discovery_interval = self.config.get('discovery_interval', 300)
+                
+                # Wait for configured interval
+                await asyncio.sleep(discovery_interval)
+                
+                # Only run auto-discovery if enabled
+                if not auto_discovery:
+                    continue
+                
                 assets = await self.discover_assets()
                 
                 # Include passively discovered hosts
@@ -344,20 +330,17 @@ class NOPAgent:
             print(f"[{datetime.now()}] Starting passive discovery on {sniff_iface}")
             
             def packet_handler(packet):
-                """Process captured packets for host discovery AND flow capture"""
+                """Process captured packets"""
                 try:
                     if packet.haslayer(scapy.IP):
                         src_ip = packet[scapy.IP].src
-                        dst_ip = packet[scapy.IP].dst
                         
                         # Extract MAC if available
                         src_mac = None
-                        dst_mac = None
                         if packet.haslayer(scapy.Ether):
                             src_mac = packet[scapy.Ether].src
-                            dst_mac = packet[scapy.Ether].dst
                         
-                        # === HOST DISCOVERY ===
+                        # Simple dedup by IP
                         existing_ips = [h.get('ip') for h in self.passive_hosts]
                         if src_ip not in existing_ips:
                             host_info = {
@@ -369,40 +352,6 @@ class NOPAgent:
                             }
                             self.passive_hosts.append(host_info)
                             print(f"[{datetime.now()}] Passive: discovered {src_ip} ({src_mac})")
-                        
-                        # === FLOW CAPTURE ===
-                        protocol = "other"
-                        src_port = 0
-                        dst_port = 0
-                        
-                        if packet.haslayer(scapy.TCP):
-                            protocol = "tcp"
-                            src_port = packet[scapy.TCP].sport
-                            dst_port = packet[scapy.TCP].dport
-                        elif packet.haslayer(scapy.UDP):
-                            protocol = "udp"
-                            src_port = packet[scapy.UDP].sport
-                            dst_port = packet[scapy.UDP].dport
-                        elif packet.haslayer(scapy.ICMP):
-                            protocol = "icmp"
-                        
-                        # Create flow record
-                        flow = {
-                            "src_ip": src_ip,
-                            "dst_ip": dst_ip,
-                            "src_port": src_port,
-                            "dst_port": dst_port,
-                            "protocol": protocol,
-                            "bytes": len(packet),
-                            "timestamp": datetime.utcnow().isoformat()
-                        }
-                        
-                        with self.flow_lock:
-                            self.captured_flows.append(flow)
-                            # Keep only last 1000 flows in memory
-                            if len(self.captured_flows) > 1000:
-                                self.captured_flows = self.captured_flows[-500:]
-                                
                 except Exception as e:
                     pass  # Silently ignore packet processing errors
             
@@ -554,44 +503,12 @@ class NOPAgent:
         print(f"[{datetime.now()}] Traffic module started")
         while self.running:
             try:
-                await asyncio.sleep(30)  # Send flows every 30 seconds
+                await asyncio.sleep(60)  # Send stats every minute
                 traffic_stats = await self.capture_traffic_stats()
-                
-                # Get captured flows
-                with self.flow_lock:
-                    flows_to_send = self.captured_flows.copy()
-                    self.captured_flows = []  # Clear after getting
-                
-                # Aggregate flows by connection tuple
-                aggregated = {}
-                for flow in flows_to_send:
-                    key = (flow['src_ip'], flow['dst_ip'], flow['protocol'], flow['dst_port'])
-                    if key not in aggregated:
-                        aggregated[key] = {
-                            "src_ip": flow['src_ip'],
-                            "dst_ip": flow['dst_ip'],
-                            "src_port": flow['src_port'],
-                            "dst_port": flow['dst_port'],
-                            "protocol": flow['protocol'],
-                            "bytes": 0,
-                            "packets": 0,
-                            "first_seen": flow['timestamp'],
-                            "last_seen": flow['timestamp']
-                        }
-                    aggregated[key]['bytes'] += flow['bytes']
-                    aggregated[key]['packets'] += 1
-                    aggregated[key]['last_seen'] = flow['timestamp']
-                
-                flows_list = list(aggregated.values())
-                
-                if flows_list:
-                    print(f"[{datetime.now()}] Sending {len(flows_list)} aggregated flows")
-                
                 await self.relay_to_c2({
                     "type": "traffic_data",
                     "agent_id": self.agent_id,
                     "traffic": traffic_stats,
-                    "flows": flows_list,
                     "timestamp": datetime.utcnow().isoformat()
                 })
             except Exception as e:

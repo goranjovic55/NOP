@@ -91,12 +91,12 @@ class AgentDataService:
         traffic: Dict[str, Any]
     ) -> bool:
         """
-        Ingest traffic statistics from agent
+        Ingest traffic statistics and flows from agent
         
         Args:
             db: Database session
             agent_id: ID of the agent that captured this traffic
-            traffic: Traffic statistics
+            traffic: Traffic statistics and flows
             
         Returns:
             Success status
@@ -104,6 +104,7 @@ class AgentDataService:
         try:
             # Store traffic data in agent_metadata for POV interface access
             from app.models.agent import Agent
+            from app.models.flow import Flow
             from sqlalchemy import select
             from sqlalchemy.orm.attributes import flag_modified
             from datetime import datetime
@@ -128,11 +129,45 @@ class AgentDataService:
                 else:
                     print(f"[TRAFFIC INGEST] No 'interfaces' key in traffic data")
                 
+                # Store flows in database
+                print(f"[TRAFFIC INGEST] Checking for flows. 'flows' in traffic: {'flows' in traffic}")
+                if 'flows' in traffic:
+                    print(f"[TRAFFIC INGEST] flows value type: {type(traffic['flows'])}, length: {len(traffic['flows']) if traffic['flows'] else 0}")
+                
+                if 'flows' in traffic and traffic['flows']:
+                    flows_data = traffic['flows']
+                    print(f"[TRAFFIC INGEST] Processing {len(flows_data)} flows from agent {agent.name}")
+                    
+                    for flow_data in flows_data:
+                        try:
+                            flow = Flow(
+                                src_ip=flow_data.get('src_ip'),
+                                dst_ip=flow_data.get('dst_ip'),
+                                src_port=flow_data.get('src_port', 0),
+                                dst_port=flow_data.get('dst_port', 0),
+                                protocol=flow_data.get('protocol', 'unknown').upper(),
+                                bytes_sent=flow_data.get('bytes', 0),
+                                bytes_received=0,
+                                packets_sent=flow_data.get('packets', 1),
+                                packets_received=0,
+                                first_seen=datetime.fromisoformat(flow_data.get('first_seen', datetime.utcnow().isoformat())),
+                                last_seen=datetime.fromisoformat(flow_data.get('last_seen', datetime.utcnow().isoformat())),
+                                source='agent',
+                                agent_id=agent_id
+                            )
+                            db.add(flow)
+                        except Exception as fe:
+                            print(f"[TRAFFIC INGEST] Error creating flow: {fe}")
+                    
+                    print(f"[TRAFFIC INGEST] Agent {agent.name} stored {len(flows_data)} flows")
+                
                 await db.commit()
             
             return True
         except Exception as e:
             print(f"Error ingesting traffic data: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @staticmethod

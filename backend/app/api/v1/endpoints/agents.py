@@ -424,8 +424,11 @@ async def agent_websocket(
                     })
                     
                 elif msg_type == "traffic_data":
-                    # Handle traffic statistics
+                    # Handle traffic statistics and flows
                     traffic = message.get('traffic', {})
+                    # Include flows in traffic data for ingest
+                    if 'flows' in message:
+                        traffic['flows'] = message.get('flows', [])
                     success = await AgentDataService.ingest_traffic_data(db, agent_id, traffic)
                     print(f"Agent {agent.name} traffic data: {success}")
                     
@@ -646,9 +649,12 @@ async def agent_websocket_endpoint(
                     await AgentDataService.process_assets(db, agent_id, assets)
             
             elif msg_type == "traffic_data":
-                traffic = message.get('traffic', [])
+                traffic = message.get('traffic', {})
+                # Include flows in traffic data
+                if 'flows' in message:
+                    traffic['flows'] = message.get('flows', [])
                 if traffic:
-                    await AgentDataService.process_traffic(db, agent_id, traffic)
+                    await AgentDataService.ingest_traffic_data(db, agent_id, traffic)
             
             elif msg_type == "host_data":
                 host_info = message.get('host_info')

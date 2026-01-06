@@ -34,6 +34,7 @@ async def get_assets(
     - In POV view: agent_id filter overrides exclude_agent_assets
     """
     agent_pov = get_agent_pov(request)
+    print(f"[ASSETS DEBUG] X-Agent-POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
     asset_service = AssetService(db)
     return await asset_service.get_assets(
         page=page,
