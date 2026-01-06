@@ -241,16 +241,20 @@ const Agents: React.FC = () => {
     }
   };
 
-  const handleTerminateAgent = async (agentId: string, agentName: string) => {
-    if (!token || !window.confirm(`Kill agent "${agentName}"?\n\nThis will forcefully terminate the agent process and close the connection.`)) return;
+  const handleKillAgent = async (agentId: string, agentName: string) => {
+    if (!token || !window.confirm(`Kill and delete agent "${agentName}"?\n\nThis will:\n- Send terminate command to agent\n- Remove from database\n- Permanently delete the agent record`)) return;
     try {
+      // Kill agent (sends terminate + removes from DB)
       const result = await agentService.killAgent(token, agentId);
-      alert(`Kill command sent: ${result.status}\n${result.message || 'Agent terminated'}`);
-      // Reload agents to update status
-      setTimeout(() => loadAgents(), 2000);
+      // Update local state
+      setAgents(agents.filter(a => a.id !== agentId));
+      if (activeAgent?.id === agentId) {
+        setActiveAgent(null);
+      }
+      alert(`Agent killed and deleted: ${result.status}`);
     } catch (error) {
       console.error('Failed to kill agent:', error);
-      alert('Failed to send kill command to agent');
+      alert('Failed to kill agent');
     }
   };
 
@@ -643,29 +647,15 @@ const Agents: React.FC = () => {
                           Switch POV
                         </button>
                       )}
-                      {agent.status === 'online' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTerminateAgent(agent.id, agent.name);
-                          }}
-                          className="px-2 py-1 border border-cyber-yellow text-cyber-yellow text-xs uppercase hover:bg-cyber-yellow hover:text-cyber-dark transition"
-                          title="Kill agent process (terminate remotely)"
-                        >
-                          ⚠ Kill
-                        </button>
-                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Delete agent "${agent.name}" from database?\n\nThis will permanently remove the agent record.`)) {
-                            handleDeleteAgent(agent.id);
-                          }
+                          handleKillAgent(agent.id, agent.name);
                         }}
-                        className="px-2 py-1 border border-cyber-red text-cyber-red text-xs uppercase hover:bg-cyber-red hover:text-white transition"
-                        title="Delete agent from database"
+                        className="px-3 py-1.5 border border-cyber-red text-cyber-red text-xs uppercase hover:bg-cyber-red hover:text-white transition"
+                        title="Kill agent process and delete from database"
                       >
-                        🗑 Del
+                        ⚠ Kill
                       </button>
                     </div>
                   </div>
