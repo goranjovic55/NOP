@@ -14,7 +14,7 @@
 | F4 | Phase order | CONTEXT→PLAN→EXECUTION→REVIEW→SESSION END |
 | F5 | User approval phase | REVIEW (phase 4) |
 | F6 | Knowledge file line 1 | map (navigation) |
-| F7 | Checkpoint triggers | phase transition, 3-5 todos, stuck |
+| F7 | Checkpoint triggers | user interrupt, phase transition, 3-5 todos, stuck |
 | F8 | Todo prefix format | `<PHASE>` |
 | F9 | Root .py allowed | agent.py only |
 | F10 | Scripts location | `scripts/` folder |
@@ -25,7 +25,11 @@
 
 ## Session Flow (MANDATORY 5 PHASES)
 
-**Checkpoints:** Run `python .github/scripts/session_emit.py` at phase transitions, every 3-5 todos, or when stuck
+**Checkpoints:** Run `python .github/scripts/session_emit.py`:
+- **On every user interrupt** (new request, feature, debug, question)
+- At phase transitions
+- Every 3-5 todos completed
+- When stuck or uncertain
 
 ### 1. CONTEXT
 - Load `project_knowledge.json` **lines 1-50** (map + domains)
