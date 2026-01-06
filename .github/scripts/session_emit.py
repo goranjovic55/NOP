@@ -30,18 +30,34 @@ def get_session_info():
             return data.get("session_number", "N/A"), data.get("last_session", "Unknown")
     return "N/A", "Unknown"
 
-def read_knowledge_map():
-    """Read line 1 of project_knowledge.json for quick context"""
+def read_knowledge(lines: int = 50):
+    """Read first N lines of project_knowledge.json for map + entities"""
     kn_file = Path("project_knowledge.json")
     if not kn_file.exists():
-        return None
+        return None, []
+    
+    entities = []
+    kn_map = None
     
     with open(kn_file) as f:
-        first_line = f.readline()
-        try:
-            return json.loads(first_line)
-        except json.JSONDecodeError:
-            return None
+        for i, line in enumerate(f):
+            if i >= lines:
+                break
+            try:
+                data = json.loads(line.strip())
+                if data.get("type") == "map":
+                    kn_map = data
+                elif data.get("type") == "entity":
+                    entities.append(data)
+            except json.JSONDecodeError:
+                continue
+    
+    return kn_map, entities
+
+def read_knowledge_map():
+    """Backward compatible - returns just the map"""
+    kn_map, _ = read_knowledge(50)
+    return kn_map
 
 def get_active_skills():
     """List available skills from INDEX.md"""

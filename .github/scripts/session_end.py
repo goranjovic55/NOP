@@ -7,6 +7,10 @@ Session End - Complete session workflow
 4. Increment session counter → Check maintenance due
 5. Create workflow log (if complex) - AUTO-FILLED
 6. Commit changes
+
+Usage:
+    python session_end.py                    # Auto-detect from branch
+    python session_end.py "session name"    # Custom session name for workflow log
 """
 import json
 import os
@@ -17,68 +21,125 @@ from pathlib import Path
 from datetime import datetime
 
 
+def read_knowledge(lines: int = 50):
+    """Read first N lines of project_knowledge.json for map + entities"""
+    kn_file = Path("project_knowledge.json")
+    if not kn_file.exists():
+        return None, []
+    
+    entities = []
+    kn_map = None
+    
+    with open(kn_file) as f:
+        for i, line in enumerate(f):
+            if i >= lines:
+                break
+            try:
+                data = json.loads(line.strip())
+                if data.get("type") == "map":
+                    kn_map = data
+                elif data.get("type") == "entity":
+                    entities.append(data)
+            except json.JSONDecodeError:
+                continue
+    
+    return kn_map, entities
+
+
 def generate_workflow_log(task_name: str, session_number: str, skills: list) -> str:
     """Generate auto-filled workflow log from session data."""
     
-    # Get git changes for Changes section
+    # Get ALL changes using git status (captures staged, unstaged, and untracked)
     result = subprocess.run(
-        ["git", "diff", "--cached", "--name-status"],
+        ["git", "status", "--porcelain"],
         capture_output=True,
         text=True
     )
-    staged_changes = result.stdout.strip()
     
-    # Also check unstaged changes
-    result = subprocess.run(
-        ["git", "diff", "--name-status"],
-        capture_output=True,
-        text=True
-    )
-    unstaged_changes = result.stdout.strip()
-    
-    all_changes = staged_changes + "\n" + unstaged_changes
-    
-    # Parse changes
+    # Parse changes from git status
     changes_list = []
-    for line in all_changes.strip().split('\n'):
+    for line in result.stdout.strip().split('\n'):
         if not line:
             continue
-        parts = line.split('\t')
-        if len(parts) >= 2:
-            status = parts[0]
-            filepath = parts[1]
+        status = line[:2].strip()
+        filepath = line[3:].strip()
+        
+        # Skip workflow logs we're about to create
+        if filepath.startswith('log/workflow/'):
+            continue
             
-            if status == 'A':
-                changes_list.append(f"- Created: `{filepath}` - {task_name} implementation")
-            elif status == 'M':
-                changes_list.append(f"- Modified: `{filepath}` - {task_name} updates")
-            elif status == 'D':
-                changes_list.append(f"- Deleted: `{filepath}` - cleanup")
+        if status in ['A', '??']:
+            changes_list.append(f"- Created: `{filepath}`")
+        elif status == 'M':
+            changes_list.append(f"- Modified: `{filepath}`")
+        elif status == 'D':
+            changes_list.append(f"- Deleted: `{filepath}`")
+        elif status == 'R':
+            changes_list.append(f"- Renamed: `{filepath}`")
+        else:
+            changes_list.append(f"- Changed: `{filepath}`")
     
-    changes_section = '\n'.join(changes_list) if changes_list else "- Modified: Various files - session work"
+    changes_section = '\n'.join(changes_list[:20]) if changes_list else "- No file changes detected"
+    if len(changes_list) > 20:
+        changes_section += f"\n- ... and {len(changes_list) - 20} more files"
     
-    # Get recent commits for Summary
+    # Get commits made TODAY (session work) - not old commits
+    today = datetime.now().strftime("%Y-%m-%d")
     result = subprocess.run(
-        ["git", "log", "-5", "--oneline"],
+        ["git", "log", "--since=midnight", "--pretty=format:%s"],
         capture_output=True,
         text=True
     )
-    recent_commits = result.stdout.strip().split('\n') if result.stdout else []
+    today_commits = [msg.strip() for msg in result.stdout.strip().split('\n') if msg.strip()]
     
-    # Generate summary from commit messages
-    summary = f"Session focused on {task_name.replace('-', ' ')}. "
-    if recent_commits:
-        summary += f"Completed {len(recent_commits)} commits including implementation and testing."
+    # If no commits today, check for recent commits on this branch vs main
+    if not today_commits:
+        result = subprocess.run(
+            ["git", "log", "main..HEAD", "--pretty=format:%s"],
+            capture_output=True,
+            text=True
+        )
+        branch_commits = [msg.strip() for msg in result.stdout.strip().split('\n') if msg.strip()]
+        today_commits = branch_commits[:10] if branch_commits else []
+    
+    # Build summary from session commits + uncommitted work
+    summary_items = []
+    
+    # Add commits made in session
+    if today_commits:
+        summary_items.append("**Commits:**")
+        for msg in today_commits[:5]:
+            summary_items.append(f"- {msg}")
+    
+    # Add description of uncommitted work
+    if changes_list:
+        summary_items.append(f"\n**Uncommitted Work ({len(changes_list)} files):**")
+        # Group by directory
+        dirs = {}
+        for change in changes_list[:10]:
+            filepath = change.split('`')[1] if '`' in change else change
+            dir_name = filepath.split('/')[0] if '/' in filepath else 'root'
+            dirs[dir_name] = dirs.get(dir_name, 0) + 1
+        for dir_name, count in sorted(dirs.items(), key=lambda x: -x[1])[:5]:
+            summary_items.append(f"- {dir_name}/: {count} file(s)")
+    
+    if not summary_items:
+        summary_items.append(f"Session focused on {task_name.replace('-', ' ')}.")
+    
+    summary = '\n'.join(summary_items)
     
     # Skills section
     skills_text = ", ".join(skills) if skills else "None suggested"
+    
+    # Session number fallback
+    session_display = session_number if session_number and session_number != "None" else "N/A"
     
     # Generate log content
     log_content = f"""# {task_name.replace('-', ' ').title()}
 
 **Date**: {datetime.now().strftime("%Y-%m-%d %H:%M")}
-**Session**: #{session_number}
-**Duration**: ~{len(recent_commits) * 10} minutes (estimated)
+**Session**: #{session_display}
+**Files Changed**: {len(changes_list)}
 
 ## Summary
 {summary}
@@ -86,15 +147,8 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list) -> 
 ## Changes
 {changes_section}
 
-## Decisions
-| Decision | Rationale |
-|----------|-----------|
-| Implementation approach | Based on {task_name} requirements |
-
-## Updates
-**Knowledge**: project_knowledge.json updated with current codebase structure
-**Docs**: Workflow log auto-generated
-**Skills**: {skills_text}
+## Skill Suggestions
+{skills_text}
 
 ## Verification
 - [ ] Code changes reviewed
@@ -102,13 +156,7 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list) -> 
 - [ ] Session committed
 
 ## Notes
-**Auto-generated workflow log** - Review and add:
-- Specific technical decisions made
-- Gotchas or issues encountered
-- Future work or improvements needed
-- Context for next session
-
-*Edit this log to add session-specific details before final commit.*
+*Add session-specific notes: decisions, gotchas, future work*
 """
     
     return log_content
@@ -220,9 +268,23 @@ def clean_repository():
     return moved_files
 
 def main():
+    # Parse CLI args for session name
+    session_name = None
+    if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
+        session_name = sys.argv[1]
+    
     print("\n" + "="*70)
     print("  AKIS v3 - Session End")
     print("="*70)
+    
+    # Load knowledge context (50 lines)
+    print("\n▶️  Loading knowledge context...")
+    kn_map, entities = read_knowledge(50)
+    if kn_map:
+        domains = kn_map.get("domains", {})
+        print(f"   ✅ Map loaded: {len(domains)} domains, {len(entities)} entities")
+    else:
+        print("   ⚠️  No knowledge map found")
     
     # Track summary data
     summary = {
@@ -232,7 +294,8 @@ def main():
         "session": None,
         "maintenance_due": False,
         "workflow_log": None,
-        "has_changes": False
+        "has_changes": False,
+        "session_name": session_name
     }
     
     # Step 0: Clean repository
@@ -291,7 +354,7 @@ def main():
     # Step 4: Workflow log (auto-create and fill if changes detected)
     summary["has_changes"] = check_git_changes()
     if summary["has_changes"]:
-        # Auto-detect task name from branch
+        # Get branch name for context
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True,
@@ -299,11 +362,18 @@ def main():
         )
         branch_name = result.stdout.strip()
         
-        # Extract task name from branch (e.g., "copilot/create-agent-page" -> "create-agent-page")
+        # Extract branch task (e.g., "copilot/create-agent-page" -> "create-agent-page")
         if '/' in branch_name:
-            task_name = branch_name.split('/', 1)[1]
+            branch_task = branch_name.split('/', 1)[1]
         else:
-            task_name = branch_name if branch_name != 'main' else 'session'
+            branch_task = branch_name if branch_name != 'main' else 'session'
+        
+        # Build task name: combine session name (from CLI) with branch
+        if session_name:
+            # User provided session name: "session-name_branch-task"
+            task_name = f"{session_name.replace(' ', '-').lower()}_{branch_task}"
+        else:
+            task_name = branch_task
         
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         log_file = Path(f"log/workflow/{timestamp}_{task_name}.md")

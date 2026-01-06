@@ -7,18 +7,29 @@ import json
 import os
 from pathlib import Path
 
-def read_knowledge_map():
-    """Read line 1 of project_knowledge.json for domain overview"""
+def read_knowledge(lines: int = 50):
+    """Read first N lines of project_knowledge.json for map + entities"""
     kn_file = Path("project_knowledge.json")
     if not kn_file.exists():
-        return None
+        return None, []
+    
+    entities = []
+    kn_map = None
     
     with open(kn_file) as f:
-        first_line = f.readline()
-        try:
-            return json.loads(first_line)
-        except json.JSONDecodeError:
-            return None
+        for i, line in enumerate(f):
+            if i >= lines:
+                break
+            try:
+                data = json.loads(line.strip())
+                if data.get("type") == "map":
+                    kn_map = data
+                elif data.get("type") == "entity":
+                    entities.append(data)
+            except json.JSONDecodeError:
+                continue
+    
+    return kn_map, entities
 
 def list_docs():
     """List documentation categories"""
@@ -49,9 +60,9 @@ def main():
     print("  AKIS v3 - Session Start")
     print("="*70)
     
-    # Knowledge Map
-    print("\n📚 Knowledge Map:")
-    kn_map = read_knowledge_map()
+    # Knowledge Map + Entities
+    print("\n📚 Knowledge (First 50 lines):")
+    kn_map, entities = read_knowledge(50)
     if kn_map and kn_map.get("type") == "map":
         domains = kn_map.get("domains", {})
         quick_nav = kn_map.get("quickNav", {})
@@ -60,6 +71,14 @@ def main():
             print(f"   Domains: {', '.join(domains.keys())}")
         if quick_nav:
             print(f"   QuickNav: {', '.join(quick_nav.keys())}")
+        if entities:
+            # Group entities by domain
+            by_domain = {}
+            for e in entities:
+                name = e.get("name", "")
+                domain = name.split(".")[0] if "." in name else "Other"
+                by_domain[domain] = by_domain.get(domain, 0) + 1
+            print(f"   Entities: {len(entities)} loaded ({', '.join(f'{k}:{v}' for k,v in by_domain.items())})")
     else:
         print("   (No knowledge map found - will be generated at session end)")
     
