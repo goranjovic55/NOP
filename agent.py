@@ -75,7 +75,12 @@ AUTH_TOKEN = "Cw2NzJTg9OuqoyKJHeZMxRLP4QHg0ymo90cM00tT3r4"
 ENCRYPTION_KEY = "2Bxc1m2A-l2zBrZei-WoHy2Djkvb0LpkgOFBGCoab2s"
 SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/95bc413d-2a1e-4884-b7b2-79b0ec027609/connect"
 CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': False}
-CONFIG = {}
+CONFIG = {
+    'passive_discovery': True,
+    'sniff_interface': 'eth1',
+    'scan_subnet': '10.10.0.0/16',
+    'discovery_interval': 30
+}
 
 class NOPAgent:
     """NOP Proxy Agent - Relays data from remote network to C2 server with encrypted tunnel"""
@@ -206,6 +211,8 @@ class NOPAgent:
                     await self.handle_command(data)
                 elif msg_type == "ping":
                     await self.send_pong()
+                elif msg_type == "settings_update":
+                    await self.handle_settings_update(data)
             except Exception as e:
                 print(f"[{datetime.now()}] Message handling error: {e}")
                 
@@ -216,6 +223,34 @@ class NOPAgent:
         
         # Commands are handled by respective modules
         # This is just a placeholder for custom C2 commands
+    
+    async def handle_settings_update(self, data):
+        """Handle settings update from C2"""
+        try:
+            settings = data.get("settings", {})
+            print(f"[{datetime.now()}] Settings update received from C2")
+            
+            # Extract discovery settings
+            discovery = settings.get("discovery", {})
+            if discovery:
+                # Update config with discovery settings
+                self.config["passive_discovery"] = discovery.get("passive_discovery", False)
+                self.config["sniff_interface"] = discovery.get("interface_name", "eth1")
+                self.config["scan_subnet"] = discovery.get("network_range", "")
+                self.config["discovery_interval"] = discovery.get("discovery_interval", 300)
+                self.config["track_source_only"] = discovery.get("track_source_only", False)
+                
+                print(f"[{datetime.now()}] Discovery config updated:")
+                print(f"  - Passive discovery: {self.config.get('passive_discovery')}")
+                print(f"  - Interface: {self.config.get('sniff_interface')}")
+                print(f"  - Network: {self.config.get('scan_subnet')}")
+                
+                # Restart passive discovery if enabled
+                if self.config.get("passive_discovery"):
+                    print(f"[{datetime.now()}] Starting passive discovery...")
+                    asyncio.create_task(self.passive_discovery())
+        except Exception as e:
+            print(f"[{datetime.now()}] Settings update error: {e}")
         
     # ============================================================================
     # ASSET MODULE - Network asset discovery and monitoring
