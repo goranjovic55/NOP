@@ -2,17 +2,19 @@
 
 **Load skills by domain trigger.** Query skills for patterns, not instructions.
 
-## Domain Triggers
+## Domain Triggers (with Enforcement)
 
-| Touching | Load Skill |
-|----------|------------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/`, React | [frontend-react.md](frontend-react.md) |
-| `*.py`, `backend/`, `api/`, `endpoints/`, FastAPI | [backend-api.md](backend-api.md) |
-| `Dockerfile`, `docker-compose*`, `*.yml` (compose) | [docker.md](docker.md) |
-| Error, exception, traceback, failed, debug | [debugging.md](debugging.md) |
-| `docs/`, `README`, `*.md` (documentation) | [documentation.md](documentation.md) |
-| `test_*`, `*.test.*`, `*_test.py`, pytest, jest | [testing.md](testing.md) |
-| `project_knowledge.json`, context, knowledge | [knowledge.md](knowledge.md) |
+| Touching | Load Skill | Enforcement |
+|----------|------------|-------------|
+| `*.tsx`, `*.jsx`, `components/`, `pages/`, React | [frontend-react.md](frontend-react.md) | MANDATORY |
+| `*.py`, `backend/`, `api/`, `endpoints/`, FastAPI | [backend-api.md](backend-api.md) | MANDATORY |
+| `Dockerfile`, `docker-compose*`, `*.yml` (compose) | [docker.md](docker.md) | MANDATORY |
+| Error, exception, traceback, failed, debug | [debugging.md](debugging.md) | MANDATORY |
+| `docs/`, `README`, `*.md` (documentation) | [documentation.md](documentation.md) | **MANDATORY** ⚠️ |
+| `test_*`, `*.test.*`, `*_test.py`, pytest, jest | [testing.md](testing.md) | recommended |
+| `project_knowledge.json`, context, knowledge | [knowledge.md](knowledge.md) | recommended |
+
+> ⚠️ **documentation.md has 40% compliance rate** - MUST load when editing ANY .md file
 
 ## All Skills
 

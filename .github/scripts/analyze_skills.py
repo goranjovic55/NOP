@@ -140,12 +140,31 @@ ERROR_TYPES = {
     "test_socks.py": ["socks_test_error", "connection_error"],
 }
 
-# Skill loading probabilities
+# Skill loading probabilities (current agent behavior)
 SKILL_PROBS = {
     "trigger_recognized": 0.90,
     "skill_loaded": 0.85,
     "skill_applied": 0.80,
     "error_prevented": 0.75,
+}
+
+# Per-skill compliance rates (based on workflow log analysis)
+# These represent how often the agent actually loads a skill when triggered
+SKILL_COMPLIANCE = {
+    "frontend-react.md": 0.72,    # Often skipped for "quick" UI fixes
+    "backend-api.md": 0.68,       # Frequently bypassed for simple endpoints
+    "docker.md": 0.85,            # Usually loaded (errors are visible)
+    "debugging.md": 0.45,         # Often forgotten during error handling
+    "documentation.md": 0.40,     # Rarely loaded for doc edits
+    "testing.md": 0.55,           # New skill, moderate adoption
+    "knowledge.md": 0.78,         # Loaded at session start usually
+}
+
+# Enforcement levels for skills
+ENFORCEMENT_LEVELS = {
+    "mandatory": 0.95,    # Must load - critical for domain
+    "recommended": 0.80,  # Should load - helpful patterns
+    "optional": 0.60,     # Can load - nice to have
 }
 
 # ============================================================================
@@ -286,18 +305,22 @@ class SessionResult:
     skills_triggered: List[str] = field(default_factory=list)
     skills_loaded: List[str] = field(default_factory=list)
     skills_applied: List[str] = field(default_factory=list)
+    skills_skipped: List[str] = field(default_factory=list)  # Triggered but not loaded
     errors_possible: List[str] = field(default_factory=list)
     errors_prevented: List[str] = field(default_factory=list)
     errors_occurred: List[str] = field(default_factory=list)
+    errors_from_skipped_skill: List[str] = field(default_factory=list)  # Errors that skill would have prevented
     resolution_time: float = 0.0
     resolution_time_no_skill: float = 0.0
+    compliance_violations: List[str] = field(default_factory=list)
 
 
 class SkillSimulator:
-    def __init__(self, skills: Dict, probs: Dict, seed: int):
+    def __init__(self, skills: Dict, probs: Dict, compliance: Dict = None, seed: int = 42):
         random.seed(seed)
         self.skills = skills
         self.probs = probs
+        self.compliance = compliance or SKILL_COMPLIANCE
         self.result = SessionResult()
     
     def _occurs(self, key: str) -> bool:
@@ -335,12 +358,22 @@ class SkillSimulator:
             if matching_skill:
                 self.result.skills_triggered.append(matching_skill)
                 
+                # Use per-skill compliance rate instead of generic probability
+                skill_compliance_rate = self.compliance.get(matching_skill, 0.70)
+                
                 if self._occurs("trigger_recognized"):
-                    if self._occurs("skill_loaded"):
+                    # Agent decides whether to load skill based on compliance behavior
+                    if random.random() < skill_compliance_rate:
                         self.result.skills_loaded.append(matching_skill)
                         
                         if self._occurs("skill_applied"):
                             self.result.skills_applied.append(matching_skill)
+                    else:
+                        # Skill was triggered but agent skipped it
+                        self.result.skills_skipped.append(matching_skill)
+                        self.result.compliance_violations.append(
+                            f"Skipped {matching_skill} for {file_ext}"
+                        )
             
             # Generate possible errors
             possible_errors = ERROR_TYPES.get(file_ext, [])
@@ -350,12 +383,16 @@ class SkillSimulator:
                     
                     # Check if skill prevents error
                     skill_loaded = matching_skill in self.result.skills_loaded
+                    skill_skipped = matching_skill in self.result.skills_skipped
                     skill_prevents = matching_skill and error in self.skills.get(matching_skill, {}).get("errors_prevented", [])
                     
                     if skill_loaded and skill_prevents and self._occurs("error_prevented"):
                         self.result.errors_prevented.append(error)
                     else:
                         self.result.errors_occurred.append(error)
+                        # Track errors that would have been prevented if skill was loaded
+                        if skill_skipped and skill_prevents:
+                            self.result.errors_from_skipped_skill.append(error)
             
             # Calculate resolution time
             speedup = 1.0
@@ -380,10 +417,17 @@ def run_simulation(skills: Dict, probs: Dict, count: int = 100000, seed: int = 4
         "timing": {"with_skill": 0.0, "without_skill": 0.0},
         "skill_usage": defaultdict(int),
         "error_types": defaultdict(int),
+        # Compliance tracking
+        "compliance": {
+            "skills_skipped": defaultdict(int),  # Per-skill skip count
+            "errors_from_skipped": defaultdict(int),  # Errors caused by skipping
+            "total_skipped": 0,
+            "total_errors_from_skipped": 0,
+        },
     }
     
     for i in range(count):
-        sim = SkillSimulator(skills, probs, seed + i)
+        sim = SkillSimulator(skills, probs, SKILL_COMPLIANCE, seed + i)
         r = sim.simulate()
         
         results["coverage"]["triggered"] += len(r.skills_triggered)
@@ -402,6 +446,19 @@ def run_simulation(skills: Dict, probs: Dict, count: int = 100000, seed: int = 4
         
         for error in r.errors_occurred:
             results["error_types"][error] += 1
+        
+        # Track compliance violations
+        for skill in r.skills_skipped:
+            results["compliance"]["skills_skipped"][skill] += 1
+            results["compliance"]["total_skipped"] += 1
+        
+        for error in r.errors_from_skipped_skill:
+            # Extract skill name from error if present
+            parts = error.split(":")
+            if len(parts) >= 2:
+                skill = parts[0].strip()
+                results["compliance"]["errors_from_skipped"][skill] += 1
+            results["compliance"]["total_errors_from_skipped"] += 1
     
     # Calculate metrics
     if results["coverage"]["triggered"] > 0:
@@ -421,6 +478,17 @@ def run_simulation(skills: Dict, probs: Dict, count: int = 100000, seed: int = 4
     else:
         results["speedup"] = 1.0
     
+    # Calculate compliance rates per skill
+    results["compliance"]["rates"] = {}
+    for skill in SKILL_COMPLIANCE.keys():
+        loaded = results["skill_usage"].get(skill, 0)
+        skipped = results["compliance"]["skills_skipped"].get(skill, 0)
+        total_triggered = loaded + skipped
+        if total_triggered > 0:
+            results["compliance"]["rates"][skill] = loaded / total_triggered * 100
+        else:
+            results["compliance"]["rates"][skill] = 100.0  # No triggers = perfect
+    
     return results
 
 
@@ -439,6 +507,54 @@ def print_simulation_results(results: Dict, label: str = ""):
     print(f"   Possible errors: {results['errors']['possible']:,}")
     print(f"   Errors prevented: {results['errors']['prevented']:,} ({results['prevention_rate']:.1f}%)")
     print(f"   Errors occurred: {results['errors']['occurred']:,}")
+    
+    # NEW: Compliance section
+    compliance = results.get("compliance", {})
+    if compliance:
+        print(f"\n⚠️ Skill Compliance:")
+        print(f"   Total skills skipped: {compliance.get('total_skipped', 0):,}")
+        print(f"   Errors from skipped: {compliance.get('total_errors_from_skipped', 0):,}")
+        
+        rates = compliance.get("rates", {})
+        if rates:
+            print(f"\n📋 Per-Skill Compliance Rates:")
+            # Sort by compliance rate (lowest first - these need attention)
+            for skill, rate in sorted(rates.items(), key=lambda x: x[1]):
+                loaded = results["skill_usage"].get(skill, 0)
+                skipped = compliance["skills_skipped"].get(skill, 0)
+                errors_caused = compliance["errors_from_skipped"].get(skill, 0)
+                
+                # Determine status indicator
+                if rate >= 80:
+                    status = "✅"
+                elif rate >= 60:
+                    status = "🟡"
+                else:
+                    status = "🔴"
+                
+                target = ENFORCEMENT_LEVELS.get(
+                    "mandatory" if skill in ["debugging.md", "docker.md"] else "recommended",
+                    0.80
+                ) * 100
+                gap = target - rate
+                
+                print(f"   {status} {skill:25} {rate:5.1f}% (target: {target:.0f}%, gap: {gap:+.1f}%)")
+                if errors_caused > 0:
+                    print(f"      └─ ⚡ {errors_caused:,} errors caused by skipping")
+        
+        # Enforcement recommendations
+        print(f"\n💡 Enforcement Recommendations:")
+        for skill, rate in sorted(rates.items(), key=lambda x: x[1]):
+            target = ENFORCEMENT_LEVELS.get("recommended", 0.80) * 100
+            gap = target - rate
+            errors_caused = compliance["errors_from_skipped"].get(skill, 0)
+            
+            if gap > 20 and errors_caused > 100:
+                print(f"   🔴 {skill}: Add MANDATORY trigger (gap: {gap:.0f}%, {errors_caused:,} errors)")
+            elif gap > 15:
+                print(f"   🟡 {skill}: Strengthen trigger wording (gap: {gap:.0f}%)")
+            elif gap > 10:
+                print(f"   👀 {skill}: Monitor compliance (gap: {gap:.0f}%)")
     
     print(f"\n⏱️ Resolution Speed:")
     print(f"   Speedup factor: {results['speedup']:.2f}x ({(results['speedup']-1)*100:.0f}% faster)")

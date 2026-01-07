@@ -1,4 +1,4 @@
-# AKIS v5.5
+# AKIS v5.6
 
 ## ⚠️ START → Before Any Work
 
@@ -16,12 +16,14 @@ Mark ◆ → Check skill trigger → Edit → Mark ✓
 ```
 **NO EXCEPTIONS. NO "quick fixes" without ◆ first.**
 
-| Files | Load First |
-|-------|------------|
-| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
-| `backend/` `.py` | `backend-api.md` |
-| `docker` `Dockerfile` | `docker.md` |
-| Error in output | `debugging.md` |
+| Files | Load First | Enforcement |
+|-------|------------|-------------|
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` | MANDATORY |
+| `backend/` `.py` `api/` `routes/` | `backend-api.md` | MANDATORY |
+| `docker` `Dockerfile` `.yml` | `docker.md` | MANDATORY |
+| `.md` `docs/` `README` | `documentation.md` | **MANDATORY** |
+| Error in output | `debugging.md` | MANDATORY |
+| `test` `spec` `pytest` | `testing.md` | recommended |
 
 **Interrupt:** ⊘ current → `<SUB:1>` → handle → resume (no orphan ⊘!)
 
