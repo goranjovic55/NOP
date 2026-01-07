@@ -1,60 +1,58 @@
-# AKIS v4 - Agent Knowledge & Instruction System
+# AKIS v5
 
-**Protocols:** `.github/instructions/protocols.md` (MUST read for procedures)
+## START → Do These First
 
-## ⚠️ CRITICAL RULES - NEVER SKIP
+```
+1. view project_knowledge.json (lines 1-50)
+2. view .github/skills/INDEX.md
+3. Create todos: <MAIN> → <WORK> items → <END>
+4. Show user: brief context + todo list
+```
 
-| Rule | Enforcement |
-|------|-------------|
-| **TODO FIRST** | Call `manage_todo_list` BEFORE any code/file changes |
-| **NO SILENT WORK** | Every action must have corresponding todo item |
-| **END PROTOCOL** | On "approved/done/wrap up" → RE-READ protocols.md Step 4 |
-| **EXECUTE SCRIPTS** | generate_codemap.py + suggest_skill.py + structure cleanup |
+## WORK → For Each Task
 
----
+```
+Before: Mark todo ◆ (no work without a todo!)
+During: If file matches trigger below → load that skill first
+After:  Mark todo ✓ immediately
+```
 
-## Phases
+**Skill Triggers:**
+| Files | Load |
+|-------|------|
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
+| `backend/` `.py` | `backend-api.md` |
+| `docker` `Dockerfile` | `docker.md` |
+| Error in output | `debugging.md` |
 
-### START Phase
-1. Read `project_knowledge.json` lines 1-50
-2. Read `structure.md` for file organization rules
-3. **CREATE TODOS IMMEDIATELY** - `<MAIN>`, `<WORK>`, `<END>`
-4. Output: 2-line context + show todo list
+**On interrupt:** Mark current ⊘ → Create `<SUB:1>` → Handle → Resume original (no orphan paused!)
 
-### WORK Phase
-- **Mark todo in-progress BEFORE starting work**
-- **Mark todo completed IMMEDIATELY after finishing**
-- On user interrupt → PAUSE current, create SUB:N, resume after
-- Load skills per file type (see protocols.md)
+## END → After User Says "approved/done"
 
-### END Phase (MANDATORY CHECKLIST)
-1. Show change summary + worktree
-2. **STOP - Wait for user approval word**
-3. When user says "approved/proceed/done/wrap up":
-   - [ ] `python .github/scripts/generate_codemap.py`
-   - [ ] `python .github/scripts/suggest_skill.py`
-   - [ ] Check `structure.md` → move misplaced files
-   - [ ] Create workflow log in `log/workflow/`
-   - [ ] `git add -A && git commit && git push`
+```
+□ python .github/scripts/generate_codemap.py
+□ python .github/scripts/suggest_skill.py  
+□ Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+□ Commit and push
+```
 
----
+## Todo Format
 
-## Skill Triggers
+```
+<MAIN> User request        ✓ done  ◆ working  ○ pending  ⊘ paused
+├─ <WORK> Task 1
+├─ <WORK> Task 2
+└─ <END> Commit
+```
 
-| Touching | Load |
-|----------|------|
-| `*.tsx`, `pages/` | frontend-react.md |
-| `backend/app/`, `*.py` | backend-api.md |
-| `docker-compose*` | docker.md |
-| Errors | debugging.md |
+## Three Rules
 
-**Standards:** <500 line files • <50 line functions • Type hints • Tests
+1. **Todo before code** — no edits without a tracked task, even "quick fixes"
+2. **Skill before edit** — check triggers, load if match  
+3. **Scripts before commit** — run both .py scripts at end
 
----
+## Gotchas
 
-## Anti-Drift Rules
-
-- **Never skip todo creation** - even for "quick" tasks
-- **Never commit without running end scripts**
-- **Re-read protocols.md at END phase** - don't rely on memory
-- **Structure cleanup is mandatory** - check structure.md every session
+- After multi-file edits → verify no duplicate code or syntax errors
+- After interrupt → resume paused task (check for ⊘ in worktree)
+- "Quick fix" still needs a todo first

@@ -1,137 +1,132 @@
-# AKIS Protocols
+# Protocols
 
-Detailed procedures for session lifecycle. Referenced by `copilot-instructions.md`.
-
----
-
-## Protocol: Session Start
-
-**When:** First message of conversation
-
-1. Read `project_knowledge.json` lines 1-50 (map + key entities)
-2. Read `.github/instructions/structure.md` for file organization
-3. **IMMEDIATELY call `manage_todo_list`** - create initial todos
-
-**Output:** 2-3 line context summary, then show todo list
+Detailed steps for each phase. Reference when needed.
 
 ---
 
-## Protocol: Todo Tracking
+## START
 
-### ⚠️ CRITICAL: NO WORK WITHOUT TODO
-
-**Before ANY action (code, file, terminal):**
-1. Ensure todo exists for the action
-2. Mark todo as in-progress
-3. Do the work
-4. Mark completed IMMEDIATELY
-
-### Prefixes
-| Prefix | Use |
-|--------|-----|
-| `<MAIN>` | Original user request (always first) |
-| `<WORK>` | Subtasks for implementation |
-| `<END>` | Final review and commit |
-| `<PAUSED>` | Interrupted task |
-| `<SUB:N>` | User interrupt handler (N = nesting level) |
-
-### Status Symbols
-- `✓` completed
-- `◆` in-progress  
-- `○` not-started
-- `⊘` paused
-
-### Worktree Format
 ```
-<MAIN> ✓ Original user request
-├─ <WORK> ✓ First task completed
-├─ <WORK> ✓ Second task completed  
-├─ <PAUSED> Third task (interrupted)
-│  └─ <SUB:1> ✓ User interrupt handled
-├─ <WORK> ✓ Third task resumed
-└─ <END> ✓ Review and commit
+1. view project_knowledge.json lines 1-50
+2. view .github/skills/INDEX.md
+3. Create todos:
+   <MAIN> what user asked
+   <WORK> step 1
+   <WORK> step 2
+   ...
+   <END> commit
+4. Tell user: "[context]. Here's the plan: [todos]"
 ```
 
 ---
 
-## Protocol: Thread Management
+## WORK
 
-**When:** User sends message during WORK phase
+**Each task:**
+```
+Mark ◆ → Check skill trigger → Do work → Mark ✓
+```
 
-1. Mark current todo as `<PAUSED>`
-2. Announce: "Pausing [X] to handle [Y]"
-3. Create `<SUB:N>` todo for interrupt
-4. Complete interrupt task
-5. Resume: mark `<PAUSED>` as `<WORK>` again
-6. Announce: "Resuming [X]"
+**If interrupted by user:**
+```
+Mark current ⊘ <PAUSED>
+Create <SUB:1> for new thing
+Do new thing, mark ✓
+Resume: change <PAUSED> back to <WORK> (no orphan ⊘ at end!)
+```
 
-**Rule:** No `<PAUSED>` or open `<SUB:N>` todos at END phase
+**After bulk edits:**
+```
+Verify no duplicate code or syntax errors
+```
 
 ---
 
-## Protocol: Session End
+## END
 
-**When:** All `<WORK>` todos complete, ready for review
+**When all <WORK> done:**
 
-### Step 1: Show Summary
-Display change summary with files modified/created
+1. Check for orphan ⊘ paused tasks → resume or close them first
+2. Show what changed (files created/modified)
+3. Show worktree with status symbols
+4. Say "Ready. Say 'approved' to finish."
+5. **Wait for user**
 
-### Step 2: Show Worktree
-Display final todo tree with status symbols
-
-### Step 3: Wait for Approval
-**STOP** - User must say: "approved", "proceed", "done", or "wrap up"
-
-### Step 4: After Approval - MANDATORY EXECUTION
-
-⚠️ **DO NOT SKIP ANY STEP - RE-READ THIS SECTION WHEN USER APPROVES**
-
-#### 4a. Update Knowledge Map (REQUIRED)
+**After user approves:**
 ```bash
 python .github/scripts/generate_codemap.py
-```
-
-#### 4b. Suggest Skills (REQUIRED)
-```bash
 python .github/scripts/suggest_skill.py
-```
-Review output - note useful patterns for user.
-
-#### 4c. Repository Cleanup (REQUIRED)
-Check `.github/instructions/structure.md` for rules:
-- Move misplaced `.md` files to `docs/{category}/`
-- Move scripts to `scripts/`
-- Clean backup files (`*_backup*.json`, `*.bak`)
-- Verify root only has allowed files
-
-#### 4d. Create Workflow Log
-Create file: `log/workflow/YYYY-MM-DD_HHMMSS_task-name.md`
-
-Use template: `.github/templates/workflow-log.md`
-
-#### 4e. Commit and Push (REQUIRED)
-```bash
-git add -A && git commit -m "type(scope): message" && git push
+# Create workflow log
+# Commit and push
 ```
 
 ---
 
-## Protocol: Skill Loading
+## Skill Triggers
 
-**When:** Touching specific file types
+| Pattern | Skill |
+|---------|-------|
+| `.tsx` `.jsx` `pages/` `components/` | `.github/skills/frontend-react.md` |
+| `backend/` `.py` endpoints | `.github/skills/backend-api.md` |
+| `docker-compose` `Dockerfile` | `.github/skills/docker.md` |
+| Any error output | `.github/skills/debugging.md` |
 
-| Pattern | Skill File |
-|---------|------------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/` | `.github/skills/frontend-react.md` |
-| `backend/app/`, `endpoints/`, `*.py` API | `.github/skills/backend-api.md` |
-| `docker-compose*`, `Dockerfile` | `.github/skills/docker.md` |
-| Error/exception in output | `.github/skills/debugging.md` |
+**Rule:** Load skill → then edit file
+
+---
+
+## Todos
+
+**Prefixes:**
+- `<MAIN>` = user's request
+- `<WORK>` = subtask
+- `<END>` = final commit
+- `<PAUSED>` = interrupted
+- `<SUB:N>` = handling interrupt
+
+**Symbols:**
+- `✓` done
+- `◆` doing
+- `○` pending
+- `⊘` paused
+
+**Example:**
+```
+<MAIN> ✓ Add user auth
+├─ <WORK> ✓ Create model
+├─ <WORK> ◆ Add endpoint
+└─ <END> ○ Commit
+```
 
 ---
 
 ## Standards
 
 - Files < 500 lines
-- Functions < 50 lines  
+- Functions < 50 lines
 - Type hints required
 - Tests for new features
+
+---
+
+## Workflow Log
+
+**Path:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+
+**Content:**
+```markdown
+# Task Name
+
+**Date:** YYYY-MM-DD
+**Files:** N changed
+
+## Worktree
+[paste worktree]
+
+## Summary
+[what was done]
+
+## Changes
+- Created: path/file
+- Modified: path/file
+```
