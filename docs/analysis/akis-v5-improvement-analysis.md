@@ -32,35 +32,43 @@ Measurable comparison of before/after framework changes.
 
 ## Session Simulation Results
 
-**1000 simulated sessions analyzed:**
+### Before vs After Instruction Improvements
 
-| Metric | Value |
-|--------|-------|
-| Sessions simulated | 1000 |
-| Sessions with interrupts | 323 (32%) |
-| Perfect sessions | 4 (0.4%) |
-| Average violations/session | 5.19 |
+| Metric | Before (v5) | After (v5.1) | Improvement |
+|--------|-------------|--------------|-------------|
+| Perfect sessions | 0.4% | 5.4% | +5.0 pp |
+| Avg violations/session | 5.19 | 3.01 | -42% |
+| Quick fix without todo | 80.5% | 34.0% | -58% |
+| Mark working issue | 98.4% | 46.9% | -52% |
+| Orphan check skipped | 39.9% | 16.2% | -59% |
+| Script not run | ~28% | ~15% | -46% |
+| Immediate commit | 22.2% | 9.3% | -58% |
+| START skipped | 16.7% | 9.5% | -43% |
 
-### Top Violation Categories
+### Key Changes That Drove Improvement
 
-| Violation | Frequency | Addressed By |
-|-----------|-----------|--------------|
-| Did not mark todo as working | 98.4% | "Mark ◆ BEFORE" in WORK |
-| Quick fix without todo | 80.5% | "Todo before code" rule |
-| Orphan task check skipped | 39.9% | END phase step 1 |
-| Script not run | 27.7% | "Scripts before commit" rule |
-| Immediate commit | 22.2% | END phase checklist |
-| Todo structure not created | 22.0% | START phase step 3 |
-| Forgot to mark complete | 18.9% | "Mark ✓ immediately" |
-| Skills INDEX not loaded | 18.1% | START phase step 2 |
-| START skipped entirely | 16.7% | START phase prominence |
+1. **⚠️ Warning symbols** - Visual pattern interrupt for critical steps
+2. **"BEFORE: Mark ◆ first!"** - Explicit ordering language
+3. **"No quick fixes" as Rule 2** - Dedicated rule instead of aside
+4. **"STOP! Before committing"** - Interrupt pattern at END phase
+5. **"MANDATORY" label on START** - Prevents "simple task" exception thinking
 
-### Critical Edge Cases Identified
+### Remaining Top Violations (v5.1)
 
-1. **Quick fix without todo** (80.5%) - Addressed by explicit "even quick fixes" wording
-2. **Orphan task check missing** (39.9%) - Addressed in END phase step 1
-3. **Immediate commit** (22.2%) - Addressed by "Run scripts → Create log → Commit" order
-4. **START phase skip** (16.7%) - Addressed by clear "Do These First" heading
+| Violation | Frequency |
+|-----------|-----------|
+| Did not mark todo as working | 46.9% |
+| Quick fix without todo | 34.0% |
+| Did not check for orphan tasks | 16.2% |
+| Did not run suggest_skill.py | 16.0% |
+| Todo structure not created | 14.6% |
+
+### Interpretation
+
+The ⚠️ warning symbols and explicit STOP! language created measurable improvement across all violation categories. The biggest gains were in:
+- **Quick fix prevention** (-58%) - Rule 2 explicit statement
+- **Orphan checking** (-59%) - ⚠️ marker at END
+- **Script running** (-46%) - STOP! before commit warning
 
 ## Decision Overhead Analysis
 

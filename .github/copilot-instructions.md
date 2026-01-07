@@ -1,6 +1,6 @@
 # AKIS v5
 
-## START → Do These First
+## ⚠️ BEFORE ANY WORK
 
 ```
 1. view project_knowledge.json (lines 1-50)
@@ -12,14 +12,14 @@
 ## WORK → For Each Task
 
 ```
-Before: Mark todo ◆ (no work without a todo!)
-During: If file matches trigger below → load that skill first
-After:  Mark todo ✓ immediately
+BEFORE: Mark todo ◆ first! (NEVER edit without marking)
+DURING: If file matches trigger → load skill first
+AFTER:  Mark todo ✓ immediately
 ```
 
 **Skill Triggers:**
-| Files | Load |
-|-------|------|
+| Files | Load First |
+|-------|------------|
 | `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
 | `backend/` `.py` | `backend-api.md` |
 | `docker` `Dockerfile` | `docker.md` |
@@ -29,11 +29,13 @@ After:  Mark todo ✓ immediately
 
 ## END → After User Says "approved/done"
 
+**⚠️ STOP! Before committing:**
 ```
+□ Check for orphan ⊘ tasks → resume or close them
 □ python .github/scripts/generate_codemap.py
 □ python .github/scripts/suggest_skill.py  
 □ Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-□ Commit and push
+□ THEN commit and push
 ```
 
 ## Todo Format
@@ -45,14 +47,14 @@ After:  Mark todo ✓ immediately
 └─ <END> Commit
 ```
 
-## Three Rules
+## ⚠️ Three Absolute Rules
 
-1. **Todo before code** — no edits without a tracked task, even "quick fixes"
-2. **Skill before edit** — check triggers, load if match  
-3. **Scripts before commit** — run generate_codemap.py and suggest_skill.py at end
+1. **Mark ◆ before ANY edit** — no unmarked work, even one line
+2. **No "quick fixes"** — every change needs a todo first
+3. **Scripts before commit** — ALWAYS run both .py scripts at end
 
 ## Gotchas
 
-- After multi-file edits → verify no duplicate code or syntax errors
-- After interrupt → resume paused task (check for ⊘ in worktree)
-- "Quick fix" still needs a todo first
+- "Quick fix" = still needs a todo first (Rule 2)
+- About to commit? STOP. Run scripts first (Rule 3)
+- After interrupt → check for ⊘ and resume it

@@ -4,7 +4,7 @@ All procedural details in one place. Reference when needed.
 
 ---
 
-## START
+## START (MANDATORY)
 
 ```
 1. view project_knowledge.json lines 1-50
@@ -13,14 +13,21 @@ All procedural details in one place. Reference when needed.
 4. Tell user: "[context]. Here's the plan: [todos]"
 ```
 
+⚠️ **Never skip START.** No exceptions for "simple" tasks.
+
 ---
 
 ## WORK
 
-**Each task:**
+**Each task (in this order):**
 ```
-Mark ◆ → Check skill trigger → Do work → Mark ✓
+1. Mark ◆ FIRST (before any edit)
+2. Check skill trigger → load if match
+3. Do the work
+4. Mark ✓ immediately after
 ```
+
+⚠️ **No unmarked work.** Even one-line changes need ◆ → ✓ cycle.
 
 **On interrupt:**
 ```
@@ -29,22 +36,26 @@ Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 
 ---
 
-## END
+## END (CRITICAL)
 
 ```
-1. Check for orphan ⊘ → resume or close
+1. ⚠️ Check for orphan ⊘ → resume or close ALL
 2. Show files changed + worktree
 3. Say "Ready. Say 'approved' to finish."
 4. WAIT for user
-5. Run scripts → Create log → Commit
+5. ⚠️ STOP! Run BOTH scripts before commit:
+   - python .github/scripts/generate_codemap.py
+   - python .github/scripts/suggest_skill.py
+6. Create workflow log
+7. THEN commit and push
 ```
 
 ---
 
 ## Skill Triggers
 
-| Pattern | Skill |
-|---------|-------|
+| Pattern | Load First |
+|---------|------------|
 | `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
 | `backend/` `.py` | `backend-api.md` |
 | `docker-compose` `Dockerfile` | `docker.md` |
@@ -64,7 +75,7 @@ Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 | Symbol | State |
 |--------|-------|
 | `✓` | Done |
-| `◆` | Doing |
+| `◆` | Doing (MUST mark before work) |
 | `○` | Pending |
 | `⊘` | Paused |
 
@@ -74,23 +85,23 @@ Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 
 | If you... | Then... |
 |-----------|---------|
-| Started without loading knowledge | Stop. Load `project_knowledge.json`. Continue. |
-| Made changes without todo | Create todo now, mark ✓, continue. |
-| Said "I'll just quickly fix..." | STOP. Create todo first. |
-| Edited without checking skill trigger | Check table above. Load if match. |
+| Started without loading knowledge | STOP. Load `project_knowledge.json`. |
+| About to edit without ◆ status | STOP. Mark ◆ first. |
+| Thinking "I'll just quickly fix..." | STOP. Create todo first. Always. |
+| Edited without checking skill trigger | Check table. Load if match. |
 | See error and want to "just try" | Load `debugging.md` first. |
-| User said "done", about to commit | Run both scripts first. |
+| User said "done", about to commit | STOP. Run BOTH scripts first. |
 | Forgot where you were | Show worktree. Find ⊘. Resume. |
-| Did bulk edits | Verify no duplicate code or syntax errors. |
+| Did bulk edits | Verify no duplicate code. |
 
 ---
 
 ## Every ~5 Tasks
 
 ```
-□ Todos up to date?
+□ All active work has ◆ status?
 □ Skills loaded for files I edited?
-□ Any ⊘ paused tasks?
+□ Any ⊘ orphan tasks to resume?
 ```
 
 ---
@@ -100,7 +111,7 @@ Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 ```
 1. Stop
 2. Show worktree
-3. Find next ○ or resume ⊘
+3. Find ◆ or ⊘ or next ○
 4. Continue
 ```
 
