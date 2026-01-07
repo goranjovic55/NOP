@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Session End - Complete session workflow
-1. Clean repository → Move misplaced files
-2. Generate codemap → Update project_knowledge.json
-3. Suggest skills → Propose new/update/remove
-4. Increment session counter → Check maintenance due
-5. Create workflow log (if complex)
-6. Commit changes
+Session End - Complete session workflow with enforcement
+
+1. Verify work complete → Check all TODO items addressed
+2. Structure enforcement → Validate file placements
+3. Generate codemap → Update project_knowledge.json
+4. Suggest skills → Propose new/update/remove
+5. Increment session counter → Check maintenance due
+6. Create workflow log → Document if >15min task
+7. Final checklist → Commit reminder
+
+Usage:
+    python .github/scripts/session_end.py [--task "task name"] [--duration N]
 """
 import json
 import os
@@ -16,7 +21,8 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-def run_script(script_name, description):
+
+def run_script(script_name, description, args=None):
     """Run a script and return output"""
     script_path = Path(f".github/scripts/{script_name}")
     if not script_path.exists():
@@ -25,8 +31,11 @@ def run_script(script_name, description):
     
     print(f"\n▶️  {description}...")
     try:
+        cmd = ["python", str(script_path)]
+        if args:
+            cmd.extend(args)
         result = subprocess.run(
-            ["python", str(script_path)],
+            cmd,
             capture_output=True,
             text=True,
             check=False
@@ -35,6 +44,7 @@ def run_script(script_name, description):
     except Exception as e:
         print(f"❌ Error running {script_name}: {e}")
         return None
+
 
 def check_git_changes():
     """Check if there are uncommitted changes"""
@@ -45,161 +55,210 @@ def check_git_changes():
     )
     return bool(result.stdout.strip())
 
-def clean_repository():
-    """Clean repository by moving misplaced files based on structure.md rules"""
-    root = Path("/workspaces/NOP")
+
+def get_changed_files():
+    """Get list of changed files"""
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True,
+        text=True
+    )
+    files = []
+    for line in result.stdout.strip().split('\n'):
+        if line.strip():
+            # Status is first 2 chars, then space, then filename
+            files.append(line[3:].strip())
+    return files
+
+
+def check_structure_violations():
+    """Check for files that may be in wrong locations"""
+    root = Path(".")
     
-    # Files that should stay in root
-    keep_in_root = {
-        "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE.md",
-        "docker-compose.yml", ".env", ".env.example", ".gitignore",
-        "deploy.sh", "project_knowledge.json"
-    }
+    # Files that should NOT be in root
+    suspicious_patterns = [
+        ('*.md', ['README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE.md', 'PRODUCTION_READY.md', 'BUG_FIX_SUMMARY.md']),
+        ('test_*.py', []),
+        ('*_test.py', []),
+    ]
     
-    moved_files = []
+    violations = []
     
-    # Scan root directory for misplaced files
-    for item in root.iterdir():
-        # Only process files (not directories)
-        if not item.is_file():
-            continue
-        
-        # Skip files that belong in root
-        if item.name in keep_in_root:
-            continue
-        
-        # Skip hidden files
-        if item.name.startswith('.'):
-            continue
-        
-        target_dir = None
-        
-        # Documentation files → docs/ (organize by type)
-        if item.suffix == '.md':
-            # Categorize by content type
-            name_upper = item.name.upper()
-            if any(keyword in name_upper for keyword in ['ANALYSIS', 'SUMMARY', 'GAP', 'BUG']):
-                target_dir = root / "docs" / "analysis"
-            elif any(keyword in name_upper for keyword in ['ARCHITECTURE', 'DESIGN', 'ADR']):
-                target_dir = root / "docs" / "architecture"
-            elif any(keyword in name_upper for keyword in ['IMPLEMENTATION', 'GUIDE', 'HOWTO']):
-                target_dir = root / "docs" / "guides"
-            elif any(keyword in name_upper for keyword in ['FEATURE', 'SPEC']):
-                target_dir = root / "docs" / "features"
-            else:
-                # Default to analysis for other docs
-                target_dir = root / "docs" / "analysis"
-        
-        # Test scripts → scripts/
-        elif (item.name.startswith('test_') or item.name.startswith('test-')) and item.suffix in ['.py', '.sh']:
-            target_dir = root / "scripts"
-        
-        # Other scripts → scripts/
-        elif item.suffix in ['.py', '.sh'] and item.name not in ['agent.py']:
-            target_dir = root / "scripts"
-        
-        # Docker compose variants → docker/
-        elif item.name.startswith('docker-compose.') and item.suffix in ['.yml', '.yaml']:
-            target_dir = root / "docker"
-        
-        # Move file if target determined
-        if target_dir:
-            target_dir.mkdir(parents=True, exist_ok=True)
-            target_file = target_dir / item.name
-            
-            # Handle duplicates by appending timestamp
-            if target_file.exists():
-                stem = item.stem
-                suffix = item.suffix
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                target_file = target_dir / f"{stem}_{timestamp}{suffix}"
-            
-            try:
-                shutil.move(str(item), str(target_file))
-                moved_files.append((item.name, target_dir.relative_to(root)))
-            except Exception as e:
-                print(f"   ⚠️  Failed to move {item.name}: {e}")
+    for pattern, exceptions in suspicious_patterns:
+        for f in root.glob(pattern):
+            if f.name not in exceptions and f.is_file():
+                # Determine where it should be
+                name_upper = f.name.upper()
+                if 'TEST' in name_upper:
+                    violations.append((f.name, 'scripts/ or tests/'))
+                elif f.suffix == '.md' and f.name not in exceptions:
+                    if 'ANALYSIS' in name_upper or 'BUG' in name_upper or 'SUMMARY' in name_upper:
+                        violations.append((f.name, 'docs/analysis/'))
+                    else:
+                        violations.append((f.name, 'docs/ (appropriate category)'))
     
-    return moved_files
+    return violations
+
+
+def get_session_number():
+    """Get current session number"""
+    tracker_file = Path('.github/.session-tracker.json')
+    if not tracker_file.exists():
+        return 0
+    try:
+        with open(tracker_file) as f:
+            data = json.load(f)
+            return data.get('current_session', 0)
+    except (json.JSONDecodeError, IOError):
+        return 0
+
 
 def main():
+    # Parse arguments
+    task_name = None
+    duration = None
+    
+    for i, arg in enumerate(sys.argv):
+        if arg == '--task' and i + 1 < len(sys.argv):
+            task_name = sys.argv[i + 1]
+        elif arg == '--duration' and i + 1 < len(sys.argv):
+            duration = int(sys.argv[i + 1])
+    
     print("\n" + "="*70)
-    print("  AKIS v3 - Session End")
+    print("  AKIS v3 - Session End | Blocking Gate: COMPLETE")
     print("="*70)
     
-    # Step 0: Clean repository
-    print("\n▶️  Cleaning repository...")
-    moved_files = clean_repository()
-    if moved_files:
-        print(f"   ✅ Moved {len(moved_files)} file(s):")
-        for filename, target in moved_files:
-            print(f"      • {filename} → {target}/")
-    else:
-        print("   ✅ Repository is clean")
+    session_num = get_session_number()
+    print(f"\n📊 Session: #{session_num}")
+    print(f"   Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     
-    # Step 1: Generate codemap
-    result = run_script("generate_codemap.py", "Generating codemap")
-    if result and result.returncode == 0:
-        print("   ✅ Knowledge map updated")
-    else:
-        print("   ⚠️  Codemap generation had issues (check output)")
+    # Step 1: Check structure violations
+    print("\n" + "-"*70)
+    print("  Step 1: Structure Enforcement")
+    print("-"*70)
     
-    # Step 2: Suggest skills
-    result = run_script("suggest_skill.py", "Analyzing session for skills")
+    violations = check_structure_violations()
+    if violations:
+        print("   ⚠️  Potential structure violations found:")
+        for filename, correct_loc in violations:
+            print(f"      • {filename} → should be in {correct_loc}")
+        print("\n   Action: Move files to correct locations per structure.md")
+    else:
+        print("   ✅ No structure violations detected")
+    
+    # Step 2: Generate codemap
+    print("\n" + "-"*70)
+    print("  Step 2: Knowledge Update")
+    print("-"*70)
+    
+    changed_files = get_changed_files()
+    code_files = [f for f in changed_files if f.endswith(('.py', '.ts', '.tsx', '.js', '.jsx'))]
+    
+    if code_files:
+        print(f"   Code files changed: {len(code_files)}")
+        result = run_script("generate_codemap.py", "Generating codemap")
+        if result and result.returncode == 0:
+            print("   ✅ Knowledge map updated")
+        else:
+            print("   ⚠️  Codemap generation had issues")
+    else:
+        print("   ℹ️  No code files changed, skipping codemap")
+    
+    # Step 3: Suggest skills
+    print("\n" + "-"*70)
+    print("  Step 3: Skill Analysis")
+    print("-"*70)
+    
+    result = run_script("suggest_skill.py", "Analyzing for skill patterns")
     if result and result.returncode == 0:
-        print("   ✅ Skill suggestions complete")
+        print("   ✅ Skill analysis complete")
         if result.stdout:
             try:
                 suggestions = json.loads(result.stdout)
                 if suggestions.get("suggestions"):
                     print("\n   📝 Skill Suggestions:")
                     for s in suggestions["suggestions"]:
-                        print(f"      - {s['action']}: {s['name']}")
-                    print("\n   ⏸  Review suggestions and approve/modify before continuing")
-                    input("\n   Press Enter when ready to continue...")
+                        print(f"      - {s.get('action', 'suggest')}: {s.get('name', 'unknown')}")
             except json.JSONDecodeError:
                 pass
+    else:
+        print("   ℹ️  No skill suggestions")
     
-    # Step 3: Session counter and maintenance check
-    result = run_script("session_tracker.py", "Checking session counter")
-    if result and "Maintenance due" in result.stdout:
-        print("\n   🔔 MAINTENANCE DUE (every 10 sessions)")
-        print("   Consider running: .github/prompts/akis-workflow-analyzer.md")
+    # Step 4: Session counter
+    print("\n" + "-"*70)
+    print("  Step 4: Session Tracking")
+    print("-"*70)
     
-    # Step 4: Workflow log
-    if check_git_changes():
-        print("\n▶️  Changes detected")
-        response = input("   Create workflow log? (y/n, default=n): ").strip().lower()
+    result = run_script("session_tracker.py", "Incrementing session", ["increment"])
+    maintenance_due = False
+    if result:
+        if "Maintenance due" in result.stdout:
+            maintenance_due = True
+            print("   🔔 MAINTENANCE DUE")
+            print("   Consider running: .github/prompts/akis-workflow-analyzer.md")
+        else:
+            print(f"   Session #{session_num + 1} recorded")
+    
+    # Step 5: Workflow log prompt
+    print("\n" + "-"*70)
+    print("  Step 5: Workflow Log")
+    print("-"*70)
+    
+    should_create_log = duration and duration > 15
+    
+    if should_create_log or check_git_changes():
+        if should_create_log:
+            print(f"   ⚠️  Task duration ({duration}min) > 15min - Workflow log REQUIRED")
+        else:
+            print("   Changes detected - consider creating workflow log")
         
-        if response == 'y':
-            task_name = input("   Task name: ").strip()
-            if task_name:
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-                log_file = Path(f"log/workflow/{timestamp}_{task_name}.md")
-                log_file.parent.mkdir(parents=True, exist_ok=True)
-                
-                # Use template
-                template = Path(".github/templates/workflow-log.md")
-                if template.exists():
-                    content = template.read_text()
-                    content = content.replace("{TASK_NAME}", task_name)
-                    content = content.replace("{YYYY-MM-DD HH:MM}", datetime.now().strftime("%Y-%m-%d %H:%M"))
-                    log_file.write_text(content)
-                    print(f"   ✅ Created workflow log: {log_file}")
-                    print(f"   📝 Fill in details before committing")
-                else:
-                    print("   ⚠️  Template not found, skipping log creation")
+        if task_name:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+            log_file = Path(f"log/workflow/{timestamp}_{task_name.replace(' ', '-')}.md")
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Use template
+            template = Path(".github/templates/workflow-log.md")
+            if template.exists():
+                content = template.read_text()
+                content = content.replace("{TASK_NAME}", task_name)
+                content = content.replace("{YYYY-MM-DD HH:MM}", datetime.now().strftime("%Y-%m-%d %H:%M"))
+                content = content.replace("{SESSION_NUMBER}", str(session_num + 1))
+                if duration:
+                    content = content.replace("{N}", str(duration))
+                log_file.write_text(content)
+                print(f"   ✅ Created: {log_file}")
+                print("   📝 Fill in Summary, Changes, Decisions sections")
+            else:
+                print("   ⚠️  Template not found: .github/templates/workflow-log.md")
+        else:
+            print("   ℹ️  Use --task 'name' to auto-create workflow log")
+    else:
+        print("   ℹ️  Short task, workflow log optional")
     
-    # Step 5: Commit prompt
+    # Final checklist
     print("\n" + "="*70)
+    print("  BLOCKING GATE CHECKLIST (Must complete before closing)")
+    print("="*70)
+    print("""
+  [ ] 1. All TODO items addressed (complete or documented as deferred)
+  [ ] 2. Code compiles/lints successfully
+  [ ] 3. Tests pass (if applicable)
+  [ ] 4. Files in correct locations per structure.md
+  [ ] 5. Workflow log created (if >15min task)
+  [ ] 6. Changes committed via report_progress
+
+  GATE PASSED when all items checked.
+""")
+    
     if check_git_changes():
-        print("  📦 Uncommitted changes detected")
-        print("  Review changes with: git status")
-        print("  Commit with: git add -A && git commit -m 'your message'")
+        print("  📦 Uncommitted changes detected!")
+        print("  Use: report_progress to commit and push")
     else:
         print("  ✅ No uncommitted changes")
     
-    print("="*70 + "\n")
+    print("\n" + "="*70 + "\n")
+
 
 if __name__ == "__main__":
     main()

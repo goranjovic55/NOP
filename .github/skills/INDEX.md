@@ -21,21 +21,41 @@ Quick reference for common problems → solutions. Query skills during work when
 - **Skill:** [documentation.md](documentation.md)
 - **Keywords:** docs, README, guides, INDEX
 
+### UI Design
+- **Problem:** Consistent styling, cyberpunk theme, components
+- **Skill:** [ui-consistency.md](ui-consistency.md)
+- **Keywords:** UI, styling, components, theme
+
 ---
 
 ## By Technology
 
 ### Backend Development
-- API patterns: TBD (create when pattern emerges)
-- Database: TBD (create when pattern emerges)
+- **API patterns:** [backend-api.md](backend-api.md)
+- **Keywords:** FastAPI, endpoints, CRUD, REST
 
 ### Frontend Development
-- Component patterns: TBD (create when pattern emerges)
-- State management: TBD (create when pattern emerges)
+- **Component patterns:** [frontend-react.md](frontend-react.md)
+- **Keywords:** React, TypeScript, components, state
 
 ### DevOps
 - Docker/containers: TBD (create when pattern emerges)
 - CI/CD: TBD (create when pattern emerges)
+
+---
+
+## Session Workflow (Instructions)
+
+For AKIS framework enforcement, see instruction files:
+
+| Phase | Instruction File |
+|-------|-----------------|
+| Session Start | [context-loading.md](../instructions/context-loading.md) |
+| Planning | [task-tracking.md](../instructions/task-tracking.md) |
+| Execution | [session-discipline.md](../instructions/session-discipline.md) |
+| Session End | [session-end.md](../instructions/session-end.md) |
+| Error Recovery | [edge-cases.md](../instructions/edge-cases.md) |
+| File Placement | [structure.md](../instructions/structure.md) |
 
 ---
 
@@ -68,7 +88,7 @@ cat .github/skills/debugging.md
 
 **At session end:**
 ```bash
-# Suggest new skills (auto-runs in session_end.sh)
+# Suggest new skills (auto-runs in session_end.py)
 python .github/scripts/suggest_skill.py
 ```
 
