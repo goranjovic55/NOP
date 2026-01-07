@@ -30,6 +30,12 @@ Thumbs.db
 
 # Logs - workflow logs are tracked in git for session history
 # log/**/*.md  # Removed - workflow logs should be committed
+*.log
+!log/**/*.md
+
+# Test artifacts and temporary files
+*.db
+test_*.py  # Exclude test scripts in root (tests/ directory is fine)
 
 # AKIS session tracking (temporary file for VSCode extension)
 .akis-session.json

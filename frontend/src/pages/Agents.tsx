@@ -134,7 +134,6 @@ const Agents: React.FC = () => {
   };
 
   const handleCreateAgent = async () => {
-    console.log('handleCreateAgent called, token:', token ? 'exists' : 'MISSING', 'name:', newAgent.name);
     if (!token) {
       alert('Not authenticated! Please log in first.');
       return;
@@ -147,14 +146,11 @@ const Agents: React.FC = () => {
     let createdAgent: Agent | null = null;
     
     try {
-      console.log('Creating agent...', newAgent);
       createdAgent = await agentService.createAgent(token, newAgent);
-      console.log('Agent created:', createdAgent);
       
       // Auto-download agent file with platform for Go
       try {
         const platform = newAgent.agent_type === 'go' ? selectedPlatform : undefined;
-        console.log('Generating agent file...');
         const { content, filename, is_binary } = await agentService.generateAgent(token, createdAgent.id, platform);
         
         let blob: Blob;
@@ -178,15 +174,12 @@ const Agents: React.FC = () => {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
-        console.log('Agent file downloaded successfully');
       } catch (generateError) {
         console.error('Failed to generate/download agent file:', generateError);
         // Agent was created successfully, but file generation failed
         alert(`Agent created successfully, but failed to generate file: ${generateError instanceof Error ? generateError.message : 'Unknown error'}\n\nYou can download the agent file from the agent template card.`);
       }
       
-      console.log('Reloading agents...');
       // Reload agents to get the fresh agent with download token
       await loadAgents();
       
@@ -216,7 +209,6 @@ const Agents: React.FC = () => {
       });
       setUsePublicIP(false);
       setSelectedPlatform('linux-amd64');
-      console.log('Agent creation flow complete!');
     } catch (error) {
       console.error('Failed to create agent:', error);
       // Only show this error if agent creation actually failed (not file generation)

@@ -13,7 +13,7 @@ import json
 import os
 import shutil
 from datetime import datetime
-from app.core.security import get_current_user
+from app.core.security import get_current_user, decode_token
 
 router = APIRouter()
 
@@ -455,13 +455,21 @@ async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     import termios
     import select
     
-    # Basic token validation
+    # Verify JWT token
     if not token:
         await websocket.close(code=1008, reason="Authentication required")
         return
     
-    # TODO: Add proper JWT token verification here
-    # For now, just check that token is provided
+    try:
+        # Decode and verify JWT token
+        payload = decode_token(token)
+        user_id = payload.get("sub")
+        if not user_id:
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+    except ValueError as e:
+        await websocket.close(code=1008, reason=f"Token validation failed: {str(e)}")
+        return
     
     await websocket.accept()
     

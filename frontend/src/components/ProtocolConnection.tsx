@@ -31,15 +31,8 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
   // Use useLayoutEffect to attach display immediately after DOM update
   useLayoutEffect(() => {
-    console.log('[GUACAMOLE-CLIENT] useLayoutEffect triggered, connectionStatus:', connectionStatus);
     if (connectionStatus === 'connected' && (tab.protocol === 'rdp' || tab.protocol === 'vnc')) {
-      console.log('[GUACAMOLE-CLIENT] useLayoutEffect: checking for display attachment');
-      console.log('[GUACAMOLE-CLIENT] displayRef.current:', !!displayRef.current);
-      console.log('[GUACAMOLE-CLIENT] clientRef.current:', !!clientRef.current);
-      console.log('[GUACAMOLE-CLIENT] displayAttached:', displayAttached);
-      
       if (displayRef.current && clientRef.current && !displayAttached) {
-        console.log('[GUACAMOLE-CLIENT] Attaching display...');
         try {
           const display = clientRef.current.getDisplay();
           const displayElement = display.getElement();
@@ -48,7 +41,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             displayRef.current.innerHTML = '';
             displayRef.current.appendChild(displayElement);
             setDisplayAttached(true);
-            console.log('[GUACAMOLE-CLIENT] ✓ Display element attached to DOM successfully');
             
             // Scale the display to fit the container
             const containerWidth = displayRef.current.clientWidth || 1024;
@@ -57,7 +49,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             const displayHeight = display.getHeight() || 768;
             const scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight, 1);
             display.scale(scale);
-            console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale);
             
             // Set up keyboard input
             const keyboard = new Guacamole.Keyboard(document);
@@ -81,20 +72,13 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             displayElement.addEventListener('click', () => {
               if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
                 displayElement.requestPointerLock();
-                console.log('[GUACAMOLE-CLIENT] Pointer lock requested');
               }
             });
             
             // Exit pointer lock with ESC key hint
             document.addEventListener('pointerlockchange', () => {
-              if (document.pointerLockElement === displayElement) {
-                console.log('[GUACAMOLE-CLIENT] Pointer locked (press ESC to release)');
-              } else {
-                console.log('[GUACAMOLE-CLIENT] Pointer unlocked');
-              }
+              // Pointer lock state changed
             });
-            
-            console.log('[GUACAMOLE-CLIENT] Keyboard and mouse handlers attached');
           }
         } catch (e) {
           console.error('[GUACAMOLE-CLIENT] Error attaching display:', e);
@@ -277,10 +261,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
   // HTTP Tunnel implementation for environments where WebSocket doesn't work
   const setupHTTPTunnel = async () => {
-    console.log('[HTTP-TUNNEL] Setting up HTTP tunnel connection (fallback mode)');
-    console.log('[HTTP-TUNNEL] Target:', tab.ip);
-    console.log('[HTTP-TUNNEL] Protocol:', tab.protocol);
-    
     const port = tab.protocol === 'rdp' ? 3389 : 5900;
     const width = displayRef.current?.clientWidth || 1024;
     const height = displayRef.current?.clientHeight || 768;
@@ -298,7 +278,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
         dpi: '96'
       }).toString();
       
-      console.log('[HTTP-TUNNEL] Connecting...');
       const connectResponse = await fetch(connectUrl, { method: 'POST' });
       
       if (!connectResponse.ok) {
@@ -307,7 +286,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       
       const connectData = await connectResponse.json();
       const sessionId = connectData.session_id;
-      console.log('[HTTP-TUNNEL] Session created:', sessionId);
       
       // Step 2: Create display canvas
       if (displayRef.current) {
@@ -328,7 +306,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       const eventSource = new EventSource(`/api/v1/access/http-tunnel/read/${sessionId}`);
       
       eventSource.onmessage = (event) => {
-        console.log('[HTTP-TUNNEL] Received:', event.data.substring(0, 100));
         // TODO: Parse Guacamole instructions and render to canvas
       };
       
@@ -339,7 +316,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       
       updateTabStatus(tab.id, 'connected');
       setConnectionStatus('connected');
-      console.log('[HTTP-TUNNEL] ✓ Connection established');
       
     } catch (error) {
       console.error('[HTTP-TUNNEL] Connection failed:', error);
@@ -357,12 +333,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   };
 
   const setupGuacamole = () => {
-    console.log('[GUACAMOLE-CLIENT] Setting up Guacamole connection');
-    console.log('[GUACAMOLE-CLIENT] Target:', tab.ip);
-    console.log('[GUACAMOLE-CLIENT] Protocol:', tab.protocol);
-    console.log('[GUACAMOLE-CLIENT] Username:', username);
-    console.log('[GUACAMOLE-CLIENT] Port:', (tab.protocol === 'rdp' ? 3389 : 5900));
-    
     const params = new URLSearchParams({
       host: tab.ip,
       port: (tab.protocol === 'rdp' ? 3389 : 5900).toString(),
@@ -379,9 +349,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     // Nginx proxies /api/v1/access/tunnel to backend WebSocket
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
-    
-    console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/password=[^&]*/, 'password=***'));
-    console.log('[GUACAMOLE-CLIENT] Display dimensions:', displayRef.current?.clientWidth, 'x', displayRef.current?.clientHeight);
 
     // Create tunnel with explicit subprotocol if needed, but Guacamole.WebSocketTunnel usually handles it
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
@@ -390,7 +357,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     (tunnel as any).onerror = (status: any) => {
       console.error('[GUACAMOLE-CLIENT] Tunnel error:', status);
       // Fallback to HTTP tunnel if WebSocket fails
-      // console.log('[GUACAMOLE-CLIENT] WebSocket failed, falling back to HTTP tunnel...');
       // setupHTTPTunnel();
       
       // Show error directly instead of falling back to incomplete HTTP tunnel
@@ -406,8 +372,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     };
     
     (tunnel as any).onstatechange = (state: number) => {
-      const stateNames = ['IDLE', 'CONNECTING', 'WAITING', 'CONNECTED', 'DISCONNECTING', 'DISCONNECTED'];
-      console.log('[GUACAMOLE-CLIENT] Tunnel state changed:', stateNames[state] || state);
+      // Tunnel state changed
     };
     
     const client = new Guacamole.Client(tunnel);
@@ -417,7 +382,6 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       displayRef.current.innerHTML = '';
       const displayElement = client.getDisplay().getElement();
       displayRef.current.appendChild(displayElement);
-      console.log('[GUACAMOLE-CLIENT] Display element attached to DOM');
     }
 
     client.onerror = (error) => {
@@ -450,15 +414,10 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     };
 
     client.onstatechange = (state) => {
-      const stateNames = ['IDLE', 'CONNECTING', 'WAITING', 'CONNECTED', 'DISCONNECTING', 'DISCONNECTED'];
-      console.log('[GUACAMOLE-CLIENT] Client state changed:', stateNames[state] || state);
-      
       if (state === 3) { // CONNECTED
-        console.log('[GUACAMOLE-CLIENT] ✓ Successfully connected to remote host');
         updateTabStatus(tab.id, 'connected');
         setConnectionStatus('connected');
       } else if (state === 5) { // DISCONNECTED
-        console.log('[GUACAMOLE-CLIENT] Disconnected from remote host');
         updateTabStatus(tab.id, 'disconnected');
         setConnectionStatus('disconnected');
       }
@@ -478,9 +437,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       client.sendKeyEvent(0, keysym);
     };
 
-    console.log('[GUACAMOLE-CLIENT] Initiating connection...');
     client.connect('');
-    console.log('[GUACAMOLE-CLIENT] Connection initiated');
   };
 
 
