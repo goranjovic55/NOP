@@ -1,68 +1,56 @@
 # Knowledge
 
-Maintain `project_knowledge.json` as institutional memory. Line 1 = map.
+Query and update `project_knowledge.json` for project context. **Hierarchical v2.0:** Always read lines 1-50 first.
 
 ## When to Use
-- Start of task (CONTEXT phase)
-- During work (query as needed)
-- Before commit (SESSION END)
+- CONTEXT phase (load overview)
+- Finding features/services
+- Understanding architecture
+- SESSION END (auto-regenerate)
+
+## Format
+
+**Lines 1-50: Overview (Read First)**
+- Line 1: Navigation map → domain line pointers
+- Lines 2-N: Domain summaries (tech stack, entity counts)
+
+**Lines 51+: Details (On-Demand)**
+- Detailed entities grouped by domain
 
 ## Avoid
-- ❌ Loading everything upfront → ✅ Index map, query as needed
-- ❌ Duplicate entities → ✅ Check existing first
-- ❌ Stale observations → ✅ Add upd:YYYY-MM-DD
+- ❌ Load entire file → ✅ Read lines 1-50 first
+- ❌ Search without map → ✅ Use domain pointers
+- ❌ Manual edits → ✅ Auto-generated (session_end.py)
 
 ## Examples
 
 ### CONTEXT Phase
 ```bash
-# Read map (line 1)
-head -1 project_knowledge.json | python3 -m json.tool
+# Read overview (lines 1-50)
+head -50 project_knowledge.json | jq -r '.'
 
-# Query entity
-grep '"name":"ModuleName"' project_knowledge.json
-
-# Find dependencies
-grep '"from":"ModuleName"' project_knowledge.json
+# Parse navigation map
+head -1 project_knowledge.json | jq -r '.domains'
 ```
 
-### Format (JSONL)
-```json
-{"type":"map","domains":{"Backend":"Line 5+"},"quickNav":{"api":"..."}}
-{"type":"entity","name":"Service","entityType":"service","observations":["desc","upd:2026-01-05"]}
-{"type":"relation","from":"A","to":"B","relationType":"USES"}
-{"type":"codegraph","name":"file.py","nodeType":"module","dependencies":["X"]}
-```
-
-### Entity Types
-- `service` - Backend service
-- `component` - Frontend component
-- `module` - Logical module
-- `infrastructure` - Docker/networking
-- `feature` - User feature
-- `tool` - Script/utility
-
-### Relation Types
-- `USES` - A calls B
-- `IMPLEMENTS` - A implements B
-- `DEPENDS_ON` - A requires B
-- `EXTENDS` - A extends B
-- `CONTAINS` - A contains B
-
-### Add Entity
-```json
-{"type":"entity","name":"CVEScanner","entityType":"service","observations":["NVD API","upd:2026-01-05"]}
-{"type":"relation","from":"VulnService","to":"CVEScanner","relationType":"USES"}
-```
-
-### SESSION END
+### Load Domain Details
 ```bash
-# Auto-generate codemap
-python .github/scripts/generate_codemap.py
+# Get Backend line range
+head -1 project_knowledge.json | jq -r '.domains.Backend'
+# → {"summary_line": 5, "details_lines": "15-45", "count": 30}
 
-# Add manual entities for new features/architecture
+# Load Backend details only
+sed -n '15,45p' project_knowledge.json | jq -r '.'
+```
+
+### Search Entities
+```bash
+# Find all services
+cat project_knowledge.json | jq -r 'select(.entityType=="Service")'
+
+# Find tech usage
+cat project_knowledge.json | jq -r 'select(.tech[]? | contains("PostgreSQL"))'
 ```
 
 ## Related
 - documentation.md
-- debugging.md

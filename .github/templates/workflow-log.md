@@ -1,31 +1,33 @@
 # {TASK_NAME}
 
 **Date**: {YYYY-MM-DD HH:MM}
-**Session**: #{SESSION_NUMBER}
-**Duration**: ~{N} minutes
+**Branch**: {branch-name}
+**Files Changed**: {N}
+
+## Worktree
+```
+<MAIN> ✓ {Original request}
+├─ <WORK> ✓ {Task 1}
+├─ <WORK> ✓ {Task 2}
+└─ <END> ✓ Review and commit
+```
 
 ## Summary
-{One paragraph}
+{Brief description of what was accomplished}
 
 ## Changes
-- Created: `path/file.ext` - {why}
-- Modified: `path/file.ext` - {what}
-- Deleted: `path/file.ext` - {why}
+- Created: `path/file.ext`
+- Modified: `path/file.ext`
 
-## Decisions
-| Decision | Rationale |
-|----------|-----------|
-| {Choice} | {Why} |
+## Problems Encountered
+- Problem: {what went wrong}
+- Cause: {root cause}
+- Solution: {how it was fixed}
 
-## Updates
-**Knowledge**: {entities/relations added}
-**Docs**: {files updated}
-**Skills**: {used/created}
+## Lessons Learned
+- {Key insight or pattern discovered}
+- {What would be done differently}
+- {Useful technique or approach}
 
-## Verification
-- [ ] Tests pass
-- [ ] Knowledge updated
-- [ ] Committed
-
-## Notes
-{Context/gotchas/future}
+## Skill Suggestions
+{paste suggest_skill.py output if useful}

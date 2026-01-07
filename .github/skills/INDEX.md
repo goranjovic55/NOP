@@ -1,77 +1,34 @@
 # Skills Index
 
-Quick reference for common problems → solutions. Query skills during work when stuck.
+**Load skills by domain trigger.** Query skills for patterns, not instructions.
+
+## Domain Triggers
+
+| Touching | Load Skill |
+|----------|------------|
+| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react.md](frontend-react.md) |
+| `backend/app/`, `endpoints/`, `*.py` API | [backend-api.md](backend-api.md) |
+| `docker-compose*`, `Dockerfile` | [docker.md](docker.md) |
+| Error/exception in output | [debugging.md](debugging.md) |
+| Creating/updating docs | [documentation.md](documentation.md) |
+
+## All Skills
+
+| Skill | Purpose |
+|-------|---------|
+| [frontend-react.md](frontend-react.md) | React/JSX patterns, POV mode, hooks |
+| [backend-api.md](backend-api.md) | FastAPI CRUD, services, WebSocket |
+| [docker.md](docker.md) | Compose files, hot-reload, dev workflow |
+| [debugging.md](debugging.md) | Build/runtime errors, troubleshooting |
+| [documentation.md](documentation.md) | Doc structure, templates, placement |
+| [knowledge.md](knowledge.md) | project_knowledge.json queries |
+| [ui-consistency.md](ui-consistency.md) | Cyberpunk theme, CyberUI components |
+
+## Skill Creation
+
+**When:** Pattern used ≥5 sessions • Reusable • Copy-paste ready  
+**Format:** <50 lines, use `.github/templates/skill.md`
 
 ---
 
-## By Problem Type
-
-### Build & Runtime Errors
-- **Problem:** Build fails, runtime crashes, dependency issues
-- **Skill:** [debugging.md](debugging.md)
-- **Keywords:** error, exception, build, crash, dependency
-
-### Knowledge System
-- **Problem:** Query/update project_knowledge.json, understand entities
-- **Skill:** [knowledge.md](knowledge.md)
-- **Keywords:** knowledge, entities, relations, codegraph, map
-
-### Documentation
-- **Problem:** Create/update docs, organize documentation structure
-- **Skill:** [documentation.md](documentation.md)
-- **Keywords:** docs, README, guides, INDEX
-
----
-
-## By Technology
-
-### Backend Development
-- API patterns: TBD (create when pattern emerges)
-- Database: TBD (create when pattern emerges)
-
-### Frontend Development
-- Component patterns: TBD (create when pattern emerges)
-- State management: TBD (create when pattern emerges)
-
-### DevOps
-- Docker/containers: TBD (create when pattern emerges)
-- CI/CD: TBD (create when pattern emerges)
-
----
-
-## Skill Creation Guidelines
-
-**When to create:**
-- Pattern appears in >=5 sessions
-- Solution is reusable across projects
-- Commands/code can be copy-pasted
-
-**When NOT to create:**
-- Project-specific implementation details
-- One-off solutions
-- Frequently changing patterns
-
-**Format:** <50 lines, executable patterns (see `.github/templates/skill.md`)
-
----
-
-## Usage Patterns
-
-**During work:**
-```bash
-# Quick lookup
-grep -r "keyword" .github/skills/
-
-# Read specific skill
-cat .github/skills/debugging.md
-```
-
-**At session end:**
-```bash
-# Suggest new skills (auto-runs in session_end.sh)
-python .github/scripts/suggest_skill.py
-```
-
----
-
-*Update this INDEX when adding/removing skills*
+*Update INDEX when adding/removing skills*

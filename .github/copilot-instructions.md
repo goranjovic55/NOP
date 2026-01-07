@@ -1,76 +1,63 @@
-# AKIS v3 - Agent Knowledge & Instruction System
+# AKIS v5
 
-**A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (solutions)
+## ⚠️ BEFORE ANY WORK
 
----
+```
+1. view project_knowledge.json (lines 1-50)
+2. view .github/skills/INDEX.md
+3. Create todos: <MAIN> → <WORK> items → <END>
+4. Show user: brief context + todo list
+```
 
-## Session Flow (MANDATORY 5 PHASES)
+## WORK → For Each Task
 
-**ALL sessions MUST follow these phases in order:**
+**⚠️ FIRST: Mark todo ◆ (no exceptions, no excuses)**
 
-### 1. CONTEXT
-Execute: `python .github/scripts/session_start.py` (optional helper)
-- Load `project_knowledge.json` (line 1 = map)
-- Query relevant docs from `docs/`
-- Load skills from `.github/skills/INDEX.md`
-- Check `.github/instructions/structure.md`
-**Output:** Context summary (2-3 lines)
+```
+1. Mark ◆ on the task you're starting
+2. If file matches trigger → load skill first
+3. Do the work
+4. Mark ✓ immediately when done
+```
 
-### 2. PLAN
-- Use `manage_todo_list` to create actionable steps
-- Break work into <50 line chunks
-- Identify knowledge/skills needed
-**Output:** TODO list with clear steps
+**Skill Triggers:**
+| Files | Load First |
+|-------|------------|
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
+| `backend/` `.py` | `backend-api.md` |
+| `docker` `Dockerfile` | `docker.md` |
+| Error in output | `debugging.md` |
 
-### 3. EXECUTION
-- Execute TODOs sequentially
-- Mark in-progress → completed individually
-- Query resources as needed
-**Output:** Completed implementation
+**On interrupt:** Mark current ⊘ → Create `<SUB:1>` → Handle → Resume original (no orphan paused!)
 
-### 4. REVIEW (User Confirmation REQUIRED)
-- Review all changes for quality
-- Verify structure.md compliance
-- Run tests if applicable
-- **STOP - Request user approval to proceed**
-**Output:** Change summary + await confirmation
+## END → After User Says "approved/done"
 
-### 5. SESSION END
-Execute: `python .github/scripts/session_end.py`
-- Clean repository → Move misplaced files per structure.md
-- Generate codemap → Update project_knowledge.json
-- Suggest skills → Propose new/update/remove (show to user, wait approval)
-- Increment session counter → Check if maintenance due (every 10 sessions)
-- Create workflow log (if >15min or complex)
-- Commit all changes
-**Output:** Session summary + skill suggestions
+**⚠️ STOP! Before committing:**
+```
+□ Check for orphan ⊘ tasks → resume or close them
+□ python .github/scripts/generate_codemap.py
+□ python .github/scripts/suggest_skill.py  
+□ Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+□ THEN commit and push
+```
 
----
+## Todo Format
 
-## Knowledge System
+```
+<MAIN> User request        ✓ done  ◆ working  ○ pending  ⊘ paused
+├─ <WORK> Task 1
+├─ <WORK> Task 2
+└─ <END> Commit
+```
 
-**File:** `project_knowledge.json` (JSONL format)
-**Line 1 = Map:** Read first for domain overview and quickNav
+## ⚠️ Three Absolute Rules
 
-**Workflow:** Query throughout work, update at session end (auto via codemap)
+1. **Mark ◆ before ANY edit** — no unmarked work, even one line
+2. **No "quick fixes"** — every change needs a todo first
+3. **Scripts before commit** — ALWAYS run generate_codemap.py and suggest_skill.py at end
 
----
+## Gotchas
 
-## Skills Library
-
-**Location:** `.github/skills/INDEX.md` - Problem→solution lookup
-**Format:** Copy-paste ready, <50 lines, executable patterns
-**Usage:** Query INDEX when stuck
-
----
-
-## Standards
-
-- Files <500 lines, functions <50 lines
-- Type hints/annotations required
-- Tests for new features
-- Use templates from `.github/templates/`
-
----
-
-*Context over Process. Knowledge over Ceremony.*
+- "Quick fix" = still needs a todo first (Rule 2)
+- About to commit? STOP. Run scripts first (Rule 3)
+- After interrupt → check for ⊘ and resume it

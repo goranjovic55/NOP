@@ -1,12 +1,13 @@
 # Doc Updates - {YYYY-MM-DD}
 
-**Session**: #{N}
+**Session:** #{N}
 
 ## Updated
-- `path/to/doc.md` - {Sections}: {Changes}
-- `path/to/doc.md` - {Sections}: {Changes}
+| File | Section | Change |
+|------|---------|--------|
+| `path/doc.md` | {Section} | {Change} |
 
 ## Deferred
-- `path/to/doc.md` - {Reason}
+- `path/doc.md` - {Reason}
 
-**Principles**: Minimal updates, no bloat, preserve structure
+*Principles: Minimal updates • No bloat • Preserve structure*

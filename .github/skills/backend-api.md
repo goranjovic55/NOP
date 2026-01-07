@@ -1,45 +1,22 @@
 # Backend API Patterns
 
-FastAPI layered architecture with typing and dependency injection.
+FastAPI with async SQLAlchemy. Endpoint → Service → Model separation.
 
-## When to Use
-- Creating REST endpoints
-- Modifying existing APIs
-- Adding database operations
-- Implementing CRUD operations
+## Avoid
+- ❌ Direct DB in routes → ✅ Service layer
+- ❌ Missing response_model → ✅ Define schemas
+- ❌ Sync I/O → ✅ async/await
 
-## Checklist
-- [ ] Endpoint → Service → Model separation
-- [ ] Define `response_model` for validation
-- [ ] Use dependency injection for db and auth
-- [ ] Request validation (Pydantic schemas)
-- [ ] Type hint return values
-- [ ] Async where I/O-bound
+## Patterns
 
-## Examples
-
-### Basic CRUD Endpoint
+### Basic CRUD
 ```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
-router = APIRouter(prefix="/items", tags=["items"])
-
-@router.get("", response_model=list[ItemResponse])
-async def list_items(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, le=1000),
-    db: AsyncSession = Depends(get_db)
-) -> list[ItemResponse]:
-    result = await db.execute(select(Item).offset(skip).limit(limit))
-    return result.scalars().all()
-
-@router.get("/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Item).where(Item.id == item_id))
+@router.get("/{id}", response_model=ItemResponse)
+async def get_item(id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Item).where(Item.id == id))
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(404, "Not found")
     return item
 
 @router.post("", response_model=ItemResponse, status_code=201)
@@ -51,13 +28,7 @@ async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
     return item
 ```
 
-## Avoid
-- ❌ Direct DB access in routes → ✅ Use service layer
-- ❌ Missing response models → ✅ Define `response_model`
-- ❌ Sync operations for I/O → ✅ Use async/await
-- ❌ No dependency injection → ✅ Use `Depends()`
-
-### Service Layer Pattern
+### Service Layer
 ```python
 class ItemService:
     def __init__(self, db: AsyncSession = Depends(get_db)):
@@ -66,11 +37,9 @@ class ItemService:
     async def create(self, data: ItemCreate) -> Item:
         item = Item(**data.dict())
         self.db.add(item)
-        await self.db.commit()
-        await self.db.refresh(item)
+        await db.commit()
         return item
 
-# Endpoint uses service
 @router.post("", response_model=ItemResponse)
 async def create_item(data: ItemCreate, service: ItemService = Depends()):
     return await service.create(data)
@@ -78,24 +47,52 @@ async def create_item(data: ItemCreate, service: ItemService = Depends()):
 
 ### Pydantic Schema
 ```python
-from pydantic import BaseModel, Field
-from datetime import datetime
-
 class ItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    description: str | None = None
 
-class ItemCreate(ItemBase):
-    pass
+class ItemCreate(ItemBase): pass
 
 class ItemResponse(ItemBase):
     id: int
-    created_at: datetime
-
     class Config:
         from_attributes = True
 ```
 
-## Related Skills
-- `debugging.md` - Troubleshooting endpoints
-- `frontend-react.md` - API integration patterns
+### POV Mode Filtering
+```python
+from app.middleware.agent_pov import get_agent_pov
+
+@router.get("/endpoint")
+async def endpoint(request: Request, db: AsyncSession = Depends(get_db)):
+    agent_pov = get_agent_pov(request)  # X-Agent-POV header
+    if agent_pov:
+        agent = await db.get(Agent, agent_pov)
+        if agent and agent.agent_metadata:
+            return agent.agent_metadata.get('key', [])
+        return []  # NO C2 fallback in POV mode
+    return get_c2_data()
+```
+
+### JSONB Persistence (flag_modified)
+```python
+from sqlalchemy.orm.attributes import flag_modified
+
+# SQLAlchemy doesn't detect nested mutations
+agent.agent_metadata['data'] = new_data
+flag_modified(agent, 'agent_metadata')  # Mark dirty
+await db.commit()
+```
+
+### INET Type Casting
+```python
+from sqlalchemy import cast, String
+
+# Cast for comparison
+result = await db.execute(
+    select(Asset).where(cast(Asset.ip, String) == ip_string)
+)
+```
+
+## Related
+- `debugging.md` - API errors
+- `frontend-react.md` - POV integration

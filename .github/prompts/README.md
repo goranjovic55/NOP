@@ -12,7 +12,7 @@ Specialized multi-phase workflows for complex tasks.
 **Purpose:** Analyze sessions to identify patterns and propose improvements
 
 **Trigger:**
-- Auto: Every 10 sessions (via session_end.py)
+- Auto: Every 10 sessions (check via `session_tracker.py`)
 - Manual: Anytime
 
 **Phases:** CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
@@ -27,50 +27,8 @@ Specialized multi-phase workflows for complex tasks.
 **Usage:**
 ```bash
 python .github/scripts/session_tracker.py check-maintenance
-# Follow prompt if maintenance due
+# If due, follow akis-workflow-analyzer.md
 ```
-
----
-
-### audit-optimize.md
-
-**Purpose:** Audit, organize, and optimize any project component to match standards
-
-**Trigger:**
-- Manual: When any component (docs/skills/code/framework) is scattered or verbose
-- Periodic: Every major release or refactoring cycle
-- When template compliance <50%
-- When reducing redundancy or improving organization
-
-**Phases:** AUDIT → PLAN → STANDARDIZE → INDEX → VERIFY → DOCUMENT → COMPLETE
-
-**Actions:**
-1. Audit component files (docs, skills, code, etc.)
-2. Check compliance to standards/templates
-3. Organize by logical categories
-4. Standardize to templates/patterns
-5. Create comprehensive index/map
-6. Reduce verbosity and redundancy
-
-**Applicable to:**
-- 📄 Documentation (organize, index, standardize)
-- 🛠️ Skills (consolidate, remove unused)
-- 💻 Code (refactor, reduce duplication)
-- ⚙️ AKIS Framework (streamline, optimize)
-
-**Usage:**
-```
-"Please audit and optimize [component] in [location]. 
-Check compliance, organize logically, create index, 
-and reduce verbosity following standards."
-```
-
-Examples:
-- "Audit and optimize documentation in docs/"
-- "Audit and optimize skills in .github/skills/"
-- "Audit and optimize AKIS framework instructions"
-
-**Reusability:** Universal - adapts to docs, skills, code, or framework
 
 ## Creating New Prompts
 

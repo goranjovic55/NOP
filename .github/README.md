@@ -1,31 +1,34 @@
-# AKIS v3 - Project-Agnostic Framework
+# AKIS v4 - Agent Knowledge & Instruction System
 
-AI coding agent framework providing:
-- **Knowledge:** Project context graph (entities, relations, codemap)
-- **Skills:** Reusable solution patterns (<50 lines, copy-paste ready)
-- **Scripts:** Session management and automation
+AI coding agent framework: **A**gent • **K**nowledge • **I**nstructions • **S**kills
 
-**Portable:** Copy entire `.github/` directory to any codebase.
+**Portable:** Copy `.github/` to any codebase.
 
-## Core Structure
+## Structure
 
-**Framework files:**
-- `copilot-instructions.md` - MANDATORY 5 PHASES workflow
-- `skills/INDEX.md` - Problem→solution lookup
-- `scripts/session_*.py` - Session automation
-- `templates/*.md` - File templates
+| File | Purpose |
+|------|--------|
+| `copilot-instructions.md` | Terse rules (START→WORK→END) |
+| `instructions/protocols.md` | Detailed procedures |
+| `instructions/structure.md` | File organization rules |
+| `skills/INDEX.md` | Domain→skill lookup |
+| `scripts/*.py` | Codemap, skill suggestions |
+| `templates/*.md` | Workflow log, skill templates |
 
-**Project files (auto-created):**
-- `project_knowledge.json` - Knowledge graph
-- `docs/` - Documentation
-- `log/workflow/` - Session logs
+## Key Scripts
+
+```bash
+python .github/scripts/generate_codemap.py  # Update knowledge
+python .github/scripts/suggest_skill.py      # Get skill suggestions
+python .github/scripts/session_tracker.py    # Maintenance tracking
+```
 
 ## Usage
 
-1. Copy `.github/` to new project
-2. Follow MANDATORY 5 PHASES in `copilot-instructions.md`
-3. Query `skills/INDEX.md` when stuck
-4. Scripts auto-manage knowledge/sessions
+1. Agent reads `copilot-instructions.md` at session start
+2. Follows START→WORK→END phases
+3. Loads skills from `skills/` when touching relevant files
+4. At END: runs scripts, creates workflow log
 
 ---
 
