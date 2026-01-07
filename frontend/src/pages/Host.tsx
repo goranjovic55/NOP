@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO } from '../services/hostService';
+import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO, POVInstruction } from '../services/hostService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { Terminal } from 'xterm';
@@ -918,6 +918,9 @@ const Host: React.FC = () => {
         <div className="dashboard-card p-4">
           <p className="text-cyber-green text-xs font-mono tracking-wider mb-2 uppercase flex items-center">
             <span className="mr-2">⌬</span> Neural Interface • Shell Access
+            {activeAgent && (
+              <span className="ml-2 text-cyber-purple">• Agent POV: {activeAgent.name}</span>
+            )}
           </p>
           <div
             ref={terminalRef}
@@ -953,7 +956,44 @@ const Host: React.FC = () => {
                 <span className="mr-2 text-cyber-red">⌁</span> {currentPath}
               </div>
               <div className="flex-1 overflow-y-auto space-y-1">
-                {fileItems.map((item, idx) => (
+                {/* Check if first item is POV instructions */}
+                {fileItems.length > 0 && fileItems[0].type === 'instructions' ? (
+                  <div className="space-y-3">
+                    {fileItems[0].instructions?.map((instruction, idx) => (
+                      <div key={idx} className={`p-3 border ${
+                        instruction.type === 'success' ? 'border-cyber-green bg-cyber-green/10' :
+                        instruction.type === 'header' ? 'border-cyber-purple bg-cyber-purple/10' :
+                        instruction.type === 'command' ? 'border-cyber-blue/50 bg-cyber-darker' :
+                        instruction.type === 'target' ? 'border-cyber-gray/50 bg-cyber-darker' :
+                        instruction.type === 'warning' ? 'border-cyber-yellow bg-cyber-yellow/10' :
+                        instruction.type === 'error' ? 'border-cyber-red bg-cyber-red/10' :
+                        'border-cyber-gray/30 bg-cyber-darker'
+                      }`}>
+                        <div className={`font-mono text-sm ${
+                          instruction.type === 'success' ? 'text-cyber-green' :
+                          instruction.type === 'header' ? 'text-cyber-purple font-bold uppercase' :
+                          instruction.type === 'command' ? 'text-cyber-blue' :
+                          instruction.type === 'target' ? 'text-cyber-green' :
+                          instruction.type === 'warning' ? 'text-cyber-yellow' :
+                          instruction.type === 'error' ? 'text-cyber-red' :
+                          'text-cyber-gray-light'
+                        }`}>
+                          {instruction.title}
+                        </div>
+                        {instruction.detail && (
+                          <div className={`mt-1 font-mono text-xs ${
+                            instruction.type === 'command' ? 'text-cyber-green bg-black/50 p-2 rounded select-all' :
+                            'text-cyber-gray-light'
+                          }`}>
+                            {instruction.detail}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Regular file items */
+                  fileItems.map((item, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
@@ -990,7 +1030,8 @@ const Host: React.FC = () => {
                       <div className="text-xs text-cyber-red mt-1">⚠ {item.error}</div>
                     )}
                   </button>
-                ))}
+                ))
+                )}
               </div>
             </div>
 

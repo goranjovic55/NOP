@@ -249,6 +249,7 @@ class NOPAgent:
         self.passive_hosts = []  # Track passively discovered hosts
         self.captured_flows = []  # Track captured network flows
         self.flow_lock = threading.Lock()  # Thread-safe flow access
+        self.terminal_sessions = {{}}  # session_id -> (master_fd, pid)
         
         # Extract nested discovery settings to top-level config
         if 'settings' in self.config and 'discovery' in self.config['settings']:
@@ -388,8 +389,338 @@ class NOPAgent:
                     await self.send_pong()
                 elif msg_type == "settings_update":
                     await self.handle_settings_update(data)
+                # Terminal commands
+                elif msg_type == "terminal_start":
+                    await self.handle_terminal_start(data)
+                elif msg_type == "terminal_input":
+                    await self.handle_terminal_input(data)
+                elif msg_type == "terminal_resize":
+                    await self.handle_terminal_resize(data)
+                elif msg_type == "terminal_stop":
+                    await self.handle_terminal_stop(data)
+                # Filesystem commands
+                elif msg_type == "filesystem_browse":
+                    await self.handle_filesystem_browse(data)
+                elif msg_type == "filesystem_read":
+                    await self.handle_filesystem_read(data)
+                elif msg_type == "filesystem_write":
+                    await self.handle_filesystem_write(data)
             except Exception as e:
                 print(f"[{{datetime.now()}}] Message handling error: {{e}}")
+    
+    async def handle_terminal_start(self, data):
+        """Start a PTY terminal session"""
+        import pty
+        import os
+        import fcntl
+        import termios
+        import struct
+        
+        session_id = data.get("session_id")
+        if not session_id:
+            return
+            
+        try:
+            # Create PTY
+            master_fd, slave_fd = pty.openpty()
+            
+            # Fork a child process
+            pid = os.fork()
+            
+            if pid == 0:
+                # Child process
+                os.close(master_fd)
+                os.setsid()
+                
+                # Set up the slave as the controlling terminal
+                os.dup2(slave_fd, 0)
+                os.dup2(slave_fd, 1)
+                os.dup2(slave_fd, 2)
+                
+                if slave_fd > 2:
+                    os.close(slave_fd)
+                
+                # Execute shell
+                os.execvp('/bin/bash', ['/bin/bash', '-l'])
+            
+            # Parent process
+            os.close(slave_fd)
+            
+            # Set non-blocking mode
+            flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+            fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+            
+            # Store session
+            self.terminal_sessions[session_id] = (master_fd, pid)
+            
+            # Start reading from PTY in background
+            asyncio.create_task(self.read_terminal_output(session_id, master_fd))
+            
+            print(f"[{{datetime.now()}}] Terminal session started: {{session_id}}")
+            
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Terminal start error: {{e}}")
+            await self.relay_to_c2({{
+                "type": "terminal_output",
+                "session_id": session_id,
+                "data": f"\\r\\n\\x1b[31mError starting terminal: {{e}}\\x1b[0m\\r\\n"
+            }})
+    
+    async def read_terminal_output(self, session_id, master_fd):
+        """Read PTY output and send to C2"""
+        import os
+        
+        while session_id in self.terminal_sessions:
+            try:
+                await asyncio.sleep(0.01)
+                try:
+                    data = os.read(master_fd, 4096)
+                    if data:
+                        await self.relay_to_c2({{
+                            "type": "terminal_output",
+                            "session_id": session_id,
+                            "data": data.decode('utf-8', errors='replace')
+                        }})
+                except OSError:
+                    pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                break
+    
+    async def handle_terminal_input(self, data):
+        """Handle terminal input from C2"""
+        import os
+        
+        session_id = data.get("session_id")
+        input_data = data.get("data", "")
+        is_binary = data.get("is_binary", False)
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            if is_binary:
+                import base64
+                os.write(master_fd, base64.b64decode(input_data))
+            else:
+                os.write(master_fd, input_data.encode('utf-8'))
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Terminal input error: {{e}}")
+    
+    async def handle_terminal_resize(self, data):
+        """Handle terminal resize from C2"""
+        import fcntl
+        import termios
+        import struct
+        
+        session_id = data.get("session_id")
+        cols = data.get("cols", 80)
+        rows = data.get("rows", 24)
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            winsize = struct.pack('HHHH', rows, cols, 0, 0)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+        except Exception as e:
+            print(f"[{{datetime.now()}}] Terminal resize error: {{e}}")
+    
+    async def handle_terminal_stop(self, data):
+        """Stop a terminal session"""
+        import os
+        
+        session_id = data.get("session_id")
+        
+        if session_id not in self.terminal_sessions:
+            return
+            
+        master_fd, pid = self.terminal_sessions[session_id]
+        
+        try:
+            os.close(master_fd)
+            os.kill(pid, 9)
+            os.waitpid(pid, 0)
+        except:
+            pass
+        
+        del self.terminal_sessions[session_id]
+        print(f"[{{datetime.now()}}] Terminal session stopped: {{session_id}}")
+    
+    async def handle_filesystem_browse(self, data):
+        """Browse filesystem and send response to C2"""
+        import os
+        from pathlib import Path
+        
+        request_id = data.get("request_id")
+        path = data.get("path", "/")
+        
+        try:
+            target_path = Path(path).resolve()
+            
+            if not target_path.exists():
+                await self.relay_to_c2({{
+                    "type": "filesystem_response",
+                    "request_id": request_id,
+                    "data": {{
+                        "current_path": path,
+                        "parent_path": str(target_path.parent) if target_path.parent != target_path else None,
+                        "items": [],
+                        "error": "Path does not exist"
+                    }}
+                }})
+                return
+            
+            if not target_path.is_dir():
+                await self.relay_to_c2({{
+                    "type": "filesystem_response",
+                    "request_id": request_id,
+                    "data": {{
+                        "current_path": path,
+                        "parent_path": str(target_path.parent),
+                        "items": [],
+                        "error": "Path is not a directory"
+                    }}
+                }})
+                return
+            
+            items = []
+            for item in target_path.iterdir():
+                try:
+                    stat = item.stat()
+                    items.append({{
+                        "name": item.name,
+                        "path": str(item),
+                        "type": "directory" if item.is_dir() else "file",
+                        "size": stat.st_size if item.is_file() else 0,
+                        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "permissions": oct(stat.st_mode)[-3:],
+                    }})
+                except (PermissionError, OSError) as e:
+                    items.append({{
+                        "name": item.name,
+                        "path": str(item),
+                        "type": "unknown",
+                        "error": str(e)
+                    }})
+            
+            # Sort: directories first, then by name
+            items.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
+            
+            await self.relay_to_c2({{
+                "type": "filesystem_response",
+                "request_id": request_id,
+                "data": {{
+                    "current_path": str(target_path),
+                    "parent_path": str(target_path.parent) if target_path.parent != target_path else None,
+                    "items": items
+                }}
+            }})
+            
+        except Exception as e:
+            await self.relay_to_c2({{
+                "type": "filesystem_response",
+                "request_id": request_id,
+                "data": {{
+                    "current_path": path,
+                    "parent_path": None,
+                    "items": [],
+                    "error": str(e)
+                }}
+            }})
+    
+    async def handle_filesystem_read(self, data):
+        """Read file and send content to C2"""
+        from pathlib import Path
+        import base64
+        
+        request_id = data.get("request_id")
+        path = data.get("path")
+        
+        try:
+            target_path = Path(path).resolve()
+            
+            if not target_path.exists():
+                await self.relay_to_c2({{
+                    "type": "filesystem_read_response",
+                    "request_id": request_id,
+                    "error": "File does not exist"
+                }})
+                return
+            
+            # Limit file size to 1MB
+            if target_path.stat().st_size > 1024 * 1024:
+                await self.relay_to_c2({{
+                    "type": "filesystem_read_response",
+                    "request_id": request_id,
+                    "error": "File too large (max 1MB)"
+                }})
+                return
+            
+            try:
+                content = target_path.read_text()
+                is_binary = False
+            except UnicodeDecodeError:
+                content = base64.b64encode(target_path.read_bytes()).decode('utf-8')
+                is_binary = True
+            
+            await self.relay_to_c2({{
+                "type": "filesystem_read_response",
+                "request_id": request_id,
+                "data": {{
+                    "path": str(target_path),
+                    "content": content,
+                    "is_binary": is_binary,
+                    "size": target_path.stat().st_size
+                }}
+            }})
+            
+        except Exception as e:
+            await self.relay_to_c2({{
+                "type": "filesystem_read_response",
+                "request_id": request_id,
+                "error": str(e)
+            }})
+    
+    async def handle_filesystem_write(self, data):
+        """Write content to file"""
+        from pathlib import Path
+        import base64
+        
+        request_id = data.get("request_id")
+        path = data.get("path")
+        content = data.get("content", "")
+        is_binary = data.get("is_binary", False)
+        
+        try:
+            target_path = Path(path).resolve()
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if is_binary:
+                target_path.write_bytes(base64.b64decode(content))
+            else:
+                target_path.write_text(content)
+            
+            await self.relay_to_c2({{
+                "type": "filesystem_write_response",
+                "request_id": request_id,
+                "data": {{
+                    "path": str(target_path),
+                    "status": "success"
+                }}
+            }})
+            
+        except Exception as e:
+            await self.relay_to_c2({{
+                "type": "filesystem_write_response",
+                "request_id": request_id,
+                "error": str(e)
+            }})
                 
     async def handle_command(self, data):
         """Execute command from C2 based on module capabilities"""

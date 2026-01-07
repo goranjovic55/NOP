@@ -453,6 +453,36 @@ async def agent_websocket(
                 elif msg_type in ["socks_connected", "socks_data", "socks_error", "socks_close"]:
                     if socks_proxy:
                         await socks_proxy.handle_agent_message(message)
+                
+                # Terminal output from agent - relay to user websocket
+                elif msg_type == "terminal_output":
+                    from app.api.v1.endpoints.host import agent_terminal_sessions
+                    session_id = message.get("session_id")
+                    if session_id and session_id in agent_terminal_sessions:
+                        user_ws = agent_terminal_sessions[session_id]["user_ws"]
+                        try:
+                            data = message.get("data", "")
+                            is_binary = message.get("is_binary", False)
+                            if is_binary:
+                                import base64
+                                await user_ws.send_bytes(base64.b64decode(data))
+                            else:
+                                await user_ws.send_text(data)
+                        except Exception as e:
+                            logger.error(f"Error relaying terminal output: {e}")
+                
+                # Filesystem response from agent
+                elif msg_type == "filesystem_response":
+                    from app.api.v1.endpoints.host import browse_filesystem
+                    request_id = message.get("request_id")
+                    if hasattr(browse_filesystem, '_pending_requests') and request_id in browse_filesystem._pending_requests:
+                        future = browse_filesystem._pending_requests[request_id]
+                        if not future.done():
+                            future.set_result(message.get("data", {
+                                "current_path": "/",
+                                "parent_path": None,
+                                "items": []
+                            }))
                     
             except json.JSONDecodeError:
                 print(f"Invalid JSON from agent {agent.name}")

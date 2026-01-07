@@ -94,14 +94,21 @@ export interface DiskIO {
   };
 }
 
+export interface POVInstruction {
+  title: string;
+  detail?: string;
+  type: 'success' | 'header' | 'command' | 'target' | 'warning' | 'error' | 'info';
+}
+
 export interface FileSystemItem {
   name: string;
   path: string;
-  type: 'file' | 'directory' | 'unknown';
+  type: 'file' | 'directory' | 'unknown' | 'instructions';
   size?: number;
   modified?: string;
   permissions?: string;
   error?: string;
+  instructions?: POVInstruction[];  // POV mode instructions
 }
 
 export interface FileSystemBrowse {
