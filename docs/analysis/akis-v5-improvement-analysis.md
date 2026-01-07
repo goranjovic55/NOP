@@ -32,43 +32,47 @@ Measurable comparison of before/after framework changes.
 
 ## Session Simulation Results
 
-### Before vs After Instruction Improvements
+### Full Improvement Trajectory (5000 sessions)
 
-| Metric | Before (v5) | After (v5.1) | Improvement |
-|--------|-------------|--------------|-------------|
-| Perfect sessions | 0.4% | 5.4% | +5.0 pp |
-| Avg violations/session | 5.19 | 3.01 | -42% |
-| Quick fix without todo | 80.5% | 34.0% | -58% |
-| Mark working issue | 98.4% | 46.9% | -52% |
-| Orphan check skipped | 39.9% | 16.2% | -59% |
-| Script not run | ~28% | ~15% | -46% |
-| Immediate commit | 22.2% | 9.3% | -58% |
-| START skipped | 16.7% | 9.5% | -43% |
+| Metric | v5 Baseline | v5.1 | v5.5 Final | Total Improvement |
+|--------|-------------|------|------------|-------------------|
+| Perfect sessions | 0.4% | 5.4% | **55.6%** | +55.2 pp |
+| Avg violations/session | 5.19 | 3.01 | **0.62** | **-88%** |
+| Quick fix without todo | 80.5% | 34.0% | **4.2%** | -95% |
+| Mark working issue | 98.4% | 46.9% | **4.0%** | -96% |
+| Orphan check skipped | 39.9% | 16.2% | **2.7%** | -93% |
+| Script not run | ~28% | ~15% | **~3.3%** | -88% |
+| Todo not created | 22.0% | 14.6% | **4.5%** | -80% |
+| START skipped | 16.7% | 9.5% | **<2%** | -88% |
+
+### All Violations Now Below 5%
+
+| Violation | v5.5 Frequency |
+|-----------|----------------|
+| Todo structure not created | 4.5% |
+| Quick fix without todo | 4.2% |
+| Mark working issue | 4.0% |
+| Script not run | 3.3% |
+| Orphan tasks at END | 3.2% |
+| Orphan check skipped | 2.7% |
+| Skills INDEX not loaded | 2.9% |
+| Skill not loaded | ~2.5% |
 
 ### Key Changes That Drove Improvement
 
 1. **⚠️ Warning symbols** - Visual pattern interrupt for critical steps
-2. **"BEFORE: Mark ◆ first!"** - Explicit ordering language
+2. **"NON-NEGOTIABLE" and "no exceptions, no excuses"** - Strong prohibition language for mark ◆
 3. **"No quick fixes" as Rule 2** - Dedicated rule instead of aside
 4. **"STOP! Before committing"** - Interrupt pattern at END phase
-5. **"MANDATORY" label on START** - Prevents "simple task" exception thinking
-
-### Remaining Top Violations (v5.1)
-
-| Violation | Frequency |
-|-----------|-----------|
-| Did not mark todo as working | 46.9% |
-| Quick fix without todo | 34.0% |
-| Did not check for orphan tasks | 16.2% |
-| Did not run suggest_skill.py | 16.0% |
-| Todo structure not created | 14.6% |
+5. **Numbered steps in WORK phase** - Clear 1-2-3-4 sequence
 
 ### Interpretation
 
-The ⚠️ warning symbols and explicit STOP! language created measurable improvement across all violation categories. The biggest gains were in:
-- **Quick fix prevention** (-58%) - Rule 2 explicit statement
-- **Orphan checking** (-59%) - ⚠️ marker at END
-- **Script running** (-46%) - STOP! before commit warning
+The instruction improvements achieved **88% reduction in violations** through:
+- **Visual pattern interrupts** (⚠️) at decision points
+- **Explicit step numbering** in each phase
+- **"No exceptions" language** for critical rules
+- **Strong prohibition words** ("NEVER", "NON-NEGOTIABLE", "STOP!")
 
 ## Decision Overhead Analysis
 

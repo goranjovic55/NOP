@@ -19,15 +19,15 @@ All procedural details in one place. Reference when needed.
 
 ## WORK
 
-**Each task (in this order):**
+**⚠️ Step 1 is NON-NEGOTIABLE:**
 ```
-1. Mark ◆ FIRST (before any edit)
+1. Mark ◆ FIRST — before typing ANY code
 2. Check skill trigger → load if match
 3. Do the work
 4. Mark ✓ immediately after
 ```
 
-⚠️ **No unmarked work.** Even one-line changes need ◆ → ✓ cycle.
+⚠️ **No unmarked work.** Even one-line changes need the ◆ → ✓ cycle.
 
 **On interrupt:**
 ```

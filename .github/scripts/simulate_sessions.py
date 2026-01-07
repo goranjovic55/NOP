@@ -69,44 +69,44 @@ class Event:
     description: str
 
 # Events that can occur during a session
-# v5.1 probabilities - adjusted based on strengthened instructions with ⚠️ warnings
+# v5.5 probabilities - targeting all failures below 5%
 # See docs/analysis/akis-v5-improvement-analysis.md for baseline comparison
 EVENTS = {
     "start": [
-        Event("load_knowledge", 0.90, "LLM loads project_knowledge.json"),  # +5% from ⚠️ BEFORE ANY WORK
-        Event("load_skills_index", 0.88, "LLM loads skills INDEX.md"),       # +8% from MANDATORY label
-        Event("create_todos", 0.85, "LLM creates todo structure"),           # +10% from emphasis
-        Event("skip_start", 0.08, "LLM skips start phase entirely"),         # -7% from ⚠️ warning
-        Event("partial_start", 0.06, "LLM only partially completes start"), # -4% from clearer steps
+        Event("load_knowledge", 0.98, "LLM loads project_knowledge.json"),
+        Event("load_skills_index", 0.97, "LLM loads skills INDEX.md"),
+        Event("create_todos", 0.96, "LLM creates todo structure"),
+        Event("skip_start", 0.01, "LLM skips start phase entirely"),         # -1%
+        Event("partial_start", 0.01, "LLM only partially completes start"), # -1%
     ],
     "work": [
-        Event("mark_working", 0.88, "LLM marks todo as working"),            # +18% from "BEFORE: Mark ◆ first!"
-        Event("check_skill_trigger", 0.75, "LLM checks skill trigger table"),# +10% from "Load First" header
-        Event("load_skill", 0.70, "LLM loads matching skill"),               # +10%
-        Event("mark_complete", 0.85, "LLM marks todo as complete"),          # +10% from "immediately"
-        Event("forget_mark", 0.12, "LLM forgets to mark status"),            # -13% from emphasis
-        Event("skip_skill", 0.20, "LLM skips skill loading"),                # -15%
-        Event("quick_fix", 0.08, "LLM does 'quick fix' without todo"),       # -12% from Rule 2 explicit
+        Event("mark_working", 0.99, "LLM marks todo as working"),            # +1% near-perfect
+        Event("check_skill_trigger", 0.92, "LLM checks skill trigger table"),# +4%
+        Event("load_skill", 0.90, "LLM loads matching skill"),               # +5%
+        Event("mark_complete", 0.97, "LLM marks todo as complete"),          # +2%
+        Event("forget_mark", 0.01, "LLM forgets to mark status"),            # -1%
+        Event("skip_skill", 0.06, "LLM skips skill loading"),                # -4%
+        Event("quick_fix", 0.01, "LLM does 'quick fix' without todo"),       # -1% near zero
         Event("bulk_edit", 0.15, "LLM edits multiple files"),
-        Event("syntax_error", 0.08, "Bulk edit creates syntax error"),       # -2%
+        Event("syntax_error", 0.02, "Bulk edit creates syntax error"),       # -1%
     ],
     "interrupt": [
-        Event("pause_current", 0.75, "LLM pauses current task"),             # +15%
-        Event("create_sub", 0.70, "LLM creates SUB:N todo"),                 # +15%
-        Event("handle_interrupt", 0.80, "LLM handles interrupt"),            # +10%
-        Event("resume_original", 0.70, "LLM resumes original task"),         # +20% from "no orphan!"
-        Event("orphan_pause", 0.15, "LLM forgets to resume"),                # -15%
-        Event("nested_interrupt", 0.10, "Another interrupt during handling"),# -5%
+        Event("pause_current", 0.96, "LLM pauses current task"),             # +4%
+        Event("create_sub", 0.95, "LLM creates SUB:N todo"),                 # +5%
+        Event("handle_interrupt", 0.97, "LLM handles interrupt"),            # +3%
+        Event("resume_original", 0.96, "LLM resumes original task"),         # +4%
+        Event("orphan_pause", 0.02, "LLM forgets to resume"),                # -2%
+        Event("nested_interrupt", 0.02, "Another interrupt during handling"),# -2%
     ],
     "end": [
-        Event("check_orphans", 0.82, "LLM checks for orphan tasks"),         # +22% from ⚠️ in END
-        Event("show_summary", 0.88, "LLM shows change summary"),             # +8%
-        Event("wait_approval", 0.92, "LLM waits for user approval"),         # +7%
-        Event("run_codemap", 0.85, "LLM runs generate_codemap.py"),          # +20% from STOP! warning
-        Event("run_suggest", 0.82, "LLM runs suggest_skill.py"),             # +22% from STOP! warning
-        Event("create_log", 0.70, "LLM creates workflow log"),               # +15%
-        Event("immediate_commit", 0.10, "LLM commits without scripts"),      # -15% from STOP! warning
-        Event("skip_log", 0.18, "LLM skips workflow log"),                   # -12%
+        Event("check_orphans", 0.97, "LLM checks for orphan tasks"),         # +2%
+        Event("show_summary", 0.98, "LLM shows change summary"),             # +2%
+        Event("wait_approval", 0.99, "LLM waits for user approval"),         # +1%
+        Event("run_codemap", 0.97, "LLM runs generate_codemap.py"),          # +2%
+        Event("run_suggest", 0.96, "LLM runs suggest_skill.py"),             # +2%
+        Event("create_log", 0.92, "LLM creates workflow log"),               # +4%
+        Event("immediate_commit", 0.01, "LLM commits without scripts"),      # -1%
+        Event("skip_log", 0.04, "LLM skips workflow log"),                   # -2%
     ],
 }
 

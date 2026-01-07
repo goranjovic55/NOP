@@ -11,10 +11,13 @@
 
 ## WORK → For Each Task
 
+**⚠️ FIRST: Mark todo ◆ (no exceptions, no excuses)**
+
 ```
-BEFORE: Mark todo ◆ first! (NEVER edit without marking)
-DURING: If file matches trigger → load skill first
-AFTER:  Mark todo ✓ immediately
+1. Mark ◆ on the task you're starting
+2. If file matches trigger → load skill first
+3. Do the work
+4. Mark ✓ immediately when done
 ```
 
 **Skill Triggers:**
@@ -51,7 +54,7 @@ AFTER:  Mark todo ✓ immediately
 
 1. **Mark ◆ before ANY edit** — no unmarked work, even one line
 2. **No "quick fixes"** — every change needs a todo first
-3. **Scripts before commit** — ALWAYS run both .py scripts at end
+3. **Scripts before commit** — ALWAYS run generate_codemap.py and suggest_skill.py at end
 
 ## Gotchas
 
