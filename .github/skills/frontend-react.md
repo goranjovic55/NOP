@@ -1,18 +1,27 @@
 # Frontend React Patterns
 
+React/TypeScript development patterns for any project.
+
 ## Critical Rules
 
-**Docker:** Use `docker-compose.dev.yml` for local builds (not production compose)  
-**JSX Comments:** Must be in braces `{/* comment */}` - plain `/* */` breaks build
+- **JSX Comments:** Must use `{/* comment */}` - plain `/* */` breaks build
+- **Keys in Lists:** Always provide unique `key` prop in map()
+- **Dependency Arrays:** Include all dependencies in useEffect/useCallback
+- **Async in Effects:** Never make useEffect callback async directly
 
 ## Avoid
-- ❌ Prop drilling → ✅ Context/state management
-- ❌ Missing keys in lists → ✅ Unique key props
-- ❌ `docker-compose build` → ✅ `docker-compose.dev.yml`
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| Prop drilling | Context/Zustand/Redux |
+| Missing keys | `key={item.id}` |
+| `useEffect(async () => {})` | `useEffect(() => { fn(); }, [])` |
+| Inline objects in deps | useMemo for objects |
+| Direct DOM manipulation | Use refs properly |
 
 ## Patterns
 
-### Basic Component
+### Typed Component with Optional Callback
 ```tsx
 interface CardProps {
   item: Item;
@@ -20,75 +29,109 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ item, onSelect }) => {
-  const handleSelect = useCallback(() => onSelect?.(item), [item, onSelect]);
-  return <div onClick={handleSelect}>{item.name}</div>;
+  const handleClick = useCallback(() => onSelect?.(item), [item, onSelect]);
+  return <div onClick={handleClick}>{item.name}</div>;
 };
 ```
 
-### POV Mode (Agent Filtering)
-```tsx
-import { usePOV, getPOVHeaders } from '../context/POVContext';
-
-const MyComponent = () => {
-  const { activeAgent } = usePOV();
-  
-  useEffect(() => {
-    fetch('/api/data', { headers: getPOVHeaders(activeAgent) });
-  }, [activeAgent]);  // Include in deps!
-};
-```
-
-### Custom Hook with Polling
+### Custom Hook with Cleanup
 ```tsx
 function usePolling<T>(fetcher: () => Promise<T>, interval = 5000) {
   const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
   useEffect(() => {
     let mounted = true;
     const poll = async () => {
-      const result = await fetcher();
-      if (mounted) setData(result);
+      try {
+        const result = await fetcher();
+        if (mounted) setData(result);
+      } catch (e) {
+        if (mounted) setError(e as Error);
+      }
     };
     poll();
     const id = setInterval(poll, interval);
     return () => { mounted = false; clearInterval(id); };
   }, [fetcher, interval]);
-  return data;
+
+  return { data, error };
 }
 ```
 
-### Zustand Store
+### Zustand Store (State Management)
 ```tsx
+import { create } from 'zustand';
+
+interface ItemStore {
+  items: Item[];
+  addItem: (item: Item) => void;
+  removeItem: (id: string) => void;
+}
+
 export const useItemStore = create<ItemStore>((set) => ({
   items: [],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
-  removeItem: (id) => set((state) => ({ items: state.items.filter(i => i.id !== id) })),
+  removeItem: (id) => set((state) => ({ 
+    items: state.items.filter(i => i.id !== id) 
+  })),
 }));
 ```
 
-## CyberUI Components
-
-Import: `import { CyberCard, CyberButton, CyberInput } from '../components/CyberUI'`
-
+### Context with Custom Hook
 ```tsx
-<CyberCard interactive onClick={handleClick}>
-  <CyberSectionHeader title="Title" subtitle="Desc" />
-  <CyberButton variant="red" size="md">Action</CyberButton>
-</CyberCard>
+const MyContext = createContext<ContextType | null>(null);
+
+export const useMyContext = () => {
+  const ctx = useContext(MyContext);
+  if (!ctx) throw new Error('useMyContext must be within Provider');
+  return ctx;
+};
+
+export const MyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, setState] = useState(initialState);
+  return <MyContext.Provider value={{ state, setState }}>{children}</MyContext.Provider>;
+};
 ```
 
-## Build Checklist
+### Conditional Rendering
+```tsx
+// Prefer early return for loading/error states
+if (loading) return <Spinner />;
+if (error) return <ErrorDisplay error={error} />;
+if (!data) return null;
 
+return <DataDisplay data={data} />;
+```
+
+### Form with Controlled Inputs
+```tsx
+const [form, setForm] = useState({ name: '', email: '' });
+
+const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+};
+
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  await submitForm(form);
+};
+```
+
+## Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `')' expected` | JSX comment syntax | Use `{/* */}` |
+| `Cannot read property of undefined` | Missing null check | Optional chaining `?.` |
+| Stale closure | Missing dependency | Add to dependency array |
+| Infinite loop | Object in deps | useMemo the object |
+| Key warning | Missing key prop | Add unique `key={id}` |
+
+## Build Commands
 ```bash
-docker-compose -f docker-compose.dev.yml build frontend
-docker-compose -f docker-compose.dev.yml up -d frontend
-# Tell user: Ctrl+Shift+R to hard refresh
+npm run dev      # Development server
+npm run build    # Production build
+npm run lint     # Lint check
+npm run test     # Run tests
 ```
-
-| Error | Fix |
-|-------|-----|
-| `')' expected` | Wrap comment in `{/* */}` |
-| Old code shows | Use dev compose + hard refresh |
-
-## Related
-- `ui-consistency.md` - Theme patterns
-- `debugging.md` - Build errors

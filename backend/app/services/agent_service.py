@@ -5,6 +5,7 @@ Agent service for C2 management
 import secrets
 import base64
 import json
+import logging
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,8 @@ from datetime import datetime
 
 from app.models.agent import Agent, AgentType, AgentStatus
 from app.schemas.agent import AgentCreate, AgentUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class AgentService:
@@ -1201,77 +1204,232 @@ if __name__ == "__main__":
     
     @staticmethod
     def generate_go_agent(agent: Agent) -> str:
-        """Generate Go agent for cross-platform compilation"""
-        capabilities_json = json.dumps(agent.capabilities)
+        """Generate complete Go agent with all modules matching Python agent functionality"""
+        # Replace {agent_id} placeholder in connection URL
+        server_url = agent.connection_url.replace('{agent_id}', str(agent.id))
+        
+        # Format capabilities for Go
+        caps_items = ', '.join([f'"{k}": {str(v).lower()}' for k, v in agent.capabilities.items()])
+        capabilities_go = '{' + caps_items + '}'
+        
+        # Get config from agent_metadata or use defaults
+        config = agent.agent_metadata or {}
+        config_items = []
+        for k, v in config.items():
+            if isinstance(v, str):
+                config_items.append(f'"{k}": "{v}"')
+            elif isinstance(v, bool):
+                config_items.append(f'"{k}": {str(v).lower()}')
+            elif isinstance(v, (int, float)):
+                config_items.append(f'"{k}": float64({v})')
+            else:
+                config_items.append(f'"{k}": "{v}"')
+        config_go = '{' + ', '.join(config_items) + '}' if config_items else '{}'
+        
         return f'''package main
 
 /*
 NOP Agent - {agent.name}
 Generated: {datetime.utcnow().isoformat()}
-Type: Go (cross-platform)
+Type: Go Proxy Agent (cross-platform)
+Encryption: AES-256-GCM (Encrypted tunnel to C2)
+
+This agent acts as a proxy, relaying all data from the remote network
+back to the NOP C2 server. All modules run here but data is processed
+on the main NOP instance.
 
 Build commands:
   Linux:   GOOS=linux GOARCH=amd64 go build -o nop-agent-linux
   Windows: GOOS=windows GOARCH=amd64 go build -o nop-agent.exe
   macOS:   GOOS=darwin GOARCH=amd64 go build -o nop-agent-macos
   ARM:     GOOS=linux GOARCH=arm64 go build -o nop-agent-arm
+
+Dependencies:
+  go get github.com/gorilla/websocket
+  go get github.com/shirou/gopsutil/v3
+  go get golang.org/x/crypto
 */
 
 import (
+\t"crypto/aes"
+\t"crypto/cipher"
+\t"crypto/rand"
+\t"crypto/sha256"
+\t"encoding/base64"
 \t"encoding/json"
 \t"fmt"
+\t"io"
 \t"log"
+\t"net"
 \t"net/url"
 \t"os"
+\t"os/exec"
 \t"os/signal"
 \t"runtime"
+\t"strings"
+\t"sync"
 \t"syscall"
 \t"time"
 
 \t"github.com/gorilla/websocket"
+\t"github.com/shirou/gopsutil/v3/cpu"
+\t"github.com/shirou/gopsutil/v3/disk"
+\t"github.com/shirou/gopsutil/v3/host"
+\t"github.com/shirou/gopsutil/v3/mem"
+\tpsnet "github.com/shirou/gopsutil/v3/net"
+\t"golang.org/x/crypto/pbkdf2"
 )
 
 const (
-\tAgentID    = "{agent.id}"
-\tAgentName  = "{agent.name}"
-\tAuthToken  = "{agent.auth_token}"
-\tServerURL  = "{agent.connection_url}"
+\tAgentID       = "{agent.id}"
+\tAgentName     = "{agent.name}"
+\tAuthToken     = "{agent.auth_token}"
+\tEncryptionKey = "{agent.encryption_key}"
+\tServerURL     = "{server_url}"
 )
 
-var Capabilities = map[string]bool{capabilities_json}
+var Capabilities = map[string]bool{capabilities_go}
+var Config = map[string]interface{{}}{config_go}
 
 type NOPAgent struct {{
-\tconn         *websocket.Conn
-\tagentID      string
-\tagentName    string
-\tauthToken    string
-\tserverURL    string
-\tcapabilities map[string]bool
-\trunning      bool
+\tconn            *websocket.Conn
+\tagentID         string
+\tagentName       string
+\tauthToken       string
+\tencryptionKey   []byte
+\tserverURL       string
+\tcapabilities    map[string]bool
+\tconfig          map[string]interface{{}}
+\trunning         bool
+\tcipher          cipher.AEAD
+\tpassiveHosts    []map[string]interface{{}}
+\thostsMutex      sync.Mutex
+\tconnMutex       sync.Mutex
 }}
 
 type Message struct {{
+\tType       string                 `json:"type"`
+\tAgentID    string                 `json:"agent_id,omitempty"`
+\tAgentName  string                 `json:"agent_name,omitempty"`
+\tAuthToken  string                 `json:"auth_token,omitempty"`
+\tEncrypted  bool                   `json:"encrypted,omitempty"`
+\tData       interface{{}}            `json:"data,omitempty"`
+\tTimestamp  string                 `json:"timestamp,omitempty"`
+\tMessage    string                 `json:"message,omitempty"`
+\tSystemInfo map[string]interface{{}} `json:"system_info,omitempty"`
+}}
+
+type AssetData struct {{
+\tType      string                   `json:"type"`
+\tAgentID   string                   `json:"agent_id"`
+\tAssets    []map[string]interface{{}} `json:"assets"`
+\tTimestamp string                   `json:"timestamp"`
+}}
+
+type TrafficData struct {{
 \tType      string                 `json:"type"`
-\tAgentID   string                 `json:"agent_id,omitempty"`
-\tAgentName string                 `json:"agent_name,omitempty"`
-\tData      map[string]interface{{}} `json:"data,omitempty"`
+\tAgentID   string                 `json:"agent_id"`
+\tTraffic   map[string]interface{{}} `json:"traffic"`
+\tTimestamp string                 `json:"timestamp"`
+}}
+
+type HostData struct {{
+\tType      string                 `json:"type"`
+\tAgentID   string                 `json:"agent_id"`
+\tHost      map[string]interface{{}} `json:"host"`
 \tTimestamp string                 `json:"timestamp"`
 }}
 
 func NewNOPAgent() *NOPAgent {{
-\treturn &NOPAgent{{
-\t\tagentID:      AgentID,
-\t\tagentName:    AgentName,
-\t\tauthToken:    AuthToken,
-\t\tserverURL:    ServerURL,
-\t\tcapabilities: Capabilities,
-\t\trunning:      true,
+\tagent := &NOPAgent{{
+\t\tagentID:       AgentID,
+\t\tagentName:     AgentName,
+\t\tauthToken:     AuthToken,
+\t\tencryptionKey: []byte(EncryptionKey),
+\t\tserverURL:     ServerURL,
+\t\tcapabilities:  Capabilities,
+\t\tconfig:        Config,
+\t\trunning:       true,
+\t\tpassiveHosts:  make([]map[string]interface{{}}, 0),
 \t}}
+\tagent.initCipher()
+\treturn agent
+}}
+
+func (a *NOPAgent) initCipher() {{
+\t// Derive key using PBKDF2
+\tsalt := []byte("nop_c2_salt_2026")
+\tkey := pbkdf2.Key(a.encryptionKey, salt, 100000, 32, sha256.New)
+
+\tblock, err := aes.NewCipher(key)
+\tif err != nil {{
+\t\tlog.Printf("[%s] Cipher init error: %v", time.Now().Format(time.RFC3339), err)
+\t\treturn
+\t}}
+
+\tgcm, err := cipher.NewGCM(block)
+\tif err != nil {{
+\t\tlog.Printf("[%s] GCM init error: %v", time.Now().Format(time.RFC3339), err)
+\t\treturn
+\t}}
+
+\ta.cipher = gcm
+}}
+
+func (a *NOPAgent) encryptMessage(data string) (string, error) {{
+\tnonce := make([]byte, a.cipher.NonceSize())
+\tif _, err := io.ReadFull(rand.Reader, nonce); err != nil {{
+\t\treturn "", err
+\t}}
+
+\tciphertext := a.cipher.Seal(nonce, nonce, []byte(data), nil)
+\treturn base64.StdEncoding.EncodeToString(ciphertext), nil
+}}
+
+func (a *NOPAgent) decryptMessage(encryptedData string) (string, error) {{
+\tdata, err := base64.StdEncoding.DecodeString(encryptedData)
+\tif err != nil {{
+\t\treturn "", err
+\t}}
+
+\tnonceSize := a.cipher.NonceSize()
+\tif len(data) < nonceSize {{
+\t\treturn "", fmt.Errorf("ciphertext too short")
+\t}}
+
+\tnonce, ciphertext := data[:nonceSize], data[nonceSize:]
+\tplaintext, err := a.cipher.Open(nil, nonce, ciphertext, nil)
+\tif err != nil {{
+\t\treturn "", err
+\t}}
+
+\treturn string(plaintext), nil
+}}
+
+func (a *NOPAgent) sendEncrypted(message interface{{}}) error {{
+\tjsonStr, err := json.Marshal(message)
+\tif err != nil {{
+\t\treturn err
+\t}}
+
+\tencrypted, err := a.encryptMessage(string(jsonStr))
+\tif err != nil {{
+\t\treturn err
+\t}}
+
+\tencryptedMsg := map[string]interface{{}}{{
+\t\t"encrypted": true,
+\t\t"data":      encrypted,
+\t}}
+
+\ta.connMutex.Lock()
+\tdefer a.connMutex.Unlock()
+\treturn a.conn.WriteJSON(encryptedMsg)
 }}
 
 func (a *NOPAgent) Connect() error {{
 \tlog.Printf("[%s] Connecting to C2 server: %s", time.Now().Format(time.RFC3339), a.serverURL)
-\t
+
 \tu, err := url.Parse(a.serverURL)
 \tif err != nil {{
 \t\treturn fmt.Errorf("invalid server URL: %v", err)
@@ -1280,34 +1438,56 @@ func (a *NOPAgent) Connect() error {{
 \theader := make(map[string][]string)
 \theader["Authorization"] = []string{{fmt.Sprintf("Bearer %s", a.authToken)}}
 
-\tconn, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+\tdialer := websocket.Dialer{{
+\t\tHandshakeTimeout: 10 * time.Second,
+\t}}
+
+\tconn, _, err := dialer.Dial(u.String(), header)
 \tif err != nil {{
 \t\treturn fmt.Errorf("connection failed: %v", err)
 \t}}
 
 \ta.conn = conn
-\tlog.Printf("[%s] Connected to C2 server!", time.Now().Format(time.RFC3339))
+\tlog.Printf("[%s] Connected! Establishing encrypted tunnel...", time.Now().Format(time.RFC3339))
 
 \treturn nil
 }}
 
 func (a *NOPAgent) Register() error {{
+\thostname, _ := os.Hostname()
+
+\t// Get IP addresses
+\taddrs, _ := net.InterfaceAddrs()
+\tvar primaryIP string
+\tfor _, addr := range addrs {{
+\t\tif ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {{
+\t\t\tprimaryIP = ipnet.IP.String()
+\t\t\tbreak
+\t\t}}
+\t}}
+
 \treg := Message{{
 \t\tType:      "register",
 \t\tAgentID:   a.agentID,
 \t\tAgentName: a.agentName,
+\t\tAuthToken: a.authToken,
 \t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
 \t\tData: map[string]interface{{}}{{
 \t\t\t"capabilities": a.capabilities,
-\t\t\t"system_info": map[string]string{{
-\t\t\t\t"os":      runtime.GOOS,
-\t\t\t\t"arch":    runtime.GOARCH,
-\t\t\t\t"version": runtime.Version(),
-\t\t\t}},
+\t\t}},
+\t\tSystemInfo: map[string]interface{{}}{{
+\t\t\t"hostname":   hostname,
+\t\t\t"platform":   runtime.GOOS,
+\t\t\t"version":    runtime.Version(),
+\t\t\t"ip_address": primaryIP,
+\t\t\t"arch":       runtime.GOARCH,
 \t\t}},
 \t}}
 
+\ta.connMutex.Lock()
 \terr := a.conn.WriteJSON(reg)
+\ta.connMutex.Unlock()
+
 \tif err != nil {{
 \t\treturn fmt.Errorf("registration failed: %v", err)
 \t}}
@@ -1317,7 +1497,14 @@ func (a *NOPAgent) Register() error {{
 }}
 
 func (a *NOPAgent) Heartbeat() {{
-\tticker := time.NewTicker(30 * time.Second)
+\tinterval := 30 * time.Second
+\tif val, ok := a.config["heartbeat_interval"]; ok {{
+\t\tif i, ok := val.(float64); ok {{
+\t\t\tinterval = time.Duration(i) * time.Second
+\t\t}}
+\t}}
+
+\tticker := time.NewTicker(interval)
 \tdefer ticker.Stop()
 
 \tfor a.running {{
@@ -1328,7 +1515,10 @@ func (a *NOPAgent) Heartbeat() {{
 \t\t\t\tAgentID:   a.agentID,
 \t\t\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
 \t\t\t}}
-\t\t\tif err := a.conn.WriteJSON(hb); err != nil {{
+\t\t\ta.connMutex.Lock()
+\t\t\terr := a.conn.WriteJSON(hb)
+\t\t\ta.connMutex.Unlock()
+\t\t\tif err != nil {{
 \t\t\t\tlog.Printf("[%s] Heartbeat error: %v", time.Now().Format(time.RFC3339), err)
 \t\t\t\treturn
 \t\t\t}}
@@ -1338,25 +1528,63 @@ func (a *NOPAgent) Heartbeat() {{
 
 func (a *NOPAgent) MessageHandler() {{
 \tfor a.running {{
-\t\tvar msg Message
+\t\tvar msg map[string]interface{{}}
 \t\terr := a.conn.ReadJSON(&msg)
 \t\tif err != nil {{
 \t\t\tlog.Printf("[%s] Read error: %v", time.Now().Format(time.RFC3339), err)
 \t\t\treturn
 \t\t}}
 
-\t\tswitch msg.Type {{
+\t\tmsgType, _ := msg["type"].(string)
+
+\t\tswitch msgType {{
+\t\tcase "terminate":
+\t\t\tlog.Printf("[%s] Terminate command received from C2", time.Now().Format(time.RFC3339))
+\t\t\tif message, ok := msg["message"].(string); ok {{
+\t\t\t\tlog.Printf("[%s] Message: %s", time.Now().Format(time.RFC3339), message)
+\t\t\t}}
+\t\t\ta.running = false
+\t\t\treturn
+
+\t\tcase "kill":
+\t\t\tlog.Printf("[%s] KILL command received - Self-destructing...", time.Now().Format(time.RFC3339))
+\t\t\tif message, ok := msg["message"].(string); ok {{
+\t\t\t\tlog.Printf("[%s] Message: %s", time.Now().Format(time.RFC3339), message)
+\t\t\t}}
+\t\t\ta.running = false
+\t\t\t// Attempt to delete self
+\t\t\texecutable, err := os.Executable()
+\t\t\tif err == nil {{
+\t\t\t\tlog.Printf("[%s] Deleting agent file: %s", time.Now().Format(time.RFC3339), executable)
+\t\t\t\tos.Remove(executable)
+\t\t\t}}
+\t\t\treturn
+
 \t\tcase "command":
 \t\t\ta.handleCommand(msg)
+
 \t\tcase "ping":
 \t\t\ta.sendPong()
+
+\t\tcase "settings_update":
+\t\t\ta.handleSettingsUpdate(msg)
 \t\t}}
 \t}}
 }}
 
-func (a *NOPAgent) handleCommand(msg Message) {{
-\tlog.Printf("[%s] Received command: %v", time.Now().Format(time.RFC3339), msg.Data)
-\t// Implement command handling based on modules
+func (a *NOPAgent) handleCommand(msg map[string]interface{{}}) {{
+\tif cmd, ok := msg["command"].(string); ok {{
+\t\tlog.Printf("[%s] Received command: %s", time.Now().Format(time.RFC3339), cmd)
+\t}}
+}}
+
+func (a *NOPAgent) handleSettingsUpdate(msg map[string]interface{{}}) {{
+\tif settings, ok := msg["settings"].(map[string]interface{{}}); ok {{
+\t\tlog.Printf("[%s] Settings update received from C2", time.Now().Format(time.RFC3339))
+\t\tfor k, v := range settings {{
+\t\t\ta.config[k] = v
+\t\t}}
+\t}}
 }}
 
 func (a *NOPAgent) sendPong() {{
@@ -1365,51 +1593,348 @@ func (a *NOPAgent) sendPong() {{
 \t\tAgentID:   a.agentID,
 \t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
 \t}}
+\ta.connMutex.Lock()
 \ta.conn.WriteJSON(pong)
+\ta.connMutex.Unlock()
 }}
 
-// Module: Asset Discovery
+func (a *NOPAgent) relayToC2(data interface{{}}) {{
+\ta.connMutex.Lock()
+\tdefer a.connMutex.Unlock()
+\tif a.conn != nil {{
+\t\tif err := a.conn.WriteJSON(data); err != nil {{
+\t\t\tlog.Printf("[%s] Relay error: %v", time.Now().Format(time.RFC3339), err)
+\t\t}}
+\t}}
+}}
+
+// ============================================================================
+// ASSET MODULE - Network asset discovery and monitoring
+// ============================================================================
 func (a *NOPAgent) AssetModule() {{
 \tif !a.capabilities["asset"] {{
 \t\treturn
 \t}}
 \tlog.Printf("[%s] Asset module started", time.Now().Format(time.RFC3339))
-\t// Implement asset discovery
+
+\tinterval := 300 * time.Second
+\tif val, ok := a.config["discovery_interval"]; ok {{
+\t\tif i, ok := val.(float64); ok && i > 0 {{
+\t\t\tinterval = time.Duration(i) * time.Second
+\t\t}}
+\t}}
+
+\tticker := time.NewTicker(interval)
+\tdefer ticker.Stop()
+
+\t// Initial discovery
+\ta.discoverAssets()
+
+\tfor a.running {{
+\t\tselect {{
+\t\tcase <-ticker.C:
+\t\t\ta.discoverAssets()
+\t\t}}
+\t}}
 }}
 
-// Module: Traffic Monitoring
+func (a *NOPAgent) discoverAssets() {{
+\tassets := make([]map[string]interface{{}}, 0)
+
+\t// Get all network interfaces
+\tifaces, err := net.Interfaces()
+\tif err != nil {{
+\t\tlog.Printf("[%s] Asset discovery error: %v", time.Now().Format(time.RFC3339), err)
+\t\treturn
+\t}}
+
+\t// Collect local interface info as assets
+\tfor _, iface := range ifaces {{
+\t\tif iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {{
+\t\t\tcontinue
+\t\t}}
+
+\t\taddrs, err := iface.Addrs()
+\t\tif err != nil {{
+\t\t\tcontinue
+\t\t}}
+
+\t\tfor _, addr := range addrs {{
+\t\t\tipnet, ok := addr.(*net.IPNet)
+\t\t\tif !ok || ipnet.IP.To4() == nil {{
+\t\t\t\tcontinue
+\t\t\t}}
+
+\t\t\tasset := map[string]interface{{}}{{
+\t\t\t\t"ip":            ipnet.IP.String(),
+\t\t\t\t"mac":           iface.HardwareAddr.String(),
+\t\t\t\t"status":        "online",
+\t\t\t\t"discovered_at": time.Now().UTC().Format(time.RFC3339),
+\t\t\t\t"interface":     iface.Name,
+\t\t\t}}
+\t\t\tassets = append(assets, asset)
+\t\t}}
+\t}}
+
+\t// Try to discover local network hosts via ARP table
+\tarpAssets := a.getArpTable()
+\tassets = append(assets, arpAssets...)
+
+\t// Add passively discovered hosts
+\ta.hostsMutex.Lock()
+\tassets = append(assets, a.passiveHosts...)
+\ta.passiveHosts = make([]map[string]interface{{}}, 0)
+\ta.hostsMutex.Unlock()
+
+\tif len(assets) > 0 {{
+\t\tlog.Printf("[%s] Discovered %d assets", time.Now().Format(time.RFC3339), len(assets))
+\t\ta.relayToC2(AssetData{{
+\t\t\tType:      "asset_data",
+\t\t\tAgentID:   a.agentID,
+\t\t\tAssets:    assets,
+\t\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t\t}})
+\t}}
+}}
+
+func (a *NOPAgent) getArpTable() []map[string]interface{{}} {{
+\tassets := make([]map[string]interface{{}}, 0)
+
+\t// Read ARP table from /proc/net/arp on Linux
+\tif runtime.GOOS == "linux" {{
+\t\tdata, err := os.ReadFile("/proc/net/arp")
+\t\tif err != nil {{
+\t\t\treturn assets
+\t\t}}
+
+\t\tlines := strings.Split(string(data), "\\n")
+\t\tfor i, line := range lines {{
+\t\t\tif i == 0 {{ // Skip header
+\t\t\t\tcontinue
+\t\t\t}}
+\t\t\tfields := strings.Fields(line)
+\t\t\tif len(fields) >= 4 {{
+\t\t\t\tip := fields[0]
+\t\t\t\tmac := fields[3]
+\t\t\t\tif mac != "00:00:00:00:00:00" && ip != "" {{
+\t\t\t\t\tassets = append(assets, map[string]interface{{}}{{
+\t\t\t\t\t\t"ip":            ip,
+\t\t\t\t\t\t"mac":           mac,
+\t\t\t\t\t\t"status":        "online",
+\t\t\t\t\t\t"discovered_at": time.Now().UTC().Format(time.RFC3339),
+\t\t\t\t\t\t"method":        "arp_table",
+\t\t\t\t\t}})
+\t\t\t\t}}
+\t\t\t}}
+\t\t}}
+\t}} else if runtime.GOOS == "windows" {{
+\t\t// On Windows, use arp -a command
+\t\tcmd := exec.Command("arp", "-a")
+\t\toutput, err := cmd.Output()
+\t\tif err == nil {{
+\t\t\tlines := strings.Split(string(output), "\\n")
+\t\t\tfor _, line := range lines {{
+\t\t\t\tfields := strings.Fields(line)
+\t\t\t\tif len(fields) >= 2 {{
+\t\t\t\t\tip := fields[0]
+\t\t\t\t\tif net.ParseIP(ip) != nil && len(fields) >= 2 {{
+\t\t\t\t\t\tmac := fields[1]
+\t\t\t\t\t\tassets = append(assets, map[string]interface{{}}{{
+\t\t\t\t\t\t\t"ip":            ip,
+\t\t\t\t\t\t\t"mac":           mac,
+\t\t\t\t\t\t\t"status":        "online",
+\t\t\t\t\t\t\t"discovered_at": time.Now().UTC().Format(time.RFC3339),
+\t\t\t\t\t\t\t"method":        "arp_table",
+\t\t\t\t\t\t}})
+\t\t\t\t\t}}
+\t\t\t\t}}
+\t\t\t}}
+\t\t}}
+\t}}
+
+\treturn assets
+}}
+
+// ============================================================================
+// TRAFFIC MODULE - Network traffic monitoring and analysis
+// ============================================================================
 func (a *NOPAgent) TrafficModule() {{
 \tif !a.capabilities["traffic"] {{
 \t\treturn
 \t}}
 \tlog.Printf("[%s] Traffic module started", time.Now().Format(time.RFC3339))
-\t// Implement traffic monitoring
+
+\tinterval := 60 * time.Second
+\tif val, ok := a.config["data_interval"]; ok {{
+\t\tif i, ok := val.(float64); ok && i > 0 {{
+\t\t\tinterval = time.Duration(i) * time.Second
+\t\t}}
+\t}}
+
+\tticker := time.NewTicker(interval)
+\tdefer ticker.Stop()
+
+\tfor a.running {{
+\t\tselect {{
+\t\tcase <-ticker.C:
+\t\t\tstats := a.captureTrafficStats()
+\t\t\ta.relayToC2(TrafficData{{
+\t\t\t\tType:      "traffic_data",
+\t\t\t\tAgentID:   a.agentID,
+\t\t\t\tTraffic:   stats,
+\t\t\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t\t\t}})
+\t\t}}
+\t}}
 }}
 
-// Module: Host Monitoring
+func (a *NOPAgent) captureTrafficStats() map[string]interface{{}} {{
+\tstats := make(map[string]interface{{}})
+
+\tnetStats, err := psnet.IOCounters(false) // false = aggregated stats
+\tif err != nil {{
+\t\tlog.Printf("[%s] Traffic capture error: %v", time.Now().Format(time.RFC3339), err)
+\t\treturn stats
+\t}}
+
+\tif len(netStats) > 0 {{
+\t\tstats["bytes_sent"] = netStats[0].BytesSent
+\t\tstats["bytes_recv"] = netStats[0].BytesRecv
+\t\tstats["packets_sent"] = netStats[0].PacketsSent
+\t\tstats["packets_recv"] = netStats[0].PacketsRecv
+\t\tstats["errors_in"] = netStats[0].Errin
+\t\tstats["errors_out"] = netStats[0].Errout
+\t}}
+
+\treturn stats
+}}
+
+// ============================================================================
+// HOST MODULE - Host system information and monitoring
+// ============================================================================
 func (a *NOPAgent) HostModule() {{
 \tif !a.capabilities["host"] {{
 \t\treturn
 \t}}
 \tlog.Printf("[%s] Host module started", time.Now().Format(time.RFC3339))
-\t// Implement host monitoring
+
+\tinterval := 120 * time.Second
+\tticker := time.NewTicker(interval)
+\tdefer ticker.Stop()
+
+\t// Send initial host info
+\ta.sendHostInfo()
+
+\tfor a.running {{
+\t\tselect {{
+\t\tcase <-ticker.C:
+\t\t\ta.sendHostInfo()
+\t\t}}
+\t}}
 }}
 
-// Module: Remote Access
+func (a *NOPAgent) sendHostInfo() {{
+\thostInfo := a.collectHostInfo()
+\ta.relayToC2(HostData{{
+\t\tType:      "host_data",
+\t\tAgentID:   a.agentID,
+\t\tHost:      hostInfo,
+\t\tTimestamp: time.Now().UTC().Format(time.RFC3339),
+\t}})
+}}
+
+func (a *NOPAgent) collectHostInfo() map[string]interface{{}} {{
+\tinfo := make(map[string]interface{{}})
+
+\t// Hostname
+\thostname, _ := os.Hostname()
+\tinfo["hostname"] = hostname
+
+\t// Platform info
+\tinfo["platform"] = runtime.GOOS
+\tinfo["architecture"] = runtime.GOARCH
+\tinfo["go_version"] = runtime.Version()
+
+\t// Host info from gopsutil
+\thostInfo, err := host.Info()
+\tif err == nil {{
+\t\tinfo["platform_release"] = hostInfo.Platform
+\t\tinfo["platform_version"] = hostInfo.PlatformVersion
+\t\tinfo["os"] = hostInfo.OS
+\t\tinfo["kernel_version"] = hostInfo.KernelVersion
+\t\tinfo["boot_time"] = time.Unix(int64(hostInfo.BootTime), 0).Format(time.RFC3339)
+\t}}
+
+\t// CPU
+\tcpuPercent, err := cpu.Percent(time.Second, false)
+\tif err == nil && len(cpuPercent) > 0 {{
+\t\tinfo["cpu_percent"] = cpuPercent[0]
+\t}}
+
+\t// Memory
+\tmemInfo, err := mem.VirtualMemory()
+\tif err == nil {{
+\t\tinfo["memory_percent"] = memInfo.UsedPercent
+\t\tinfo["memory_total"] = memInfo.Total
+\t\tinfo["memory_used"] = memInfo.Used
+\t}}
+
+\t// Disk
+\tdiskInfo, err := disk.Usage("/")
+\tif err == nil {{
+\t\tinfo["disk_percent"] = diskInfo.UsedPercent
+\t\tinfo["disk_total"] = diskInfo.Total
+\t\tinfo["disk_used"] = diskInfo.Used
+\t}}
+
+\t// Network interfaces
+\tinterfaces := make([]map[string]interface{{}}, 0)
+\tifaces, err := net.Interfaces()
+\tif err == nil {{
+\t\tfor _, iface := range ifaces {{
+\t\t\tif iface.Flags&net.FlagUp == 0 {{
+\t\t\t\tcontinue
+\t\t\t}}
+\t\t\taddrs, _ := iface.Addrs()
+\t\t\tfor _, addr := range addrs {{
+\t\t\t\tipnet, ok := addr.(*net.IPNet)
+\t\t\t\tif !ok || ipnet.IP.To4() == nil {{
+\t\t\t\t\tcontinue
+\t\t\t\t}}
+\t\t\t\tinterfaces = append(interfaces, map[string]interface{{}}{{
+\t\t\t\t\t"name":   iface.Name,
+\t\t\t\t\t"ip":     ipnet.IP.String(),
+\t\t\t\t\t"status": "up",
+\t\t\t\t}})
+\t\t\t}}
+\t\t}}
+\t}}
+\tinfo["interfaces"] = interfaces
+
+\treturn info
+}}
+
+// ============================================================================
+// ACCESS MODULE - Remote access and command execution
+// ============================================================================
 func (a *NOPAgent) AccessModule() {{
 \tif !a.capabilities["access"] {{
 \t\treturn
 \t}}
-\tlog.Printf("[%s] Access module started", time.Now().Format(time.RFC3339))
-\t// Implement remote access (command execution)
+\tlog.Printf("[%s] Access module started (listen-only mode)", time.Now().Format(time.RFC3339))
+\t// Access module only responds to C2 commands for security
+\t// No autonomous actions
 }}
 
+// ============================================================================
+// MAIN
+// ============================================================================
 func (a *NOPAgent) Run() {{
 \tlog.Printf("[%s] NOP Agent '%s' starting...", time.Now().Format(time.RFC3339), a.agentName)
-\t
-\tenabled := []string{{}}
-\tfor module, enabled := range a.capabilities {{
-\t\tif enabled {{
+
+\tenabled := make([]string, 0)
+\tfor module, isEnabled := range a.capabilities {{
+\t\tif isEnabled {{
 \t\t\tenabled = append(enabled, module)
 \t\t}}
 \t}}
@@ -1508,7 +2033,9 @@ func main() {{
 go 1.21
 
 require (
-\tgithub.com/gorilla/websocket v1.5.1
+    github.com/gorilla/websocket v1.5.1
+    github.com/shirou/gopsutil/v3 v3.24.1
+    golang.org/x/crypto v0.18.0
 )
 """)
             
@@ -1526,15 +2053,17 @@ require (
             env['CGO_ENABLED'] = '0'  # Disable CGO for static binaries
             
             try:
-                # Download dependencies
-                subprocess.run(
-                    ['go', 'mod', 'download'],
+                # Initialize and download dependencies with go mod tidy
+                # This creates go.sum and resolves all dependencies properly
+                tidy_result = subprocess.run(
+                    ['go', 'mod', 'tidy'],
                     cwd=tmpdir,
                     env=env,
                     check=True,
                     capture_output=True,
                     text=True
                 )
+                logger.info(f"go mod tidy completed successfully")
                 
                 # Build command
                 if obfuscate:

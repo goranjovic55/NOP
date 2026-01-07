@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     iputils-ping \
     curl \
+    wget \
     libpcap-dev \
     ca-certificates \
     hping3 \
@@ -22,6 +23,14 @@ RUN apt-get update && apt-get install -y \
     proxychains4 \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
+
+# Install Go for cross-platform agent compilation
+RUN wget -q https://go.dev/dl/go1.21.6.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go1.21.6.linux-amd64.tar.gz \
+    && rm go1.21.6.linux-amd64.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/root/go"
+ENV GOCACHE="/tmp/go-cache"
 
 # Install exploitdb from git
 RUN git clone --depth 1 https://gitlab.com/exploit-database/exploitdb.git /opt/exploitdb \

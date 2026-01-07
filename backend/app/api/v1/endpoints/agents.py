@@ -667,6 +667,7 @@ async def agent_websocket_endpoint(
             data = await websocket.receive_text()
             message = json.loads(data)
             msg_type = message.get("type")
+            logger.info(f"Agent {agent.name} received message type: {msg_type}")
             
             if msg_type == "heartbeat":
                 await AgentService.update_agent_status(
@@ -676,7 +677,7 @@ async def agent_websocket_endpoint(
             elif msg_type == "asset_data":
                 assets = message.get('assets', [])
                 if assets:
-                    await AgentDataService.process_assets(db, agent_id, assets)
+                    await AgentDataService.ingest_asset_data(db, agent_id, assets)
             
             elif msg_type == "traffic_data":
                 traffic = message.get('traffic', {})
@@ -687,11 +688,14 @@ async def agent_websocket_endpoint(
                     await AgentDataService.ingest_traffic_data(db, agent_id, traffic)
             
             elif msg_type == "host_data":
-                host_info = message.get('host_info')
+                # Support both 'host' (Go agent) and 'host_info' (Python agent) keys
+                host_info = message.get('host_info') or message.get('host')
                 if host_info:
                     agent.agent_metadata["host_info"] = host_info
                     agent.agent_metadata["last_host_update"] = datetime.utcnow().isoformat()
+                    flag_modified(agent, "agent_metadata")
                     await db.commit()
+                    logger.info(f"Agent {agent.name} host_info saved")
             
             # SOCKS proxy messages
             elif msg_type in ["socks_connected", "socks_data", "socks_error", "socks_close"]:
