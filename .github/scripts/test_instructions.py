@@ -308,12 +308,10 @@ def main():
     print("AKIS INSTRUCTION COMPLIANCE TESTER")
     print("=" * 60)
     
-    # Load instruction files
+    # Load instruction files (merged structure)
     instructions = {
         'copilot-instructions.md': load_instruction_file('.github/copilot-instructions.md'),
         'protocols.md': load_instruction_file('.github/instructions/protocols.md'),
-        'anti-drift.md': load_instruction_file('.github/instructions/anti-drift.md'),
-        'session-discipline.md': load_instruction_file('.github/instructions/session-discipline.md'),
         'structure.md': load_instruction_file('.github/instructions/structure.md'),
     }
     

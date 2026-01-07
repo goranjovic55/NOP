@@ -55,6 +55,5 @@ Create workflow log → Commit
 
 ## More Details
 
-- `.github/instructions/protocols.md` — full procedures
-- `.github/instructions/anti-drift.md` — if losing track
+- `.github/instructions/protocols.md` — full procedures + recovery
 - `.github/skills/INDEX.md` — all skills

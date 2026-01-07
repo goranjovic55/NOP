@@ -1,6 +1,6 @@
 # Protocols
 
-Detailed steps for each phase. Reference when needed.
+All procedural details in one place. Reference when needed.
 
 ---
 
@@ -9,12 +9,7 @@ Detailed steps for each phase. Reference when needed.
 ```
 1. view project_knowledge.json lines 1-50
 2. view .github/skills/INDEX.md
-3. Create todos:
-   <MAIN> what user asked
-   <WORK> step 1
-   <WORK> step 2
-   ...
-   <END> commit
+3. Create todos: <MAIN> → <WORK> items → <END>
 4. Tell user: "[context]. Here's the plan: [todos]"
 ```
 
@@ -27,37 +22,21 @@ Detailed steps for each phase. Reference when needed.
 Mark ◆ → Check skill trigger → Do work → Mark ✓
 ```
 
-**If interrupted by user:**
+**On interrupt:**
 ```
-Mark current ⊘ <PAUSED>
-Create <SUB:1> for new thing
-Do new thing, mark ✓
-Resume: change <PAUSED> back to <WORK> (no orphan ⊘ at end!)
-```
-
-**After bulk edits:**
-```
-Verify no duplicate code or syntax errors
+Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 ```
 
 ---
 
 ## END
 
-**When all <WORK> done:**
-
-1. Check for orphan ⊘ paused tasks → resume or close them first
-2. Show what changed (files created/modified)
-3. Show worktree with status symbols
-4. Say "Ready. Say 'approved' to finish."
-5. **Wait for user**
-
-**After user approves:**
-```bash
-python .github/scripts/generate_codemap.py
-python .github/scripts/suggest_skill.py
-# Create workflow log
-# Commit and push
+```
+1. Check for orphan ⊘ → resume or close
+2. Show files changed + worktree
+3. Say "Ready. Say 'approved' to finish."
+4. WAIT for user
+5. Run scripts → Create log → Commit
 ```
 
 ---
@@ -66,36 +45,63 @@ python .github/scripts/suggest_skill.py
 
 | Pattern | Skill |
 |---------|-------|
-| `.tsx` `.jsx` `pages/` `components/` | `.github/skills/frontend-react.md` |
-| `backend/` `.py` endpoints | `.github/skills/backend-api.md` |
-| `docker-compose` `Dockerfile` | `.github/skills/docker.md` |
-| Any error output | `.github/skills/debugging.md` |
-
-**Rule:** Load skill → then edit file
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
+| `backend/` `.py` | `backend-api.md` |
+| `docker-compose` `Dockerfile` | `docker.md` |
+| Error in output | `debugging.md` |
 
 ---
 
 ## Todos
 
-**Prefixes:**
-- `<MAIN>` = user's request
-- `<WORK>` = subtask
-- `<END>` = final commit
-- `<PAUSED>` = interrupted
-- `<SUB:N>` = handling interrupt
+| Prefix | Meaning |
+|--------|---------|
+| `<MAIN>` | User's request |
+| `<WORK>` | Subtask |
+| `<END>` | Final commit |
+| `<SUB:N>` | Interrupt handler |
 
-**Symbols:**
-- `✓` done
-- `◆` doing
-- `○` pending
-- `⊘` paused
+| Symbol | State |
+|--------|-------|
+| `✓` | Done |
+| `◆` | Doing |
+| `○` | Pending |
+| `⊘` | Paused |
 
-**Example:**
+---
+
+## If You Drift
+
+| If you... | Then... |
+|-----------|---------|
+| Started without loading knowledge | Stop. Load `project_knowledge.json`. Continue. |
+| Made changes without todo | Create todo now, mark ✓, continue. |
+| Said "I'll just quickly fix..." | STOP. Create todo first. |
+| Edited without checking skill trigger | Check table above. Load if match. |
+| See error and want to "just try" | Load `debugging.md` first. |
+| User said "done", about to commit | Run both scripts first. |
+| Forgot where you were | Show worktree. Find ⊘. Resume. |
+| Did bulk edits | Verify no duplicate code or syntax errors. |
+
+---
+
+## Every ~5 Tasks
+
 ```
-<MAIN> ✓ Add user auth
-├─ <WORK> ✓ Create model
-├─ <WORK> ◆ Add endpoint
-└─ <END> ○ Commit
+□ Todos up to date?
+□ Skills loaded for files I edited?
+□ Any ⊘ paused tasks?
+```
+
+---
+
+## If Lost
+
+```
+1. Stop
+2. Show worktree
+3. Find next ○ or resume ⊘
+4. Continue
 ```
 
 ---
@@ -103,9 +109,8 @@ python .github/scripts/suggest_skill.py
 ## Standards
 
 - Files < 500 lines
-- Functions < 50 lines
+- Functions < 50 lines  
 - Type hints required
-- Tests for new features
 
 ---
 
@@ -113,15 +118,12 @@ python .github/scripts/suggest_skill.py
 
 **Path:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
 
-**Content:**
 ```markdown
 # Task Name
-
-**Date:** YYYY-MM-DD
-**Files:** N changed
+**Date:** YYYY-MM-DD | **Files:** N
 
 ## Worktree
-[paste worktree]
+[worktree]
 
 ## Summary
 [what was done]
