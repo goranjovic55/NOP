@@ -49,7 +49,7 @@ After:  Mark todo ✓ immediately
 
 1. **Todo before code** — no edits without a tracked task, even "quick fixes"
 2. **Skill before edit** — check triggers, load if match  
-3. **Scripts before commit** — run both .py scripts at end
+3. **Scripts before commit** — run generate_codemap.py and suggest_skill.py at end
 
 ## Gotchas
 

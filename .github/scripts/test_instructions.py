@@ -15,6 +15,17 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 from dataclasses import dataclass
 
+# Configuration constants
+KEYWORD_MATCH_THRESHOLD = 2  # Minimum keyword matches for coverage
+COVERAGE_PASS_THRESHOLD = 90  # Percentage required to pass
+PROSE_LINE_LENGTH = 80  # Characters considered prose vs structured
+
+# Cognitive load scoring weights
+# Lower total score = less cognitive burden
+WEIGHT_LINES = 0.1  # Penalty per line (short files better)
+WEIGHT_PROSE = 50   # Penalty for prose density (structured content better)
+WEIGHT_STRUCTURE = 5  # Penalty for lack of tables/code (visual aids better)
+
 @dataclass
 class Scenario:
     name: str
@@ -211,7 +222,7 @@ def check_scenario_coverage(scenario: Scenario, instructions: Dict[str, str]) ->
     for file_name, content in instructions.items():
         content_lower = content.lower()
         matches = sum(1 for kw in scenario_keywords if kw.lower() in content_lower)
-        if matches >= 2:  # At least 2 keyword matches
+        if matches >= KEYWORD_MATCH_THRESHOLD:
             return True, file_name
     
     return False, ""
@@ -283,7 +294,7 @@ def analyze_instruction_clarity(content: str) -> Dict:
     
     # Calculate clarity score (lower is better for cognitive load)
     # Prefer: shorter, more tables/code, fewer prose paragraphs
-    prose_lines = len([l for l in lines if len(l) > 80 and not l.startswith('|') and not l.startswith('#')])
+    prose_lines = len([l for l in lines if len(l) > PROSE_LINE_LENGTH and not l.startswith('|') and not l.startswith('#')])
     
     metrics['prose_density'] = prose_lines / max(len(lines), 1)
     metrics['structure_ratio'] = (metrics['tables'] + metrics['code_blocks']) / max(metrics['headers'], 1)
@@ -378,9 +389,9 @@ def main():
         
         # Score: lower is better (less cognitive load)
         score = (
-            metrics['total_lines'] * 0.1 +
-            metrics['prose_density'] * 50 +
-            (1 / max(metrics['structure_ratio'], 0.1)) * 5
+            metrics['total_lines'] * WEIGHT_LINES +
+            metrics['prose_density'] * WEIGHT_PROSE +
+            (1 / max(metrics['structure_ratio'], 0.1)) * WEIGHT_STRUCTURE
         )
         
         print(f"\n📄 {name}:")
@@ -411,7 +422,7 @@ def main():
     print("TEST COMPLETE")
     print("=" * 60)
     
-    return coverage_pct >= 90  # Pass if 90%+ coverage
+    return coverage_pct >= COVERAGE_PASS_THRESHOLD
 
 
 if __name__ == '__main__':
