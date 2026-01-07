@@ -32,6 +32,25 @@ Implemented actual terminal and filesystem relay through connected agents for PO
 - Modified: `.github/instructions/protocols.md` - Clearer mandatory steps, repository cleanup
 - Moved: 6 documentation files to proper locations per structure.md
 
+## Problems Encountered
+- Problem: Agent template had duplicate `except Exception` block causing syntax error
+- Cause: Copy-paste error when adding filesystem handlers
+- Solution: Removed duplicate exception block in agent_service.py
+
+- Problem: Skipped session end protocol scripts (generate_codemap, suggest_skill)
+- Cause: Didn't re-read protocols.md when user said "wrap up"
+- Solution: Updated protocols to emphasize RE-READ requirement, added Anti-Drift Rules
+
+- Problem: Misplaced documentation files scattered across repo
+- Cause: No enforcement of structure.md during sessions
+- Solution: Added 4c repository cleanup step as mandatory
+
+## Lessons Learned
+- Always re-read protocols.md Step 4 when user approves - don't rely on memory
+- Template f-strings with `{{}}` escaping need careful testing before deployment
+- Todo creation must happen BEFORE any work, not retroactively
+- Session end is a checklist, not optional steps
+
 ## Skill Suggestions
 **backend-development-patterns** (High confidence):
 - FastAPI WebSocket lifecycle management

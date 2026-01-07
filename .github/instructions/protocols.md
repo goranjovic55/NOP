@@ -124,6 +124,16 @@ Brief description
 - Created: `path/file.ext`
 - Modified: `path/file.ext`
 
+## Problems Encountered
+- Problem: <what went wrong>
+- Cause: <root cause>
+- Solution: <how it was fixed>
+
+## Lessons Learned
+- <insight or pattern discovered>
+- <what to do differently next time>
+- <useful technique or approach>
+
 ## Skill Suggestions
 <paste suggest_skill.py output>
 ```
