@@ -12,7 +12,7 @@ Specialized multi-phase workflows for complex tasks.
 **Purpose:** Analyze sessions to identify patterns and propose improvements
 
 **Trigger:**
-- Auto: Every 10 sessions (via session_end.py)
+- Auto: Every 10 sessions (check via `session_tracker.py`)
 - Manual: Anytime
 
 **Phases:** CONTEXT → ANALYZE → REVIEW → IMPLEMENT → VERIFY → DOCUMENT → COMPLETE
@@ -27,7 +27,7 @@ Specialized multi-phase workflows for complex tasks.
 **Usage:**
 ```bash
 python .github/scripts/session_tracker.py check-maintenance
-# Follow prompt if maintenance due
+# If due, follow akis-workflow-analyzer.md
 ```
 
 ## Creating New Prompts

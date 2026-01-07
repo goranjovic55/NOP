@@ -125,7 +125,7 @@ const Topology: React.FC = () => {
       setLoading(true);
       const [assets, trafficStats] = await Promise.all([
         assetService.getAssets(token, undefined, activeAgent?.id),
-        dashboardService.getTrafficStats(token)
+        dashboardService.getTrafficStats(token, activeAgent?.id)
       ]);
 
       // Extract unique subnets from assets (first 3 octets)

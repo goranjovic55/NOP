@@ -1,7 +1,7 @@
 # {TASK_NAME}
 
 **Date**: {YYYY-MM-DD HH:MM}
-**Files**: {count}
+**Branch**: {branch-name}
 
 ## Worktree
 ```
@@ -12,14 +12,16 @@
 ```
 
 ## Summary
-{Auto-generated from commits and changes}
+{Brief description of what was accomplished}
 
 ## Changes
 - Created: `path/file.ext`
 - Modified: `path/file.ext`
 
-## Skills Suggested
-{Detailed skill suggestions}
+## Lessons Learned
+- {Key insight or pattern discovered}
+- {What would be done differently}
 
-## Notes
-{Areas touched, related skills}
+## Next Steps
+- {Follow-up task if any}
+- {Related work to consider}

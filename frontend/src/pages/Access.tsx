@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
@@ -107,32 +107,16 @@ const Access: React.FC = () => {
     localStorage.setItem('access_mode', accessMode);
   }, [accessMode]);
 
-  // Fetch assets with POV filtering
-  const fetchAllAssets = useCallback(async () => {
-    setLoading(true);
-    try {
-      const authToken = token || localStorage.getItem('token') || '';
-      if (!authToken) {
-        console.warn('No auth token available');
-        setLoading(false);
-        return;
-      }
-      // Pass agent POV ID to filter assets to agent's perspective
-      const agentPOV = activeAgent?.id;
-      const allAssets = await assetService.getAssets(authToken, undefined, agentPOV);
-      console.log('Fetched assets:', allAssets.length, 'POV:', agentPOV || 'none');
-      setAssets(allAssets);
-    } catch (error) {
-      console.error('Failed to fetch assets:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, activeAgent]);
+  useEffect(() => {
+    fetchAllAssets();
+  }, [activeAgent]);
 
   useEffect(() => {
-    // Fetch assets when token or agent POV changes
-    fetchAllAssets();
-  }, [fetchAllAssets]);
+    // Refresh assets when token changes
+    if (token) {
+      fetchAllAssets();
+    }
+  }, [token, activeAgent]);
 
   // Handle navigation from Scans page with state
   useEffect(() => {
@@ -355,6 +339,25 @@ const Access: React.FC = () => {
       localStorage.setItem('vaultCredentials', JSON.stringify(vaultCredentialsRaw));
     }
   }, [vaultCredentialsRaw]);
+
+  const fetchAllAssets = async () => {
+    setLoading(true);
+    try {
+      const authToken = token || localStorage.getItem('token') || '';
+      if (!authToken) {
+        console.warn('No auth token available');
+        setLoading(false);
+        return;
+      }
+      const allAssets = await assetService.getAssets(authToken, undefined, activeAgent?.id);
+      console.log('Fetched assets:', allAssets.length, 'POV agent:', activeAgent?.id || 'none');
+      setAssets(allAssets);
+    } catch (error) {
+      console.error('Failed to fetch assets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getFilteredAssets = () => {
     let filtered = assets;

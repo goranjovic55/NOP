@@ -6,8 +6,8 @@
 |------|---------|----------|
 | Root .py | agent.py only | / |
 | Root .sh | deploy.sh only | / |
-| Root .md | README, CHANGELOG, CONTRIBUTING, LICENSE | / |
-| Root config | docker-compose.yml, .env, .gitignore | / |
+| Root .md | README, CHANGELOG, CONTRIBUTING, LICENSE, CLAUDE | / |
+| Root config | docker-compose.yml, .env, .gitignore, project_knowledge.json | / |
 | Python scripts | *.py (non-app) | scripts/ |
 | Shell scripts | *.sh (non-deploy) | scripts/ |
 | Test files | test_*.py | scripts/ |
