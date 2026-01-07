@@ -36,7 +36,7 @@ async def get_assets(
     agent_pov = get_agent_pov(request)
     print(f"[ASSETS DEBUG] X-Agent-POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
     asset_service = AssetService(db)
-    return await asset_service.get_assets(
+    result = await asset_service.get_assets(
         page=page,
         size=size,
         search=search,
@@ -45,6 +45,8 @@ async def get_assets(
         agent_id=agent_pov,
         exclude_agent_assets=exclude_agent_assets if not agent_pov else False
     )
+    print(f"[ASSETS DEBUG] Returning {result.total} assets for agent_pov={agent_pov}")
+    return result
 
 
 @router.get("/stats", response_model=AssetStats)

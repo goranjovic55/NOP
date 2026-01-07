@@ -1,45 +1,22 @@
 # Backend API Patterns
 
-FastAPI layered architecture with typing and dependency injection.
+FastAPI with async SQLAlchemy. Endpoint → Service → Model separation.
 
-## When to Use
-- Creating REST endpoints
-- Modifying existing APIs
-- Adding database operations
-- Implementing CRUD operations
+## Avoid
+- ❌ Direct DB in routes → ✅ Service layer
+- ❌ Missing response_model → ✅ Define schemas
+- ❌ Sync I/O → ✅ async/await
 
-## Checklist
-- [ ] Endpoint → Service → Model separation
-- [ ] Define `response_model` for validation
-- [ ] Use dependency injection for db and auth
-- [ ] Request validation (Pydantic schemas)
-- [ ] Type hint return values
-- [ ] Async where I/O-bound
+## Patterns
 
-## Examples
-
-### Basic CRUD Endpoint
+### Basic CRUD
 ```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
-router = APIRouter(prefix="/items", tags=["items"])
-
-@router.get("", response_model=list[ItemResponse])
-async def list_items(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, le=1000),
-    db: AsyncSession = Depends(get_db)
-) -> list[ItemResponse]:
-    result = await db.execute(select(Item).offset(skip).limit(limit))
-    return result.scalars().all()
-
-@router.get("/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Item).where(Item.id == item_id))
+@router.get("/{id}", response_model=ItemResponse)
+async def get_item(id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Item).where(Item.id == id))
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(404, "Not found")
     return item
 
 @router.post("", response_model=ItemResponse, status_code=201)
@@ -51,13 +28,7 @@ async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
     return item
 ```
 
-## Avoid
-- ❌ Direct DB access in routes → ✅ Use service layer
-- ❌ Missing response models → ✅ Define `response_model`
-- ❌ Sync operations for I/O → ✅ Use async/await
-- ❌ No dependency injection → ✅ Use `Depends()`
-
-### Service Layer Pattern
+### Service Layer
 ```python
 class ItemService:
     def __init__(self, db: AsyncSession = Depends(get_db)):
@@ -66,11 +37,9 @@ class ItemService:
     async def create(self, data: ItemCreate) -> Item:
         item = Item(**data.dict())
         self.db.add(item)
-        await self.db.commit()
-        await self.db.refresh(item)
+        await db.commit()
         return item
 
-# Endpoint uses service
 @router.post("", response_model=ItemResponse)
 async def create_item(data: ItemCreate, service: ItemService = Depends()):
     return await service.create(data)
@@ -78,178 +47,52 @@ async def create_item(data: ItemCreate, service: ItemService = Depends()):
 
 ### Pydantic Schema
 ```python
-from pydantic import BaseModel, Field
-from datetime import datetime
-
 class ItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    description: str | None = None
 
-class ItemCreate(ItemBase):
-    pass
+class ItemCreate(ItemBase): pass
 
 class ItemResponse(ItemBase):
     id: int
-    created_at: datetime
-
     class Config:
         from_attributes = True
 ```
 
-### Agent Configuration via Metadata
-**Use when:** Dynamic agent behavior without code redeployment
-
-```python
-# 1. Store config in agent_metadata (JSON field)
-agent.agent_metadata = {
-    "scan_subnet": "10.10.2.0/24",
-    "passive_discovery": True,
-    "scan_timeout": 300
-}
-db.commit()
-
-# 2. Inject into agent template
-config_repr = repr(agent.agent_metadata)
-agent_code = f'''CONFIG = {config_repr}
-
-class Agent:
-    def __init__(self):
-        self.config = CONFIG
-    
-    def discover(self):
-        subnet = self.config.get("scan_subnet", "192.168.1.0/24")
-'''
-
-# 3. Agent reads at runtime (no redeployment needed)
-```
-
-### WebSocket State Persistence
-**Use when:** Real-time data needs REST API access
-
-```python
-from sqlalchemy.orm.attributes import flag_modified
-
-# WebSocket handler - receive and persist data
-@router.websocket("/ws/agent/{agent_id}")
-async def websocket_endpoint(websocket: WebSocket, agent_id: str, db: AsyncSession):
-    while True:
-        message = await websocket.receive_json()
-        msg_type = message.get("type")
-        
-        if msg_type == "host_data":
-            # Store in persistent database field
-            agent = await db.get(Agent, agent_id)
-            if not agent.agent_metadata:
-                agent.agent_metadata = {}
-            
-            agent.agent_metadata["host_info"] = message.get("host", {})
-            agent.agent_metadata["last_update"] = datetime.utcnow().isoformat()
-            
-            # CRITICAL: Flag JSONB field as modified
-            flag_modified(agent, 'agent_metadata')
-            await db.commit()
-
-# REST endpoint - query persistent data
-@router.get("/interfaces")
-async def get_interfaces(request: Request, db: AsyncSession):
-    agent_pov = get_agent_pov(request)
-    if agent_pov:
-        agent = await db.get(Agent, agent_pov)
-        if agent and agent.agent_metadata:
-            return agent.agent_metadata.get("host_info", {}).get("interfaces", [])
-        return []  # No C2 fallback in POV mode
-    # ... C2 interfaces
-```
-
-**Data Flow:**
-- WebSocket: Ephemeral connection, receives real-time updates
-- Database: Persistent storage via `agent_metadata` JSONB field
-- REST API: Queries latest persisted data from database
-- Timing: First data arrives based on agent's `data_interval` config (10-60s)
-
-### Database INET Type Casting
-**Use when:** Querying PostgreSQL network types (INET, CIDR)
-
-```python
-from sqlalchemy import cast, String
-from sqlalchemy.dialects.postgresql import INET
-
-# ❌ WRONG - Type mismatch error
-result = await db.execute(
-    select(Asset).where(Asset.ip == ip_string)
-)
-
-# ✅ CORRECT - Cast for comparison
-result = await db.execute(
-    select(Asset).where(cast(Asset.ip, String) == ip_string)
-)
-# OR cast input
-result = await db.execute(
-    select(Asset).where(Asset.ip == cast(ip_string, INET))
-)
-```
-
 ### POV Mode Filtering
-**Use when:** Showing only agent-specific data without C2 fallback
-
 ```python
 from app.middleware.agent_pov import get_agent_pov
 
 @router.get("/endpoint")
-async def endpoint(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
-):
-    # Extract agent POV from X-Agent-POV header
-    agent_pov = get_agent_pov(request)  # Returns UUID or None
-    
+async def endpoint(request: Request, db: AsyncSession = Depends(get_db)):
+    agent_pov = get_agent_pov(request)  # X-Agent-POV header
     if agent_pov:
-        # Get agent and check for data
-        agent = await AgentService.get_agent(db, agent_pov)
-        if agent and agent.agent_metadata and 'required_key' in agent.agent_metadata:
-            data = agent.agent_metadata['required_key']
-            # Add metadata indicators
-            data['_source'] = 'agent'
-            data['_agent_id'] = str(agent.id)
-            return data
-        else:
-            # CRITICAL: No C2 fallback - return empty or 404
-            return []  # or {} or raise HTTPException(404)
-    
-    # Default: return C2 server data
+        agent = await db.get(Agent, agent_pov)
+        if agent and agent.agent_metadata:
+            return agent.agent_metadata.get('key', [])
+        return []  # NO C2 fallback in POV mode
     return get_c2_data()
 ```
 
-**Key Points:**
-- Never fallback to C2 data in POV mode
-- Return appropriate empty structure ([], {}) or 404
-- Add `_source`, `_agent_id` metadata to track data origin
-
-### SQLAlchemy JSONB Persistence
-**Use when:** Nested changes to JSONB/JSON fields not saving
-
+### JSONB Persistence (flag_modified)
 ```python
 from sqlalchemy.orm.attributes import flag_modified
 
-# ❌ WRONG - SQLAlchemy doesn't detect nested mutations
-agent.agent_metadata['host_info'] = new_data
-await db.commit()  # Changes NOT saved!
-
-# ✅ CORRECT - Must flag field as modified
-agent.agent_metadata['host_info'] = new_data
-flag_modified(agent, 'agent_metadata')  # Mark as dirty
-await db.commit()  # Changes saved!
-
-# Alternative: Replace entire object (also works)
-new_metadata = agent.agent_metadata.copy()
-new_metadata['host_info'] = new_data
-agent.agent_metadata = new_metadata  # Triggers change detection
+# SQLAlchemy doesn't detect nested mutations
+agent.agent_metadata['data'] = new_data
+flag_modified(agent, 'agent_metadata')  # Mark dirty
 await db.commit()
 ```
 
-**Why:** SQLAlchemy tracks object replacement but not nested mutations in mutable types (dict, list)
+### INET Type Casting
+```python
+from sqlalchemy import cast, String
 
-## Related Skills
-- `debugging.md` - Troubleshooting endpoints
-- `frontend-react.md` - API integration patterns
-- `docker.md` - Container reload issues
+# Cast for comparison
+result = await db.execute(
+    select(Asset).where(cast(Asset.ip, String) == ip_string)
+)
+```
+
+## Related
+- `debugging.md` - API errors
+- `frontend-react.md` - POV integration

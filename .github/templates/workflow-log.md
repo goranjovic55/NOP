@@ -3,16 +3,23 @@
 **Date**: {YYYY-MM-DD HH:MM}
 **Files**: {count}
 
+## Worktree
+```
+<MAIN> ✓ {Original request}
+├─ <WORK> ✓ {Task 1}
+├─ <WORK> ✓ {Task 2}
+└─ <END> ✓ Review and commit
+```
+
 ## Summary
 {Auto-generated from commits and changes}
 
 ## Changes
 - Created: `path/file.ext`
 - Modified: `path/file.ext`
-- Deleted: `path/file.ext`
 
 ## Skills Suggested
-{Detailed skill suggestions from session}
+{Detailed skill suggestions}
 
 ## Notes
-{Auto-generated: areas touched, related skills}
+{Areas touched, related skills}

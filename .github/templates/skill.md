@@ -2,22 +2,10 @@
 
 {One-line description}
 
-## When to Use
-- {Scenario 1}
-- {Scenario 2}
-- {Scenario 3}
-
 ## Avoid
-- ❌ {Anti-pattern 1} → ✅ {Correct approach}
-- ❌ {Anti-pattern 2} → ✅ {Correct approach}
+- ❌ {Anti-pattern} → ✅ {Correct approach}
 
-## Examples
-
-### {Scenario}
-```bash
-# {Action}
-{command}
-```
+## Patterns
 
 ### {Scenario}
 ```{language}
@@ -25,4 +13,4 @@
 ```
 
 ## Related
-- {related-skill.md}
+- `{related-skill}.md`

@@ -161,8 +161,8 @@ const Scans: React.FC = () => {
                 }
               }
               
-              // Refresh assets list
-              const updatedAssets = await assetService.getAssets(token);
+              // Refresh assets list with POV filter
+              const updatedAssets = await assetService.getAssets(token, undefined, activeAgent?.id);
               setAssets(updatedAssets);
               
               onScanComplete?.(tab.ip, scanStatus);

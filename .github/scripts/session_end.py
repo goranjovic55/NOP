@@ -216,12 +216,20 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list, ski
     
     notes_section = '\n'.join(notes_items) if notes_items else "*Session completed successfully. Add manual notes if needed.*"
     
-    # Generate log content
+    # Generate log content with Worktree placeholder
     log_content = f"""# {task_name.replace('-', ' ').title()}
 
 **Date**: {datetime.now().strftime("%Y-%m-%d %H:%M")}
-**Session**: #{session_display}
 **Files Changed**: {len(changes_list)}
+
+## Worktree
+```
+<MAIN> ○ {task_name.replace('-', ' ').title()}
+├─ <WORK> ○ Task 1
+├─ <WORK> ○ Task 2
+└─ <END> ○ Review and commit
+```
+*Replace with actual todo tree from session. Status: ✓ completed, ○ not-started, ⊘ paused*
 
 ## Summary
 {summary}
@@ -231,11 +239,6 @@ def generate_workflow_log(task_name: str, session_number: str, skills: list, ski
 
 ## Skill Suggestions
 {skills_text}
-
-## Verification
-- [ ] Code changes reviewed
-- [ ] Knowledge map updated
-- [ ] Session committed
 
 ## Notes
 {notes_section}
