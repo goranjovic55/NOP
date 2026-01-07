@@ -9,17 +9,22 @@ Detailed procedures for session lifecycle. Referenced by `copilot-instructions.m
 **When:** First message of conversation
 
 1. Read `project_knowledge.json` lines 1-50 (map + key entities)
-2. Read `.github/skills/INDEX.md` → load relevant domain skills
-3. Read `.github/instructions/structure.md` for file organization
-4. Optionally check `docs/INDEX.md` for existing documentation
+2. Read `.github/instructions/structure.md` for file organization
+3. **IMMEDIATELY call `manage_todo_list`** - create initial todos
 
-**Output:** 2-3 line context summary, then create todos
+**Output:** 2-3 line context summary, then show todo list
 
 ---
 
 ## Protocol: Todo Tracking
 
-**Rule:** NO WORK WITHOUT TODO
+### ⚠️ CRITICAL: NO WORK WITHOUT TODO
+
+**Before ANY action (code, file, terminal):**
+1. Ensure todo exists for the action
+2. Mark todo as in-progress
+3. Do the work
+4. Mark completed IMMEDIATELY
 
 ### Prefixes
 | Prefix | Use |
@@ -77,23 +82,32 @@ Display final todo tree with status symbols
 ### Step 3: Wait for Approval
 **STOP** - User must say: "approved", "proceed", "done", or "wrap up"
 
-### Step 4: After Approval - Execute End Tasks
+### Step 4: After Approval - MANDATORY EXECUTION
 
-#### 4a. Update Knowledge Map
+⚠️ **DO NOT SKIP ANY STEP - RE-READ THIS SECTION WHEN USER APPROVES**
+
+#### 4a. Update Knowledge Map (REQUIRED)
 ```bash
 python .github/scripts/generate_codemap.py
 ```
 
-#### 4b. Check for Skill Suggestions
+#### 4b. Suggest Skills (REQUIRED)
 ```bash
 python .github/scripts/suggest_skill.py
 ```
-Review output - create skills manually if useful.
+Review output - note useful patterns for user.
 
-#### 4c. Create Workflow Log
+#### 4c. Repository Cleanup (REQUIRED)
+Check `.github/instructions/structure.md` for rules:
+- Move misplaced `.md` files to `docs/{category}/`
+- Move scripts to `scripts/`
+- Clean backup files (`*_backup*.json`, `*.bak`)
+- Verify root only has allowed files
+
+#### 4d. Create Workflow Log
 Create file: `log/workflow/YYYY-MM-DD_HHMMSS_task-name.md`
 
-Use template:
+Template:
 ```markdown
 # Task Name
 
@@ -101,28 +115,22 @@ Use template:
 **Files Changed**: N
 
 ## Worktree
-<paste final worktree here>
+<paste final worktree>
 
-## Work Summary
-Brief description of what was accomplished
+## Summary
+Brief description
 
 ## Changes
 - Created: `path/file.ext`
 - Modified: `path/file.ext`
 
-## Lessons Learned
-- Key insight or pattern discovered
-
-## Next Steps
-- Follow-up task if any
-
 ## Skill Suggestions
-<paste suggest_skill.py output if any>
+<paste suggest_skill.py output>
 ```
 
-#### 4d. Commit
+#### 4e. Commit and Push (REQUIRED)
 ```bash
-git add -A && git commit -m "type(scope): message"
+git add -A && git commit -m "type(scope): message" && git push
 ```
 
 ---
@@ -137,7 +145,6 @@ git add -A && git commit -m "type(scope): message"
 | `backend/app/`, `endpoints/`, `*.py` API | `.github/skills/backend-api.md` |
 | `docker-compose*`, `Dockerfile` | `.github/skills/docker.md` |
 | Error/exception in output | `.github/skills/debugging.md` |
-| Creating docs | `.github/skills/documentation.md` |
 
 ---
 

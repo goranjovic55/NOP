@@ -1,34 +1,41 @@
 # AKIS v4 - Agent Knowledge & Instruction System
 
-**Protocols:** `.github/instructions/protocols.md` (read for detailed procedures)
+**Protocols:** `.github/instructions/protocols.md` (MUST read for procedures)
 
-## Quick Rules
+## ⚠️ CRITICAL RULES - NEVER SKIP
 
-| Rule | Enforce |
-|------|---------|
-| Phases | START → WORK → END |
-| Knowledge | Read `project_knowledge.json` lines 1-50 first |
-| Todo | **NO WORK WITHOUT TODO** - use `manage_todo_list` |
-| Interrupt | User message = PAUSE current → SUB:N → resume |
-| Approval | Wait for "approved/proceed/done" before session end |
-| Skills | Load from `.github/skills/` when touching relevant files |
+| Rule | Enforcement |
+|------|-------------|
+| **TODO FIRST** | Call `manage_todo_list` BEFORE any code/file changes |
+| **NO SILENT WORK** | Every action must have corresponding todo item |
+| **END PROTOCOL** | On "approved/done/wrap up" → RE-READ protocols.md Step 4 |
+| **EXECUTE SCRIPTS** | generate_codemap.py + suggest_skill.py + structure cleanup |
 
 ---
 
-## START Phase
-1. Read knowledge + skills + structure
-2. Create todos: `<MAIN>`, `<WORK>`, `<END>`
-3. Output: Context summary + todo list
+## Phases
 
-## WORK Phase
-- Execute todos, mark completed individually
-- On interrupt → PAUSE, handle SUB, resume
+### START Phase
+1. Read `project_knowledge.json` lines 1-50
+2. Read `structure.md` for file organization rules
+3. **CREATE TODOS IMMEDIATELY** - `<MAIN>`, `<WORK>`, `<END>`
+4. Output: 2-line context + show todo list
+
+### WORK Phase
+- **Mark todo in-progress BEFORE starting work**
+- **Mark todo completed IMMEDIATELY after finishing**
+- On user interrupt → PAUSE current, create SUB:N, resume after
 - Load skills per file type (see protocols.md)
 
-## END Phase
+### END Phase (MANDATORY CHECKLIST)
 1. Show change summary + worktree
-2. **STOP - Wait for approval**
-3. After approval: Follow `Protocol: Session End` in protocols.md (Step 4)
+2. **STOP - Wait for user approval word**
+3. When user says "approved/proceed/done/wrap up":
+   - [ ] `python .github/scripts/generate_codemap.py`
+   - [ ] `python .github/scripts/suggest_skill.py`
+   - [ ] Check `structure.md` → move misplaced files
+   - [ ] Create workflow log in `log/workflow/`
+   - [ ] `git add -A && git commit && git push`
 
 ---
 
@@ -43,4 +50,11 @@
 
 **Standards:** <500 line files • <50 line functions • Type hints • Tests
 
-*Context over Process. Knowledge over Ceremony.*
+---
+
+## Anti-Drift Rules
+
+- **Never skip todo creation** - even for "quick" tasks
+- **Never commit without running end scripts**
+- **Re-read protocols.md at END phase** - don't rely on memory
+- **Structure cleanup is mandatory** - check structure.md every session
