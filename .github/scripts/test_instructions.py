@@ -180,6 +180,29 @@ EDGE_CASES = [
         expected_action="Increment SUB:N for each level, unwind completely",
         failure_mode="Loses track of original task chain"
     ),
+    
+    # New edge cases from session simulation
+    Scenario(
+        name="forgot_mark_working",
+        description="LLM starts task without marking todo as working",
+        trigger="Beginning a new task",
+        expected_action="Mark todo ◆ BEFORE starting work",
+        failure_mode="Status tracking becomes inaccurate"
+    ),
+    Scenario(
+        name="orphan_check_at_end",
+        description="LLM proceeds to commit without checking for paused tasks",
+        trigger="End phase begins",
+        expected_action="Check for orphan ⊘ paused tasks before proceeding",
+        failure_mode="Paused tasks left unfinished"
+    ),
+    Scenario(
+        name="skip_both_scripts",
+        description="LLM commits without running either end script",
+        trigger="User approval received",
+        expected_action="Run generate_codemap.py AND suggest_skill.py",
+        failure_mode="Knowledge base not updated"
+    ),
 ]
 
 
@@ -215,6 +238,10 @@ def check_scenario_coverage(scenario: Scenario, instructions: Dict[str, str]) ->
         "wrong_docker_compose": ["docker", "compose", "dev"],
         "jsx_comment_syntax": ["jsx", "comment", "syntax"],
         "nested_interrupt_tracking": ["SUB:", "interrupt", "resume"],
+        # New scenarios from session simulation
+        "forgot_mark_working": ["Mark", "◆", "before", "working"],
+        "orphan_check_at_end": ["orphan", "check", "⊘", "paused"],
+        "skip_both_scripts": ["generate_codemap", "suggest_skill", "scripts"],
     }
     
     scenario_keywords = keywords.get(scenario.name, [])

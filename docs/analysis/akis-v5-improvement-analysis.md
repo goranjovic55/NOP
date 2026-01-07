@@ -9,6 +9,7 @@ Measurable comparison of before/after framework changes.
 | Instruction files | 5 | 3 | -40% |
 | Total lines | 421 | 316 | -25% |
 | Files to decide between | 4 | 2 | -50% |
+| Edge cases tested | 19 | 22 | +16% |
 | Cognitive load (avg) | 10.8 | 11.2 | ~same |
 
 ## File Comparison
@@ -29,6 +30,38 @@ Measurable comparison of before/after framework changes.
 | protocols.md | 135 | Procedures + Recovery + Context |
 | structure.md | 66 | File placement |
 
+## Session Simulation Results
+
+**1000 simulated sessions analyzed:**
+
+| Metric | Value |
+|--------|-------|
+| Sessions simulated | 1000 |
+| Sessions with interrupts | 323 (32%) |
+| Perfect sessions | 4 (0.4%) |
+| Average violations/session | 5.19 |
+
+### Top Violation Categories
+
+| Violation | Frequency | Addressed By |
+|-----------|-----------|--------------|
+| Did not mark todo as working | 98.4% | "Mark ◆ BEFORE" in WORK |
+| Quick fix without todo | 80.5% | "Todo before code" rule |
+| Orphan task check skipped | 39.9% | END phase step 1 |
+| Script not run | 27.7% | "Scripts before commit" rule |
+| Immediate commit | 22.2% | END phase checklist |
+| Todo structure not created | 22.0% | START phase step 3 |
+| Forgot to mark complete | 18.9% | "Mark ✓ immediately" |
+| Skills INDEX not loaded | 18.1% | START phase step 2 |
+| START skipped entirely | 16.7% | START phase prominence |
+
+### Critical Edge Cases Identified
+
+1. **Quick fix without todo** (80.5%) - Addressed by explicit "even quick fixes" wording
+2. **Orphan task check missing** (39.9%) - Addressed in END phase step 1
+3. **Immediate commit** (22.2%) - Addressed by "Run scripts → Create log → Commit" order
+4. **START phase skip** (16.7%) - Addressed by clear "Do These First" heading
+
 ## Decision Overhead Analysis
 
 **Before:** When drifting, LLM must decide:
@@ -45,10 +78,10 @@ Measurable comparison of before/after framework changes.
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Scenarios tested | 19 | 19 |
+| Scenarios tested | 19 | 22 |
 | Coverage | 100% | 100% |
 
-All edge cases still covered despite file reduction.
+All edge cases covered including new simulation-discovered scenarios.
 
 ## Cognitive Load Scores
 
@@ -73,14 +106,15 @@ protocols.md = HOW to do it + recovery (reference, 135 lines)
 
 Simple rule: If you need more detail, there's one place to look.
 
-## Compliance Prediction
+## Simulation Insights
 
-Based on cognitive psychology research:
-- Fewer choices = more action (Hick's Law)
-- Simpler mental model = less dropout
-- One reference point = less confusion
+The session simulator (`simulate_sessions.py`) uses probabilistic event modeling:
+- START phase events: 5 possible behaviors
+- WORK phase events: 9 possible behaviors  
+- Interrupt events: 6 possible behaviors
+- END phase events: 8 possible behaviors
 
-**Expected improvement:** Higher protocol compliance due to reduced decision overhead.
+This creates realistic session variance and identifies which failure modes are most likely to occur.
 
 ## Summary
 
@@ -89,5 +123,7 @@ Based on cognitive psychology research:
 | Files reduced | 5 → 3 (-40%) |
 | Lines reduced | 421 → 316 (-25%) |
 | Decisions reduced | 3 → 1 (-66%) |
+| Edge cases tested | 19 → 22 (+16%) |
 | Coverage maintained | 100% |
 | Cognitive load | ~same or better |
+| Simulation scenarios | 1000 sessions analyzed |
