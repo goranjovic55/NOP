@@ -2,6 +2,7 @@
 
 **Date**: {YYYY-MM-DD HH:MM}
 **Branch**: {branch-name}
+**Files Changed**: {N}
 
 ## Worktree
 ```
@@ -18,10 +19,15 @@
 - Created: `path/file.ext`
 - Modified: `path/file.ext`
 
+## Problems Encountered
+- Problem: {what went wrong}
+- Cause: {root cause}
+- Solution: {how it was fixed}
+
 ## Lessons Learned
 - {Key insight or pattern discovered}
 - {What would be done differently}
+- {Useful technique or approach}
 
-## Next Steps
-- {Follow-up task if any}
-- {Related work to consider}
+## Skill Suggestions
+{paste suggest_skill.py output if useful}

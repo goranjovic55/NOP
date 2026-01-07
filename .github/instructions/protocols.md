@@ -107,36 +107,7 @@ Check `.github/instructions/structure.md` for rules:
 #### 4d. Create Workflow Log
 Create file: `log/workflow/YYYY-MM-DD_HHMMSS_task-name.md`
 
-Template:
-```markdown
-# Task Name
-
-**Date**: YYYY-MM-DD HH:MM
-**Files Changed**: N
-
-## Worktree
-<paste final worktree>
-
-## Summary
-Brief description
-
-## Changes
-- Created: `path/file.ext`
-- Modified: `path/file.ext`
-
-## Problems Encountered
-- Problem: <what went wrong>
-- Cause: <root cause>
-- Solution: <how it was fixed>
-
-## Lessons Learned
-- <insight or pattern discovered>
-- <what to do differently next time>
-- <useful technique or approach>
-
-## Skill Suggestions
-<paste suggest_skill.py output>
-```
+Use template: `.github/templates/workflow-log.md`
 
 #### 4e. Commit and Push (REQUIRED)
 ```bash
