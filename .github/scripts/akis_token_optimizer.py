@@ -25,7 +25,20 @@ from dataclasses import dataclass, field
 # Configuration
 # ============================================================================
 
-ANALYSIS_DIR = Path("docs/analysis")
+# Token estimation: GPT models average ~4 characters per token
+CHARS_PER_TOKEN = 4
+
+# Base path - uses script location to find repo root, or current directory
+def get_repo_root() -> Path:
+    """Get repository root from script location or CWD."""
+    script_dir = Path(__file__).parent.resolve()
+    # Navigate from .github/scripts to repo root
+    if script_dir.name == "scripts" and script_dir.parent.name == ".github":
+        return script_dir.parent.parent
+    return Path.cwd()
+
+REPO_ROOT = get_repo_root()
+ANALYSIS_DIR = REPO_ROOT / "docs" / "analysis"
 SIMULATION_COUNT = 100000
 
 # Current AKIS probabilities (v5.7)
@@ -112,7 +125,7 @@ class FileMetrics:
 
 def analyze_tokens() -> Dict:
     """Analyze token usage across AKIS files."""
-    base = Path("/home/runner/work/NOP/NOP")
+    base = REPO_ROOT
     files = []
     files.extend(base.glob(".github/copilot-instructions.md"))
     files.extend(base.glob(".github/instructions/*.md"))
@@ -150,7 +163,7 @@ def analyze_tokens() -> Dict:
             chars=len(content),
             words=len(content.split()),
             lines=len(content.splitlines()),
-            tokens=len(content) // 4,
+            tokens=len(content) // CHARS_PER_TOKEN,
             category=cat
         ))
     
@@ -461,7 +474,7 @@ def calculate_token_savings(original: Dict, optimized: Dict[str, str]) -> Dict:
     original_tokens = original["total_tokens"]
     
     # Calculate new tokens for optimized files
-    optimized_tokens = sum(len(content) // 4 for content in optimized.values())
+    optimized_tokens = sum(len(content) // CHARS_PER_TOKEN for content in optimized.values())
     
     # Get tokens for files being replaced
     replaced_files = [
@@ -545,9 +558,8 @@ def main():
             report["token_savings"] = savings
         
         # Write optimized files
-        base = Path("/home/runner/work/NOP/NOP")
         for path, content in optimized.items():
-            full_path = base / path
+            full_path = REPO_ROOT / path
             full_path.parent.mkdir(parents=True, exist_ok=True)
             full_path.write_text(content)
             print(f"   ✓ Created: {path}")
