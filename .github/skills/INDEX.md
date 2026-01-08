@@ -1,60 +1,42 @@
-# Skills Index
+# Skills Index v6.0
 
-**Agent Skills Standard Format** - Load skills by domain trigger.
+**Agent Skills Standard** - Load skills ONCE per domain per session.
+
+## Core Rule: Skill Caching
+- **Load once:** Don't reload skill already loaded this session
+- **Track loaded:** Keep list: [frontend-react, backend-api, ...]
+- **Attachment context:** Skill descriptions already in system prompt
 
 ## Domain Triggers
 
-| Touching | Load Skill | Enforcement |
-|----------|------------|-------------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | MANDATORY |
-| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | MANDATORY |
-| `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | MANDATORY |
-| Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | MANDATORY |
-| `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | **MANDATORY** ⚠️ |
-| `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | recommended |
-| `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | recommended |
-| `.github/copilot-instructions*`, `.github/skills/*` | [akis-development](akis-development/SKILL.md) | **MANDATORY** ⚠️ |
+| Touching | Load Skill | Cache? |
+|----------|------------|--------|
+| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | ⭐ Pre-load fullstack |
+| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | ⭐ Pre-load fullstack |
+| `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | On first touch |
+| Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | On first error |
+| `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | ⚠️ **Always load** |
+| `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | On first test |
+| `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | Rarely needed |
+| `.github/copilot-instructions*`, `.github/skills/*` | [akis-development](akis-development/SKILL.md) | ⚠️ **Always load** |
 
-> ⚠️ **documentation has 40% compliance rate** - MUST load when editing ANY .md file
+> ⭐ Pre-load for fullstack sessions (40% of work)
+> ⚠️ Low compliance (40%) - always load these skills
 
-## All Skills
+## Efficiency Tips
 
-| Skill | Path | Purpose |
-|-------|------|---------|
-| frontend-react | `frontend-react/SKILL.md` | React/TypeScript patterns, hooks, state |
-| backend-api | `backend-api/SKILL.md` | FastAPI CRUD, services, async patterns |
-| docker | `docker/SKILL.md` | Container workflow, compose, debugging |
-| debugging | `debugging/SKILL.md` | Systematic error troubleshooting |
-| documentation | `documentation/SKILL.md` | Doc structure, templates, placement |
-| testing | `testing/SKILL.md` | pytest, React Testing Library, mocking |
-| knowledge | `knowledge/SKILL.md` | Project knowledge file patterns |
-| akis-development | `akis-development/SKILL.md` | AKIS framework editing, token optimization |
+1. **Check cache first:** Before `read_file` for skill, check if already loaded
+2. **Use trigger descriptions:** System prompt has skill summaries  
+3. **Batch loads:** For fullstack, load frontend-react + backend-api together
 
 ## Quick Reference
 
 ```
-.tsx/.jsx → frontend-react/SKILL.md
-.py → backend-api/SKILL.md
-Dockerfile → docker/SKILL.md
-error/failed → debugging/SKILL.md
-docs/*.md → documentation/SKILL.md
-test_* → testing/SKILL.md
-.github/skills/* → akis-development/SKILL.md
+.tsx/.jsx → frontend-react (cache)
+.py → backend-api (cache)
+Dockerfile → docker (cache)
+error → debugging (cache)
+.md → documentation (always load)
+test_* → testing (cache)
+.github/skills/* → akis-development (always load)
 ```
-
-## Skill Format (Agent Skills Standard)
-
-Skills use YAML frontmatter:
-```yaml
----
-name: skill-name
-description: When to load this skill
----
-# Content...
-```
-
-**Location:** `.github/skills/skill-name/SKILL.md`
-
----
-
-*Update INDEX when adding/removing skills*

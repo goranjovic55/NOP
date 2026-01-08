@@ -1,70 +1,63 @@
-# Protocols (Condensed)
+# Protocols v6.0 (Prompt-Optimized)
 
 ## START
-1. view project_knowledge.json + skills/INDEX.md
+1. Context pre-loaded ✓ (skip explicit reads)
 2. Create todos: <MAIN> → <WORK>... → <END>
-3. Tell user context + plan
+3. Tell user session type + plan
 
 ## WORK
 ⚠️ **◆ mark BEFORE any edit** (non-negotiable)
 
-1. Mark ◆ → 2. Check skill trigger → 3. Edit → 4. Mark ✓
+1. Mark ◆ → 2. Check trigger → 3. [Load skill if new domain] → 4. Edit → 5. Mark ✓
+
+**Skill Cache:** Track loaded skills. Don't reload same session!
 
 Interrupt: ⊘ current → <SUB:N> → handle → resume
 
 ## END
 1. Check ⊘ orphans
-2. Run: generate_codemap.py && suggest_skill.py
-3. Run: session_cleanup.py && update_docs.py
+2. If code: generate_codemap.py && suggest_skill.py
+   If docs only: suggest_skill.py
+3. session_cleanup.py && update_docs.py
 4. Create workflow log
-5. Wait for approval
-6. Commit
+5. Wait approval → commit
 
-## Skill Triggers
+## Skill Triggers (load ONCE per domain)
 | Pattern | Skill |
 |---------|-------|
-| .tsx .jsx | frontend-react |
-| .py backend/ | backend-api |
+| .tsx .jsx | frontend-react ⭐ |
+| .py backend/ | backend-api ⭐ |
 | Dockerfile docker-compose | docker |
-| .md docs/ README | documentation |
+| .md docs/ README | documentation ⚠️ |
 | error traceback | debugging |
 | test_* *_test.py | testing |
-| .github/skills/* copilot-instructions* | akis-development |
+| .github/skills/* | akis-development ⚠️ |
+
+**⭐ = Pre-load for fullstack | ⚠️ = Always load (low compliance)**
 
 ## Todo Symbols
 | Symbol | State |
 |--------|-------|
 | ✓ | Done |
-| ◆ | Working (MUST mark before work) |
+| ◆ | Working (MUST mark before) |
 | ○ | Pending |
 | ⊘ | Paused |
 
 ## If You Drift
 | If you... | Then... |
 |-----------|---------|
-| Started without loading knowledge | STOP. Load `project_knowledge.json`. |
 | About to edit without ◆ | STOP. Mark ◆ first. |
-| Thinking "I'll just quickly fix..." | STOP. Create todo first. |
+| "I'll just quickly fix..." | STOP. Create todo first. |
 | User said "done" | STOP. Run scripts first. |
+| Loading same skill twice | STOP. Check cache. |
 | Forgot where you were | Show worktree. Find ⊘. Resume. |
 
 ## Every ~5 Tasks
 
 ```
 □ All active work has ◆ status?
-□ Skills loaded for files I edited?
+□ Skills cached (not reloading)?
 □ Any ⊘ orphan tasks to resume?
-```
-
----
-
-## If Lost
-
-```
-1. Stop
-2. Show worktree
-3. Find ◆ or ⊘ or next ○
-4. Continue
 ```
 
 ---
@@ -85,13 +78,9 @@ Interrupt: ⊘ current → <SUB:N> → handle → resume
 # Task Name
 **Date:** YYYY-MM-DD | **Files:** N
 
-## Worktree
-[worktree]
-
 ## Summary
 [what was done]
 
 ## Changes
-- Created: path/file
-- Modified: path/file
+- Created/Modified: path/file
 ```

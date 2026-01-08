@@ -3,17 +3,17 @@ name: akis-development
 description: Load when editing .github/copilot-instructions*, .github/instructions/*, .github/skills/* for AKIS framework patterns
 ---
 
-# AKIS Development
+# AKIS Development v6.0
 
-Patterns for editing Agent Knowledge and Instruction System files. Follow token optimization principles.
+Patterns for editing Agent Knowledge and Instruction System files. Focus: token efficiency + prompt minimization.
 
 ## Critical Rules
 
 - **Token efficiency**: Every word must earn its place - aim for <200 tokens per file
+- **Skill caching**: Don't reload skills - load once per domain per session
+- **Context awareness**: Knowledge is pre-attached, don't read explicitly
 - **Tables > prose**: Use tables for mappings, patterns, triggers
-- **Single-block format**: Related info in one visual block
-- **Bold critical actions**: Use `**◆ BEFORE any edit**` emphasis style
-- **Symbols over text**: ✓ ◆ ○ ⊘ → ⚠️ ❌ ✅
+- **Symbols over text**: ✓ ◆ ○ ⊘ → ⚠️ ❌ ✅ ⭐
 
 ## Avoid
 
@@ -21,35 +21,34 @@ Patterns for editing Agent Knowledge and Instruction System files. Follow token 
 |--------|---------|
 | Verbose paragraphs | Numbered steps |
 | Repeated instructions | Single source, reference |
+| Multiple file reads | Use attachment context |
+| Reload same skill | Cache loaded skills |
 | Long code examples | Essential pattern only |
-| Multiple small sections | Combined sections |
-| Explanation + example | Self-documenting example |
 | Bullet lists for mappings | 2-column tables |
 
-## Token Optimization Patterns
+## Prompt Optimization Patterns
 
-### Condensing Prose
+### Eliminate Redundant Reads
 ```markdown
-# Before (verbose)
-**Important:** You must mark the task as working before making any edits.
-**Critical:** Never skip this step. It is non-negotiable.
+# Before (wasteful)
+1. Read project_knowledge.json
+2. Read skills/INDEX.md  
+3. Read skill file
 
-# After (condensed)
-**◆ BEFORE any edit** (non-negotiable)
+# After (optimized)
+1. Context pre-loaded via attachment ✓
+2. Check skill cache before reading
+3. Read skill only if new domain
 ```
 
-### Condensing Lists to Tables
+### Skill Caching Pattern
 ```markdown
-# Before
-- .tsx files → load frontend-react skill
-- .jsx files → load frontend-react skill
-- .py files → load backend-api skill
+# Track in session
+**Session skills loaded:** [frontend-react, backend-api]
 
-# After
-| Pattern | Skill |
-|---------|-------|
-| .tsx .jsx | frontend-react |
-| .py | backend-api |
+# Before loading skill, check:
+- Is skill already in session cache? → Skip read
+- New domain? → Read once, add to cache
 ```
 
 ## Token Targets
@@ -64,17 +63,17 @@ Patterns for editing Agent Knowledge and Instruction System files. Follow token 
 ## Validation
 
 ```bash
-# Check token usage
-python .github/scripts/akis_token_optimizer.py --analyze
+# Run prompt optimization analysis
+python .github/scripts/akis_prompt_optimizer.py --count 100000
 
-# Run compliance simulation
-python .github/scripts/akis_token_optimizer.py --simulate --count 100000
+# Check compliance with improvements
+python .github/scripts/analyze_akis.py --full --count 100000
 ```
 
-## Common Errors
+## Key Metrics (v6.0 targets)
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| Token count too high | Verbose prose | Apply condensation patterns |
-| Low compliance in simulation | Missing emphasis | Add bold/warning markers |
-| Skill not triggering | Wrong pattern in INDEX | Check trigger patterns |
+| Metric | v5.8 | v6.0 Target |
+|--------|------|-------------|
+| API calls/session | 19.5 | 16.1 (-17%) |
+| Tokens/session | 2193 | 644 (-71%) |
+| Perfect sessions | 9.6% | 15%+ |

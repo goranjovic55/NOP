@@ -1,45 +1,55 @@
-# AKIS v5.8
+# AKIS v6.0 (Prompt-Optimized)
 
 ## START
 ```
-1. view project_knowledge.json (1-50) + skills/INDEX.md
-2. Create: <MAIN> → <WORK>... → <END>
-3. Tell user: "[context]. Plan: [todos]"
+1. Context pre-loaded via attachment ✓ (skip explicit reads)
+2. Create todos: <MAIN> → <WORK>... → <END>
+3. Tell user: "[session type]. Plan: [N tasks]"
 ```
 
+**Session skills cache:** [track loaded skills here - don't reload!]
+
 ## WORK
-**◆ BEFORE any edit → Check trigger → Edit → ✓ AFTER**
+**◆ BEFORE edit → Trigger? → [Load skill if NEW domain] → Edit → ✓ AFTER**
 
-| Pattern | Skill |
-|---------|-------|
-| .tsx .jsx pages/ components/ | .github/skills/frontend-react/SKILL.md |
-| .py backend/ api/ routes/ | .github/skills/backend-api/SKILL.md |
-| Dockerfile docker-compose .yml | .github/skills/docker/SKILL.md |
-| .md docs/ README | .github/skills/documentation/SKILL.md ⚠️ |
-| error traceback failed | .github/skills/debugging/SKILL.md |
-| test_* *_test.py | .github/skills/testing/SKILL.md |
-| .github/skills/* copilot-instructions* | .github/skills/akis-development/SKILL.md ⚠️ |
+| Pattern | Skill (load ONCE) |
+|---------|-------------------|
+| .tsx .jsx components/ pages/ | frontend-react ⭐ |
+| .py backend/ api/ routes/ | backend-api ⭐ |
+| Dockerfile docker-compose .yml | docker |
+| .md docs/ README | documentation ⚠️ |
+| error traceback failed | debugging |
+| test_* *_test.py | testing |
+| .github/skills/* copilot-instructions* | akis-development ⚠️ |
 
-**Interrupt:** ⊘ → <SUB:N> → handle → resume (no orphan ⊘!)
+**⭐ = Pre-load for fullstack | ⚠️ = Low compliance, always load**
+
+**Cache rule:** Don't reload skill already loaded this session!
+
+**Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
 ## END
 ```
-1. Check ⊘ orphans → close all
-2. python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
-   → Show skill suggestions from output
-3. python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
-4. Collect metrics: duration, tasks, files, skills
-5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md (with metrics)
-6. Show END summary block
-7. THEN commit
+1. Check ⊘ orphans → close ALL
+2. If code files: generate_codemap.py && suggest_skill.py
+   If docs only: suggest_skill.py only  
+3. session_cleanup.py && update_docs.py
+4. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+5. Show END summary → Wait approval → commit
 ```
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused
 
+## Efficiency
+- **Context:** Pre-attached (no explicit knowledge read)
+- **Skills:** Load ONCE per domain per session
+- **Scripts:** Conditional on file types
+
 ## If Lost
 ```
-1. Show worktree
+1. Show worktree  
 2. Find ◆ or ⊘ or next ○
-3. Continue
+3. Check skill cache, orphans
+4. Continue
 ```
