@@ -1,102 +1,51 @@
-# Protocols
+# Protocols (Condensed)
 
-All procedural details in one place. Reference when needed.
-
----
-
-## START (MANDATORY)
-
-```
-1. view project_knowledge.json lines 1-50
-2. view .github/skills/INDEX.md
-3. Create todos: <MAIN> → <WORK> items → <END>
-4. Tell user: "[context]. Here's the plan: [todos]"
-```
-
-⚠️ **Never skip START.** No exceptions for "simple" tasks.
-
----
+## START
+1. view project_knowledge.json + skills/INDEX.md
+2. Create todos: <MAIN> → <WORK>... → <END>
+3. Tell user context + plan
 
 ## WORK
+⚠️ **◆ mark BEFORE any edit** (non-negotiable)
 
-**⚠️ Step 1 is NON-NEGOTIABLE:**
-```
-1. Mark ◆ FIRST — before typing ANY code
-2. Check skill trigger → load if match
-3. Do the work
-4. Mark ✓ immediately after
-```
+1. Mark ◆ → 2. Check skill trigger → 3. Edit → 4. Mark ✓
 
-⚠️ **No unmarked work.** Even one-line changes need the ◆ → ✓ cycle.
+Interrupt: ⊘ current → <SUB:N> → handle → resume
 
-**On interrupt:**
-```
-Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
-```
+## END
+1. Check ⊘ orphans
+2. Run: generate_codemap.py && suggest_skill.py
+3. Create workflow log
+4. Wait for approval
+5. Commit
 
----
+## Skill Triggers
+| Pattern | Skill |
+|---------|-------|
+| .tsx .jsx | frontend-react |
+| .py backend/ | backend-api |
+| Dockerfile docker-compose | docker |
+| .md docs/ README | documentation |
+| error traceback | debugging |
+| test_* *_test.py | testing |
+| .github/skills/* copilot-instructions* | akis-development |
 
-## END (CRITICAL)
-
-```
-1. ⚠️ Check for orphan ⊘ → resume or close ALL
-2. Show files changed + worktree
-3. Say "Ready. Say 'approved' to finish."
-4. WAIT for user
-5. ⚠️ STOP! Run BOTH scripts before commit:
-   - python .github/scripts/generate_codemap.py
-   - python .github/scripts/suggest_skill.py
-6. Create workflow log
-7. THEN commit and push
-```
-
----
-
-## Skill Triggers (Agent Skills Standard)
-
-| Pattern | Load First |
-|---------|------------|
-| `.tsx` `.jsx` `pages/` `components/` | `frontend-react/SKILL.md` |
-| `backend/` `.py` `api/` `routes/` | `backend-api/SKILL.md` |
-| `docker-compose` `Dockerfile` `.yml` | `docker/SKILL.md` |
-| `.md` `docs/` `README` | `documentation/SKILL.md` |
-| Error in output | `debugging/SKILL.md` |
-| `test_*` `*_test.py` | `testing/SKILL.md` |
-
----
-
-## Todos
-
-| Prefix | Meaning |
-|--------|---------|
-| `<MAIN>` | User's request |
-| `<WORK>` | Subtask |
-| `<END>` | Final commit |
-| `<SUB:N>` | Interrupt handler |
-
+## Todo Symbols
 | Symbol | State |
 |--------|-------|
-| `✓` | Done |
-| `◆` | Doing (MUST mark before work) |
-| `○` | Pending |
-| `⊘` | Paused |
-
----
+| ✓ | Done |
+| ◆ | Working (MUST mark before work) |
+| ○ | Pending |
+| ⊘ | Paused |
 
 ## If You Drift
-
 | If you... | Then... |
 |-----------|---------|
 | Started without loading knowledge | STOP. Load `project_knowledge.json`. |
-| About to edit without ◆ status | STOP. Mark ◆ first. |
-| Thinking "I'll just quickly fix..." | STOP. Create todo first. Always. |
-| Edited without checking skill trigger | Check table. Load if match. |
-| See error and want to "just try" | Load `debugging.md` first. |
-| User said "done", about to commit | STOP. Run BOTH scripts first. |
+| About to edit without ◆ | STOP. Mark ◆ first. |
+| Thinking "I'll just quickly fix..." | STOP. Create todo first. |
+| User said "done" | STOP. Run scripts first. |
 | Forgot where you were | Show worktree. Find ⊘. Resume. |
-| Did bulk edits | Verify no duplicate code. |
-
----
 
 ## Every ~5 Tasks
 

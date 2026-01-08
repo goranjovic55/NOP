@@ -1,67 +1,39 @@
-# AKIS v5.7
+# AKIS v5.8
 
-## ⚠️ START → Before Any Work
-
+## START
 ```
-1. view project_knowledge.json (1-50) + .github/skills/INDEX.md
-2. Create todos: <MAIN> → <WORK> items → <END>
-3. Tell user: context + plan
+1. view project_knowledge.json (1-50) + skills/INDEX.md
+2. Create: <MAIN> → <WORK>... → <END>
+3. Tell user: "[context]. Plan: [todos]"
 ```
 
-## ⚠️ WORK → For Each Task
+## WORK
+**◆ BEFORE any edit → Check trigger → Edit → ✓ AFTER**
 
-**EVERY EDIT (even 1 line):**
+| Pattern | Skill |
+|---------|-------|
+| .tsx .jsx pages/ components/ | frontend-react |
+| .py backend/ api/ routes/ | backend-api |
+| Dockerfile docker-compose .yml | docker |
+| .md docs/ README | documentation ⚠️ |
+| error traceback failed | debugging |
+| test_* *_test.py | testing |
+| .github/skills/* copilot-instructions* | akis-development ⚠️ |
+
+**Interrupt:** ⊘ → <SUB:N> → handle → resume (no orphan ⊘!)
+
+## END
 ```
-Mark ◆ → Check skill trigger → Edit → Mark ✓
-```
-**NO EXCEPTIONS. NO "quick fixes" without ◆ first.**
-
-| Files | Load First | Enforcement |
-|-------|------------|-------------|
-| `.tsx` `.jsx` `pages/` `components/` | `frontend-react/SKILL.md` | MANDATORY |
-| `backend/` `.py` `api/` `routes/` | `backend-api/SKILL.md` | MANDATORY |
-| `docker` `Dockerfile` `.yml` | `docker/SKILL.md` | MANDATORY |
-| `.md` `docs/` `README` | `documentation/SKILL.md` | **MANDATORY** |
-| Error in output | `debugging/SKILL.md` | MANDATORY |
-| `test` `spec` `pytest` | `testing/SKILL.md` | recommended |
-
-**Interrupt:** ⊘ current → `<SUB:1>` → handle → resume (no orphan ⊘!)
-
-## ⚠️ END → After "approved/done"
-
-**BEFORE COMMIT (all required):**
-```
-1. ⊘ orphans? → close them
-2. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
-3. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
+1. Check ⊘ orphans → close all
+2. python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
+3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
 4. THEN commit
 ```
 
-## Todo Format
-
-```
-<MAIN> User request    ✓ done  ◆ working  ○ pending  ⊘ paused
-├─ <WORK> Task 1
-├─ <WORK> Task 2
-└─ <END> Commit
-```
-
-## ⚠️ NON-NEGOTIABLE RULES
-
-1. **◆ before ANY edit**
-   ✗ "Let me quickly fix this typo..."  
-   ✓ Mark ◆ → fix typo → Mark ✓
-
-2. **No quick fixes**
-   ✗ "I'll just add this import..."
-   ✓ Create `<WORK>` → Mark ◆ → add import → Mark ✓
-
-3. **Scripts before commit**
-   ✗ git commit (user said "done")
-   ✓ generate_codemap.py && suggest_skill.py → THEN commit
+## Symbols
+✓ done | ◆ working | ○ pending | ⊘ paused
 
 ## If Lost
-
 ```
 1. Show worktree
 2. Find ◆ or ⊘ or next ○
