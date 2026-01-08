@@ -110,12 +110,12 @@ EDGE_CASES = [
         name="immediate_commit_after_approval",
         description="User says 'done', LLM commits without running scripts",
         trigger="User approval word",
-        expected_action="Run generate_codemap.py, suggest_skill.py, THEN commit",
+        expected_action="Run generate_knowledge.py, suggest_skill.py, THEN commit",
         failure_mode="Commits immediately after 'done'"
     ),
     Scenario(
         name="skip_codemap",
-        description="LLM runs suggest_skill.py but not generate_codemap.py",
+        description="LLM runs suggest_skill.py but not generate_knowledge.py",
         trigger="End phase",
         expected_action="Run BOTH scripts",
         failure_mode="Runs one, forgets other"
@@ -200,7 +200,7 @@ EDGE_CASES = [
         name="skip_both_scripts",
         description="LLM commits without running either end script",
         trigger="User approval received",
-        expected_action="Run generate_codemap.py AND suggest_skill.py",
+        expected_action="Run generate_knowledge.py AND suggest_skill.py",
         failure_mode="Knowledge base not updated"
     ),
 ]
@@ -229,7 +229,7 @@ def check_scenario_coverage(scenario: Scenario, instructions: Dict[str, str]) ->
         "interrupt_without_pause": ["<PAUSED>", "<SUB", "interrupt"],
         "orphan_paused": ["resume", "orphan", "no orphan", "⊘ paused"],
         "immediate_commit_after_approval": ["approved", "scripts", "before commit", "Then commit"],
-        "skip_codemap": ["generate_codemap", "suggest_skill", "both"],
+        "skip_codemap": ["generate_knowledge", "suggest_skill", "both"],
         "no_workflow_log": ["workflow log", "log/workflow"],
         "wrong_file_location": ["structure", "docs/", "location"],
         "long_session_drift": ["~5 tasks", "check", "every"],
@@ -241,7 +241,7 @@ def check_scenario_coverage(scenario: Scenario, instructions: Dict[str, str]) ->
         # New scenarios from session simulation
         "forgot_mark_working": ["Mark", "◆", "before", "working"],
         "orphan_check_at_end": ["orphan", "check", "⊘", "paused"],
-        "skip_both_scripts": ["generate_codemap", "suggest_skill", "scripts"],
+        "skip_both_scripts": ["generate_knowledge", "suggest_skill", "scripts"],
     }
     
     scenario_keywords = keywords.get(scenario.name, [])

@@ -98,6 +98,46 @@ async def traffic_ws(websocket: WebSocket):
         except:
             pass
 
+
+class BurstCaptureRequest(BaseModel):
+    duration_seconds: int = 1  # Default 1 second burst capture
+
+
+@router.post("/burst-capture")
+async def burst_capture(request: BurstCaptureRequest):
+    """
+    Perform a burst capture for the specified duration.
+    This captures fresh traffic data for a short period (1-10 seconds).
+    Useful for live topology updates that need recent traffic snapshots.
+    """
+    duration = max(1, min(10, request.duration_seconds))  # Clamp to 1-10 seconds
+    
+    try:
+        # Start burst capture
+        sniffer_service.start_burst_capture()
+        
+        # Wait for the specified duration
+        await asyncio.sleep(duration)
+        
+        # Stop and get results
+        result = sniffer_service.stop_burst_capture()
+        
+        return {
+            "success": True,
+            "duration": result["duration"],
+            "connections": result["connections"],
+            "connection_count": len(result["connections"]),
+            "current_time": result.get("current_time")
+        }
+    except Exception as e:
+        # Ensure burst capture is stopped on error
+        try:
+            sniffer_service.stop_burst_capture()
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/export")
 async def export_traffic():
     """Export captured traffic to PCAP"""

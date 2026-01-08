@@ -682,11 +682,11 @@ Use: single update with status change after edit confirmation
         "id": 5,
         "priority": "LOW",
         "category": "End Phase",
-        "problem": "Always run generate_codemap.py even for doc-only sessions",
+        "problem": "Always run generate_knowledge.py even for doc-only sessions",
         "solution": "Run scripts only when code files changed",
         "savings": "~6% of sessions (docs_only)",
         "implementation": """
-Add condition: 'If only .md files edited, skip generate_codemap.py'
+Add condition: 'If only .md files edited, skip generate_knowledge.py'
 Keep suggest_skill.py for all sessions (useful feedback).
 """,
     })
@@ -745,7 +745,7 @@ def generate_improved_instructions() -> str:
 ## END
 ```
 1. Check ⊘ orphans
-2. If code changed: generate_codemap.py && suggest_skill.py
+2. If code changed: generate_knowledge.py && suggest_skill.py
 3. If docs only: suggest_skill.py only
 4. Create workflow log
 5. Wait for approval → commit

@@ -23,7 +23,8 @@ export interface TrafficStats {
   top_talkers: any[];
   protocols: Record<string, number>;
   traffic_history: { time: string; value: number }[];
-  connections: { source: string; target: string; value: number; protocols?: string[] }[];
+  connections: { source: string; target: string; value: number; protocols?: string[]; last_seen?: number | string; first_seen?: number | string; packet_count?: number }[];
+  current_time?: number;
 }
 
 export interface SystemEvent {

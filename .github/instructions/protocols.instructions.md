@@ -16,7 +16,7 @@ Interrupt: ⊘ current → <SUB:N> → handle → resume
 
 ## END
 1. Check ⊘ orphans
-2. If code: generate_codemap.py && suggest_skill.py
+2. If code: generate_knowledge.py && suggest_skill.py
    If docs only: suggest_skill.py
 3. session_cleanup.py && update_docs.py
 4. Create workflow log

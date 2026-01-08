@@ -102,7 +102,7 @@ EVENTS = {
         Event("check_orphans", 0.97, "LLM checks for orphan tasks"),         # +2%
         Event("show_summary", 0.98, "LLM shows change summary"),             # +2%
         Event("wait_approval", 0.99, "LLM waits for user approval"),         # +1%
-        Event("run_codemap", 0.97, "LLM runs generate_codemap.py"),          # +2%
+        Event("run_codemap", 0.97, "LLM runs generate_knowledge.py"),          # +2%
         Event("run_suggest", 0.96, "LLM runs suggest_skill.py"),             # +2%
         Event("create_log", 0.92, "LLM creates workflow log"),               # +4%
         Event("immediate_commit", 0.01, "LLM commits without scripts"),      # -1%
@@ -347,10 +347,10 @@ class SessionSimulator:
             self._add_violation("Committed immediately without running scripts")
         else:
             if self._occurs(events["run_codemap"]):
-                self.state.scripts_run.append("generate_codemap.py")
-                self._log("✓ Ran generate_codemap.py")
+                self.state.scripts_run.append("generate_knowledge.py")
+                self._log("✓ Ran generate_knowledge.py")
             else:
-                self._add_violation("Did not run generate_codemap.py")
+                self._add_violation("Did not run generate_knowledge.py")
             
             if self._occurs(events["run_suggest"]):
                 self.state.scripts_run.append("suggest_skill.py")

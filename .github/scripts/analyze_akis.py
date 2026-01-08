@@ -363,7 +363,7 @@ class Simulator:
         if not self._occurs("wait_for_approval"):
             self._violation("END: Committed without approval")
         if not self._occurs("run_codemap"):
-            self._violation("END: Did not run generate_codemap.py")
+            self._violation("END: Did not run generate_knowledge.py")
         if not self._occurs("run_suggest_skill"):
             self._violation("END: Did not run suggest_skill.py")
         if not self._occurs("create_workflow_log"):

@@ -19,7 +19,7 @@ AI coding agent framework: **A**gent • **K**nowledge • **I**nstructions • 
 ## Key Scripts
 
 ```bash
-python .github/scripts/generate_codemap.py  # Update knowledge
+python .github/scripts/generate_knowledge.py  # Update knowledge
 python .github/scripts/suggest_skill.py      # Get skill suggestions
 python .github/scripts/session_tracker.py    # Maintenance tracking
 ```

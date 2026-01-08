@@ -110,7 +110,7 @@ AKIS_V5_PROBS = {
     
     # END phase
     "check_orphan_tasks": 0.80,       # Check for orphan ⊘
-    "run_codemap": 0.85,              # Run generate_codemap.py
+    "run_codemap": 0.85,              # Run generate_knowledge.py
     "run_suggest_skill": 0.82,        # Run suggest_skill.py
     "create_workflow_log": 0.70,      # Create log file
     "wait_for_approval": 0.95,        # Don't commit before approval
@@ -316,9 +316,9 @@ class EnhancedSessionSimulator:
         
         # Run scripts
         if self._occurs("run_codemap"):
-            self.state.scripts_run.append("generate_codemap.py")
+            self.state.scripts_run.append("generate_knowledge.py")
         else:
-            self._violation("END: Did not run generate_codemap.py")
+            self._violation("END: Did not run generate_knowledge.py")
         
         if self._occurs("run_suggest_skill"):
             self.state.scripts_run.append("suggest_skill.py")
