@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple
 LOG_DIR = Path("log/workflow")
 ANALYSIS_DIR = Path("docs/analysis")
 INSTRUCTIONS_FILE = Path(".github/copilot-instructions.md")
-PROTOCOLS_FILE = Path(".github/instructions/protocols.md")
+PROTOCOLS_FILE = Path(".github/instructions/protocols.instructions.md")
 
 DEFAULT_SIMULATION_COUNT = 100000
 COMPLIANCE_TARGET = 15.0  # Target perfect session rate
@@ -52,10 +52,13 @@ TASK_COUNTS = {1: 0.05, 2: 0.15, 3: 0.30, 4: 0.25, 5: 0.15, 6: 0.07, 7: 0.03}
 INTERRUPT_PROBABILITY = 0.14
 
 SKILL_TRIGGERS = {
-    ".tsx": "frontend-react.md",
-    ".jsx": "frontend-react.md",
-    ".py": "backend-api.md",
-    "Dockerfile": "docker.md",
+    ".tsx": "frontend-react/SKILL.md",
+    ".jsx": "frontend-react/SKILL.md",
+    ".py": "backend-api/SKILL.md",
+    "Dockerfile": "docker/SKILL.md",
+    ".md": "documentation/SKILL.md",
+    "error": "debugging/SKILL.md",
+    "test_": "testing/SKILL.md",
 }
 
 # ============================================================================

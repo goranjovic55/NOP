@@ -1,3 +1,8 @@
+---
+name: testing
+description: Load when editing test_*, *.test.*, *_test.py files or working with pytest, jest testing frameworks
+---
+
 # Testing Patterns
 
 Testing strategies for Python and TypeScript/React projects.

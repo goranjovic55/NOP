@@ -173,6 +173,16 @@ export const agentService = {
     return response.json();
   },
 
+  async getAgentSource(token: string, agentId: string): Promise<{ source_code: string; filename: string; language: string; agent_type: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/source`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to get agent source');
+    return response.json();
+  },
+
   async getAgentStatus(token: string, agentId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/status`, {
       headers: {

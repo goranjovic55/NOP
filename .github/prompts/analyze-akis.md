@@ -74,7 +74,7 @@ Runs complete analysis pipeline and outputs recommendations.
 
 1. **Console Report**: Summary of findings and improvements
 2. **JSON Data**: `docs/analysis/akis-simulation-YYYY-MM-DD.json`
-3. **Instruction Updates**: Changes to `.github/copilot-instructions.md` and `.github/instructions/protocols.md`
+3. **Instruction Updates**: Changes to `.github/copilot-instructions.md` and `.github/instructions/protocols.instructions.md`
 
 ## Key Metrics to Track
 
@@ -99,5 +99,6 @@ Runs complete analysis pipeline and outputs recommendations.
 - `.github/scripts/analyze_akis.py` - Main analysis script
 - `.github/scripts/simulate_sessions_v2.py` - Enhanced simulation
 - `.github/copilot-instructions.md` - Main instructions
-- `.github/instructions/protocols.md` - Detailed protocols
+- `.github/instructions/protocols.instructions.md` - Detailed protocols
+- `.github/instructions/structure.instructions.md` - File organization rules
 - `log/workflow/` - Workflow logs to analyze

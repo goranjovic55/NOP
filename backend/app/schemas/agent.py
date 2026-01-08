@@ -82,3 +82,12 @@ class AgentGenerateResponse(BaseModel):
     filename: str
     is_binary: bool = False
     platform: Optional[str] = None
+
+
+class AgentSourceResponse(BaseModel):
+    """Response with agent source code (never compiled)"""
+    agent_id: UUID
+    agent_type: AgentType
+    source_code: str  # Plain text source code
+    filename: str
+    language: str  # 'python' or 'go'

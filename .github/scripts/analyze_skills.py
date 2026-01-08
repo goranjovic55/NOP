@@ -36,45 +36,45 @@ TEMPLATES_DIR = Path(".github/templates")
 
 DEFAULT_SIMULATION_COUNT = 100000
 
-# Current skills from INDEX.md
+# Current skills from INDEX.md (Agent Skills Standard format)
 CURRENT_SKILLS = {
-    "frontend-react.md": {
+    "frontend-react/SKILL.md": {
         "triggers": [".tsx", ".jsx", "components/", "pages/"],
         "patterns": ["React", "JSX", "useState", "useEffect", "usePOV", "POV"],
         "errors_prevented": ["jsx_comment", "prop_drilling", "missing_key", "docker_compose_wrong"],
         "resolution_speedup": 1.4,  # 40% faster with skill
     },
-    "backend-api.md": {
+    "backend-api/SKILL.md": {
         "triggers": [".py", "backend/", "endpoints/", "api/"],
         "patterns": ["FastAPI", "endpoint", "CRUD", "service", "WebSocket"],
         "errors_prevented": ["missing_import", "wrong_decorator", "async_error"],
         "resolution_speedup": 1.3,
     },
-    "docker.md": {
+    "docker/SKILL.md": {
         "triggers": ["Dockerfile", "docker-compose", ".yml"],
         "patterns": ["Docker", "container", "compose", "volume", "network"],
         "errors_prevented": ["cache_issue", "port_conflict", "volume_mount"],
         "resolution_speedup": 1.5,
     },
-    "debugging.md": {
+    "debugging/SKILL.md": {
         "triggers": ["error", "exception", "failed", "traceback"],
         "patterns": ["Error", "Exception", "debug", "fix", "issue"],
         "errors_prevented": ["missed_root_cause", "wrong_fix", "regression"],
         "resolution_speedup": 1.6,
     },
-    "documentation.md": {
+    "documentation/SKILL.md": {
         "triggers": ["docs/", "README", ".md"],
         "patterns": ["document", "README", "guide", "tutorial"],
         "errors_prevented": ["wrong_location", "missing_link", "outdated_ref"],
         "resolution_speedup": 1.2,
     },
-    "ui-consistency.md": {
-        "triggers": ["CyberUI", "theme", "tailwind", "cyber"],
-        "patterns": ["CyberUI", "theme", "cyberpunk", "neon"],
-        "errors_prevented": ["wrong_color", "inconsistent_style", "missing_class"],
+    "testing/SKILL.md": {
+        "triggers": ["test_", "_test.py", ".test.", "pytest", "jest"],
+        "patterns": ["test", "assert", "mock", "fixture"],
+        "errors_prevented": ["flaky_test", "wrong_assertion", "missing_mock"],
         "resolution_speedup": 1.3,
     },
-    "knowledge.md": {
+    "knowledge/SKILL.md": {
         "triggers": ["project_knowledge", "knowledge.json"],
         "patterns": ["knowledge", "project_knowledge", "context"],
         "errors_prevented": ["stale_context", "wrong_assumption"],
@@ -151,13 +151,13 @@ SKILL_PROBS = {
 # Per-skill compliance rates (based on workflow log analysis)
 # These represent how often the agent actually loads a skill when triggered
 SKILL_COMPLIANCE = {
-    "frontend-react.md": 0.72,    # Often skipped for "quick" UI fixes
-    "backend-api.md": 0.68,       # Frequently bypassed for simple endpoints
-    "docker.md": 0.85,            # Usually loaded (errors are visible)
-    "debugging.md": 0.45,         # Often forgotten during error handling
-    "documentation.md": 0.40,     # Rarely loaded for doc edits
-    "testing.md": 0.55,           # New skill, moderate adoption
-    "knowledge.md": 0.78,         # Loaded at session start usually
+    "frontend-react/SKILL.md": 0.72,    # Often skipped for "quick" UI fixes
+    "backend-api/SKILL.md": 0.68,       # Frequently bypassed for simple endpoints
+    "docker/SKILL.md": 0.85,            # Usually loaded (errors are visible)
+    "debugging/SKILL.md": 0.45,         # Often forgotten during error handling
+    "documentation/SKILL.md": 0.40,     # Rarely loaded for doc edits
+    "testing/SKILL.md": 0.55,           # Moderate adoption
+    "knowledge/SKILL.md": 0.78,         # Loaded at session start usually
 }
 
 # Enforcement levels for skills

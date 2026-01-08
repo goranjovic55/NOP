@@ -177,7 +177,7 @@ class EnhancedSessionSimulator:
         elif session_type == "docker_heavy":
             files = ["Dockerfile", "docker-compose.yml", "main.py", ".env"]
         elif session_type == "framework":
-            files = ["copilot-instructions.md", "protocols.md", "skills.md"]
+            files = ["copilot-instructions.md", "protocols.instructions.md", "skills.md"]
         else:  # docs_only
             files = ["README.md", "GUIDE.md", "docs.md"]
         

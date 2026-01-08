@@ -646,7 +646,7 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
                     {'wrong': 'Duplicated styling logic', 'right': 'Centralized design tokens'},
                     {'wrong': 'Inconsistent spacing', 'right': 'Systematic spacing scale'}
                 ],
-                'related_skills': ['frontend-react.md', 'documentation.md'],
+                'related_skills': ['frontend-react/SKILL.md', 'documentation/SKILL.md'],
                 'confidence': 'high',
                 'evidence': [
                     'Multiple UI/styling commits detected',
@@ -675,7 +675,7 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
                     {'wrong': 'No response validation', 'right': 'Pydantic response_model'},
                     {'wrong': 'Generic error messages', 'right': 'Specific HTTP exceptions'}
                 ],
-                'related_skills': ['backend-api.md', 'error-handling.md', 'testing.md'],
+                'related_skills': ['backend-api/SKILL.md', 'testing/SKILL.md'],
                 'confidence': 'high',
                 'evidence': [
                     'API/endpoint commits detected',
@@ -702,7 +702,7 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
                 {'wrong': 'No volume mounts', 'right': 'Bind mounts for development'},
                 {'wrong': 'Forgetting to restart services', 'right': 'docker exec reload'}
             ],
-            'related_skills': ['infrastructure.md', 'debugging.md'],
+            'related_skills': ['docker/SKILL.md', 'debugging/SKILL.md'],
             'confidence': 'medium',
             'evidence': [
                 'Docker-related content in commits or logs',
@@ -729,7 +729,7 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
                 {'wrong': 'Over-engineering components', 'right': 'Start simple, extend when needed'},
                 {'wrong': 'No prop validation', 'right': 'TypeScript interfaces'}
             ],
-            'related_skills': ['frontend-react.md', 'testing.md'],
+            'related_skills': ['frontend-react/SKILL.md', 'testing/SKILL.md'],
             'confidence': 'medium',
             'evidence': [
                 f'Modified {len(component_changes)} component files',
@@ -755,7 +755,7 @@ def analyze_patterns(commits: List[Dict], workflow: Dict, files: List[str], diff
                 {'wrong': 'Ignoring logs', 'right': 'Check logs first'},
                 {'wrong': 'No request logging', 'right': 'Log all API requests'}
             ],
-            'related_skills': ['debugging.md', 'backend-api.md', 'error-handling.md'],
+            'related_skills': ['debugging/SKILL.md', 'backend-api/SKILL.md'],
             'confidence': 'medium',
             'evidence': [
                 'Fix-related commits detected',

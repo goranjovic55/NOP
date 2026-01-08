@@ -1,3 +1,8 @@
+---
+name: documentation
+description: Load when editing docs/, README, any .md files for documentation structure and best practices
+---
+
 # Documentation
 
 Keep docs clear, current, and close to code. Cross-project documentation patterns.

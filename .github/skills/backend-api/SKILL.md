@@ -1,3 +1,8 @@
+---
+name: backend-api
+description: Load when editing .py files in backend/, api/, routes/, endpoints/ directories for FastAPI/async SQLAlchemy patterns
+---
+
 # Backend API Patterns
 
 FastAPI with async SQLAlchemy. Applicable to any Python REST API project.

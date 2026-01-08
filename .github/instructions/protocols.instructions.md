@@ -52,14 +52,16 @@ Mark current ⊘ → Create <SUB:1> → Handle → Resume (no orphan ⊘!)
 
 ---
 
-## Skill Triggers
+## Skill Triggers (Agent Skills Standard)
 
 | Pattern | Load First |
 |---------|------------|
-| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
-| `backend/` `.py` | `backend-api.md` |
-| `docker-compose` `Dockerfile` | `docker.md` |
-| Error in output | `debugging.md` |
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react/SKILL.md` |
+| `backend/` `.py` `api/` `routes/` | `backend-api/SKILL.md` |
+| `docker-compose` `Dockerfile` `.yml` | `docker/SKILL.md` |
+| `.md` `docs/` `README` | `documentation/SKILL.md` |
+| Error in output | `debugging/SKILL.md` |
+| `test_*` `*_test.py` | `testing/SKILL.md` |
 
 ---
 

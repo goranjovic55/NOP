@@ -1,3 +1,8 @@
+---
+name: debugging
+description: Load when encountering errors, exceptions, tracebacks, failed operations, or needing to debug any issue
+---
+
 # Debugging
 
 Systematic troubleshooting for build, runtime, and infrastructure errors. Applies to any project.

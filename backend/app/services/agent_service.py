@@ -2065,8 +2065,20 @@ require (
                 )
                 logger.info(f"go mod tidy completed successfully")
                 
-                # Build command
+                # Build command - try garble if obfuscate is requested, fallback to go build
+                use_garble = False
                 if obfuscate:
+                    # Check if garble is available
+                    garble_check = subprocess.run(
+                        ['which', 'garble'],
+                        capture_output=True,
+                        text=True
+                    )
+                    use_garble = garble_check.returncode == 0
+                    if not use_garble:
+                        logger.warning("Garble not installed, using standard go build (no obfuscation)")
+                
+                if use_garble:
                     # Use garble for obfuscation
                     build_cmd = [
                         'garble',
@@ -2106,8 +2118,6 @@ require (
             except subprocess.TimeoutExpired:
                 raise RuntimeError("Compilation timeout (>120s)")
             except FileNotFoundError as e:
-                if 'garble' in str(e) and obfuscate:
-                    raise RuntimeError("Garble not installed. Install with: go install mvdan.cc/garble@latest")
-                elif 'go' in str(e):
+                if 'go' in str(e):
                     raise RuntimeError("Go compiler not found. Install Go 1.21+")
                 raise

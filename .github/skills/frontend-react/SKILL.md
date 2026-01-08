@@ -1,3 +1,8 @@
+---
+name: frontend-react
+description: Load when editing .tsx, .jsx files or working in components/, pages/ directories for React/TypeScript patterns
+---
+
 # Frontend React Patterns
 
 React/TypeScript development patterns for any project.

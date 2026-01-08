@@ -22,7 +22,8 @@ from app.schemas.agent import (
     AgentUpdate,
     AgentResponse,
     AgentListResponse,
-    AgentGenerateResponse
+    AgentGenerateResponse,
+    AgentSourceResponse
 )
 from app.services.agent_service import AgentService
 from app.services.agent_data_service import AgentDataService
@@ -293,6 +294,44 @@ async def generate_agent(
         filename=filename,
         is_binary=is_binary,
         platform=actual_platform
+    )
+
+
+@router.get("/{agent_id}/source", response_model=AgentSourceResponse)
+async def get_agent_source(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get agent source code (never compiled)
+    
+    Returns the plain text source code for viewing, editing, or manual compilation.
+    For Go agents, this returns the .go source file.
+    For Python agents, this returns the .py script.
+    """
+    agent = await AgentService.get_agent(db, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Generate source code based on type
+    if agent.agent_type == AgentType.PYTHON:
+        source_code = AgentService.generate_python_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_')}.py"
+        language = "python"
+        
+    elif agent.agent_type == AgentType.GO:
+        source_code = AgentService.generate_go_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_')}.go"
+        language = "go"
+    else:
+        raise HTTPException(status_code=400, detail="Unknown agent type")
+    
+    return AgentSourceResponse(
+        agent_id=agent.id,
+        agent_type=agent.agent_type,
+        source_code=source_code,
+        filename=filename,
+        language=language
     )
 
 

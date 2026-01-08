@@ -9,9 +9,10 @@ AI coding agent framework: **A**gent • **K**nowledge • **I**nstructions • 
 | File | Purpose |
 |------|--------|
 | `copilot-instructions.md` | Terse rules (START→WORK→END) |
-| `instructions/protocols.md` | Detailed procedures |
-| `instructions/structure.md` | File organization rules |
+| `instructions/protocols.instructions.md` | Detailed procedures |
+| `instructions/structure.instructions.md` | File organization rules |
 | `skills/INDEX.md` | Domain→skill lookup |
+| `skills/*/SKILL.md` | Agent Skills (per-domain) |
 | `scripts/*.py` | Codemap, skill suggestions |
 | `templates/*.md` | Workflow log, skill templates |
 

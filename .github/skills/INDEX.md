@@ -1,64 +1,56 @@
 # Skills Index
 
-**Load skills by domain trigger.** Query skills for patterns, not instructions.
+**Agent Skills Standard Format** - Load skills by domain trigger.
 
-## Domain Triggers (with Enforcement)
+## Domain Triggers
 
 | Touching | Load Skill | Enforcement |
 |----------|------------|-------------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/`, React | [frontend-react.md](frontend-react.md) | MANDATORY |
-| `*.py`, `backend/`, `api/`, `endpoints/`, FastAPI | [backend-api.md](backend-api.md) | MANDATORY |
-| `Dockerfile`, `docker-compose*`, `*.yml` (compose) | [docker.md](docker.md) | MANDATORY |
-| Error, exception, traceback, failed, debug | [debugging.md](debugging.md) | MANDATORY |
-| `docs/`, `README`, `*.md` (documentation) | [documentation.md](documentation.md) | **MANDATORY** ⚠️ |
-| `test_*`, `*.test.*`, `*_test.py`, pytest, jest | [testing.md](testing.md) | recommended |
-| `project_knowledge.json`, context, knowledge | [knowledge.md](knowledge.md) | recommended |
+| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | MANDATORY |
+| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | MANDATORY |
+| `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | MANDATORY |
+| Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | MANDATORY |
+| `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | **MANDATORY** ⚠️ |
+| `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | recommended |
+| `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | recommended |
 
-> ⚠️ **documentation.md has 40% compliance rate** - MUST load when editing ANY .md file
+> ⚠️ **documentation has 40% compliance rate** - MUST load when editing ANY .md file
 
 ## All Skills
 
-| Skill | Purpose | Cross-Project |
-|-------|---------|---------------|
-| [frontend-react.md](frontend-react.md) | React/TypeScript patterns, hooks, state | ✅ |
-| [backend-api.md](backend-api.md) | FastAPI CRUD, services, async patterns | ✅ |
-| [docker.md](docker.md) | Container workflow, compose, debugging | ✅ |
-| [debugging.md](debugging.md) | Systematic error troubleshooting | ✅ |
-| [documentation.md](documentation.md) | Doc structure, templates, placement | ✅ |
-| [testing.md](testing.md) | pytest, React Testing Library, mocking | ✅ |
-| [knowledge.md](knowledge.md) | Project knowledge file patterns | ✅ |
-
-## Skill Selection Rules
-
-1. **File extension triggers:** Most reliable, check first
-2. **Directory triggers:** `backend/`, `components/`, `tests/`
-3. **Content triggers:** Error messages, specific patterns
-4. **Combine skills:** Fullstack work often needs multiple
+| Skill | Path | Purpose |
+|-------|------|---------|
+| frontend-react | `frontend-react/SKILL.md` | React/TypeScript patterns, hooks, state |
+| backend-api | `backend-api/SKILL.md` | FastAPI CRUD, services, async patterns |
+| docker | `docker/SKILL.md` | Container workflow, compose, debugging |
+| debugging | `debugging/SKILL.md` | Systematic error troubleshooting |
+| documentation | `documentation/SKILL.md` | Doc structure, templates, placement |
+| testing | `testing/SKILL.md` | pytest, React Testing Library, mocking |
+| knowledge | `knowledge/SKILL.md` | Project knowledge file patterns |
 
 ## Quick Reference
 
 ```
-.tsx/.jsx → frontend-react
-.py → backend-api
-Dockerfile → docker
-error/failed → debugging
-docs/*.md → documentation
-test_* → testing
+.tsx/.jsx → frontend-react/SKILL.md
+.py → backend-api/SKILL.md
+Dockerfile → docker/SKILL.md
+error/failed → debugging/SKILL.md
+docs/*.md → documentation/SKILL.md
+test_* → testing/SKILL.md
 ```
 
-## Skill Creation
+## Skill Format (Agent Skills Standard)
 
-**When to create:** Pattern used ≥5 sessions, reusable, copy-paste ready
+Skills use YAML frontmatter:
+```yaml
+---
+name: skill-name
+description: When to load this skill
+---
+# Content...
+```
 
-**Format:** 
-- < 100 lines
-- Critical Rules section
-- Avoid table (❌/✅)
-- Code patterns with context
-- Common errors table
-- Cross-project applicable
-
-**Template:** `.github/templates/skill.md`
+**Location:** `.github/skills/skill-name/SKILL.md`
 
 ---
 

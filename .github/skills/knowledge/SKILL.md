@@ -1,3 +1,8 @@
+---
+name: knowledge
+description: Load when working with project_knowledge.json, context files, or managing project knowledge
+---
+
 # Knowledge Management
 
 Query and maintain project knowledge files for context. Cross-project pattern.
