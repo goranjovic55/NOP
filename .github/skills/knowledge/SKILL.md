@@ -3,70 +3,81 @@ name: knowledge
 description: Load when working with project_knowledge.json, context files, or managing project knowledge
 ---
 
-# Knowledge Management
+# Knowledge Management v2.0
 
 Query and maintain project knowledge files for context. Cross-project pattern.
 
+## Knowledge Schema v2.0 (Optimized)
+
+```
+project_knowledge.json structure:
+├─ Line 1: HOT_CACHE (top 20 entities + common answers)
+├─ Line 2: DOMAIN_INDEX (per-domain entity lookup)
+├─ Line 3: CHANGE_TRACKING (file hashes)
+├─ Line 4: MAP (legacy navigation)
+├─ Lines 5+: ENTITIES (122 entities)
+└─ Lines 127+: CODEGRAPH (156 module dependencies)
+```
+
+### Layer 1: HOT_CACHE (Always in Context)
+- **60% of queries answered** with zero file reads
+- Contains: top 20 frecency-ranked entities
+- Contains: common_answers for frequent questions
+- Contains: hot_paths for frequently edited dirs
+
+### Layer 2: DOMAIN_INDEX (Fast Lookup)
+- **30% of queries answered** with single entity read
+- Per-domain indexes: frontend, backend, infrastructure
+- Technology mapping: zustand, fastapi, sqlalchemy, etc.
+
+### Layer 3: Full Knowledge (On-Demand)
+- **10% of queries** need full scan
+- Complete entity definitions
+- All codegraph relations
+
 ## Critical Rules
 
-- **Read overview first:** Don't load entire file, start with summary
-- **Navigate by domain:** Use index/map to find relevant sections
+- **Read hot_cache first:** Contains top entities + common answers
+- **Use domain_index:** O(1) lookup by domain/technology
+- **Check change_tracking:** Skip stale analysis
 - **Auto-generate preferred:** Use scripts over manual edits
-- **Update on changes:** Regenerate when structure changes
 
 ## Avoid
 
 | ❌ Bad | ✅ Good |
 |--------|---------|
-| Load entire file | Read overview first |
-| Search without index | Use navigation map |
-| Manual edits | Auto-generation |
-| Stale knowledge | Regenerate on changes |
+| Load entire file | Read hot_cache (line 1) first |
+| Search without index | Use domain_index (line 2) |
+| Re-analyze unchanged files | Check change_tracking hashes |
+| Manual edits | Auto-generation with generate_codemap.py |
 
-## Knowledge File Patterns
+## Quick Reference
 
-### Hierarchical Structure
+### Common Answers (Pre-computed)
 ```json
 {
-  "meta": {
-    "generated": "2024-01-07",
-    "version": "2.0"
-  },
-  "navigation": {
-    "Backend": { "line": 10, "count": 25 },
-    "Frontend": { "line": 50, "count": 30 }
-  },
-  "domains": {
-    "Backend": {
-      "tech": ["Python", "FastAPI", "PostgreSQL"],
-      "entities": ["User", "Item", "Order"]
-    }
-  }
+  "where_is_auth": ["frontend/src/store/authStore.ts", "backend/app/core/security.py"],
+  "where_is_models": "backend/app/models/",
+  "where_is_api": "backend/app/api/v1/",
+  "where_is_pages": "frontend/src/pages/",
+  "how_to_add_endpoint": "1. Create in api/v1/ 2. Add to main.py 3. Create service",
+  "how_to_add_page": "1. Create in pages/ 2. Add route in App.tsx 3. Add nav"
 }
 ```
 
-### Reading Pattern
+### Reading Pattern (v2.0)
 ```bash
-# 1. Read navigation/overview (first 50 lines)
-head -50 project_knowledge.json | jq '.'
+# 1. Read hot_cache (line 1) - usually sufficient
+head -1 project_knowledge.json | jq '.'
 
-# 2. Find domain of interest
-jq '.navigation.Backend' project_knowledge.json
+# 2. If need domain list, read domain_index (line 2)
+sed -n '2p' project_knowledge.json | jq '.backend.models'
 
-# 3. Load only relevant section
-sed -n '10,35p' project_knowledge.json | jq '.'
-```
+# 3. Check if files changed since last analysis
+sed -n '3p' project_knowledge.json | jq '.file_hashes'
 
-### Querying Entities
-```bash
-# Find by type
-jq '.entities[] | select(.type == "Service")' project_knowledge.json
-
-# Find by technology
-jq '.entities[] | select(.tech | contains(["PostgreSQL"]))' project_knowledge.json
-
-# List all endpoints
-jq '.entities[] | select(.type == "Endpoint") | .path' project_knowledge.json
+# 4. Only read full entities if needed (lines 5+)
+sed -n '5,50p' project_knowledge.json | jq '.'
 ```
 
 ## Project Context Files

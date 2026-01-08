@@ -151,19 +151,60 @@ async def notify(email: str, background_tasks: BackgroundTasks):
     return {"status": "queued"}
 ```
 
-### WebSocket Endpoint
+### WebSocket Endpoint (Full Lifecycle)
 ```python
 from fastapi import WebSocket, WebSocketDisconnect
+from typing import Dict
+
+# Track active connections
+active_connections: Dict[str, WebSocket] = {}
 
 @router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    # Validate credentials before accepting
+    if not await validate_client(client_id):
+        await websocket.close(code=4001)
+        return
+    
     await websocket.accept()
+    active_connections[client_id] = websocket
+    logger.info(f"Client {client_id} connected. Total: {len(active_connections)}")
+    
     try:
         while True:
             data = await websocket.receive_json()
             await websocket.send_json({"echo": data})
     except WebSocketDisconnect:
         logger.info(f"Client {client_id} disconnected")
+    finally:
+        # Always cleanup - use try/finally for resource cleanup
+        active_connections.pop(client_id, None)
+        logger.info(f"Client {client_id} cleaned up. Total: {len(active_connections)}")
+```
+
+## Development Checklist
+
+- [ ] Track connections/clients by ID
+- [ ] Type hint return values  
+- [ ] Use async/await for all I/O operations
+- [ ] Use try/finally for resource cleanup
+- [ ] Validate credentials before accepting connections
+- [ ] Log all API requests in debug mode
+
+## Debugging Workflow
+
+```bash
+# 1. Check container logs first
+docker compose logs -f backend
+
+# 2. Test endpoint with curl
+curl -X GET http://localhost:8000/api/v1/items | jq
+curl -X POST http://localhost:8000/api/v1/items \
+  -H "Content-Type: application/json" \
+  -d '{"name": "test"}'
+
+# 3. Check request/response in container
+docker exec -it backend cat /var/log/app.log
 ```
 
 ## Common Errors
@@ -171,7 +212,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `422 Unprocessable Entity` | Schema validation failed | Check request body |
+| `404 Not Found` | Wrong route or missing item | Verify URL and ID |
 | `RuntimeError: attached to different loop` | Sync in async | Use async driver |
 | JSONB changes not saved | Missing flag_modified | Call `flag_modified()` |
 | Circular import | Cross-module imports | Import inside function |
 | N+1 queries | Missing eager load | Use `selectinload()` |
+| WebSocket drops silently | No heartbeat/ping | Add ping/pong mechanism |

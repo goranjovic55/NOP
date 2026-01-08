@@ -165,6 +165,53 @@ services:
       - db
 ```
 
+## Network Configuration
+
+### Subnet Management
+```yaml
+# Use unique subnets per environment to avoid conflicts
+networks:
+  dev-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16  # Development
+  test-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16  # Testing
+  prod-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16  # Production
+```
+
+### Diagnose Network Issues
+```bash
+# Inspect network for conflicts
+docker network inspect bridge
+docker network ls
+
+# Clean conflicting networks
+docker-compose down
+docker network prune
+
+# Test connectivity between containers
+docker exec container1 ping container2
+docker exec container1 curl http://container2:8000/health
+```
+
+## Infrastructure Checklist
+
+- [ ] Unique subnets per environment (172.28, 172.29, etc)
+- [ ] Add all dependencies to Dockerfile
+- [ ] Use `docker network inspect` to diagnose conflicts
+- [ ] Clean with `docker-compose down && docker network prune`
+- [ ] Rebuild containers after Dockerfile changes
+- [ ] Test dependency availability before deployment
+
 ## Common Issues
 
 | Issue | Solution |
@@ -175,3 +222,5 @@ services:
 | Out of disk space | `docker system prune -a` |
 | Build cache issues | `--no-cache` flag |
 | Permission denied | Check volume permissions |
+| Network subnet conflict | Use unique subnets per compose file |
+| Dev container rebuild needed | `devcontainer rebuild` |

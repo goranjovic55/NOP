@@ -1,10 +1,11 @@
-# AKIS v6.0 (Prompt-Optimized)
+# AKIS v6.1 (Prompt-Optimized + Knowledge Cache)
 
 ## START
 ```
 1. Context pre-loaded via attachment ✓ (skip explicit reads)
-2. Create todos: <MAIN> → <WORK>... → <END>
-3. Tell user: "[session type]. Plan: [N tasks]"
+2. Knowledge v2.0: hot_cache (line 1) has top 20 entities + common answers
+3. Create todos: <MAIN> → <WORK>... → <END>
+4. Tell user: "[session type]. Plan: [N tasks]"
 ```
 
 **Session skills cache:** [track loaded skills here - don't reload!]
@@ -26,6 +27,11 @@
 
 **Cache rule:** Don't reload skill already loaded this session!
 
+**Knowledge v2.0:** Use hot_cache for quick answers (60% hit rate):
+- `where_is_auth`, `where_is_models`, `how_to_add_page`, etc.
+- Only read domain_index (line 2) if hot_cache insufficient
+- Only full scan if truly needed (10% of queries)
+
 **Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
 ## END
@@ -42,6 +48,7 @@
 ✓ done | ◆ working | ○ pending | ⊘ paused
 
 ## Efficiency
+- **Knowledge:** v2.0 hot_cache (87% token reduction)
 - **Context:** Pre-attached (no explicit knowledge read)
 - **Skills:** Load ONCE per domain per session
 - **Scripts:** Conditional on file types

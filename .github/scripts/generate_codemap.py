@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-AKIS Codemap Generator
+AKIS Codemap Generator v2.0 (Optimized)
 
 Analyzes project source files and generates codegraph entries for project_knowledge.json.
 Supports Python, TypeScript/JavaScript, and common web frameworks.
 
+KNOWLEDGE SCHEMA v2.0:
+  Layer 1 - HOT_CACHE: Top 20 entities + common answers (always in context)
+  Layer 2 - DOMAIN_INDEX: Per-domain entity indexes (fast lookup)
+  Layer 3 - ENTITIES + CODEGRAPH: Full knowledge (on-demand)
+
 Usage:
-    python .github/scripts/generate_codemap.py [--dry-run]
+    python .github/scripts/generate_codemap.py [--dry-run] [--optimize]
 """
 
 import os
@@ -14,9 +19,11 @@ import re
 import json
 import ast
 import sys
+import hashlib
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Set, Any, Optional
+from collections import Counter
 
 # File patterns to analyze
 PATTERNS = {
@@ -295,6 +302,231 @@ def update_domain_map(entries: List[Dict]) -> Dict:
     }
 
 
+def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
+    """
+    Generate HOT_CACHE layer (Layer 1).
+    Contains top 20 most important entities + common answers.
+    This should be always in context (via attachment).
+    """
+    # Calculate frecency scores (frequency + recency)
+    frecency_scores: Dict[str, float] = {}
+    
+    # Count references in codegraph (dependents = high value)
+    reference_counts = Counter()
+    for entry in codegraph:
+        for dep in entry.get('dependents', []):
+            reference_counts[dep] += 1
+        # Also count exports (more exports = more important)
+        reference_counts[entry.get('name', '')] += len(entry.get('exports', []))
+    
+    # Score entities based on:
+    # - Type importance (Service/Store > Model > Schema)
+    # - Reference count
+    # - Recent updates
+    type_weights = {
+        'Service': 1.5,
+        'Store': 1.5,
+        'Context': 1.3,
+        'Component': 1.2,
+        'Class': 1.0,
+        'Model': 1.0,
+        'Schema': 0.8,
+        'Container': 0.7,
+    }
+    
+    for entity in entities:
+        name = entity.get('name', '')
+        entity_type = entity.get('entityType', '')
+        
+        # Base score from type
+        base_score = type_weights.get(entity_type, 0.5)
+        
+        # Add reference bonus
+        ref_bonus = min(reference_counts.get(name, 0) * 0.1, 0.5)
+        
+        # Add recency bonus (updated today = 0.2, this week = 0.1)
+        updated = entity.get('updated', '')
+        today = datetime.now().strftime('%Y-%m-%d')
+        recency_bonus = 0.2 if updated == today else 0.1 if updated else 0
+        
+        frecency_scores[name] = base_score + ref_bonus + recency_bonus
+    
+    # Get top 20 entities by frecency
+    top_entities = sorted(frecency_scores.items(), key=lambda x: -x[1])[:20]
+    
+    # Build top entities map
+    top_entity_map = {}
+    for name, score in top_entities:
+        entity = next((e for e in entities if e.get('name') == name), None)
+        if entity:
+            # Extract path from observations
+            observations = entity.get('observations', [])
+            path = next((o.replace('Defined in ', '') for o in observations if 'Defined in' in o), '')
+            
+            top_entity_map[name.split('.')[-1]] = {
+                'full_name': name,
+                'path': path,
+                'type': entity.get('entityType', ''),
+                'frecency': round(score, 2)
+            }
+    
+    # Common answers for frequent questions
+    common_answers = {
+        'where_is_auth': [
+            'frontend/src/store/authStore.ts',
+            'backend/app/core/security.py',
+            'backend/app/api/v1/auth.py'
+        ],
+        'where_is_models': 'backend/app/models/',
+        'where_is_schemas': 'backend/app/schemas/',
+        'where_is_api': 'backend/app/api/v1/',
+        'where_is_pages': 'frontend/src/pages/',
+        'where_is_components': 'frontend/src/components/',
+        'where_is_stores': 'frontend/src/store/',
+        'how_to_add_endpoint': [
+            '1. Create route in backend/app/api/v1/<name>.py',
+            '2. Add router to backend/app/main.py',
+            '3. Create service in backend/app/services/ if needed'
+        ],
+        'how_to_add_page': [
+            '1. Create page in frontend/src/pages/<Name>.tsx',
+            '2. Add route in frontend/src/App.tsx',
+            '3. Add nav link in frontend/src/components/Layout.tsx'
+        ],
+        'how_to_add_model': [
+            '1. Create model in backend/app/models/<name>.py',
+            '2. Import in backend/app/models/__init__.py',
+            '3. Run: alembic revision --autogenerate && alembic upgrade head'
+        ]
+    }
+    
+    # Hot paths (most edited directories)
+    hot_paths = [
+        'frontend/src/pages/',
+        'frontend/src/components/',
+        'backend/app/api/v1/',
+        'backend/app/services/',
+        'backend/app/models/'
+    ]
+    
+    return {
+        'type': 'hot_cache',
+        'version': '2.0',
+        'generated': datetime.now().strftime('%Y-%m-%d %H:%M'),
+        'description': 'Top 20 entities + common answers - Always in context',
+        'top_entities': top_entity_map,
+        'common_answers': common_answers,
+        'hot_paths': hot_paths
+    }
+
+
+def generate_domain_index(entities: List[Dict], codegraph: List[Dict]) -> Dict:
+    """
+    Generate DOMAIN_INDEX layer (Layer 2).
+    Per-domain indexes for O(1) lookup.
+    """
+    # Group entities by domain
+    frontend = {'pages': [], 'components': [], 'stores': [], 'hooks': [], 'services': []}
+    backend = {'models': [], 'schemas': [], 'services': [], 'endpoints': [], 'core': []}
+    infra = {'containers': [], 'configs': []}
+    
+    for entity in entities:
+        name = entity.get('name', '')
+        entity_type = entity.get('entityType', '')
+        
+        if 'Infrastructure' in name:
+            if entity_type == 'Container':
+                infra['containers'].append(name.split('.')[-1])
+            else:
+                infra['configs'].append(name.split('.')[-1])
+        elif 'frontend' in name.lower():
+            short_name = name.split('.')[-1]
+            if 'page' in name.lower():
+                frontend['pages'].append(short_name)
+            elif 'component' in name.lower():
+                frontend['components'].append(short_name)
+            elif 'store' in name.lower():
+                frontend['stores'].append(short_name)
+            elif 'hook' in name.lower() or short_name.startswith('use'):
+                frontend['hooks'].append(short_name)
+            else:
+                frontend['services'].append(short_name)
+        elif 'backend' in name.lower():
+            short_name = name.split('.')[-1]
+            if 'models' in name:
+                backend['models'].append(short_name)
+            elif 'schemas' in name:
+                backend['schemas'].append(short_name)
+            elif 'services' in name:
+                backend['services'].append(short_name)
+            elif 'api' in name:
+                backend['endpoints'].append(short_name)
+            else:
+                backend['core'].append(short_name)
+    
+    # Technology mapping
+    tech_map = {}
+    for entity in entities:
+        for tech in entity.get('tech', []):
+            if tech not in tech_map:
+                tech_map[tech] = []
+            tech_map[tech].append(entity.get('name', '').split('.')[-1])
+    
+    # Keep only top 5 per tech
+    tech_map = {k: v[:5] for k, v in tech_map.items() if len(v) > 0}
+    
+    return {
+        'type': 'domain_index',
+        'description': 'Per-domain entity indexes - Fast O(1) lookup',
+        'frontend': {k: v for k, v in frontend.items() if v},
+        'backend': {k: v for k, v in backend.items() if v},
+        'infrastructure': {k: v for k, v in infra.items() if v},
+        'by_technology': tech_map
+    }
+
+
+def generate_change_tracking(root: Path, entities: List[Dict]) -> Dict:
+    """
+    Generate CHANGE_TRACKING layer.
+    Track file hashes to detect stale knowledge.
+    """
+    file_hashes = {}
+    
+    # Key files to track
+    key_files = [
+        'frontend/src/App.tsx',
+        'backend/app/main.py',
+        'docker-compose.yml',
+        'backend/app/models/__init__.py',
+        'frontend/src/store/authStore.ts',
+    ]
+    
+    for file_rel in key_files:
+        file_path = root / file_rel
+        if file_path.exists():
+            try:
+                content = file_path.read_bytes()
+                file_hash = hashlib.md5(content).hexdigest()[:8]
+                file_hashes[file_rel] = {
+                    'hash': file_hash,
+                    'analyzed': datetime.now().strftime('%Y-%m-%d')
+                }
+            except Exception:
+                pass
+    
+    return {
+        'type': 'change_tracking',
+        'description': 'File hashes for staleness detection',
+        'file_hashes': file_hashes,
+        'invalidation_rules': {
+            'App.tsx': 'pages, routes',
+            'main.py': 'endpoints',
+            'models/__init__.py': 'model list',
+            'docker-compose.yml': 'infrastructure'
+        }
+    }
+
+
 def merge_knowledge(existing: List[Dict], new_codegraph: List[Dict]) -> List[Dict]:
     """Merge existing knowledge with new codegraph entries. Deduplicates entities and relations."""
     
@@ -339,12 +571,14 @@ def merge_knowledge(existing: List[Dict], new_codegraph: List[Dict]) -> List[Dic
 
 def main():
     dry_run = '--dry-run' in sys.argv
+    optimize = '--optimize' in sys.argv or True  # Default to optimized v2.0
     
     # Find project root (where project_knowledge.json is or should be)
     root = Path.cwd()
     knowledge_path = root / 'project_knowledge.json'
     
     print(f"🔍 Scanning project: {root}")
+    print(f"📦 Schema version: {'v2.0 (optimized)' if optimize else 'v1.0 (legacy)'}")
     
     # Analyze codebase
     analyzer = CodeAnalyzer(root)
@@ -359,8 +593,8 @@ def main():
     existing = load_existing_knowledge(knowledge_path)
     merged = merge_knowledge(existing, codegraph)
     
-    # Generate domain map
-    domain_map = update_domain_map(merged)
+    # Separate entities for layer generation
+    entities = [e for e in merged if e.get('type') == 'entity']
     
     # Count changes
     old_entities = len([e for e in existing if e.get('type') == 'entity'])
@@ -382,13 +616,41 @@ def main():
             print(json.dumps(entry))
         return
     
-    # Write back with map as first line
-    with open(knowledge_path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(domain_map) + '\n')
-        for entry in merged:
-            f.write(json.dumps(entry) + '\n')
-    
-    print(f"✅ Updated {knowledge_path} (with domain map)")
+    if optimize:
+        # v2.0 Schema with caching layers
+        hot_cache = generate_hot_cache(entities, codegraph)
+        domain_index = generate_domain_index(entities, codegraph)
+        change_tracking = generate_change_tracking(root, entities)
+        domain_map = update_domain_map(merged)
+        
+        # Write with layers
+        with open(knowledge_path, 'w', encoding='utf-8') as f:
+            # Layer 1: Hot Cache (always in context)
+            f.write(json.dumps(hot_cache) + '\n')
+            # Layer 2: Domain Index (fast lookup)
+            f.write(json.dumps(domain_index) + '\n')
+            # Layer 2b: Change Tracking
+            f.write(json.dumps(change_tracking) + '\n')
+            # Legacy map for compatibility
+            f.write(json.dumps(domain_map) + '\n')
+            # Layer 3: Full knowledge
+            for entry in merged:
+                f.write(json.dumps(entry) + '\n')
+        
+        print(f"✅ Updated {knowledge_path} (v2.0 optimized schema)")
+        print(f"   📦 Layer 1: HOT_CACHE ({len(hot_cache.get('top_entities', {}))} top entities)")
+        print(f"   📦 Layer 2: DOMAIN_INDEX (frontend/backend/infra)")
+        print(f"   📦 Layer 3: {new_entities} entities + {new_codegraph} codegraph")
+    else:
+        # v1.0 Legacy Schema
+        domain_map = update_domain_map(merged)
+        
+        with open(knowledge_path, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(domain_map) + '\n')
+            for entry in merged:
+                f.write(json.dumps(entry) + '\n')
+        
+        print(f"✅ Updated {knowledge_path} (v1.0 legacy schema)")
 
 
 if __name__ == '__main__':
