@@ -1142,6 +1142,26 @@ const Agents: React.FC = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Kill Agent Action */}
+                  <div className="bg-cyber-dark border border-cyber-red/50 rounded p-3 hover:border-cyber-red hover:bg-cyber-red/10 transition-all">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-cyber-red font-bold uppercase text-xs">◆ Terminate Agent</h4>
+                        <p className="text-cyber-gray-light text-[10px]">Kill process and remove from database</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleKillAgent(sidebarAgent.id, sidebarAgent.name);
+                          setShowSidebar(false);
+                          setSidebarAgent(null);
+                        }}
+                        className="btn-base btn-sm btn-red border-2 border-cyber-red hover:bg-cyber-red hover:text-black"
+                      >
+                        ✕ Kill
+                      </button>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
