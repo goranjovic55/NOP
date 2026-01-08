@@ -208,6 +208,30 @@
 
 **Audience**: Contributors, Developers
 
+### [AGENT_NEW.md](development/AGENT_NEW.md)
+**agent_new**
+Script: scripts/agent_new.py
+
+### [CREATE_FRESH_AGENT.md](development/CREATE_FRESH_AGENT.md)
+**create_fresh_agent**
+Script: scripts/create_fresh_agent.py
+
+### [GENERATE_KNOWLEDGE.md](development/GENERATE_KNOWLEDGE.md)
+**generate_knowledge**
+Script: scripts/generate_knowledge.py
+
+### [TEST_AGENT.md](development/TEST_AGENT.md)
+**test_agent**
+Script: scripts/test_agent.py
+
+### [TEST_POV_FILTERING.md](development/TEST_POV_FILTERING.md)
+**test_pov_filtering**
+Script: scripts/test_pov_filtering.py
+
+### [TEST_SOCKS_E2E.md](development/TEST_SOCKS_E2E.md)
+**test_socks_e2e**
+Script: scripts/test_socks_e2e.py
+
 ---
 
 ### [TESTING.md](development/TESTING.md)

@@ -26,8 +26,9 @@
 ```
 1. Check ⊘ orphans → close all
 2. python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
-3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-4. THEN commit
+3. python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
+4. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+5. THEN commit
 ```
 
 ## Symbols

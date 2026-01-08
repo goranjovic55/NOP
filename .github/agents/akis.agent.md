@@ -109,9 +109,10 @@ NO ORPHAN ⊘ at session end
 2. Run tests if test files exist for modified code
 3. Run: git diff --stat (verify expected files changed)
 4. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
-5. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
-6. Show summary
-7. THEN commit
+5. Run: python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
+6. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
+7. Show summary
+8. THEN commit
 ```
 
 ### Workflow Log

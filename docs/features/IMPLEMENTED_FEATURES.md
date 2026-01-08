@@ -46,6 +46,7 @@ Complete feature list for Network Observatory Platform.
 - ✅ JWT authentication
 - ✅ WebSocket real-time updates
 
+- feat: Agent template system with View Source functionality
 ## Quick Start
 
 ```bash

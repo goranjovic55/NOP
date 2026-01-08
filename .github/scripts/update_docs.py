@@ -2,312 +2,408 @@
 """
 AKIS Documentation Updater
 
-Analyzes session changes and suggests lightweight documentation updates.
-Runs during LEARN phase to keep docs current without bloat.
+Analyzes session changes and generates/updates documentation.
+Creates new docs only when necessary, merges with existing structure.
+
+Principles:
+1. Minimal: Only essential information, no filler
+2. Merge-first: Update existing docs before creating new
+3. Indexed: All new docs registered in INDEX.md
+4. Structured: Follow docs/{category}/ convention
 
 Usage:
-    python .github/scripts/update_docs.py [--dry-run]
-    
-Output: JSON array of documentation update suggestions for agent to review
+    python .github/scripts/update_docs.py [--dry-run] [--json]
 """
 
 import json
 import re
 import subprocess
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Set, Optional
+from datetime import datetime
+from typing import List, Dict, Any, Optional, Tuple
 
 
-def get_recent_commits(hours: int = 2) -> List[Dict[str, str]]:
-    """Get commits from the last N hours."""
+# Documentation structure
+DOC_STRUCTURE = {
+    'guides': 'How-to guides, setup, deployment',
+    'features': 'Feature documentation',
+    'technical': 'API references, specs',
+    'architecture': 'System design, ADRs',
+    'development': 'Contributing, testing',
+    'design': 'UI/UX specs',
+    'archive': 'Historical, deprecated'
+}
+
+# File pattern to doc category mapping
+CATEGORY_MAP = {
+    'backend/app/api/': 'technical',
+    'backend/app/models/': 'architecture',
+    'backend/app/services/': 'technical',
+    'frontend/src/pages/': 'features',
+    'frontend/src/components/': 'design',
+    'docker': 'guides',
+    '.github/': 'development',
+    'scripts/': 'development',
+}
+
+# Existing docs to update (pattern -> doc path)
+UPDATE_TARGETS = {
+    'backend/app/api/': 'docs/technical/API_rest_v1.md',
+    'backend/app/models/': 'docs/architecture/ARCH_system_v1.md',
+    'docker': 'docs/guides/DEPLOYMENT.md',
+    'frontend/src/': 'docs/design/UI_UX_SPEC.md',
+}
+
+
+def get_session_data() -> Tuple[List[Dict], List[str], Optional[Dict]]:
+    """Get commits, changed files, and workflow log."""
+    commits = []
+    files = []
+    workflow = None
+    
+    # Get recent commits
     try:
-        since = (datetime.now() - timedelta(hours=hours)).isoformat()
         result = subprocess.run(
-            ['git', 'log', f'--since={since}', '--pretty=format:%H|%s|%b'],
-            capture_output=True,
-            text=True,
-            check=True
+            ['git', 'log', '-5', '--pretty=format:%H|%s|%an'],
+            capture_output=True, text=True, check=True
         )
-        
-        commits = []
         for line in result.stdout.strip().split('\n'):
             if '|' in line:
-                parts = line.split('|', 2)
+                parts = line.split('|')
                 commits.append({
-                    'hash': parts[0],
+                    'hash': parts[0][:8],
                     'subject': parts[1],
-                    'body': parts[2] if len(parts) > 2 else ''
+                    'author': parts[2] if len(parts) > 2 else ''
                 })
-        return commits
     except subprocess.CalledProcessError:
-        return []
-
-
-def get_changed_files() -> List[str]:
-    """Get list of files modified in recent commits."""
+        pass
+    
+    # Get changed files
     try:
         result = subprocess.run(
             ['git', 'diff', '--name-only', 'HEAD~5', 'HEAD'],
-            capture_output=True,
-            text=True,
-            check=True
+            capture_output=True, text=True, check=True
         )
-        return [f for f in result.stdout.strip().split('\n') if f]
+        files = [f for f in result.stdout.strip().split('\n') if f]
     except subprocess.CalledProcessError:
-        return []
-
-
-def get_recent_workflow_log() -> Optional[Dict[str, Any]]:
-    """Get the most recent workflow log."""
+        pass
+    
+    # Get workflow log
     log_dir = Path('log/workflow')
-    if not log_dir.exists():
+    if log_dir.exists():
+        logs = sorted(log_dir.glob('*.md'), key=lambda p: p.stat().st_mtime, reverse=True)
+        if logs:
+            content = logs[0].read_text()
+            summary = re.search(r'## Summary\s*\n+(.+?)(?=\n##|\Z)', content, re.DOTALL)
+            workflow = {
+                'file': logs[0].name,
+                'summary': summary.group(1).strip() if summary else ''
+            }
+    
+    return commits, files, workflow
+
+
+def detect_category(file_path: str) -> str:
+    """Detect documentation category for a file."""
+    for pattern, category in CATEGORY_MAP.items():
+        if pattern in file_path:
+            return category
+    return 'technical'  # Default
+
+
+def find_existing_doc(topic: str, category: str) -> Optional[Path]:
+    """Find existing documentation for a topic."""
+    docs_dir = Path(f'docs/{category}')
+    if not docs_dir.exists():
         return None
     
-    log_files = sorted(log_dir.glob('*.md'), reverse=True)
-    if not log_files:
-        return None
+    # Search for docs mentioning the topic
+    topic_lower = topic.lower()
+    for doc in docs_dir.glob('*.md'):
+        content = doc.read_text().lower()
+        if topic_lower in content or topic_lower in doc.name.lower():
+            return doc
     
-    latest = log_files[0]
-    content = latest.read_text()
-    
-    # Extract sections
-    summary_match = re.search(r'## Summary\n\n(.+?)(?=\n##|\Z)', content, re.DOTALL)
-    changes_match = re.search(r'## Changes\n\n(.+?)(?=\n##|\Z)', content, re.DOTALL)
-    
-    return {
-        'file': latest.name,
-        'summary': summary_match.group(1).strip() if summary_match else '',
-        'changes': changes_match.group(1).strip() if changes_match else ''
-    }
+    return None
 
 
-def categorize_files(files: List[str]) -> Dict[str, List[str]]:
-    """Categorize changed files by type."""
-    categories = {
-        'backend': [],
-        'frontend': [],
-        'infrastructure': [],
-        'docs': [],
-        'tests': [],
-        'config': []
-    }
+def extract_function_info(file_path: str) -> List[Dict[str, str]]:
+    """Extract function/class info from a Python file."""
+    functions = []
+    path = Path(file_path)
     
-    for file in files:
-        if file.startswith('backend/'):
-            categories['backend'].append(file)
-        elif file.startswith('frontend/'):
-            categories['frontend'].append(file)
-        elif file.startswith('docker') or 'Dockerfile' in file or file.endswith('.yml'):
-            categories['infrastructure'].append(file)
-        elif file.startswith('docs/'):
-            categories['docs'].append(file)
-        elif 'test' in file or file.endswith('_test.py') or file.endswith('.test.ts'):
-            categories['tests'].append(file)
-        elif file.endswith('.json') or file.endswith('.env') or 'config' in file:
-            categories['config'].append(file)
+    if not path.exists() or not file_path.endswith('.py'):
+        return functions
     
-    return {k: v for k, v in categories.items() if v}
+    try:
+        content = path.read_text()
+        
+        # Extract functions/classes with docstrings
+        pattern = r'(?:def|class)\s+(\w+)\s*\([^)]*\).*?:\s*(?:"""([^"]*?)"""|\'\'\'([^\']*?)\'\'\')?'
+        matches = re.findall(pattern, content, re.DOTALL)
+        
+        for match in matches:
+            name = match[0]
+            docstring = match[1] or match[2] or ''
+            if not name.startswith('_'):
+                functions.append({
+                    'name': name,
+                    'doc': docstring.strip().split('\n')[0] if docstring else ''
+                })
+    except Exception:
+        pass
+    
+    return functions
 
 
-def find_related_docs(changed_files: List[str], all_docs: List[Path]) -> Set[str]:
-    """Find documentation that might be affected by file changes."""
-    related = set()
+def generate_minimal_doc(topic: str, category: str, info: Dict[str, Any]) -> str:
+    """Generate minimal documentation content."""
+    date = datetime.now().strftime('%Y-%m-%d')
     
-    # Map of file patterns to documentation
-    doc_mappings = {
-        'backend/app/api/': ['docs/technical/API_rest_v1.md'],
-        'backend/app/models/': ['docs/architecture/ARCH_system_v1.md'],
-        'docker': ['docs/DEPLOYMENT.md', 'docs/DOCKER_REBUILD.md', 'docs/guides/DEPLOYMENT.md'],
-        'frontend/src/components/': ['docs/design/UI_UX_SPEC.md'],
-        'README.md': ['docs/INDEX.md'],
-        '.github/': ['docs/development/CONTRIBUTING.md']
-    }
+    content = f"""# {topic}
+
+**Category**: {category} | **Updated**: {date}
+
+## Overview
+
+{info.get('summary', 'Auto-generated documentation.')}
+
+"""
     
-    for file in changed_files:
-        for pattern, docs in doc_mappings.items():
-            if pattern in file:
-                related.update(docs)
+    if info.get('functions'):
+        content += "## Reference\n\n"
+        content += "| Function | Description |\n"
+        content += "|----------|-------------|\n"
+        for func in info['functions'][:10]:
+            content += f"| `{func['name']}` | {func['doc'][:50]} |\n"
+        content += "\n"
     
-    return related
+    if info.get('files'):
+        content += "## Related Files\n\n"
+        for f in info['files'][:5]:
+            content += f"- `{f}`\n"
+        content += "\n"
+    
+    return content
 
 
-def analyze_impact(commits: List[Dict], files: List[str], workflow: Optional[Dict]) -> List[Dict[str, Any]]:
-    """Analyze session impact and suggest documentation updates."""
-    suggestions = []
-    categories = categorize_files(files)
+def update_index(doc_path: Path, title: str, description: str) -> bool:
+    """Add new documentation to INDEX.md."""
+    index_path = Path('docs/INDEX.md')
+    if not index_path.exists():
+        return False
     
-    # Find all docs
-    docs_dir = Path('docs')
-    all_docs = list(docs_dir.glob('**/*.md')) if docs_dir.exists() else []
+    content = index_path.read_text()
     
-    # Find potentially affected docs
-    affected_docs = find_related_docs(files, all_docs)
+    # Check if already indexed
+    relative_path = str(doc_path.relative_to('docs'))
+    if relative_path in content:
+        return False
     
-    # Pattern 1: API endpoint changes
-    if categories.get('backend') and any('api' in f or 'endpoint' in f for f in categories['backend']):
-        api_files = [f for f in categories['backend'] if 'api' in f or 'endpoint' in f]
-        suggestions.append({
-            'doc': 'docs/technical/API_rest_v1.md',
-            'reason': 'API endpoints modified',
-            'type': 'update',
-            'priority': 'high',
-            'changes': api_files[:5],
-            'suggestion': 'Review and update API documentation for modified endpoints',
-            'sections': ['Endpoints', 'Request/Response schemas'],
-            'keep_lightweight': True
-        })
+    # Find the appropriate section
+    category = doc_path.parent.name
+    section_pattern = rf'(## {category.title()}\s*\n)'
+    match = re.search(section_pattern, content, re.IGNORECASE)
     
-    # Pattern 2: Frontend UI changes
-    if categories.get('frontend') and any('component' in f or 'page' in f for f in categories['frontend']):
-        ui_files = [f for f in categories['frontend'] if 'component' in f or 'page' in f]
-        suggestions.append({
-            'doc': 'docs/design/UI_UX_SPEC.md',
-            'reason': 'UI components modified',
-            'type': 'update',
-            'priority': 'medium',
-            'changes': ui_files[:5],
-            'suggestion': 'Update component documentation if new patterns introduced',
-            'sections': ['Component library', 'Design patterns'],
-            'keep_lightweight': True
-        })
+    if match:
+        # Add entry after section header
+        entry = f"\n### [{doc_path.name}]({relative_path})\n**{title}**\n{description}\n"
+        insert_pos = match.end()
+        
+        # Find next section to insert before
+        next_section = re.search(r'\n---\n|\n## ', content[insert_pos:])
+        if next_section:
+            insert_pos += next_section.start()
+        
+        new_content = content[:insert_pos] + entry + content[insert_pos:]
+        index_path.write_text(new_content)
+        return True
     
-    # Pattern 3: Infrastructure/Docker changes
-    if categories.get('infrastructure'):
-        suggestions.append({
-            'doc': 'docs/DEPLOYMENT.md',
-            'reason': 'Infrastructure configuration modified',
-            'type': 'update',
-            'priority': 'high',
-            'changes': categories['infrastructure'][:5],
-            'suggestion': 'Update deployment docs with configuration changes',
-            'sections': ['Configuration', 'Docker setup'],
-            'keep_lightweight': True
-        })
-    
-    # Pattern 4: New features (from commit messages)
-    if commits:
-        feature_commits = [c for c in commits if 'feat' in c['subject'].lower() or 'feature' in c['subject'].lower()]
-        if feature_commits:
-            suggestions.append({
-                'doc': 'docs/features/IMPLEMENTED_FEATURES.md',
-                'reason': 'New feature implemented',
-                'type': 'append',
-                'priority': 'medium',
-                'changes': [c['subject'] for c in feature_commits],
-                'suggestion': 'Add brief feature entry to implemented features list',
-                'sections': ['Features list'],
-                'keep_lightweight': True
-            })
-    
-    # Pattern 5: Architecture changes (models, services)
-    if categories.get('backend') and any('model' in f or 'service' in f for f in categories['backend']):
-        arch_files = [f for f in categories['backend'] if 'model' in f or 'service' in f]
-        suggestions.append({
-            'doc': 'docs/architecture/ARCH_system_v1.md',
-            'reason': 'Data models or services modified',
-            'type': 'review',
-            'priority': 'low',
-            'changes': arch_files[:5],
-            'suggestion': 'Review if architecture diagrams need updates (only for major changes)',
-            'sections': ['Data models', 'Service layer'],
-            'keep_lightweight': True
-        })
-    
-    # Pattern 6: README updates (for user-facing changes)
-    user_facing = any('page' in f or 'component' in f for f in files) or any('api' in f for f in files)
-    if user_facing and 'README.md' not in files:
-        suggestions.append({
-            'doc': 'README.md',
-            'reason': 'User-facing changes made but README not updated',
-            'type': 'review',
-            'priority': 'medium',
-            'changes': [],
-            'suggestion': 'Check if README needs updates for user-facing changes',
-            'sections': ['Features', 'Usage'],
-            'keep_lightweight': True
-        })
-    
-    # Filter suggestions to only those with actual impact
-    filtered = []
-    for s in suggestions:
-        # Check if doc exists
-        doc_path = Path(s['doc'])
-        if doc_path.exists() or s['type'] == 'create':
-            filtered.append(s)
-    
-    return filtered
+    return False
 
 
-def generate_update_plan(suggestions: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Generate a lightweight documentation update plan."""
-    if not suggestions:
-        return {
-            'has_updates': False,
-            'message': 'No documentation updates needed'
-        }
+def append_to_existing(doc_path: Path, section: str, content: str) -> bool:
+    """Append content to existing doc section."""
+    if not doc_path.exists():
+        return False
     
-    # Group by priority
-    high_priority = [s for s in suggestions if s['priority'] == 'high']
-    medium_priority = [s for s in suggestions if s['priority'] == 'medium']
-    low_priority = [s for s in suggestions if s['priority'] == 'low']
+    doc_content = doc_path.read_text()
     
-    plan = {
-        'has_updates': True,
-        'summary': f'{len(suggestions)} documentation update(s) suggested',
-        'high_priority': high_priority,
-        'medium_priority': medium_priority,
-        'low_priority': low_priority,
-        'principles': [
-            'Keep updates minimal and focused',
-            'Only update sections directly affected by changes',
-            'Avoid verbose explanations',
-            'Prefer bullet points over paragraphs',
-            'Update dates on modified sections'
-        ]
+    # Find section
+    section_pattern = rf'(## {section}\s*\n)'
+    match = re.search(section_pattern, doc_content, re.IGNORECASE)
+    
+    if match:
+        # Find end of section (next ## or end)
+        section_start = match.end()
+        next_section = re.search(r'\n## ', doc_content[section_start:])
+        
+        if next_section:
+            insert_pos = section_start + next_section.start()
+        else:
+            insert_pos = len(doc_content)
+        
+        # Insert content
+        new_content = doc_content[:insert_pos] + '\n' + content + doc_content[insert_pos:]
+        doc_path.write_text(new_content)
+        return True
+    
+    return False
+
+
+def analyze_and_update(dry_run: bool = False) -> Dict[str, Any]:
+    """Analyze session and perform documentation updates."""
+    commits, files, workflow = get_session_data()
+    
+    results = {
+        'session': {
+            'commits': len(commits),
+            'files': len(files),
+            'workflow': workflow['file'] if workflow else None
+        },
+        'updates': [],
+        'created': [],
+        'indexed': [],
+        'skipped': []
     }
     
-    return plan
+    if not files:
+        results['message'] = 'No changed files detected'
+        return results
+    
+    # Group files by category
+    categorized: Dict[str, List[str]] = {}
+    for f in files:
+        if f.startswith('docs/') or f.endswith('.md'):
+            continue  # Skip docs themselves
+        cat = detect_category(f)
+        categorized.setdefault(cat, []).append(f)
+    
+    # Process each category
+    for category, cat_files in categorized.items():
+        # Check for existing doc to update
+        for pattern, target in UPDATE_TARGETS.items():
+            if any(pattern in f for f in cat_files):
+                target_path = Path(target)
+                if target_path.exists():
+                    results['updates'].append({
+                        'doc': target,
+                        'reason': f'{len(cat_files)} related files changed',
+                        'files': cat_files[:5]
+                    })
+    
+    # Check for new feature commits
+    feature_commits = [c for c in commits if 
+                       any(kw in c['subject'].lower() 
+                           for kw in ['feat:', 'feature:', 'add:', 'implement:'])]
+    
+    if feature_commits:
+        impl_path = Path('docs/features/IMPLEMENTED_FEATURES.md')
+        if impl_path.exists():
+            feature_entries = '\n'.join([
+                f"- {c['subject']}" for c in feature_commits
+            ])
+            
+            if not dry_run:
+                append_to_existing(impl_path, 'Features', feature_entries)
+                results['updates'].append({
+                    'doc': str(impl_path),
+                    'reason': 'New features added',
+                    'added': [c['subject'] for c in feature_commits]
+                })
+            else:
+                results['updates'].append({
+                    'doc': str(impl_path),
+                    'reason': 'Would add new features',
+                    'features': [c['subject'] for c in feature_commits]
+                })
+    
+    # Check for new scripts that need documentation
+    new_scripts = [f for f in files if f.startswith('scripts/') and f.endswith('.py')]
+    for script in new_scripts:
+        script_name = Path(script).stem
+        existing = find_existing_doc(script_name, 'development')
+        
+        if not existing:
+            # Check if script is significant (has docstring)
+            funcs = extract_function_info(script)
+            if funcs:
+                doc_name = f"{script_name.upper()}.md"
+                doc_path = Path(f'docs/development/{doc_name}')
+                
+                if not dry_run and not doc_path.exists():
+                    info = {
+                        'summary': f'Documentation for {script_name} script.',
+                        'functions': funcs,
+                        'files': [script]
+                    }
+                    content = generate_minimal_doc(script_name, 'development', info)
+                    doc_path.parent.mkdir(parents=True, exist_ok=True)
+                    doc_path.write_text(content)
+                    results['created'].append(str(doc_path))
+                    
+                    # Update index
+                    if update_index(doc_path, script_name, f'Script: {script}'):
+                        results['indexed'].append(str(doc_path))
+                else:
+                    results['skipped'].append({
+                        'file': script,
+                        'reason': 'Would create doc' if dry_run else 'Already exists'
+                    })
+    
+    return results
+
+
+def format_report(results: Dict[str, Any]) -> str:
+    """Format results as human-readable report."""
+    lines = [
+        '📚 AKIS Documentation Updater',
+        '=' * 40,
+        f"Session: {results['session']['commits']} commits, {results['session']['files']} files",
+        ''
+    ]
+    
+    if results.get('updates'):
+        lines.append('📝 Updates:')
+        for u in results['updates']:
+            lines.append(f"  • {u['doc']}: {u['reason']}")
+    
+    if results.get('created'):
+        lines.append('\n✨ Created:')
+        for c in results['created']:
+            lines.append(f"  • {c}")
+    
+    if results.get('indexed'):
+        lines.append('\n📋 Indexed:')
+        for i in results['indexed']:
+            lines.append(f"  • {i}")
+    
+    if not results.get('updates') and not results.get('created'):
+        lines.append('✓ No documentation updates needed')
+    
+    return '\n'.join(lines)
 
 
 def main():
-    """Generate documentation update suggestions from current session."""
+    """Run documentation updater."""
     import sys
     dry_run = '--dry-run' in sys.argv
+    json_mode = '--json' in sys.argv
     
-    print("📚 Analyzing session for documentation updates...")
+    print("📚 AKIS Documentation Updater")
+    print("=" * 40)
     
-    # Gather session data
-    commits = get_recent_commits(hours=2)
-    files = get_changed_files()
-    workflow = get_recent_workflow_log()
+    results = analyze_and_update(dry_run)
     
-    print(f"📊 Session data: {len(commits)} commits, {len(files)} files changed")
-    
-    # Analyze impact
-    suggestions = analyze_impact(commits, files, workflow)
-    
-    # Generate plan
-    plan = generate_update_plan(suggestions)
-    
-    # Output as JSON for agent
-    output = {
-        'session': {
-            'commits': len(commits),
-            'files_changed': len(files),
-            'workflow_log': workflow['file'] if workflow else None
-        },
-        'plan': plan
-    }
-    
-    print(json.dumps(output, indent=2))
+    if json_mode:
+        print(json.dumps(results, indent=2))
+    else:
+        print(format_report(results))
     
     if dry_run:
-        print("\n🔍 DRY RUN - Suggestions shown above")
-        return
+        print("\n🔍 DRY RUN - No changes made")
     
-    # Return 0 if updates needed, 1 if none
-    return 0 if plan['has_updates'] else 1
+    return 0
 
 
 if __name__ == '__main__':

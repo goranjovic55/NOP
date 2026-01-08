@@ -15,9 +15,10 @@ Interrupt: ⊘ current → <SUB:N> → handle → resume
 ## END
 1. Check ⊘ orphans
 2. Run: generate_codemap.py && suggest_skill.py
-3. Create workflow log
-4. Wait for approval
-5. Commit
+3. Run: session_cleanup.py && update_docs.py
+4. Create workflow log
+5. Wait for approval
+6. Commit
 
 ## Skill Triggers
 | Pattern | Skill |
