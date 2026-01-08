@@ -91,6 +91,7 @@ After every 3 ✓ tasks:
 | `error/traceback/failed` | `debugging/SKILL.md` |
 | `test_*/*_test.py` | `testing/SKILL.md` |
 | `project_knowledge.json` | `knowledge/SKILL.md` |
+| `.github/copilot-instructions*/.github/skills/*` | `akis-development/SKILL.md` |
 
 ### Interrupts
 ```
