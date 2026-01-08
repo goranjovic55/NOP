@@ -71,16 +71,16 @@ EDGE_CASES = [
     ),
     Scenario(
         name="skip_skill_loading",
-        description="LLM edits .tsx file without loading frontend-react.md",
+        description="LLM edits .tsx file without loading frontend-react/SKILL.md",
         trigger="Editing file matching skill trigger",
         expected_action="Load matching skill file BEFORE editing",
         failure_mode="Eager to make progress, skips skill"
     ),
     Scenario(
         name="error_without_debugging",
-        description="LLM sees error, tries random fixes without loading debugging.md",
+        description="LLM sees error, tries random fixes without loading debugging/SKILL.md",
         trigger="Error in command output",
-        expected_action="Load debugging.md, follow systematic approach",
+        expected_action="Load debugging/SKILL.md, follow systematic approach",
         failure_mode="'Let me just try...'"
     ),
     Scenario(
@@ -131,7 +131,7 @@ EDGE_CASES = [
         name="wrong_file_location",
         description="LLM creates doc in root instead of docs/",
         trigger="Creating new file",
-        expected_action="Check structure.md, place in correct location",
+        expected_action="Check structure.instructions.md, place in correct location",
         failure_mode="Creates where convenient, not where correct"
     ),
     
@@ -220,7 +220,7 @@ def check_scenario_coverage(scenario: Scenario, instructions: Dict[str, str]) ->
     # Keywords that indicate coverage
     keywords = {
         "skip_knowledge_loading": ["project_knowledge.json", "lines 1-50", "START", "first"],
-        "partial_knowledge_load": ["INDEX.md", "structure.md", "todos"],
+        "partial_knowledge_load": ["INDEX.md", "structure.instructions.md", "todos"],
         "no_todo_creation": ["<MAIN>", "<WORK>", "<END>", "Create todos"],
         "work_without_todo": ["quick fix", "no edit", "todo first", "needs a todo"],
         "skip_skill_loading": ["Skill before edit", "trigger", "Load"],
@@ -338,8 +338,8 @@ def main():
     # Load instruction files (merged structure)
     instructions = {
         'copilot-instructions.md': load_instruction_file('.github/copilot-instructions.md'),
-        'protocols.md': load_instruction_file('.github/instructions/protocols.md'),
-        'structure.md': load_instruction_file('.github/instructions/structure.md'),
+        'protocols.instructions.md': load_instruction_file('.github/instructions/protocols.instructions.md'),
+        'structure.instructions.md': load_instruction_file('.github/instructions/structure.instructions.md'),
     }
     
     print("\n📁 Instruction Files Loaded:")

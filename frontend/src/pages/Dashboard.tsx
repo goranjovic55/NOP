@@ -4,6 +4,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import ForceGraph2D from 'react-force-graph-2d';
 import { dashboardService, SystemEvent } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { CyberCard } from '../components/CyberUI';
 
 // Time ago helper
@@ -54,6 +55,7 @@ const CombinedStatCard: React.FC<{
 
 const Dashboard: React.FC = () => {
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const navigate = useNavigate();
   const topologyRef = useRef<HTMLDivElement>(null);
   
@@ -81,8 +83,8 @@ const Dashboard: React.FC = () => {
 
     try {
       const [assetStats, trafficStats, recentEvents] = await Promise.all([
-        dashboardService.getAssetStats(token),
-        dashboardService.getTrafficStats(token),
+        dashboardService.getAssetStats(token, activeAgent?.id),
+        dashboardService.getTrafficStats(token, activeAgent?.id),
         dashboardService.getEvents(token, 5)
       ]);
 
@@ -175,7 +177,7 @@ const Dashboard: React.FC = () => {
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, activeAgent]);
 
   if (loading) {
     return (

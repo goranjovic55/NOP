@@ -1,33 +1,56 @@
 # Skills Index
 
-**Load skills by domain trigger.** Query skills for patterns, not instructions.
+**Agent Skills Standard Format** - Load skills by domain trigger.
 
 ## Domain Triggers
 
-| Touching | Load Skill |
-|----------|------------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react.md](frontend-react.md) |
-| `backend/app/`, `endpoints/`, `*.py` API | [backend-api.md](backend-api.md) |
-| `docker-compose*`, `Dockerfile` | [docker.md](docker.md) |
-| Error/exception in output | [debugging.md](debugging.md) |
-| Creating/updating docs | [documentation.md](documentation.md) |
+| Touching | Load Skill | Enforcement |
+|----------|------------|-------------|
+| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | MANDATORY |
+| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | MANDATORY |
+| `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | MANDATORY |
+| Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | MANDATORY |
+| `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | **MANDATORY** ⚠️ |
+| `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | recommended |
+| `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | recommended |
+
+> ⚠️ **documentation has 40% compliance rate** - MUST load when editing ANY .md file
 
 ## All Skills
 
-| Skill | Purpose |
-|-------|---------|
-| [frontend-react.md](frontend-react.md) | React/JSX patterns, POV mode, hooks |
-| [backend-api.md](backend-api.md) | FastAPI CRUD, services, WebSocket |
-| [docker.md](docker.md) | Compose files, hot-reload, dev workflow |
-| [debugging.md](debugging.md) | Build/runtime errors, troubleshooting |
-| [documentation.md](documentation.md) | Doc structure, templates, placement |
-| [knowledge.md](knowledge.md) | project_knowledge.json queries |
-| [ui-consistency.md](ui-consistency.md) | Cyberpunk theme, CyberUI components |
+| Skill | Path | Purpose |
+|-------|------|---------|
+| frontend-react | `frontend-react/SKILL.md` | React/TypeScript patterns, hooks, state |
+| backend-api | `backend-api/SKILL.md` | FastAPI CRUD, services, async patterns |
+| docker | `docker/SKILL.md` | Container workflow, compose, debugging |
+| debugging | `debugging/SKILL.md` | Systematic error troubleshooting |
+| documentation | `documentation/SKILL.md` | Doc structure, templates, placement |
+| testing | `testing/SKILL.md` | pytest, React Testing Library, mocking |
+| knowledge | `knowledge/SKILL.md` | Project knowledge file patterns |
 
-## Skill Creation
+## Quick Reference
 
-**When:** Pattern used ≥5 sessions • Reusable • Copy-paste ready  
-**Format:** <50 lines, use `.github/templates/skill.md`
+```
+.tsx/.jsx → frontend-react/SKILL.md
+.py → backend-api/SKILL.md
+Dockerfile → docker/SKILL.md
+error/failed → debugging/SKILL.md
+docs/*.md → documentation/SKILL.md
+test_* → testing/SKILL.md
+```
+
+## Skill Format (Agent Skills Standard)
+
+Skills use YAML frontmatter:
+```yaml
+---
+name: skill-name
+description: When to load this skill
+---
+# Content...
+```
+
+**Location:** `.github/skills/skill-name/SKILL.md`
 
 ---
 

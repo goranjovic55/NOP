@@ -33,3 +33,5 @@ Thumbs.db
 
 # AKIS session tracking (temporary file for VSCode extension)
 .akis-session.json
+*.json_backup*
+project_knowledge_backup_*.json

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO } from '../services/hostService';
+import { hostService, SystemMetrics, SystemInfo, Process, FileSystemItem, NetworkConnection, DiskIO, POVInstruction } from '../services/hostService';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
@@ -9,6 +10,7 @@ import { useAccessStore, Protocol } from '../store/accessStore';
 
 const Host: React.FC = () => {
   const { token, logout } = useAuthStore();
+  const { activeAgent } = usePOV();
   const { addTab } = useAccessStore();
   const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
   const [desktopProtocol, setDesktopProtocol] = useState<Protocol>('vnc');
@@ -48,7 +50,7 @@ const Host: React.FC = () => {
     if (token) {
       fetchSystemInfo();
     }
-  }, [token]);
+  }, [token, activeAgent]);
 
   // Fetch metrics periodically
   useEffect(() => {
@@ -115,7 +117,10 @@ const Host: React.FC = () => {
       
       // Connect WebSocket
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
+      let wsUrl = `${wsProtocol}//${window.location.host}/api/v1/host/terminal?token=${encodeURIComponent(token)}`;
+      if (activeAgent) {
+        wsUrl += `&agent_pov=${encodeURIComponent(activeAgent.id)}`;
+      }
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -190,7 +195,7 @@ const Host: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const info = await hostService.getSystemInfo(token);
+      const info = await hostService.getSystemInfo(token, activeAgent?.id);
       setSystemInfo(info);
       setLoading(false);
     } catch (error: any) {
@@ -210,7 +215,7 @@ const Host: React.FC = () => {
   const fetchMetrics = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getSystemMetrics(token);
+      const data = await hostService.getSystemMetrics(token, activeAgent?.id);
       setMetrics(data);
       setError(null);
     } catch (error: any) {
@@ -226,7 +231,7 @@ const Host: React.FC = () => {
   const fetchProcesses = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getProcesses(token, 15);
+      const data = await hostService.getProcesses(token, 15, activeAgent?.id);
       setProcesses(data);
     } catch (error) {
       console.error('Failed to fetch processes:', error);
@@ -236,7 +241,7 @@ const Host: React.FC = () => {
   const fetchConnections = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getNetworkConnections(token, 20);
+      const data = await hostService.getNetworkConnections(token, 20, activeAgent?.id);
       setConnections(data);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
@@ -246,7 +251,7 @@ const Host: React.FC = () => {
   const fetchDiskIO = async () => {
     if (!token) return;
     try {
-      const data = await hostService.getDiskIO(token);
+      const data = await hostService.getDiskIO(token, activeAgent?.id);
       setDiskIO(data);
     } catch (error) {
       console.error('Failed to fetch disk I/O:', error);
@@ -256,7 +261,7 @@ const Host: React.FC = () => {
   const browseDirectory = async (path: string) => {
     if (!token) return;
     try {
-      const data = await hostService.browseFileSystem(token, path);
+      const data = await hostService.browseFileSystem(token, path, activeAgent?.id);
       setCurrentPath(data.current_path);
       setFileItems(data.items);
     } catch (error) {
@@ -269,7 +274,7 @@ const Host: React.FC = () => {
       setCurrentPath(item.path);
     } else if (item.type === 'file' && token) {
       try {
-        const content = await hostService.readFile(token, item.path);
+        const content = await hostService.readFile(token, item.path, activeAgent?.id);
         setSelectedFile(item.path);
         setFileContent(content.content);
         setEditMode(false);
@@ -282,7 +287,7 @@ const Host: React.FC = () => {
   const handleSaveFile = async () => {
     if (!token || !selectedFile) return;
     try {
-      await hostService.writeFile(token, selectedFile, fileContent);
+      await hostService.writeFile(token, selectedFile, fileContent, activeAgent?.id);
       setEditMode(false);
       alert('File saved successfully');
     } catch (error) {
@@ -913,6 +918,9 @@ const Host: React.FC = () => {
         <div className="dashboard-card p-4">
           <p className="text-cyber-green text-xs font-mono tracking-wider mb-2 uppercase flex items-center">
             <span className="mr-2">⌬</span> Neural Interface • Shell Access
+            {activeAgent && (
+              <span className="ml-2 text-cyber-purple">• Agent POV: {activeAgent.name}</span>
+            )}
           </p>
           <div
             ref={terminalRef}
@@ -948,7 +956,44 @@ const Host: React.FC = () => {
                 <span className="mr-2 text-cyber-red">⌁</span> {currentPath}
               </div>
               <div className="flex-1 overflow-y-auto space-y-1">
-                {fileItems.map((item, idx) => (
+                {/* Check if first item is POV instructions */}
+                {fileItems.length > 0 && fileItems[0].type === 'instructions' ? (
+                  <div className="space-y-3">
+                    {fileItems[0].instructions?.map((instruction, idx) => (
+                      <div key={idx} className={`p-3 border ${
+                        instruction.type === 'success' ? 'border-cyber-green bg-cyber-green/10' :
+                        instruction.type === 'header' ? 'border-cyber-purple bg-cyber-purple/10' :
+                        instruction.type === 'command' ? 'border-cyber-blue/50 bg-cyber-darker' :
+                        instruction.type === 'target' ? 'border-cyber-gray/50 bg-cyber-darker' :
+                        instruction.type === 'warning' ? 'border-cyber-yellow bg-cyber-yellow/10' :
+                        instruction.type === 'error' ? 'border-cyber-red bg-cyber-red/10' :
+                        'border-cyber-gray/30 bg-cyber-darker'
+                      }`}>
+                        <div className={`font-mono text-sm ${
+                          instruction.type === 'success' ? 'text-cyber-green' :
+                          instruction.type === 'header' ? 'text-cyber-purple font-bold uppercase' :
+                          instruction.type === 'command' ? 'text-cyber-blue' :
+                          instruction.type === 'target' ? 'text-cyber-green' :
+                          instruction.type === 'warning' ? 'text-cyber-yellow' :
+                          instruction.type === 'error' ? 'text-cyber-red' :
+                          'text-cyber-gray-light'
+                        }`}>
+                          {instruction.title}
+                        </div>
+                        {instruction.detail && (
+                          <div className={`mt-1 font-mono text-xs ${
+                            instruction.type === 'command' ? 'text-cyber-green bg-black/50 p-2 rounded select-all' :
+                            'text-cyber-gray-light'
+                          }`}>
+                            {instruction.detail}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Regular file items */
+                  fileItems.map((item, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
@@ -985,7 +1030,8 @@ const Host: React.FC = () => {
                       <div className="text-xs text-cyber-red mt-1">⚠ {item.error}</div>
                     )}
                   </button>
-                ))}
+                ))
+                )}
               </div>
             </div>
 

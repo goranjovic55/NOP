@@ -18,7 +18,19 @@ interface POVContextType {
 const POVContext = createContext<POVContextType | undefined>(undefined);
 
 export const POVProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeAgent, setActiveAgent] = useState<Agent | null>(null);
+  // Initialize activeAgent from localStorage synchronously
+  const [activeAgent, setActiveAgent] = useState<Agent | null>(() => {
+    const stored = localStorage.getItem('active_agent_pov');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        localStorage.removeItem('active_agent_pov');
+        return null;
+      }
+    }
+    return null;
+  });
 
   const isAgentPOV = activeAgent !== null;
 
@@ -30,18 +42,6 @@ export const POVProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('active_agent_pov');
     }
   }, [activeAgent]);
-
-  // Restore active agent from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('active_agent_pov');
-    if (stored) {
-      try {
-        setActiveAgent(JSON.parse(stored));
-      } catch (e) {
-        localStorage.removeItem('active_agent_pov');
-      }
-    }
-  }, []);
 
   return (
     <POVContext.Provider value={{ activeAgent, setActiveAgent, isAgentPOV }}>

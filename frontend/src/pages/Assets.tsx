@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
@@ -97,6 +98,51 @@ const Assets: React.FC = () => {
     activeScanIdRef.current = activeScanId;
   }, [activeScanId]);
 
+  // Fetch agent settings when in POV mode, reset to C2 settings when leaving POV
+  useEffect(() => {
+    const fetchAgentSettings = async () => {
+      if (!activeAgent || !token) {
+        // Not in POV mode - restore C2 settings from localStorage
+        const saved = localStorage.getItem('nop_scan_settings');
+        if (saved) {
+          try {
+            const c2Settings = JSON.parse(saved);
+            setScanSettings(c2Settings);
+          } catch (e) {
+            // Keep current settings if parse fails
+          }
+        }
+        return;
+      }
+      
+      try {
+        const response = await axios.get('/api/v1/agent-settings/current/settings', {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'X-Agent-POV': activeAgent.id
+          }
+        });
+        
+        // Get settings from agent's discovery settings
+        const discovery = response.data?.discovery || {};
+        setScanSettings(prev => ({
+          ...prev,
+          networkRange: discovery.network_range || prev.networkRange,
+          pps: discovery.packets_per_second || prev.pps,
+          manualScanType: discovery.discovery_method === 'ping' ? 'ping' : 'arp',
+          autoScanType: discovery.discovery_method === 'ping' ? 'ping' : 'arp',
+          autoScanEnabled: discovery.discovery_enabled || false,
+          autoScanInterval: Math.round((discovery.discovery_interval || 300) / 60),
+          passiveDiscoveryEnabled: discovery.passive_discovery || false
+        }));
+      } catch (err) {
+        console.log('Could not fetch agent settings, using defaults');
+      }
+    };
+    
+    fetchAgentSettings();
+  }, [activeAgent, token]);
+
   const fetchAssets = useCallback(async (showLoading = true) => {
     if (!token) return;
     try {
@@ -138,7 +184,7 @@ const Assets: React.FC = () => {
       if (showLoading) setLoading(false);
       setTimeout(() => setIsRefreshing(false), 1000);
     }
-  }, [token, statusFilter]);
+  }, [token, statusFilter, activeAgent]);
 
   useEffect(() => {
     setOnScanComplete((ip, data) => {
@@ -160,7 +206,7 @@ const Assets: React.FC = () => {
     try {
       setIsScanning(true);
       setIsDiscovering(true);
-      const result = await assetService.startScan(token, currentSettings.networkRange, scanType);
+      const result = await assetService.startScan(token, currentSettings.networkRange, scanType, activeAgent?.id);
       if (result && result.scan_id) {
         setActiveScanId(result.scan_id);
       } else {
@@ -606,6 +652,8 @@ const Assets: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={scanSettings}
         onSave={handleSaveSettings}
+        activeAgent={activeAgent}
+        token={token ?? undefined}
       />
     </div>
   );

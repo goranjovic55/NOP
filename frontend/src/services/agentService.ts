@@ -135,6 +135,28 @@ export const agentService = {
     if (!response.ok) throw new Error('Failed to delete agent');
   },
 
+  async terminateAgent(token: string, agentId: string): Promise<{ status: string; message?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/terminate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to terminate agent');
+    return response.json();
+  },
+
+  async killAgent(token: string, agentId: string): Promise<{ status: string; message?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/kill`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to kill agent');
+    return response.json();
+  },
+
   async generateAgent(token: string, agentId: string, platform?: string): Promise<{ content: string; filename: string; agent_type: string; is_binary?: boolean }> {
     let url = `${API_BASE_URL}/api/v1/agents/${agentId}/generate`;
     if (platform) {
@@ -148,6 +170,16 @@ export const agentService = {
       },
     });
     if (!response.ok) throw new Error('Failed to generate agent');
+    return response.json();
+  },
+
+  async getAgentSource(token: string, agentId: string): Promise<{ source_code: string; filename: string; language: string; agent_type: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/agents/${agentId}/source`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to get agent source');
     return response.json();
   },
 

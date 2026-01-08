@@ -3,6 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 
 interface GraphNode {
@@ -59,6 +60,7 @@ const formatTrafficMB = (bytes: number): string => {
 
 const Topology: React.FC = () => {
   const { token } = useAuthStore();
+  const { activeAgent, isAgentPOV } = usePOV();
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
@@ -122,8 +124,8 @@ const Topology: React.FC = () => {
     try {
       setLoading(true);
       const [assets, trafficStats] = await Promise.all([
-        assetService.getAssets(token),
-        dashboardService.getTrafficStats(token)
+        assetService.getAssets(token, undefined, activeAgent?.id),
+        dashboardService.getTrafficStats(token, activeAgent?.id)
       ]);
 
       // Extract unique subnets from assets (first 3 octets)
@@ -263,7 +265,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet]);
+  }, [token, filterMode, discoverySubnet, activeAgent]);
 
   useEffect(() => {
     fetchData();

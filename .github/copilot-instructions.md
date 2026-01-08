@@ -1,63 +1,69 @@
-# AKIS v5
+# AKIS v5.7
 
-## ⚠️ BEFORE ANY WORK
-
-```
-1. view project_knowledge.json (lines 1-50)
-2. view .github/skills/INDEX.md
-3. Create todos: <MAIN> → <WORK> items → <END>
-4. Show user: brief context + todo list
-```
-
-## WORK → For Each Task
-
-**⚠️ FIRST: Mark todo ◆ (no exceptions, no excuses)**
+## ⚠️ START → Before Any Work
 
 ```
-1. Mark ◆ on the task you're starting
-2. If file matches trigger → load skill first
-3. Do the work
-4. Mark ✓ immediately when done
+1. view project_knowledge.json (1-50) + .github/skills/INDEX.md
+2. Create todos: <MAIN> → <WORK> items → <END>
+3. Tell user: context + plan
 ```
 
-**Skill Triggers:**
-| Files | Load First |
-|-------|------------|
-| `.tsx` `.jsx` `pages/` `components/` | `frontend-react.md` |
-| `backend/` `.py` | `backend-api.md` |
-| `docker` `Dockerfile` | `docker.md` |
-| Error in output | `debugging.md` |
+## ⚠️ WORK → For Each Task
 
-**On interrupt:** Mark current ⊘ → Create `<SUB:1>` → Handle → Resume original (no orphan paused!)
-
-## END → After User Says "approved/done"
-
-**⚠️ STOP! Before committing:**
+**EVERY EDIT (even 1 line):**
 ```
-□ Check for orphan ⊘ tasks → resume or close them
-□ python .github/scripts/generate_codemap.py
-□ python .github/scripts/suggest_skill.py  
-□ Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-□ THEN commit and push
+Mark ◆ → Check skill trigger → Edit → Mark ✓
+```
+**NO EXCEPTIONS. NO "quick fixes" without ◆ first.**
+
+| Files | Load First | Enforcement |
+|-------|------------|-------------|
+| `.tsx` `.jsx` `pages/` `components/` | `frontend-react/SKILL.md` | MANDATORY |
+| `backend/` `.py` `api/` `routes/` | `backend-api/SKILL.md` | MANDATORY |
+| `docker` `Dockerfile` `.yml` | `docker/SKILL.md` | MANDATORY |
+| `.md` `docs/` `README` | `documentation/SKILL.md` | **MANDATORY** |
+| Error in output | `debugging/SKILL.md` | MANDATORY |
+| `test` `spec` `pytest` | `testing/SKILL.md` | recommended |
+
+**Interrupt:** ⊘ current → `<SUB:1>` → handle → resume (no orphan ⊘!)
+
+## ⚠️ END → After "approved/done"
+
+**BEFORE COMMIT (all required):**
+```
+1. ⊘ orphans? → close them
+2. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
+3. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
+4. THEN commit
 ```
 
 ## Todo Format
 
 ```
-<MAIN> User request        ✓ done  ◆ working  ○ pending  ⊘ paused
+<MAIN> User request    ✓ done  ◆ working  ○ pending  ⊘ paused
 ├─ <WORK> Task 1
 ├─ <WORK> Task 2
 └─ <END> Commit
 ```
 
-## ⚠️ Three Absolute Rules
+## ⚠️ NON-NEGOTIABLE RULES
 
-1. **Mark ◆ before ANY edit** — no unmarked work, even one line
-2. **No "quick fixes"** — every change needs a todo first
-3. **Scripts before commit** — ALWAYS run generate_codemap.py and suggest_skill.py at end
+1. **◆ before ANY edit**
+   ✗ "Let me quickly fix this typo..."  
+   ✓ Mark ◆ → fix typo → Mark ✓
 
-## Gotchas
+2. **No quick fixes**
+   ✗ "I'll just add this import..."
+   ✓ Create `<WORK>` → Mark ◆ → add import → Mark ✓
 
-- "Quick fix" = still needs a todo first (Rule 2)
-- About to commit? STOP. Run scripts first (Rule 3)
-- After interrupt → check for ⊘ and resume it
+3. **Scripts before commit**
+   ✗ git commit (user said "done")
+   ✓ generate_codemap.py && suggest_skill.py → THEN commit
+
+## If Lost
+
+```
+1. Show worktree
+2. Find ◆ or ⊘ or next ○
+3. Continue
+```
