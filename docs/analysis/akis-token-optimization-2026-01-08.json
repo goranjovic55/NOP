@@ -1,0 +1,54 @@
+{
+  "token_analysis": {
+    "total_tokens": 20562,
+    "categories": {
+      "Prompts": {
+        "tokens": 8940,
+        "files": 4
+      },
+      "Skills": {
+        "tokens": 8456,
+        "files": 9
+      },
+      "Instructions": {
+        "tokens": 1943,
+        "files": 3
+      },
+      "Main": {
+        "tokens": 437,
+        "files": 1
+      },
+      "Templates": {
+        "tokens": 786,
+        "files": 7
+      }
+    }
+  },
+  "token_savings": {
+    "original_total": 20562,
+    "replaced_tokens": 1693,
+    "new_optimized_tokens": 474,
+    "new_total": 19343,
+    "savings": 1219,
+    "savings_pct": 5.9284116331096195
+  },
+  "simulations": {
+    "before": {
+      "version": "v5.7",
+      "compliance": 9.64,
+      "avg_violations": 2.36911,
+      "perfect_sessions": 9640
+    },
+    "after": {
+      "version": "v5.8",
+      "compliance": 24.993000000000002,
+      "avg_violations": 1.42147,
+      "perfect_sessions": 24993
+    },
+    "improvement": {
+      "compliance_delta": 15.353000000000002,
+      "violation_delta": -0.94764,
+      "perfect_delta": 15353
+    }
+  }
+}
