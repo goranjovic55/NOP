@@ -48,6 +48,10 @@ RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.pytho
 COPY app/ ./app/
 COPY start.sh .
 
+# Copy Alembic configuration and migrations
+COPY alembic.ini .
+COPY alembic/ ./alembic/
+
 # Make start.sh executable
 RUN chmod +x start.sh
 

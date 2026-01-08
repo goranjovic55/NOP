@@ -75,7 +75,7 @@ def test_network_perspective():
     # 6. Test backend API access
     print("6. BACKEND API ACCESS TEST")
     print("-" * 40)
-    backend_url = "http://172.28.0.1:8000"
+    backend_url = "http://172.54.0.1:12001"
     try:
         response = requests.get(f"{backend_url}/api/health", timeout=5)
         print(f"Backend API: ✓ ACCESSIBLE (Status: {response.status_code})")

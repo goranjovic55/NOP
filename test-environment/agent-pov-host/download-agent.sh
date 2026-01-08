@@ -3,7 +3,7 @@
 # Download the NOP agent from the backend server
 # This script simulates downloading an agent to a remote host
 
-BACKEND_URL="${BACKEND_URL:-http://backend:8000}"
+BACKEND_URL="${BACKEND_URL:-http://backend:12001}"
 DOWNLOAD_DIR="${1:-/downloads}"
 AGENT_FILE="agent.py"
 

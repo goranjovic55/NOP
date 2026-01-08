@@ -6,7 +6,7 @@ set -e
 
 DOWNLOAD_TOKEN="$1"
 # Backend is on host network, accessible via gateway
-NOP_SERVER="http://172.28.0.1:8000"  # Gateway to host network
+NOP_SERVER="http://172.54.0.1:12001"  # Gateway to host network
 
 if [ -z "$DOWNLOAD_TOKEN" ]; then
     echo "Usage: $0 <download_token>"

@@ -31,7 +31,7 @@ services:
       agent-network:
         ipv4_address: 10.10.1.10
     environment:
-      - BACKEND_URL=http://docker-backend-1:8000
+      - BACKEND_URL=http://docker-backend-1:12001
       - AGENT_NETWORK=10.10.0.0/16
     volumes:
       - ./agent-downloads:/downloads

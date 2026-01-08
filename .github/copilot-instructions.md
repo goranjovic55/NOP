@@ -12,13 +12,13 @@
 
 | Pattern | Skill |
 |---------|-------|
-| .tsx .jsx pages/ components/ | frontend-react |
-| .py backend/ api/ routes/ | backend-api |
-| Dockerfile docker-compose .yml | docker |
-| .md docs/ README | documentation ⚠️ |
-| error traceback failed | debugging |
-| test_* *_test.py | testing |
-| .github/skills/* copilot-instructions* | akis-development ⚠️ |
+| .tsx .jsx pages/ components/ | .github/skills/frontend-react/SKILL.md |
+| .py backend/ api/ routes/ | .github/skills/backend-api/SKILL.md |
+| Dockerfile docker-compose .yml | .github/skills/docker/SKILL.md |
+| .md docs/ README | .github/skills/documentation/SKILL.md ⚠️ |
+| error traceback failed | .github/skills/debugging/SKILL.md |
+| test_* *_test.py | .github/skills/testing/SKILL.md |
+| .github/skills/* copilot-instructions* | .github/skills/akis-development/SKILL.md ⚠️ |
 
 **Interrupt:** ⊘ → <SUB:N> → handle → resume (no orphan ⊘!)
 
@@ -26,9 +26,12 @@
 ```
 1. Check ⊘ orphans → close all
 2. python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
+   → Show skill suggestions from output
 3. python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
-4. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-5. THEN commit
+4. Collect metrics: duration, tasks, files, skills
+5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md (with metrics)
+6. Show END summary block
+7. THEN commit
 ```
 
 ## Symbols

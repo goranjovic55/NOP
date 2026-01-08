@@ -20,7 +20,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "12001:8000"
+      - "12001:12001"
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@postgres:5432/nop
       - REDIS_URL=redis://redis:6379/0

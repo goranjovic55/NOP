@@ -47,6 +47,8 @@ Complete feature list for Network Observatory Platform.
 - ✅ WebSocket real-time updates
 
 - feat: Agent template system with View Source functionality
+- feat: add session cleanup and doc autogen scripts
+- feat: Agent template system with View Source functionality
 ## Quick Start
 
 ```bash

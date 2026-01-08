@@ -2,7 +2,7 @@
 
 # Run the NOP agent with proper configuration
 
-BACKEND_URL="${BACKEND_URL:-http://backend:8000}"
+BACKEND_URL="${BACKEND_URL:-http://backend:12001}"
 AGENT_FILE="${1:-/downloads/agent.py}"
 AGENT_ID="${2:-auto}"
 

@@ -68,7 +68,8 @@ State mapping:
 ### Every Edit
 ```
 1. Mark ◆ (update both chat + manage_todo_list)
-2. Load skill → announce: [SKILL: x.md loaded]
+2. Load skill → announce: [SKILL: .github/skills/{category}/SKILL.md loaded]
+   Example: [SKILL: .github/skills/backend-api/SKILL.md loaded]
 3. Edit (use multi_replace if 2+ independent changes)
 4. get_errors (verify)
 5. Mark ✓ (update both chat + manage_todo_list)
@@ -84,14 +85,14 @@ After every 3 ✓ tasks:
 
 | Pattern | Skill Location |
 |---------|---------------|
-| `.tsx/.jsx/components/pages/` | `frontend-react/SKILL.md` |
-| `.py/backend/api/routes/` | `backend-api/SKILL.md` |
-| `Dockerfile/docker-compose/*.yml` | `docker/SKILL.md` |
-| `.md/docs/README` | `documentation/SKILL.md` |
-| `error/traceback/failed` | `debugging/SKILL.md` |
-| `test_*/*_test.py` | `testing/SKILL.md` |
-| `project_knowledge.json` | `knowledge/SKILL.md` |
-| `.github/copilot-instructions*/.github/skills/*` | `akis-development/SKILL.md` |
+| `.tsx/.jsx/components/pages/` | `.github/skills/frontend-react/SKILL.md` |
+| `.py/backend/api/routes/` | `.github/skills/backend-api/SKILL.md` |
+| `Dockerfile/docker-compose/*.yml` | `.github/skills/docker/SKILL.md` |
+| `.md/docs/README` | `.github/skills/documentation/SKILL.md` |
+| `error/traceback/failed` | `.github/skills/debugging/SKILL.md` |
+| `test_*/*_test.py` | `.github/skills/testing/SKILL.md` |
+| `project_knowledge.json` | `.github/skills/knowledge/SKILL.md` |
+| `.github/copilot-instructions*/.github/skills/*` | `.github/skills/akis-development/SKILL.md` |
 
 ### Interrupts
 ```
@@ -109,25 +110,93 @@ NO ORPHAN ⊘ at session end
 2. Run tests if test files exist for modified code
 3. Run: git diff --stat (verify expected files changed)
 4. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
+   → Show any skill suggestions from script output
 5. Run: python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
-6. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
-7. Show summary
-8. THEN commit
+6. Collect session metrics:
+   - Duration (from session start)
+   - Tasks completed/total
+   - Files modified (from git diff)
+   - Skills loaded during session
+   - Complexity classification
+7. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md (with metrics)
+8. Show END summary block (see format below)
+9. THEN commit
 ```
 
-### Workflow Log
+### END Summary Format
+```
+═══════════════════════════════════════════════════════════
+SESSION COMPLETE
+═══════════════════════════════════════════════════════════
+Duration:     Xm Ys
+Tasks:        X/Y completed
+Files:        X modified
+Skills:       [list with full paths]
+Complexity:   Simple/Medium/Complex
+═══════════════════════════════════════════════════════════
+WORKFLOW TREE
+═══════════════════════════════════════════════════════════
+<MAIN> [description]
+├─ <WORK> Task 1                    ✓
+├─ <WORK> Task 2                    ✓
+└─ <END> Finalize                   ✓
+═══════════════════════════════════════════════════════════
+SKILL SUGGESTIONS
+═══════════════════════════════════════════════════════════
+[Output from suggest_skill.py or "None"]
+═══════════════════════════════════════════════════════════
+```
+
+### Workflow Log Template
 ```markdown
-# [Task Name] | YYYY-MM-DD | Xmin
+# [Task Name] | YYYY-MM-DD | ~Xmin
 
 ## Summary
-[What was done]
+[Brief description of what was done - 2-3 sentences]
+[Key changes as bullet points if multiple areas affected]
+
+## Session Metrics
+| Metric | Value |
+|--------|-------|
+| Duration | ~Xmin |
+| Tasks | X completed / Y total |
+| Files Modified | X |
+| Skills Loaded | X |
+| Complexity | Simple/Medium/Complex |
+
+## Workflow Tree
+<MAIN> [Task description]
+├─ <WORK> Task 1                    ✓
+├─ <WORK> Task 2                    ✓
+├─ <WORK> Task 3                    ✓
+└─ <END> Finalize                   ✓
 
 ## Files Modified
 | File | Changes |
 |------|---------|
+| path/to/file.ext | Brief description of change |
+| path/to/another.ext | Brief description |
 
 ## Skills Used
-- frontend-react/SKILL.md (for Component.tsx)
+- .github/skills/backend-api/SKILL.md (for file.py, other.py)
+- .github/skills/docker/SKILL.md (for Dockerfile, docker-compose)
+
+## Skill Suggestions
+[Number] suggestions from suggest_skill.py:
+1. **skill-name** - Brief description
+2. **skill-name** - Brief description
+[Or "None" if no suggestions]
+
+## Root Cause Analysis
+[For debugging sessions: explain the root cause and solution]
+[Omit this section for feature/enhancement work]
+
+## Verification
+[Commands run to verify the changes work]
+[Or test results summary]
+
+## Notes
+[Optional: patterns observed, gotchas, deployment instructions]
 ```
 
 ---

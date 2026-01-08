@@ -30,7 +30,7 @@ const Agents: React.FC = () => {
   const [usePublicIP, setUsePublicIP] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string>('linux-amd64');
   const [c2Host, setC2Host] = useState<string>('localhost');
-  const [c2Port, setC2Port] = useState<string>('8000');
+  const [c2Port, setC2Port] = useState<string>('12001');
   const [c2Protocol, setC2Protocol] = useState<'ws' | 'wss'>('ws');
   
   // Sorting and filtering
@@ -39,7 +39,7 @@ const Agents: React.FC = () => {
     name: '',
     description: '',
     agent_type: 'python',
-    connection_url: 'ws://localhost:8000/api/v1/agents/{agent_id}/connect',
+    connection_url: 'ws://localhost:12001/api/v1/agents/{agent_id}/connect',
     target_platform: 'linux-amd64',
     capabilities: {
       asset: true,
@@ -80,7 +80,7 @@ const Agents: React.FC = () => {
     if (hostname.includes('github.dev') || hostname.includes('app.github.dev')) {
       // Extract codespace name and construct backend URL
       const codespaceName = hostname.split('-12000')[0];
-      const backendUrl = `${codespaceName}-8000.app.github.dev`;
+      const backendUrl = `${codespaceName}-12001.app.github.dev`;
       setLocalIP(backendUrl);
       setC2Host(backendUrl);
       setC2Port('');
@@ -88,9 +88,9 @@ const Agents: React.FC = () => {
       setPublicIP('');
     } else {
       // Set default local IP for docker internal network
-      setLocalIP('172.28.0.1');
-      setC2Host('172.28.0.1');
-      setC2Port('8000');
+      setLocalIP('172.54.0.1');
+      setC2Host('172.54.0.1');
+      setC2Port('12001');
       setC2Protocol('ws');
       
       // Detect public IP
@@ -722,7 +722,7 @@ const Agents: React.FC = () => {
                       setUsePublicIP(false);
                       const isCodespaces = localIP.includes('github.dev');
                       const protocol = isCodespaces ? 'wss' : 'ws';
-                      const port = isCodespaces ? '' : '8000';
+                      const port = isCodespaces ? '' : '12001';
                       setC2Protocol(protocol as 'ws' | 'wss');
                       setC2Host(localIP);
                       setC2Port(port);
@@ -741,17 +741,17 @@ const Agents: React.FC = () => {
                     onClick={() => {
                       setUsePublicIP(false);
                       setC2Protocol('ws');
-                      setC2Host('172.28.0.1');
-                      setC2Port('8000');
+                      setC2Host('172.54.0.1');
+                      setC2Port('12001');
                     }}
                     className={`px-3 py-2 border text-xs uppercase transition-all ${
-                      c2Host === '172.28.0.1'
+                      c2Host === '172.54.0.1'
                         ? 'border-cyber-red bg-cyber-red/20 text-cyber-red'
                         : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-red'
                     }`}
                   >
                     <div className="font-bold mb-1">◈ Internal</div>
-                    <div className="font-mono text-[10px]">172.28.0.1</div>
+                    <div className="font-mono text-[10px]">172.54.0.1</div>
                   </button>
                   {publicIP && (
                     <button
@@ -760,7 +760,7 @@ const Agents: React.FC = () => {
                         setUsePublicIP(true);
                         setC2Protocol('ws');
                         setC2Host(publicIP);
-                        setC2Port('8000');
+                        setC2Port('12001');
                       }}
                       className={`px-3 py-2 border text-xs uppercase transition-all ${
                         usePublicIP
@@ -804,7 +804,7 @@ const Agents: React.FC = () => {
                       value={c2Port}
                       onChange={(e) => setC2Port(e.target.value)}
                       className="w-full bg-cyber-black border border-cyber-gray text-white px-3 py-2 focus:outline-none focus:border-cyber-blue font-mono text-sm"
-                      placeholder="8000"
+                      placeholder="12001"
                     />
                   </div>
                 </div>
@@ -1218,7 +1218,7 @@ const Agents: React.FC = () => {
                             e.stopPropagation();
                             const hostname = window.location.hostname;
                             const protocol = window.location.protocol;
-                            const backendUrl = `${protocol}//${hostname.replace('-12000', '-8000')}`;
+                            const backendUrl = `${protocol}//${hostname.replace('-12000', '-12001')}`;
                             navigator.clipboard.writeText(`wget -O agent.py "${backendUrl}/api/v1/agents/download/${sidebarAgent.download_token}"`);
                           }}
                           className="btn-base btn-sm btn-gray border-2 border-cyber-gray hover:border-cyber-green"
@@ -1228,7 +1228,7 @@ const Agents: React.FC = () => {
                             e.stopPropagation();
                             const hostname = window.location.hostname;
                             const protocol = window.location.protocol;
-                            const backendUrl = `${protocol}//${hostname.replace('-12000', '-8000')}`;
+                            const backendUrl = `${protocol}//${hostname.replace('-12000', '-12001')}`;
                             navigator.clipboard.writeText(`curl -o agent.py "${backendUrl}/api/v1/agents/download/${sidebarAgent.download_token}"`);
                           }}
                           className="btn-base btn-sm btn-gray border-2 border-cyber-gray hover:border-cyber-green"
@@ -1238,14 +1238,14 @@ const Agents: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(`wget -O agent.py "http://nop-backend:8000/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                            navigator.clipboard.writeText(`wget -O agent.py "http://nop-backend:12001/api/v1/agents/download/${sidebarAgent.download_token}"`);
                           }}
                           className="btn-base btn-sm btn-gray border-2 border-cyber-gray hover:border-cyber-green"
                         >◈ Docker wget</button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(`curl -o agent.py "http://nop-backend:8000/api/v1/agents/download/${sidebarAgent.download_token}"`);
+                            navigator.clipboard.writeText(`curl -o agent.py "http://nop-backend:12001/api/v1/agents/download/${sidebarAgent.download_token}"`);
                           }}
                           className="btn-base btn-sm btn-gray border-2 border-cyber-gray hover:border-cyber-green"
                         >◈ Docker curl</button>

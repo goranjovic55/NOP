@@ -14,7 +14,7 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Initialize database and seed admin user
+# Initialize database (creates all tables from models)
 echo "Initializing database..."
 python -m app.core.init_db
 if [ $? -ne 0 ]; then
@@ -24,4 +24,4 @@ fi
 
 # Start the application
 echo "Starting application..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec uvicorn app.main:app --host 0.0.0.0 --port 12001

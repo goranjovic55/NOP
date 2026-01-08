@@ -2,7 +2,7 @@
 # Download and start agent from NOP backend
 
 # Configuration
-BACKEND_URL="${BACKEND_URL:-http://172.28.0.1:8000}"
+BACKEND_URL="${BACKEND_URL:-http://172.54.0.1:12001}"
 DOWNLOAD_TOKEN="${DOWNLOAD_TOKEN:-}"
 AGENT_FILE="/opt/agent/downloaded_agent.py"
 
