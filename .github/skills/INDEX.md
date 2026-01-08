@@ -13,6 +13,7 @@
 | `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | **MANDATORY** ⚠️ |
 | `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | recommended |
 | `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | recommended |
+| `.github/copilot-instructions*`, `.github/skills/*` | [akis-development](akis-development/SKILL.md) | **MANDATORY** ⚠️ |
 
 > ⚠️ **documentation has 40% compliance rate** - MUST load when editing ANY .md file
 
@@ -27,6 +28,7 @@
 | documentation | `documentation/SKILL.md` | Doc structure, templates, placement |
 | testing | `testing/SKILL.md` | pytest, React Testing Library, mocking |
 | knowledge | `knowledge/SKILL.md` | Project knowledge file patterns |
+| akis-development | `akis-development/SKILL.md` | AKIS framework editing, token optimization |
 
 ## Quick Reference
 
@@ -37,6 +39,7 @@ Dockerfile → docker/SKILL.md
 error/failed → debugging/SKILL.md
 docs/*.md → documentation/SKILL.md
 test_* → testing/SKILL.md
+.github/skills/* → akis-development/SKILL.md
 ```
 
 ## Skill Format (Agent Skills Standard)

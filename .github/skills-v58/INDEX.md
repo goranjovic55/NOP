@@ -9,3 +9,4 @@
 | .md docs/ README | documentation |
 | test_* *_test.py | testing |
 | project_knowledge.json | knowledge |
+| .github/copilot-instructions* .github/skills/* | akis-development |
