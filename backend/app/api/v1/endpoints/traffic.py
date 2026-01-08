@@ -164,33 +164,43 @@ async def get_traffic_flows(
 @router.get("/stats")
 async def get_traffic_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    history_hours: int = 24  # Default to 24 hours of history
 ):
-    """Get traffic statistics (agent POV aware) - includes connections from flows"""
+    """Get traffic statistics (agent POV aware) - includes connections from flows with timestamps"""
     from app.models.flow import Flow
     from sqlalchemy import select, func, desc
     from collections import defaultdict
+    from datetime import datetime, timedelta
     
     agent_pov = get_agent_pov(request)
+    
+    # Calculate time window for filtering
+    time_window_start = datetime.utcnow() - timedelta(hours=history_hours)
     
     if agent_pov:
         # Get connections from flows database for this agent
         try:
-            # Aggregate flows into connections
+            # Aggregate flows into connections with last_seen timestamp
             query = select(
                 Flow.src_ip,
                 Flow.dst_ip,
                 Flow.protocol,
                 func.sum(Flow.bytes_sent + Flow.bytes_received).label('total_bytes'),
-                func.sum(Flow.packets_sent + Flow.packets_received).label('total_packets')
-            ).where(Flow.agent_id == agent_pov).group_by(
+                func.sum(Flow.packets_sent + Flow.packets_received).label('total_packets'),
+                func.max(Flow.last_seen).label('last_seen'),
+                func.min(Flow.first_seen).label('first_seen')
+            ).where(
+                Flow.agent_id == agent_pov,
+                Flow.last_seen >= time_window_start  # Only include flows within time window
+            ).group_by(
                 Flow.src_ip, Flow.dst_ip, Flow.protocol
-            ).limit(200)
+            ).order_by(desc('last_seen')).limit(500)  # Increased limit, sorted by recency
             
             result = await db.execute(query)
             rows = result.fetchall()
             
-            # Build connections list for topology
+            # Build connections list for topology with timestamps
             connections = []
             protocol_counts = defaultdict(int)
             total_bytes = 0
@@ -202,12 +212,16 @@ async def get_traffic_stats(
                 protocol = row.protocol or 'OTHER'
                 bytes_val = row.total_bytes or 0
                 packets_val = row.total_packets or 0
+                last_seen = row.last_seen.isoformat() if row.last_seen else None
+                first_seen = row.first_seen.isoformat() if row.first_seen else None
                 
                 connections.append({
                     "source": src_ip,
                     "target": dst_ip,
                     "value": bytes_val,
-                    "protocols": [protocol]
+                    "protocols": [protocol],
+                    "last_seen": last_seen,
+                    "first_seen": first_seen
                 })
                 
                 protocol_counts[protocol] += packets_val
@@ -223,7 +237,8 @@ async def get_traffic_stats(
                 "top_talkers": [],
                 "traffic_history": [],
                 "connections": connections,
-                "note": f"Agent POV: {len(connections)} connections from flows database",
+                "history_hours": history_hours,
+                "note": f"Agent POV: {len(connections)} connections from last {history_hours}h",
                 "agent_id": str(agent_pov)
             }
         except Exception as e:

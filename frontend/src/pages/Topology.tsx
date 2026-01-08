@@ -68,6 +68,7 @@ const Topology: React.FC = () => {
   const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
   const [trafficThreshold, setTrafficThreshold] = useState<number>(0); // Minimum bytes to show connection
   const [isPlaying, setIsPlaying] = useState(false);
+  const [refreshRate, setRefreshRate] = useState<number>(5000); // Refresh rate in ms (default 5s)
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
@@ -85,10 +86,10 @@ const Topology: React.FC = () => {
     return saved ? JSON.parse(saved) : { networkRange: '172.21.0.0/24' };
   });
 
-  // Filter mode with localStorage persistence - default to 'subnet' to show discovery subnet
+  // Filter mode with localStorage persistence - default to 'all' to show all hosts initially
   const [filterMode, setFilterMode] = useState<'all' | 'subnet'>(() => {
     const saved = localStorage.getItem('nop_topology_filter');
-    return (saved as 'all' | 'subnet') || 'subnet';
+    return (saved as 'all' | 'subnet') || 'all';
   });
 
   // Discovery subnet (editable) - defaults to scan settings
@@ -297,26 +298,21 @@ const Topology: React.FC = () => {
     fetchData();
     let interval: NodeJS.Timeout;
     if (isPlaying) {
-      interval = setInterval(fetchData, 5000); // Refresh every 5s only when playing
+      interval = setInterval(fetchData, refreshRate); // Refresh at selected rate when playing
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchData, isPlaying]);
+  }, [fetchData, isPlaying, refreshRate]);
 
-  // Handle Layout Changes
+  // Handle Layout Changes - only when layout mode or dimensions change, NOT on data refresh
+  // This preserves user's zoom/pan position during auto-refresh
   useEffect(() => {
     if (!fgRef.current) return;
 
-    // Reset fixed positions
-    const nodes = graphData.nodes;
-    nodes.forEach(node => {
-      node.fx = undefined;
-      node.fy = undefined;
-    });
-
     if (layoutMode === 'circular') {
-      // Arrange in a circle
+      // Reset fixed positions only for circular layout
+      const nodes = graphData.nodes;
       const radius = Math.min(dimensions.width, dimensions.height) / 3;
       const angleStep = (2 * Math.PI) / nodes.length;
       
@@ -330,20 +326,20 @@ const Topology: React.FC = () => {
       });
       
       // Re-heat simulation to move to new positions
-      fgRef.current.d3Force('charge').strength(-100);
+      fgRef.current.d3Force('charge')?.strength(-100);
       fgRef.current.d3ReheatSimulation();
     } else if (layoutMode === 'hierarchical') {
       // Use dagMode
-      fgRef.current.d3Force('charge').strength(-300);
+      fgRef.current.d3Force('charge')?.strength(-300);
       // dagMode is handled via prop
     } else {
       // Force Directed (Default)
-      // Center hubs (handled by d3 forces naturally, but we can add custom forces)
-      fgRef.current.d3Force('charge').strength(-400); // Stronger repulsion
-      fgRef.current.d3Force('link').distance(100); // Longer links
-      fgRef.current.d3ReheatSimulation();
+      // Set forces but don't reheat on every change - let nodes settle naturally
+      fgRef.current.d3Force('charge')?.strength(-400);
+      fgRef.current.d3Force('link')?.distance(100);
+      // Only reheat on initial load or layout change, not data refresh
     }
-  }, [layoutMode, graphData, dimensions]);
+  }, [layoutMode, dimensions]); // Removed graphData - don't re-layout on refresh
 
   return (
     <div className="h-full flex flex-col space-y-4">
@@ -451,6 +447,24 @@ const Topology: React.FC = () => {
             </select>
           </div>
 
+
+          {/* Refresh Rate Selector */}
+          <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-gray"
+            title="Auto-refresh rate for live traffic monitoring">
+            <label className="text-xs text-cyber-gray-light whitespace-nowrap">Refresh:</label>
+            <select 
+              value={refreshRate}
+              onChange={(e) => setRefreshRate(Number(e.target.value))}
+              className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-green"
+            >
+              <option value={1000}>1s (Live)</option>
+              <option value={2000}>2s</option>
+              <option value={3000}>3s</option>
+              <option value={5000}>5s</option>
+              <option value={10000}>10s</option>
+              <option value={30000}>30s</option>
+            </select>
+          </div>
 
           <button 
             onClick={() => setIsPlaying(!isPlaying)}
@@ -634,6 +648,8 @@ const Topology: React.FC = () => {
             ctx.font = `${fontSize}px Sans-Serif`;
             
             const isSelected = selectedNode && selectedNode.id === node.id;
+            const isHovered = hoveredNode && hoveredNode.id === node.id;
+            const isHighlighted = isSelected || isHovered;
             const nodeColor = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
             
             // Draw selection ring if selected
@@ -651,24 +667,37 @@ const Topology: React.FC = () => {
               ctx.shadowColor = '#ffffff';
             }
             
-            // Draw Node Circle
+            // Draw Node Circle - dimmer when not highlighted
             ctx.beginPath();
             ctx.arc(node.x, node.y, isSelected ? 8 : 6, 0, 2 * Math.PI, false);
+            ctx.globalAlpha = isHighlighted ? 1.0 : 0.6;
             ctx.fillStyle = nodeColor;
             ctx.fill();
             
-            // Glow effect
-            ctx.shadowBlur = isSelected ? 15 : 10;
-            ctx.shadowColor = nodeColor;
+            // Glow effect - only when highlighted
+            if (isHighlighted) {
+              ctx.shadowBlur = isSelected ? 15 : 10;
+              ctx.shadowColor = nodeColor;
+            }
             ctx.stroke();
             ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
 
-            // Draw Label only if hovered or always? 
-            // Let's draw label always but small
+            // Draw Label - darker by default, bright neon on hover/selected
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#00f0ff';
+            if (isHighlighted) {
+              // Bright neon cyan when hovered or selected
+              ctx.fillStyle = '#00f0ff';
+              ctx.shadowBlur = 8;
+              ctx.shadowColor = '#00f0ff';
+            } else {
+              // Darker/dimmer label by default - still readable but not distracting
+              ctx.fillStyle = '#4a6670';
+              ctx.shadowBlur = 0;
+            }
             ctx.fillText(label, node.x, node.y + 10);
+            ctx.shadowBlur = 0;
           }}
           nodePointerAreaPaint={(node: any, color, ctx) => {
             ctx.fillStyle = color;

@@ -58,6 +58,7 @@ const Dashboard: React.FC = () => {
   const { activeAgent } = usePOV();
   const navigate = useNavigate();
   const topologyRef = useRef<HTMLDivElement>(null);
+  const fgRef = useRef<any>(null);
   
   const [stats, setStats] = useState({
     totalAssets: 0,
@@ -286,9 +287,14 @@ const Dashboard: React.FC = () => {
           <h3 className="text-sm font-semibold text-cyber-purple mb-4 uppercase tracking-wider font-mono">
             &gt; Network Topology
           </h3>
-          <div ref={topologyRef} className="h-64 relative overflow-hidden border border-cyber-gray rounded">
+          <div 
+            ref={topologyRef} 
+            className="h-64 relative overflow-auto border border-cyber-gray rounded group"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#00d4ff #111111' }}
+          >
             {graphData.nodes.length > 0 ? (
               <ForceGraph2D
+                ref={fgRef}
                 graphData={graphData}
                 width={topologyRef.current?.clientWidth || 400}
                 height={256}
@@ -299,9 +305,15 @@ const Dashboard: React.FC = () => {
                 linkWidth={1.5}
                 nodeLabel={(node: any) => node.id}
                 enableNodeDrag={false}
-                enableZoomInteraction={false}
-                enablePanInteraction={false}
+                enableZoomInteraction={true}
+                enablePanInteraction={true}
                 cooldownTicks={100}
+                onEngineStop={() => {
+                  // Fit all nodes in view after layout stabilizes
+                  if (fgRef.current) {
+                    fgRef.current.zoomToFit(400, 20);
+                  }
+                }}
                 d3AlphaDecay={0.02}
                 d3VelocityDecay={0.4}
                 nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D) => {

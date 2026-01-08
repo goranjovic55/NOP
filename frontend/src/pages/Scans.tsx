@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
@@ -75,7 +75,6 @@ const Scans: React.FC = () => {
   const navigationState = location.state as { targetIp?: string } | null;
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const logEndRef = useRef<HTMLDivElement>(null);
 
   const [manualIp, setManualIp] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -108,11 +107,8 @@ const Scans: React.FC = () => {
       .finally(() => setLoadingAssets(false));
   }, [token, activeAgent]);
 
-  useEffect(() => {
-    if (activeTab?.logs && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [activeTab?.logs]);
+  // Removed auto-scroll behavior - log area now has fixed height with scrollbar
+  // Users can manually scroll through logs without being forced to the bottom
 
   const filteredAssets = useMemo(() => {
     return assets
@@ -551,7 +547,7 @@ const Scans: React.FC = () => {
                           }`}>&gt; {log}</div>
                         ))
                       )}
-                      <div ref={logEndRef} />
+
                     </div>
                   </div>
                 </div>
