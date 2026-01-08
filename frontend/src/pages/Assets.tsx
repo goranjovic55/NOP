@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
@@ -25,6 +26,9 @@ type SortOrder = 'asc' | 'desc';
 type FilterTab = 'all' | 'scanned' | 'vulnerable';
 
 const Assets: React.FC = () => {
+  const location = useLocation();
+  const navigationState = location.state as { selectedAssetIp?: string } | null;
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -85,6 +89,18 @@ const Assets: React.FC = () => {
   const scanSettingsRef = useRef(scanSettings);
   const isScanningRef = useRef(isScanning);
   const activeScanIdRef = useRef(activeScanId);
+
+  // Handle navigation state from Topology page - auto-select asset
+  useEffect(() => {
+    if (navigationState?.selectedAssetIp && assets.length > 0) {
+      const targetAsset = assets.find(a => a.ip_address === navigationState.selectedAssetIp);
+      if (targetAsset) {
+        setSelectedAsset(targetAsset);
+      }
+      // Clear the navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState, assets]);
 
   useEffect(() => {
     scanSettingsRef.current = scanSettings;

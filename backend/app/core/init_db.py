@@ -4,6 +4,7 @@ Database initialization and initial data seeding
 
 import asyncio
 import logging
+import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import AsyncSessionLocal, engine, Base
@@ -14,7 +15,14 @@ from app.core.security import get_password_hash
 logger = logging.getLogger(__name__)
 
 async def init_db():
-    """Initialize database and seed initial data"""
+    """Initialize database and seed initial data.
+    
+    By default, uses create_all() which only creates missing tables.
+    Set RESET_DB=true to drop all tables and recreate from scratch.
+    """
+    # Check if we should reset the database
+    reset_db = os.environ.get('RESET_DB', 'false').lower() in ('true', '1', 'yes')
+    
     # Mask password in URL for logging
     db_url = settings.DATABASE_URL
     if "@" in db_url:
@@ -25,12 +33,18 @@ async def init_db():
             db_url = db_url.replace(creds, f"{user}:****")
     
     logger.info(f"Initializing database with URL: {db_url}")
+    logger.info(f"RESET_DB mode: {reset_db}")
 
     try:
-        # Create tables
         async with engine.begin() as conn:
+            if reset_db:
+                logger.info("RESET_DB=true: Dropping all existing tables...")
+                await conn.run_sync(Base.metadata.drop_all)
+                logger.info("Creating all tables from current models...")
+            else:
+                logger.info("Creating tables if they don't exist...")
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created or already exist.")
+        logger.info("Database tables initialized successfully.")
 
         async with AsyncSessionLocal() as db:
             # Check if admin user exists

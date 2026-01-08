@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore, Vulnerability } from '../store/scanStore';
@@ -71,6 +71,8 @@ const Scans: React.FC = () => {
   const { token } = useAuthStore();
   const { activeAgent } = usePOV();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationState = location.state as { targetIp?: string } | null;
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -81,6 +83,21 @@ const Scans: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>(() => (localStorage.getItem('nop_scans_status_filter') as any) || 'all');
   const [ipFilter, setIpFilter] = useState(localStorage.getItem('nop_scans_ip_filter') || '');
   const [scanFilter, setScanFilter] = useState<'all' | 'scanned' | 'unscanned'>(() => (localStorage.getItem('nop_scans_scan_filter') as any) || 'all');
+
+  // Handle navigation state from Topology page - auto-add scan tab for target IP
+  useEffect(() => {
+    if (navigationState?.targetIp) {
+      // Check if tab already exists
+      const existingTab = tabs.find(t => t.ip === navigationState.targetIp);
+      if (!existingTab) {
+        addTab(navigationState.targetIp, navigationState.targetIp);
+      } else {
+        setActiveTab(existingTab.id);
+      }
+      // Clear the navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState, tabs, addTab, setActiveTab]);
 
   useEffect(() => {
     if (!token) return;

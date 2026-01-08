@@ -49,6 +49,7 @@ Complete feature list for Network Observatory Platform.
 - feat: Agent template system with View Source functionality
 - feat: add session cleanup and doc autogen scripts
 - feat: Agent template system with View Source functionality
+- feat: add session cleanup and doc autogen scripts
 ## Quick Start
 
 ```bash

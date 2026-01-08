@@ -5,6 +5,8 @@ import { dashboardService } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
+import HostContextMenu from '../components/HostContextMenu';
+import ConnectionContextMenu from '../components/ConnectionContextMenu';
 
 interface GraphNode {
   id: string;
@@ -72,6 +74,11 @@ const Topology: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
+  // Context menu state for host and connection interactions
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
+
   // Get scan settings for discovery subnet
   const [scanSettings, setScanSettings] = useState(() => {
     const saved = localStorage.getItem('nop_scan_settings');
@@ -88,6 +95,9 @@ const Topology: React.FC = () => {
   const [discoverySubnet, setDiscoverySubnet] = useState<string>(() => {
     return scanSettings.networkRange;
   });
+
+  // IP filter for "all subnets" mode
+  const [ipFilter, setIpFilter] = useState<string>('');
 
   // Available subnets discovered from assets
   const [availableSubnets, setAvailableSubnets] = useState<string[]>([]);
@@ -137,7 +147,19 @@ const Topology: React.FC = () => {
           subnetsSet.add(subnet);
         }
       });
-      setAvailableSubnets(Array.from(subnetsSet).sort());
+      const detectedSubnets = Array.from(subnetsSet).sort();
+      setAvailableSubnets(detectedSubnets);
+      
+      // Auto-detect discovery subnet if not already set or if it's the default
+      if (detectedSubnets.length > 0 && filterMode === 'subnet') {
+        // Use first detected subnet that matches online assets, or fallback to first
+        const preferredSubnet = detectedSubnets.find(s => 
+          assets.some(a => a.status === 'online' && a.ip_address.startsWith(s.split('/')[0].split('.').slice(0, 3).join('.') + '.'))
+        ) || detectedSubnets[0];
+        if (preferredSubnet !== discoverySubnet) {
+          setDiscoverySubnet(preferredSubnet);
+        }
+      }
 
       // Process Nodes
       const nodesMap = new Map<string, GraphNode>();
@@ -145,10 +167,14 @@ const Topology: React.FC = () => {
       // Determine filtering criteria
       const shouldIncludeNode = (asset: any) => {
         if (filterMode === 'all') {
-          // Show all subnets
+          // Show all subnets, optionally filter by IP
+          if (ipFilter) {
+            return asset.ip_address.includes(ipFilter) || 
+                   (asset.hostname && asset.hostname.toLowerCase().includes(ipFilter.toLowerCase()));
+          }
           return true;
         } else {
-          // Subnet mode - filter by discovery subnet
+          // Subnet mode - filter by discovery subnet (auto-detected)
           const subnetPrefix = discoverySubnet.split('/')[0].split('.').slice(0, 3).join('.') + '.';
           return asset.status === 'online' && asset.ip_address.startsWith(subnetPrefix);
         }
@@ -265,7 +291,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet, activeAgent]);
+  }, [token, filterMode, discoverySubnet, ipFilter, activeAgent]);
 
   useEffect(() => {
     fetchData();
@@ -322,7 +348,7 @@ const Topology: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
       <div className="flex justify-between items-center bg-cyber-darker p-4 border border-cyber-gray">
-        <CyberPageTitle color="blue">Network Topology</CyberPageTitle>
+        <CyberPageTitle color="red">Network Topology</CyberPageTitle>
         
         <div className="flex items-center space-x-4">
           <div className="flex space-x-2 bg-cyber-dark p-1 rounded border border-cyber-gray">
@@ -356,31 +382,55 @@ const Topology: React.FC = () => {
             <button
               onClick={() => setFilterMode('subnet')}
               className={`px-3 py-1 text-xs font-bold uppercase transition-colors ${filterMode === 'subnet' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
-              title="Filter by discovery subnet"
+              title="Filter by auto-detected discovery subnet"
             >
               Discovery Subnet
             </button>
           </div>
 
-          {filterMode === 'subnet' && (
-            <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-green">
-              <label className="text-xs text-cyber-green font-bold whitespace-nowrap">Discovery:</label>
+          {/* IP Filter for All Subnets mode */}
+          {filterMode === 'all' && (
+            <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-blue">
+              <label className="text-xs text-cyber-blue font-bold whitespace-nowrap">IP Filter:</label>
               <input
                 type="text"
-                value={discoverySubnet}
-                onChange={(e) => setDiscoverySubnet(e.target.value)}
-                placeholder="172.21.0.0/24"
-                className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-blue min-w-[140px] font-mono"
-                title="Edit discovery subnet (syncs with Assets settings)"
+                value={ipFilter}
+                onChange={(e) => setIpFilter(e.target.value)}
+                placeholder="Filter by IP or hostname..."
+                className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-blue min-w-[180px] font-mono"
+                title="Filter nodes by IP address or hostname"
               />
-              <span className="text-xs text-cyber-gray-light">│</span>
-              <button
-                onClick={() => setDiscoverySubnet(scanSettings.networkRange)}
-                className="text-xs text-cyber-blue hover:text-cyber-green transition-colors px-2"
-                title="Reset to Assets settings"
-              >
-                ⟲
-              </button>
+              {ipFilter && (
+                <button
+                  onClick={() => setIpFilter('')}
+                  className="text-xs text-cyber-red hover:text-cyber-gray-light transition-colors px-2"
+                  title="Clear filter"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Auto-detected subnet display for Discovery Subnet mode */}
+          {filterMode === 'subnet' && (
+            <div className="flex items-center space-x-2 bg-cyber-dark p-2 rounded border border-cyber-green">
+              <label className="text-xs text-cyber-green font-bold whitespace-nowrap">Subnet:</label>
+              <span className="text-cyber-gray-light text-xs font-mono px-2 py-1 bg-cyber-darker border border-cyber-gray rounded min-w-[120px]">
+                {discoverySubnet || 'Auto-detecting...'}
+              </span>
+              {availableSubnets.length > 1 && (
+                <select
+                  value={discoverySubnet}
+                  onChange={(e) => setDiscoverySubnet(e.target.value)}
+                  className="bg-cyber-darker text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded focus:outline-none focus:border-cyber-green"
+                  title="Select from detected subnets"
+                >
+                  {availableSubnets.map(subnet => (
+                    <option key={subnet} value={subnet}>{subnet}</option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 
@@ -494,9 +544,28 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
+            // Check if this link is selected
+            const isSelected = selectedLink && 
+              ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
+              ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
+            
             // Calculate link color and width
-            const width = Math.max(1, Math.min(5, Math.log10(totalTraffic + 1) * 1.5));
+            const baseWidth = Math.max(1, Math.min(5, Math.log10(totalTraffic + 1) * 1.5));
+            const width = isSelected ? baseWidth * 2.5 : baseWidth;
             const color = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
+            
+            // Draw selection glow first (behind the line)
+            if (isSelected) {
+              ctx.beginPath();
+              ctx.moveTo(start.x, start.y);
+              ctx.lineTo(end.x, end.y);
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = (width + 4) / globalScale;
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = '#ffffff';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
             
             // Draw the link line
             ctx.beginPath();
@@ -504,7 +573,12 @@ const Topology: React.FC = () => {
             ctx.lineTo(end.x, end.y);
             ctx.strokeStyle = color;
             ctx.lineWidth = width / globalScale;
+            if (isSelected) {
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = color;
+            }
             ctx.stroke();
+            ctx.shadowBlur = 0;
             
             // Draw directional indicators for bidirectional links
             if (link.bidirectional && globalScale > 1.5) {
@@ -533,6 +607,18 @@ const Topology: React.FC = () => {
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
           dagLevelDistance={100}
           d3VelocityDecay={0.3}
+          onNodeClick={(node: any, event: MouseEvent) => {
+            // Open context menu for host
+            setSelectedNode(node);
+            setSelectedLink(null);
+            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
+          onLinkClick={(link: any, event: MouseEvent) => {
+            // Open context menu for connection
+            setSelectedLink(link);
+            setSelectedNode(null);
+            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
           onNodeHover={(node: any) => {
             document.body.style.cursor = node ? 'pointer' : 'default';
             setHoveredNode(node || null);
@@ -547,15 +633,33 @@ const Topology: React.FC = () => {
             const fontSize = 12/globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
             
+            const isSelected = selectedNode && selectedNode.id === node.id;
+            const nodeColor = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+            
+            // Draw selection ring if selected
+            if (isSelected) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 12, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 3 / globalScale;
+              ctx.setLineDash([4 / globalScale, 2 / globalScale]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              
+              // Pulsing glow for selection
+              ctx.shadowBlur = 20;
+              ctx.shadowColor = '#ffffff';
+            }
+            
             // Draw Node Circle
             ctx.beginPath();
-            ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); // Fixed radius 6
-            ctx.fillStyle = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+            ctx.arc(node.x, node.y, isSelected ? 8 : 6, 0, 2 * Math.PI, false);
+            ctx.fillStyle = nodeColor;
             ctx.fill();
             
             // Glow effect
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = isSelected ? 15 : 10;
+            ctx.shadowColor = nodeColor;
             ctx.stroke();
             ctx.shadowBlur = 0;
 
@@ -577,14 +681,14 @@ const Topology: React.FC = () => {
         {/* Hover Tooltip */}
         {hoveredNode && (
           <div 
-            className="absolute z-20 bg-cyber-darker border border-cyber-blue p-3 rounded shadow-lg pointer-events-none"
+            className="absolute z-20 bg-cyber-darker border border-cyber-blue p-4 shadow-lg pointer-events-none"
             style={{ 
               top: 20, 
               right: 20,
-              minWidth: '200px'
+              minWidth: '220px'
             }}
           >
-            <h3 className="text-cyber-blue font-bold text-lg mb-2">{hoveredNode.name}</h3>
+            <h3 className="text-cyber-blue font-bold text-sm mb-3 uppercase tracking-widest">{hoveredNode.name}</h3>
             <div className="space-y-1 text-sm text-cyber-gray-light">
               <div className="flex justify-between">
                 <span className="font-semibold">IP:</span>
@@ -619,14 +723,14 @@ const Topology: React.FC = () => {
         {/* Link Hover Tooltip */}
         {hoveredLink && (
           <div 
-            className="absolute z-20 bg-cyber-darker border border-cyber-green p-3 rounded shadow-lg pointer-events-none"
+            className="absolute z-20 bg-cyber-darker border border-cyber-green p-4 shadow-lg pointer-events-none"
             style={{ 
               top: 20, 
               right: 20,
-              minWidth: '250px'
+              minWidth: '260px'
             }}
           >
-            <h3 className="text-cyber-green font-bold text-lg mb-2">Connection</h3>
+            <h3 className="text-cyber-green font-bold text-sm mb-3 uppercase tracking-widest">Connection</h3>
             <div className="space-y-1 text-sm text-cyber-gray-light">
               <div className="flex justify-between">
                 <span className="font-semibold">Source:</span>
@@ -671,44 +775,94 @@ const Topology: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-3 text-xs text-cyber-gray-light opacity-90">
-          <div className="font-bold text-cyber-blue mb-2 uppercase">Nodes</div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-3 h-3 rounded-full bg-cyber-green"></span>
-            <span>Online Asset</span>
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg">
+          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px]">Nodes</div>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyber-green shadow-[0_0_5px_#00ff41]"></span>
+            <span className="uppercase tracking-wide">Online Asset</span>
           </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-3 h-3 rounded-full bg-cyber-red"></span>
-            <span>Offline Asset</span>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyber-red shadow-[0_0_5px_#ff0040]"></span>
+            <span className="uppercase tracking-wide">Offline Asset</span>
           </div>
           <div className="flex items-center space-x-2 mb-3">
-            <span className="w-3 h-3 rounded-full bg-cyber-purple"></span>
-            <span>External/Unknown</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-cyber-purple shadow-[0_0_5px_#9d00ff]"></span>
+            <span className="uppercase tracking-wide">External/Unknown</span>
           </div>
           
-          <div className="font-bold text-cyber-blue mb-2 uppercase border-t border-cyber-gray pt-2">Connections</div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5 bg-cyber-green"></span>
-            <span>TCP Traffic</span>
+          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Connections</div>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-5 h-0.5 bg-cyber-green shadow-[0_0_3px_#00ff41]"></span>
+            <span className="uppercase tracking-wide">TCP Traffic</span>
           </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5 bg-cyber-blue"></span>
-            <span>UDP Traffic</span>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-5 h-0.5 bg-cyber-blue shadow-[0_0_3px_#00f0ff]"></span>
+            <span className="uppercase tracking-wide">UDP Traffic</span>
           </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP}}></span>
-            <span>ICMP Traffic</span>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.ICMP}`}}></span>
+            <span className="uppercase tracking-wide">ICMP Traffic</span>
           </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-6 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.OTHER_IP}}></span>
-            <span>Other IP</span>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.OTHER_IP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.OTHER_IP}`}}></span>
+            <span className="uppercase tracking-wide">Other IP</span>
           </div>
-          <div className="text-xs mt-2 pt-2 border-t border-cyber-gray text-cyber-gray">
+          <div className="text-[10px] mt-3 pt-3 border-t border-cyber-gray text-cyber-gray uppercase tracking-wide">
             <div>Line width = traffic volume</div>
             <div>Particles = active flow</div>
+            <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
         </div>
       </div>
+
+      {/* Host Context Menu */}
+      {selectedNode && contextMenuPosition && (
+        <HostContextMenu
+          host={{
+            id: selectedNode.id,
+            ip: selectedNode.ip,
+            name: selectedNode.name,
+            status: selectedNode.status,
+            details: selectedNode.details
+          }}
+          position={contextMenuPosition}
+          onClose={() => {
+            setSelectedNode(null);
+            setContextMenuPosition(null);
+          }}
+        />
+      )}
+
+      {/* Connection Context Menu */}
+      {selectedLink && contextMenuPosition && (
+        <ConnectionContextMenu
+          connection={{
+            source: typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source,
+            target: typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target,
+            protocols: selectedLink.protocols,
+            value: selectedLink.value,
+            reverseValue: selectedLink.reverseValue,
+            bidirectional: selectedLink.bidirectional
+          }}
+          position={contextMenuPosition}
+          onClose={() => {
+            setSelectedLink(null);
+            setContextMenuPosition(null);
+          }}
+        />
+      )}
+
+      {/* Click backdrop to close context menus */}
+      {(selectedNode || selectedLink) && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => {
+            setSelectedNode(null);
+            setSelectedLink(null);
+            setContextMenuPosition(null);
+          }}
+        />
+      )}
     </div>
   );
 };

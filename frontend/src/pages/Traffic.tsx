@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
 import { usePOV, getPOVHeaders } from '../context/POVContext';
@@ -175,6 +176,14 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
+  const location = useLocation();
+  const navigationState = location.state as { 
+    filterHost?: string; 
+    connectionFilter?: { source: string; target: string }; 
+    autoStart?: boolean;
+    autoDetectInterface?: boolean;
+  } | null;
+
   const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
     return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
   });
@@ -184,6 +193,10 @@ const Traffic: React.FC = () => {
   const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
   const [filter, setFilter] = useState(() => {
+    // Check if navigated from topology with a filter - use filterHost directly as it's already formatted
+    if (navigationState?.filterHost) {
+      return navigationState.filterHost;
+    }
     return localStorage.getItem('nop_traffic_filter') || '';
   });
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
@@ -266,17 +279,53 @@ const Traffic: React.FC = () => {
     localStorage.setItem('nop_traffic_filter', filter);
   }, [filter]);
 
+  // Handle navigation state from Topology page
+  useEffect(() => {
+    if (navigationState?.filterHost) {
+      setFilter(`host ${navigationState.filterHost}`);
+      setActiveTab('capture'); // Switch to capture tab when coming from topology
+    }
+    if (navigationState?.connectionFilter) {
+      setFilter(`host ${navigationState.connectionFilter.source} and host ${navigationState.connectionFilter.target}`);
+      setActiveTab('capture');
+    }
+    // Clear the navigation state to avoid re-applying on refresh
+    if (navigationState) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState]);
+
   useEffect(() => {
     if (packetListEndRef.current && !selectedPacket) {
       packetListEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [packets, selectedPacket]);
 
+  // Auto-detect interface and optionally auto-start sniffing when navigated from topology
   useEffect(() => {
     if (interfaces.length > 0 && !selectedIface) {
-      setSelectedIface(interfaces[0].name);
+      // If auto-detect requested, find the best interface (prefer eth0, br0, or first non-lo)
+      if (navigationState?.autoDetectInterface) {
+        const preferredIface = interfaces.find(i => 
+          i.name === 'eth0' || i.name === 'br0' || i.name.startsWith('enp') || i.name.startsWith('ens')
+        ) || interfaces.find(i => i.name !== 'lo') || interfaces[0];
+        setSelectedIface(preferredIface.name);
+      } else {
+        setSelectedIface(interfaces[0].name);
+      }
     }
-  }, [interfaces, selectedIface]);
+  }, [interfaces, selectedIface, navigationState]);
+
+  // Auto-start sniffing when navigated from topology with autoStart flag
+  useEffect(() => {
+    if (navigationState?.autoStart && selectedIface && !isSniffing && interfaces.length > 0) {
+      // Small delay to ensure interface is ready
+      const timer = setTimeout(() => {
+        toggleSniffing();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [navigationState?.autoStart, selectedIface, interfaces]);
 
   const fetchOnlineAssets = async () => {
     try {

@@ -68,8 +68,8 @@ State mapping:
 ### Every Edit
 ```
 1. Mark ◆ (update both chat + manage_todo_list)
-2. Load skill → announce: [SKILL: .github/skills/{category}/SKILL.md loaded]
-   Example: [SKILL: .github/skills/backend-api/SKILL.md loaded]
+2. Load skill → announce: SKILL: .github/skills/{category}/SKILL.md loaded
+   (plain text, not markdown link)
 3. Edit (use multi_replace if 2+ independent changes)
 4. get_errors (verify)
 5. Mark ✓ (update both chat + manage_todo_list)
