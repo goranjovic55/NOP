@@ -21,6 +21,8 @@ const Agents: React.FC = () => {
   const [sidebarAgent, setSidebarAgent] = useState<Agent | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editedAgent, setEditedAgent] = useState<Agent | null>(null);
+  const [showSourceModal, setShowSourceModal] = useState(false);
+  const [sourceCode, setSourceCode] = useState<{ code: string; filename: string; language: string } | null>(null);
   
   // Network config
   const [localIP, setLocalIP] = useState<string>('localhost');
@@ -286,6 +288,18 @@ const Agents: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to generate agent:', error);
+    }
+  };
+
+  const handleViewSource = async (agent: Agent) => {
+    if (!token) return;
+    try {
+      const { source_code, filename, language } = await agentService.getAgentSource(token, agent.id);
+      setSourceCode({ code: source_code, filename, language });
+      setShowSourceModal(true);
+    } catch (error) {
+      console.error('Failed to get agent source:', error);
+      alert('Failed to load agent source code');
     }
   };
 
@@ -1313,7 +1327,11 @@ const Agents: React.FC = () => {
                   {/* Template Actions - Compact */}
                   <div className="bg-cyber-dark border border-cyber-gray rounded p-3 hover:border-cyber-red hover:bg-cyber-dark/80 transition-all">
                     <h4 className="text-cyber-red font-bold uppercase mb-2 text-xs">◆ Actions</h4>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleViewSource(sidebarAgent)}
+                        className="btn-base btn-sm btn-gray border-2 border-cyber-gray hover:border-cyber-blue"
+                      >◉ View Source</button>
                       <button
                         onClick={() => {
                           // Populate form with template data for editing
@@ -1375,6 +1393,54 @@ const Agents: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Source Code Modal */}
+      {showSourceModal && sourceCode && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-cyber-dark border-2 border-cyber-blue rounded-lg shadow-lg shadow-cyber-blue/20 w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-cyber-gray">
+              <div className="flex items-center gap-3">
+                <span className="text-cyber-blue text-xl">◉</span>
+                <div>
+                  <h3 className="text-cyber-white font-bold text-lg uppercase tracking-wider">Agent Source Code</h3>
+                  <p className="text-cyber-gray text-sm font-mono">{sourceCode.filename}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-cyber-dark border border-cyber-gray rounded text-xs text-cyber-gray-light uppercase">
+                  {sourceCode.language}
+                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(sourceCode.code);
+                  }}
+                  className="btn-base btn-sm btn-gray border border-cyber-gray hover:border-cyber-green"
+                  title="Copy to clipboard"
+                >
+                  ◆ Copy
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSourceModal(false);
+                    setSourceCode(null);
+                  }}
+                  className="text-cyber-gray hover:text-cyber-red transition-colors text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Source Code Content */}
+            <div className="flex-1 overflow-auto p-4">
+              <pre className="bg-cyber-black border border-cyber-gray rounded p-4 overflow-auto text-sm font-mono text-cyber-gray-light whitespace-pre">
+                {sourceCode.code}
+              </pre>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

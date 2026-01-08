@@ -38,7 +38,7 @@ class AgentService:
     
     @staticmethod
     async def create_agent(db: AsyncSession, agent_data: AgentCreate) -> Agent:
-        """Create a new agent"""
+        """Create a new agent template"""
         auth_token = AgentService.generate_auth_token()
         encryption_key = AgentService.generate_encryption_key()
         download_token = AgentService.generate_download_token()
@@ -56,7 +56,8 @@ class AgentService:
             startup_mode=agent_data.startup_mode,
             persistence_level=agent_data.persistence_level,
             agent_metadata=agent_data.agent_metadata or {},
-            status=AgentStatus.DISCONNECTED
+            status=AgentStatus.DISCONNECTED,
+            is_template=True  # New agents are templates by default
         )
         
         db.add(agent)
@@ -66,15 +67,84 @@ class AgentService:
         return agent
     
     @staticmethod
+    async def create_deployed_agent(db: AsyncSession, template: Agent) -> Agent:
+        """Create a deployed agent instance from a template
+        
+        This is called when an agent connects and the target is a template.
+        Creates a new agent record linked to the template with unique tokens.
+        """
+        import hashlib
+        from datetime import datetime
+        
+        # Generate new tokens for this deployment
+        auth_token = AgentService.generate_auth_token()
+        encryption_key = AgentService.generate_encryption_key()
+        download_token = AgentService.generate_download_token()
+        
+        # Generate strain_id based on template + timestamp for obfuscation tracking
+        strain_data = f"{template.id}:{datetime.utcnow().isoformat()}:{secrets.token_hex(8)}"
+        strain_id = hashlib.sha256(strain_data.encode()).hexdigest()[:16]
+        
+        # Create deployed agent with template's config
+        deployed_agent = Agent(
+            name=f"{template.name}_deployed",  # Will be updated with hostname on register
+            description=f"Deployed from template: {template.name}",
+            agent_type=template.agent_type,
+            connection_url=template.connection_url,
+            auth_token=auth_token,  # Keep template's auth for backward compatibility
+            encryption_key=encryption_key,
+            download_token=download_token,  # New download token
+            capabilities=template.capabilities.copy() if template.capabilities else {},
+            obfuscate=template.obfuscate,
+            startup_mode=template.startup_mode,
+            persistence_level=template.persistence_level,
+            agent_metadata=template.agent_metadata.copy() if template.agent_metadata else {},
+            status=AgentStatus.ONLINE,
+            is_template=False,  # This is a deployed instance
+            template_id=template.id,  # Link back to template
+            strain_id=strain_id  # Track obfuscation variant
+        )
+        
+        db.add(deployed_agent)
+        await db.commit()
+        await db.refresh(deployed_agent)
+        
+        return deployed_agent
+    
+    @staticmethod
     async def get_agent(db: AsyncSession, agent_id: UUID) -> Optional[Agent]:
         """Get agent by ID"""
         result = await db.execute(select(Agent).where(Agent.id == agent_id))
         return result.scalar_one_or_none()
     
     @staticmethod
-    async def get_agents(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Agent]:
-        """Get all agents"""
-        result = await db.execute(select(Agent).offset(skip).limit(limit))
+    async def get_agents(
+        db: AsyncSession, 
+        skip: int = 0, 
+        limit: int = 100,
+        templates_only: bool = False,
+        deployed_only: bool = False,
+        template_id: UUID = None
+    ) -> List[Agent]:
+        """Get agents with optional filtering
+        
+        Args:
+            templates_only: Only return templates (is_template=True)
+            deployed_only: Only return deployed agents (is_template=False)
+            template_id: Filter by parent template ID
+        """
+        query = select(Agent)
+        
+        if templates_only:
+            query = query.where(Agent.is_template == True)
+        elif deployed_only:
+            query = query.where(Agent.is_template == False)
+        
+        if template_id:
+            query = query.where(Agent.template_id == template_id)
+        
+        query = query.offset(skip).limit(limit)
+        result = await db.execute(query)
         return list(result.scalars().all())
     
     @staticmethod

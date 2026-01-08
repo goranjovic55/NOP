@@ -7,7 +7,7 @@ version: '3.8'
 
 networks:
   # Main NOP network (backend, frontend, postgres)
-  nop_nop-internal:
+  docker_nop-internal:
     external: true
   
   # Isolated agent network - targets only visible from here
@@ -27,12 +27,11 @@ services:
     container_name: agent-pov-host
     hostname: agent-host
     networks:
-      nop_nop-internal:
-        ipv4_address: 172.28.0.150
+      docker_nop-internal:
       agent-network:
         ipv4_address: 10.10.1.10
     environment:
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=http://docker-backend-1:8000
       - AGENT_NETWORK=10.10.0.0/16
     volumes:
       - ./agent-downloads:/downloads

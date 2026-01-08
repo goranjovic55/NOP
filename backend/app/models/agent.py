@@ -66,6 +66,12 @@ class Agent(Base):
     startup_mode = Column(Enum(StartupMode), default=StartupMode.AUTO, nullable=False)
     persistence_level = Column(Enum(PersistenceLevel), default=PersistenceLevel.MEDIUM, nullable=False)
     
+    # Template tracking - Templates are reusable, deployed agents link back to template
+    is_template = Column(Boolean, default=True, nullable=False)  # True = template, False = deployed agent
+    template_id = Column(UUID(as_uuid=True), nullable=True)  # Link to parent template for deployed agents
+    hostname = Column(String(255), nullable=True)  # Hostname of deployed agent (from connection)
+    strain_id = Column(String(64), nullable=True)  # Unique build identifier for obfuscation tracking
+    
     # Agent metadata - flexible JSON storage
     # Example: {"subnet": "192.168.1.0/24", "location": "Remote Office", "tags": ["production"]}
     agent_metadata = Column(JSON, nullable=True, default=dict)

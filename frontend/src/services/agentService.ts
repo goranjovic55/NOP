@@ -24,11 +24,23 @@ export interface Agent {
   obfuscate: boolean;
   startup_mode: 'auto' | 'single';
   persistence_level: 'low' | 'medium' | 'high';
+  is_template: boolean;
+  template_id?: string;
+  hostname?: string;
+  strain_id?: string;
   agent_metadata?: Record<string, any>;
   last_seen?: string;
   connected_at?: string;
   created_at: string;
   updated_at?: string;
+}
+
+export interface AgentSourceResponse {
+  agent_id: string;
+  agent_type: 'python' | 'go';
+  source_code: string;
+  filename: string;
+  language: string;
 }
 
 export interface AgentCreate {

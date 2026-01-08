@@ -55,6 +55,10 @@ class AgentResponse(BaseModel):
     obfuscate: bool
     startup_mode: StartupMode
     persistence_level: PersistenceLevel
+    is_template: bool = True
+    template_id: Optional[UUID] = None
+    hostname: Optional[str] = None
+    strain_id: Optional[str] = None
     agent_metadata: Optional[Dict[str, Any]] = None
     last_seen: Optional[datetime] = None
     connected_at: Optional[datetime] = None

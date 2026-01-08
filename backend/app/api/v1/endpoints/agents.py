@@ -44,11 +44,26 @@ next_socks_port = SOCKS_PORT_START
 async def list_agents(
     skip: int = 0,
     limit: int = 100,
+    templates_only: bool = False,
+    deployed_only: bool = False,
+    template_id: UUID = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all agents"""
-    agents = await AgentService.get_agents(db, skip=skip, limit=limit)
+    """List agents with optional filtering
+    
+    - templates_only: Only return agent templates (is_template=True)
+    - deployed_only: Only return deployed agents (is_template=False)
+    - template_id: Filter deployed agents by their parent template
+    """
+    agents = await AgentService.get_agents(
+        db, 
+        skip=skip, 
+        limit=limit,
+        templates_only=templates_only,
+        deployed_only=deployed_only,
+        template_id=template_id
+    )
     return AgentListResponse(
         agents=[AgentResponse.model_validate(agent) for agent in agents],
         total=len(agents)
@@ -77,6 +92,37 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return AgentResponse.model_validate(agent)
+
+
+@router.get("/{agent_id}/source", response_model=AgentSourceResponse)
+async def get_agent_source(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get agent source code (never compiled, always returns readable source)"""
+    agent = await AgentService.get_agent(db, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    if agent.agent_type == AgentType.PYTHON:
+        source_code = AgentService.generate_python_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.py"
+        language = "python"
+    elif agent.agent_type == AgentType.GO:
+        source_code = AgentService.generate_go_agent(agent)
+        filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.go"
+        language = "go"
+    else:
+        raise HTTPException(status_code=400, detail="Unknown agent type")
+    
+    return AgentSourceResponse(
+        agent_id=agent.id,
+        agent_type=agent.agent_type,
+        source_code=source_code,
+        filename=filename,
+        language=language
+    )
 
 
 @router.put("/{agent_id}", response_model=AgentResponse)
@@ -344,43 +390,55 @@ async def agent_websocket(
     """WebSocket endpoint for agent connections with SOCKS proxy support"""
     await websocket.accept()
     socks_proxy = None
+    deployed_agent = None
     
     try:
-        # Get agent
+        # Get agent (could be template or deployed agent)
         agent = await AgentService.get_agent(db, agent_id)
         if not agent:
             await websocket.close(code=1008, reason="Agent not found")
             return
         
+        # Check if this is a template - if so, create a deployed agent instance
+        if agent.is_template:
+            # Create deployed agent from template
+            deployed_agent = await AgentService.create_deployed_agent(db, agent)
+            logger.info(f"Created deployed agent {deployed_agent.name} from template {agent.name}")
+            # Use the deployed agent for this session
+            working_agent = deployed_agent
+        else:
+            # Already a deployed agent, reuse it
+            working_agent = agent
+        
         # Verify auth token (should be in headers)
         # In real implementation, validate token from headers
         
         # Update agent status
-        await AgentService.update_agent_status(db, agent_id, AgentStatus.ONLINE)
-        connected_agents[str(agent_id)] = websocket
+        await AgentService.update_agent_status(db, working_agent.id, AgentStatus.ONLINE)
+        connected_agents[str(working_agent.id)] = websocket
         
         # Create SOCKS proxy for this agent
         global next_socks_port
         socks_port = next_socks_port
         next_socks_port += 1
         
-        socks_proxy = AgentSOCKSProxy(agent_id, websocket, socks_port)
+        socks_proxy = AgentSOCKSProxy(working_agent.id, websocket, socks_port)
         await socks_proxy.start()
-        agent_socks_proxies[str(agent_id)] = socks_proxy
+        agent_socks_proxies[str(working_agent.id)] = socks_proxy
         
         # Store SOCKS port in agent metadata
-        if not agent.agent_metadata:
-            agent.agent_metadata = {}
-        agent.agent_metadata["socks_proxy_port"] = socks_port
-        flag_modified(agent, "agent_metadata")
+        if not working_agent.agent_metadata:
+            working_agent.agent_metadata = {}
+        working_agent.agent_metadata["socks_proxy_port"] = socks_port
+        flag_modified(working_agent, "agent_metadata")
         await db.commit()
         
-        logger.info(f"Agent {agent.name} connected with SOCKS proxy on port {socks_port}")
+        logger.info(f"Agent {working_agent.name} connected with SOCKS proxy on port {socks_port}")
         
         # Send welcome message
         await websocket.send_json({
             "type": "welcome",
-            "message": f"Connected to NOP as agent {agent.name}",
+            "message": f"Connected to NOP as agent {working_agent.name}",
             "timestamp": datetime.utcnow().isoformat(),
             "socks_port": socks_port
         })
@@ -395,16 +453,26 @@ async def agent_websocket(
                 msg_type = message.get("type")
                 
                 if msg_type == "register":
-                    # Agent registration
-                    print(f"Agent {agent.name} registered: {message}")
+                    # Agent registration - capture hostname if provided
+                    system_info = message.get("system_info", {})
+                    hostname = system_info.get("hostname", system_info.get("computer_name", ""))
+                    
+                    # Update deployed agent with hostname
+                    if hostname and not working_agent.hostname:
+                        working_agent.hostname = hostname
+                        # Update name to include hostname for identification
+                        template_name = agent.name if agent.is_template else (working_agent.name.split("@")[0] if "@" in working_agent.name else working_agent.name)
+                        working_agent.name = f"{template_name}@{hostname}"
+                        await db.commit()
+                    
+                    print(f"Agent {working_agent.name} registered: {message}")
                     
                     # Extract agent IP and auto-generate /24 network for discovery
                     # Prefer internal network IPs (10.x, 192.168.x) over Docker bridge IPs (172.x)
-                    system_info = message.get("system_info", {})
                     agent_ip = system_info.get("ip_address")
                     
                     # Check interfaces for better IP if available (from host_info)
-                    host_info = agent.agent_metadata.get("host_info", {})
+                    host_info = working_agent.agent_metadata.get("host_info", {}) if working_agent.agent_metadata else {}
                     interfaces = host_info.get("interfaces", [])
                     if interfaces:
                         for iface in interfaces:
@@ -424,18 +492,18 @@ async def agent_websocket(
                             default_network = str(network)
                             
                             # Store in settings if not already set
-                            if "settings" not in agent.agent_metadata:
-                                agent.agent_metadata["settings"] = {}
-                            if "discovery" not in agent.agent_metadata["settings"]:
-                                agent.agent_metadata["settings"]["discovery"] = {}
+                            if "settings" not in working_agent.agent_metadata:
+                                working_agent.agent_metadata["settings"] = {}
+                            if "discovery" not in working_agent.agent_metadata["settings"]:
+                                working_agent.agent_metadata["settings"]["discovery"] = {}
                             
                             # Set default network range from agent's subnet (always update to preferred IP)
-                            agent.agent_metadata["settings"]["discovery"]["network_range"] = default_network
+                            working_agent.agent_metadata["settings"]["discovery"]["network_range"] = default_network
                             logger.info(f"Auto-configured discovery network {default_network} from agent IP {agent_ip}")
                             
                             # Store agent IP for reference
-                            agent.agent_metadata["agent_ip"] = agent_ip
-                            flag_modified(agent, "agent_metadata")
+                            working_agent.agent_metadata["agent_ip"] = agent_ip
+                            flag_modified(working_agent, "agent_metadata")
                             await db.commit()
                         except Exception as e:
                             logger.warning(f"Could not parse agent IP {agent_ip}: {e}")
@@ -448,14 +516,14 @@ async def agent_websocket(
                 elif msg_type == "heartbeat":
                     # Update last seen
                     await AgentService.update_agent_status(
-                        db, agent_id, AgentStatus.ONLINE, update_last_seen=True
+                        db, working_agent.id, AgentStatus.ONLINE, update_last_seen=True
                     )
                     
                 elif msg_type == "asset_data":
                     # Handle discovered assets
                     assets = message.get('assets', [])
-                    count = await AgentDataService.ingest_asset_data(db, agent_id, assets)
-                    print(f"Agent {agent.name} discovered {count} assets")
+                    count = await AgentDataService.ingest_asset_data(db, working_agent.id, assets)
+                    print(f"Agent {working_agent.name} discovered {count} assets")
                     await websocket.send_json({
                         "type": "asset_ack",
                         "count": count,
@@ -468,20 +536,20 @@ async def agent_websocket(
                     # Include flows in traffic data for ingest
                     if 'flows' in message:
                         traffic['flows'] = message.get('flows', [])
-                    success = await AgentDataService.ingest_traffic_data(db, agent_id, traffic)
-                    print(f"Agent {agent.name} traffic data: {success}")
+                    success = await AgentDataService.ingest_traffic_data(db, working_agent.id, traffic)
+                    print(f"Agent {working_agent.name} traffic data: {success}")
                     
                 elif msg_type == "host_data":
                     # Handle host information
                     host_info = message.get('host', {})
-                    success = await AgentDataService.ingest_host_data(db, agent_id, host_info)
-                    print(f"Agent {agent.name} host data: {success}")
+                    success = await AgentDataService.ingest_host_data(db, working_agent.id, host_info)
+                    print(f"Agent {working_agent.name} host data: {success}")
                     
                     # Store host_info in agent_metadata for POV interface access
-                    if host_info and agent:
-                        if not agent.agent_metadata:
-                            agent.agent_metadata = {}
-                        agent.agent_metadata["host_info"] = host_info
+                    if host_info and working_agent:
+                        if not working_agent.agent_metadata:
+                            working_agent.agent_metadata = {}
+                        working_agent.agent_metadata["host_info"] = host_info
                         await db.commit()
                     
                 elif msg_type == "pong":
@@ -524,32 +592,45 @@ async def agent_websocket(
                             }))
                     
             except json.JSONDecodeError:
-                print(f"Invalid JSON from agent {agent.name}")
+                print(f"Invalid JSON from agent {working_agent.name}")
                 
     except WebSocketDisconnect:
-        print(f"Agent {agent.name} disconnected")
+        print(f"Agent {working_agent.name if working_agent else agent.name} disconnected")
     except Exception as e:
-        print(f"WebSocket error for agent {agent.name}: {e}")
+        print(f"WebSocket error for agent {working_agent.name if working_agent else agent.name}: {e}")
     finally:
-        # Cleanup
-        if str(agent_id) in connected_agents:
-            del connected_agents[str(agent_id)]
+        # Cleanup - use working_agent.id if available
+        cleanup_agent_id = str(working_agent.id) if working_agent else str(agent_id)
+        
+        if cleanup_agent_id in connected_agents:
+            del connected_agents[cleanup_agent_id]
         
         if socks_proxy:
             await socks_proxy.stop()
-            if str(agent_id) in agent_socks_proxies:
-                del agent_socks_proxies[str(agent_id)]
+            if cleanup_agent_id in agent_socks_proxies:
+                del agent_socks_proxies[cleanup_agent_id]
         
-        await AgentService.update_agent_status(db, agent_id, AgentStatus.OFFLINE, update_last_seen=True)
+        if working_agent:
+            await AgentService.update_agent_status(db, working_agent.id, AgentStatus.OFFLINE, update_last_seen=True)
         await websocket.close()
 
 
 @router.get("/download/{download_token}")
 async def download_agent_by_token(
     download_token: str,
+    platform: str = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Download agent by token (no auth required for remote deployment)"""
+    """Download agent by token (no auth required for remote deployment)
+    
+    For Go agents, pass platform query param to get compiled binary:
+    - platform=linux-amd64 (default)
+    - platform=windows-amd64
+    - platform=darwin-amd64
+    - platform=linux-arm64
+    
+    Without platform param, returns source code.
+    """
     from sqlalchemy import select
     
     # Find agent by download token
@@ -566,20 +647,59 @@ async def download_agent_by_token(
         content = AgentService.generate_python_agent(agent)
         filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.py"
         media_type = "text/x-python"
+        return Response(
+            content=content.encode('utf-8'),
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
     elif agent.agent_type == AgentType.GO:
-        content = AgentService.generate_go_agent(agent)
+        source_code = AgentService.generate_go_agent(agent)
+        
+        # If platform specified, compile to binary
+        if platform:
+            try:
+                binary_data = await AgentService.compile_go_agent(
+                    source_code,
+                    platform=platform,
+                    obfuscate=agent.obfuscate
+                )
+                
+                # Set filename based on platform
+                goos = platform.split('-')[0]
+                filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}"
+                if goos == "windows":
+                    filename += ".exe"
+                
+                return Response(
+                    content=binary_data,
+                    media_type="application/octet-stream",
+                    headers={
+                        "Content-Disposition": f"attachment; filename={filename}"
+                    }
+                )
+            except Exception as e:
+                # Log error and fall back to source
+                import logging
+                logging.getLogger(__name__).error(f"Compilation failed: {e}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Compilation failed: {str(e)}. Use without platform param for source code."
+                )
+        
+        # No platform specified - return source code
         filename = f"nop_agent_{agent.name.replace(' ', '_').lower()}.go"
         media_type = "text/x-go"
+        return Response(
+            content=source_code.encode('utf-8'),
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
     else:
         raise HTTPException(status_code=400, detail="Unknown agent type")
-    
-    return Response(
-        content=content.encode('utf-8'),
-        media_type=media_type,
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
-    )
 
 
 @router.get("/{agent_id}/status")
