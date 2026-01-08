@@ -107,7 +107,7 @@ NO ORPHAN ⊘ at session end
 1. Close orphan ⊘ tasks
 2. Run tests if test files exist for modified code
 3. Run: git diff --stat (verify expected files changed)
-4. Run: python scripts/generate_codemap.py && python scripts/suggest_skill.py
+4. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
 5. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
 6. Show summary
 7. THEN commit

@@ -32,7 +32,7 @@ Mark ◆ → Check skill trigger → Edit → Mark ✓
 **BEFORE COMMIT (all required):**
 ```
 1. ⊘ orphans? → close them
-2. Run: generate_codemap.py && suggest_skill.py
+2. Run: python .github/scripts/generate_codemap.py && python .github/scripts/suggest_skill.py
 3. Create: log/workflow/YYYY-MM-DD_HHMMSS_task.md
 4. THEN commit
 ```

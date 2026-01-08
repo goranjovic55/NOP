@@ -1,6 +1,4 @@
-{"type": "map", "version": "2.0-hierarchical", "purpose": "Read lines 1-3 for overview, then load specific domain details on-demand", "structure": {"line_1": "This navigation map", "lines_2_to_3": "Domain summaries (tech, entities, line pointers)", "lines_4_onwards": "Detailed entities (load on-demand)"}, "domains": {"Infrastructure": {"summary_line": 2, "details_lines": "4-8", "count": 5}, "backend": {"summary_line": 3, "details_lines": "9-125", "count": 117}}, "updated": "2026-01-07"}
-{"type": "domain", "name": "Infrastructure", "summary": "5 entities: 5 Containers", "tech": ["guacd", "postgres", "redis"], "entities": 5, "entity_types": {"Container": 5}}
-{"type": "domain", "name": "backend", "summary": "117 entities: 104 Classs, 13 Services", "tech": ["app", "asyncio", "base64", "collections", "datetime", "enum", "fastapi", "fcntl", "ftplib", "functools"], "entities": 117, "entity_types": {"Class": 104, "Service": 13}}
+{"type": "map", "purpose": "Quick domain overview - Read first for context, then query specific domains below", "domains": {"Infrastructure": "Line 1+", "backend": "Line 6+"}, "quickNav": {"Scans_Vulnerabilities": "backend.app.models.cve_cache.CVECache (line 6), backend.app.models.vulnerability.VulnerabilitySeverity (line 10)", "Traffic_PacketCapture": "backend.app.models.flow.Flow (line 13), backend.app.schemas.traffic.FlowResponse (line 53)", "AccessHub_RemoteAccess": "backend.app.models.credential.CredentialType (line 14), backend.app.models.credential.Credential (line 15)", "Assets_Discovery": "backend.app.models.asset.AssetType (line 32), backend.app.models.asset.AssetStatus (line 33)", "Settings_Config": "backend.app.models.settings.Settings (line 35), backend.app.schemas.credential.Config (line 48)"}, "upd": "2026-01-08"}
 {"type": "entity", "name": "Infrastructure.Service.frontend", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": [], "updated": "2026-01-07"}
 {"type": "entity", "name": "Infrastructure.Service.backend", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": [], "updated": "2026-01-07"}
 {"type": "entity", "name": "Infrastructure.Service.postgres", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": ["postgres"], "updated": "2026-01-07"}
@@ -123,3 +121,153 @@
 {"type": "entity", "name": "backend.app.api.v1.endpoints.access.FTPUploadRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["json", "fastapi", "time", "typing", "logging", "app", "pydantic", "asyncio", "uuid", "os", "sqlalchemy"], "updated": "2026-01-07"}
 {"type": "entity", "name": "backend.app.api.v1.endpoints.access.HTTPTunnelSession", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["json", "fastapi", "time", "typing", "logging", "app", "pydantic", "asyncio", "uuid", "os", "sqlalchemy"], "updated": "2026-01-07"}
 {"type": "entity", "name": "backend.app.api.v1.endpoints.host.WriteFileRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/host.py"], "tech": ["fastapi", "typing", "pty", "base64", "json", "app", "pydantic", "asyncio", "platform", "select", "sqlalchemy", "struct", "fcntl", "psutil", "shutil", "pathlib", "datetime", "uuid", "termios", "os"], "updated": "2026-01-07"}
+{"type": "codegraph", "name": "backend/test_ws.py", "nodeType": "test", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_broadcast_filter.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_pov_filtering.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/clear_discovered_hosts.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_complete_20260105_002748.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_agent_auto_20260105_002748.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/generate_test_traffic.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_agent_quick_20260105_002748.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_url_bug.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_source_only_tracking.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/validate_knowledge.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/create_fresh_agent.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/agent_new.py", "nodeType": "module", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "scripts/simulate_realistic_traffic.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/generate_knowledge.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_agent.py", "nodeType": "test", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "scripts/lint_protocol.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_socks_e2e.py", "nodeType": "test", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_agent_auto.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/agent.py", "nodeType": "module", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_url_bug_20260105_002748.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_agent_quick.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/test_complete.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "scripts/generate_traffic.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/simulate_sessions.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/generate_codemap.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/suggest_skill.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/analyze_akis.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/session_tracker.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/simulate_sessions_v2.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/analyze_workflows.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/extract_skill.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/analyze_skills.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/test_instructions.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": ".github/scripts/update_docs.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/alembic/env.py", "nodeType": "module", "dependencies": ["backend/app/main.py", "backend/alembic/env.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/tests/test_cve_lookup.py", "nodeType": "test", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/tests/test_version_detection.py", "nodeType": "test", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/tests/test_exploit_match.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/main.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/alembic/versions/53f7dc85c361_add_encryption_and_download_keys_to_.py", "nodeType": "module", "dependencies": ["backend/alembic/env.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/alembic/versions/001_add_cve_tables.py", "nodeType": "module", "dependencies": ["backend/alembic/env.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/alembic/versions/83460bc0ceb5_add_agent_id_to_tables.py", "nodeType": "module", "dependencies": ["backend/alembic/env.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/cve_cache.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/event.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/vulnerability.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/flow.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/credential.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/scan.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/topology.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/user.py", "nodeType": "hook", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/exploit_module.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/agent.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/asset.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/models/settings.py", "nodeType": "config", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/dashboard.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/auth.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/credential.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/scan.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/traffic.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/agent.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/asset.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/schemas/settings.py", "nodeType": "config", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/core/config.py", "nodeType": "config", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/core/database.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/core/redis.py", "nodeType": "module", "dependencies": ["backend/app/main.py", "backend/app/core/redis.py"], "dependents": ["backend/app/api/v1/endpoints/health.py"]}
+{"type": "codegraph", "name": "backend/app/core/security.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/core/pov_middleware.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/core/init_db.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/SnifferService.py", "nodeType": "service", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/discovery_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/cve_lookup.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/PingService.py", "nodeType": "service", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/dashboard_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/agent_socks_proxy.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/asset_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/exploit_match.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/user_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/agent_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/scanner.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/version_detection.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/access_hub.py", "nodeType": "module", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/guacamole.py", "nodeType": "module", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/exploitdb_service.py", "nodeType": "service", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "backend/app/services/agent_data_service.py", "nodeType": "service", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/utils/reset_admin.py", "nodeType": "utility", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/utils/diagnostic.py", "nodeType": "utility", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/websockets/router.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/router.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/dashboard.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/vulnerabilities.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/ping_stream.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/discovery.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/credentials.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/scans.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/auth.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/agent_settings.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/health.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py", "backend/app/core/redis.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/events.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/traffic.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/reports.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/access.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/agents.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/assets.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/host.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/endpoints/settings.py", "nodeType": "endpoint", "dependencies": ["backend/app/main.py"], "dependents": []}
+{"type": "codegraph", "name": "backend/app/api/v1/websockets/exploit.py", "nodeType": "endpoint", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "test-environment/test-host/test_agent_pov.py", "nodeType": "test", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "test-environment/agent-test/agents/agent.py", "nodeType": "module", "dependencies": ["backend/app/api/websockets/router.py"], "dependents": []}
+{"type": "codegraph", "name": "frontend/src/store/agentStore.ts", "nodeType": "store", "dependencies": ["frontend/src/services/agentService.ts"], "dependents": ["frontend/src/components/Layout.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/accessStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/components/ProtocolConnection.tsx", "frontend/src/components/AssetDetailsSidebar.tsx", "frontend/src/components/Layout.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Host.tsx", "frontend/src/pages/AccessHub.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/discoveryStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/components/Layout.tsx", "frontend/src/pages/Assets.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/exploitStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/components/Layout.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Exploit.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/trafficStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/components/Layout.tsx", "frontend/src/pages/Traffic.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/authStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/App.tsx", "frontend/src/components/ProtocolConnection.tsx", "frontend/src/components/PacketCrafting.tsx", "frontend/src/components/Layout.tsx", "frontend/src/pages/Agents.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Traffic.tsx", "frontend/src/pages/Topology.tsx", "frontend/src/pages/Host.tsx"]}
+{"type": "codegraph", "name": "frontend/src/store/scanStore.ts", "nodeType": "store", "dependencies": [], "dependents": ["frontend/src/components/AssetDetailsSidebar.tsx", "frontend/src/components/Layout.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Exploit.tsx", "frontend/src/pages/Scans.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/assetService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/components/PacketCrafting.tsx", "frontend/src/components/AssetDetailsSidebar.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Topology.tsx", "frontend/src/pages/AccessHub.tsx", "frontend/src/pages/Exploit.tsx", "frontend/src/pages/Scans.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/agentService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/store/agentStore.ts", "frontend/src/pages/Agents.tsx", "frontend/src/context/POVContext.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/accessService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/components/ProtocolConnection.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/dashboardService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/pages/Topology.tsx", "frontend/src/pages/Dashboard.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/authService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/pages/Login.tsx"]}
+{"type": "codegraph", "name": "frontend/src/services/hostService.ts", "nodeType": "service", "dependencies": [], "dependents": ["frontend/src/pages/Host.tsx"]}
+{"type": "codegraph", "name": "vscode-extension/src/extension.ts", "nodeType": "module", "dependencies": ["vscode-extension/src/watchers/WorkflowWatcher.ts", "vscode-extension/src/providers/KnowledgeGraphProvider.ts"], "dependents": []}
+{"type": "codegraph", "name": "vscode-extension/src/providers/KnowledgeGraphProvider.ts", "nodeType": "module", "dependencies": ["vscode-extension/src/watchers/WorkflowWatcher.ts"], "dependents": ["vscode-extension/src/extension.ts"]}
+{"type": "codegraph", "name": "vscode-extension/src/watchers/WorkflowWatcher.ts", "nodeType": "module", "dependencies": [], "dependents": ["vscode-extension/src/extension.ts", "vscode-extension/src/providers/KnowledgeGraphProvider.ts"]}
+{"type": "codegraph", "name": "frontend/src/App.tsx", "nodeType": "module", "dependencies": ["frontend/src/pages/Traffic.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/context/POVContext.tsx", "frontend/src/pages/Agents.tsx", "frontend/src/pages/Topology.tsx", "frontend/src/pages/Login.tsx", "frontend/src/components/Layout.tsx", "frontend/src/pages/Host.tsx", "frontend/src/pages/Dashboard.tsx", "frontend/src/pages/Settings.tsx"], "dependents": ["frontend/src/index.tsx"]}
+{"type": "codegraph", "name": "frontend/src/index.tsx", "nodeType": "module", "dependencies": ["frontend/src/App.tsx"], "dependents": []}
+{"type": "codegraph", "name": "frontend/src/components/ProtocolConnection.tsx", "nodeType": "component", "dependencies": ["frontend/src/services/accessService.ts", "frontend/src/store/authStore.ts", "frontend/src/store/accessStore.ts"], "dependents": ["frontend/src/pages/Access.tsx", "frontend/src/pages/Host.tsx", "frontend/src/pages/AccessHub.tsx"]}
+{"type": "codegraph", "name": "frontend/src/components/PacketCrafting.tsx", "nodeType": "component", "dependencies": ["frontend/src/components/CyberUI.tsx", "frontend/src/store/authStore.ts", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/pages/Traffic.tsx"]}
+{"type": "codegraph", "name": "frontend/src/components/AssetDetailsSidebar.tsx", "nodeType": "component", "dependencies": ["frontend/src/store/scanStore.ts", "frontend/src/store/accessStore.ts", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/pages/Assets.tsx"]}
+{"type": "codegraph", "name": "frontend/src/components/CyberUI.tsx", "nodeType": "component", "dependencies": [], "dependents": ["frontend/src/components/PacketCrafting.tsx", "frontend/src/pages/Agents.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Traffic.tsx", "frontend/src/pages/Topology.tsx", "frontend/src/pages/AccessHub.tsx", "frontend/src/pages/Exploit.tsx", "frontend/src/pages/Storm.tsx", "frontend/src/pages/Scans.tsx"]}
+{"type": "codegraph", "name": "frontend/src/components/ScanSettingsModal.tsx", "nodeType": "component", "dependencies": [], "dependents": ["frontend/src/pages/Assets.tsx"]}
+{"type": "codegraph", "name": "frontend/src/components/Layout.tsx", "nodeType": "component", "dependencies": ["frontend/src/store/exploitStore.ts", "frontend/src/store/discoveryStore.ts", "frontend/src/context/POVContext.tsx", "frontend/src/store/scanStore.ts", "frontend/src/store/trafficStore.ts", "frontend/src/store/authStore.ts", "frontend/src/store/agentStore.ts", "frontend/src/store/accessStore.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Agents.tsx", "nodeType": "page", "dependencies": ["frontend/src/context/POVContext.tsx", "frontend/src/services/agentService.ts", "frontend/src/store/authStore.ts", "frontend/src/components/CyberUI.tsx"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Access.tsx", "nodeType": "page", "dependencies": ["frontend/src/store/exploitStore.ts", "frontend/src/context/POVContext.tsx", "frontend/src/store/scanStore.ts", "frontend/src/store/authStore.ts", "frontend/src/store/accessStore.ts", "frontend/src/components/ProtocolConnection.tsx", "frontend/src/components/CyberUI.tsx", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Assets.tsx", "nodeType": "page", "dependencies": ["frontend/src/store/discoveryStore.ts", "frontend/src/context/POVContext.tsx", "frontend/src/components/ScanSettingsModal.tsx", "frontend/src/components/CyberUI.tsx", "frontend/src/store/scanStore.ts", "frontend/src/store/authStore.ts", "frontend/src/store/accessStore.ts", "frontend/src/components/AssetDetailsSidebar.tsx", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Traffic.tsx", "nodeType": "page", "dependencies": ["frontend/src/context/POVContext.tsx", "frontend/src/components/CyberUI.tsx", "frontend/src/store/trafficStore.ts", "frontend/src/store/authStore.ts", "frontend/src/pages/Storm.tsx", "frontend/src/components/PacketCrafting.tsx"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Topology.tsx", "nodeType": "page", "dependencies": ["frontend/src/services/dashboardService.ts", "frontend/src/context/POVContext.tsx", "frontend/src/store/authStore.ts", "frontend/src/components/CyberUI.tsx", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Host.tsx", "nodeType": "page", "dependencies": ["frontend/src/context/POVContext.tsx", "frontend/src/services/hostService.ts", "frontend/src/store/authStore.ts", "frontend/src/store/accessStore.ts", "frontend/src/components/ProtocolConnection.tsx"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/AccessHub.tsx", "nodeType": "page", "dependencies": ["frontend/src/context/POVContext.tsx", "frontend/src/store/accessStore.ts", "frontend/src/store/authStore.ts", "frontend/src/components/ProtocolConnection.tsx", "frontend/src/components/CyberUI.tsx", "frontend/src/services/assetService.ts"], "dependents": []}
+{"type": "codegraph", "name": "frontend/src/pages/Exploit.tsx", "nodeType": "page", "dependencies": ["frontend/src/store/exploitStore.ts", "frontend/src/context/POVContext.tsx", "frontend/src/store/scanStore.ts", "frontend/src/store/authStore.ts", "frontend/src/components/CyberUI.tsx", "frontend/src/services/assetService.ts"], "dependents": []}
+{"type": "codegraph", "name": "frontend/src/pages/Storm.tsx", "nodeType": "page", "dependencies": ["frontend/src/components/CyberUI.tsx", "frontend/src/store/authStore.ts"], "dependents": ["frontend/src/pages/Traffic.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Scans.tsx", "nodeType": "page", "dependencies": ["frontend/src/context/POVContext.tsx", "frontend/src/store/scanStore.ts", "frontend/src/store/authStore.ts", "frontend/src/components/CyberUI.tsx", "frontend/src/services/assetService.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Dashboard.tsx", "nodeType": "page", "dependencies": ["frontend/src/services/dashboardService.ts", "frontend/src/context/POVContext.tsx", "frontend/src/store/authStore.ts", "frontend/src/components/CyberUI.tsx"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Settings.tsx", "nodeType": "page", "dependencies": ["frontend/src/components/CyberUI.tsx", "frontend/src/context/POVContext.tsx"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/pages/Login.tsx", "nodeType": "page", "dependencies": ["frontend/src/services/authService.ts", "frontend/src/store/authStore.ts"], "dependents": ["frontend/src/App.tsx"]}
+{"type": "codegraph", "name": "frontend/src/context/POVContext.tsx", "nodeType": "module", "dependencies": ["frontend/src/services/agentService.ts"], "dependents": ["frontend/src/App.tsx", "frontend/src/components/Layout.tsx", "frontend/src/pages/Agents.tsx", "frontend/src/pages/Access.tsx", "frontend/src/pages/Assets.tsx", "frontend/src/pages/Traffic.tsx", "frontend/src/pages/Topology.tsx", "frontend/src/pages/Host.tsx", "frontend/src/pages/AccessHub.tsx", "frontend/src/pages/Exploit.tsx"]}
+{"type": "codegraph", "name": "frontend/postcss.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "frontend/tailwind.config.js", "nodeType": "config", "dependencies": [], "dependents": []}
+{"type": "codegraph", "name": "frontend/src/setupProxy.js", "nodeType": "module", "dependencies": [], "dependents": []}
