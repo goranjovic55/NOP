@@ -1,6 +1,6 @@
 # AKIS v5.8 - Protocol Enforcement Agent
 
-> `@akis` in GitHub Copilot Chat
+> `@AKIS` in GitHub Copilot Chat
 
 ---
 
