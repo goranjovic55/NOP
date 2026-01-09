@@ -8,8 +8,9 @@
    - gotchas (line 4): historical issues + solutions for debug
    - session_patterns (line 5): predictive file loading
    - interconnections (line 6): service→model→endpoint mapping
-3. Create todos: <MAIN> → <WORK>... → <END>
-4. Tell user: "[session type]. Plan: [N tasks]"
+3. Docs: docs/INDEX.md → documentation map for reference
+4. Create todos: <MAIN> → <WORK>... → <END>
+5. Tell user: "[session type]. Plan: [N tasks]"
 ```
 
 **Session skills cache:** [track loaded skills here - don't reload!]
@@ -49,11 +50,9 @@
 ## END
 ```
 1. Check ⊘ orphans → close ALL
-2. If code files: knowledge.py && skills.py && instructions.py
-   If docs only: skills.py && instructions.py
-3. session_cleanup.py && docs.py
-4. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-5. Show END summary → Wait approval → commit
+2. Run scripts: knowledge.py && skills.py && instructions.py && docs.py && session_cleanup.py
+3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+4. Show END summary (all script outputs) → Wait approval → commit
 ```
 
 ## Symbols

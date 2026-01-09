@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-01-09T09:52:10.975145",
+  "patterns": {
+    "duration_avg": 16.33644859813084,
+    "duration_std": 6.381843294546091,
+    "tasks_avg": 2.9813084112149535,
+    "tasks_std": 6.048064969628314,
+    "files_avg": 1.205607476635514,
+    "skills_avg": 0.19626168224299065,
+    "complexity_dist": {
+      "Simple": 67,
+      "Complex": 28,
+      "Medium": 12
+    },
+    "problem_rate": 0.037383177570093455,
+    "worktree_compliance": 0.1308411214953271,
+    "metrics_compliance": 0.19626168224299065,
+    "verification_compliance": 0.40186915887850466,
+    "delegation_rate": 0.037383177570093455,
+    "total_workflows": 107
+  },
+  "baseline": {
+    "total_sessions": 100000,
+    "avg_token_usage": 3006.68367,
+    "avg_api_calls": 18.05601,
+    "avg_cognitive_load": 0.9267519028672014,
+    "avg_discipline": 0.9602195450758526,
+    "avg_resolution": 0.9279235316908937,
+    "avg_traceability": 0.9602647889512295,
+    "p50_duration": 960,
+    "p95_duration": 1560,
+    "complexity_distribution": {
+      "Complex": 26166,
+      "Simple": 62707,
+      "Medium": 11127
+    },
+    "failure_rate": 0.16225,
+    "improvement_potential": {
+      "token_reduction": 0.5011114687698424,
+      "api_reduction": 0.5569342285477246,
+      "cognitive_reduction": 0.5267519028672014,
+      "discipline_improvement": 0,
+      "resolution_improvement": 0,
+      "trace_improvement": 0
+    }
+  },
+  "component_count": 1
+}

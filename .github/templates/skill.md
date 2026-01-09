@@ -1,19 +1,11 @@
-````markdown
 ---
 name: {skill-name}
-description: {When to load this skill - file patterns, directories, or conditions}
-triggers: ["{pattern1}", "{pattern2}", "{directory}/"]
+description: {What the skill does AND when to use it. Be specific about capabilities and file patterns. Max 1024 chars.}
 ---
 
 # {Skill Title}
 
-## When to Use
-Load this skill when: {describe file patterns, directories, or conditions that trigger this skill}
-
-{One-line description of what this skill covers}
-
-## Critical Rules
-
+## Rules
 - **Rule 1:** {Most important rule}
 - **Rule 2:** {Second important rule}
 
@@ -25,18 +17,12 @@ Load this skill when: {describe file patterns, directories, or conditions that t
 
 ## Patterns
 
-### {Scenario}
 ```{language}
-{code example}
+{code example - essential pattern only}
 ```
 
 ## Common Errors
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| {Error} | {Why it happens} | {How to fix} |
-
-## Related
-- `{related-skill}/SKILL.md`
-
-````
+| Error | Fix |
+|-------|-----|
+| {Error} | {How to fix} |

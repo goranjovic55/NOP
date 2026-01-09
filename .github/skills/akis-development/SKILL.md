@@ -1,83 +1,33 @@
 ---
 name: akis-development
-description: Load when editing .github/copilot-instructions*, .github/instructions/*, .github/skills/* for AKIS framework patterns
-triggers: [".github/copilot-instructions", ".github/instructions/", ".github/skills/", ".github/agents/", "project_knowledge.json"]
+description: Load when editing AKIS framework files including .github/copilot-instructions*, .github/skills/*, .github/agents/*, or project_knowledge.json. Provides token optimization and prompt engineering patterns.
 ---
 
-# AKIS Development v6.0
+# AKIS Development
 
-## When to Use
-Load this skill when: editing AKIS framework files, modifying copilot instructions, updating skills or agents.
-
-Patterns for editing Agent Knowledge and Instruction System files. Focus: token efficiency + prompt minimization.
-
-## Critical Rules
-
-- **Token efficiency**: Every word must earn its place - aim for <200 tokens per file
-- **Skill caching**: Don't reload skills - load once per domain per session
-- **Context awareness**: Knowledge is pre-attached, don't read explicitly
-- **Tables > prose**: Use tables for mappings, patterns, triggers
-- **Symbols over text**: ✓ ◆ ○ ⊘ → ⚠️ ❌ ✅ ⭐
+## Rules
+- **<200 tokens** per skill/instruction file
+- **Skill cache:** Load once per domain per session
+- **Tables > prose** for mappings and triggers
+- **Symbols:** ✓ ◆ ○ ⊘ ⧖ ⚠️ ⭐
 
 ## Avoid
 
 | ❌ Bad | ✅ Good |
 |--------|---------|
 | Verbose paragraphs | Numbered steps |
-| Repeated instructions | Single source, reference |
-| Multiple file reads | Use attachment context |
 | Reload same skill | Cache loaded skills |
 | Long code examples | Essential pattern only |
-| Bullet lists for mappings | 2-column tables |
-
-## Prompt Optimization Patterns
-
-### Eliminate Redundant Reads
-```markdown
-# Before (wasteful)
-1. Read project_knowledge.json
-2. Read skills/INDEX.md  
-3. Read skill file
-
-# After (optimized)
-1. Context pre-loaded via attachment ✓
-2. Check skill cache before reading
-3. Read skill only if new domain
-```
-
-### Skill Caching Pattern
-```markdown
-# Track in session
-**Session skills loaded:** [frontend-react, backend-api]
-
-# Before loading skill, check:
-- Is skill already in session cache? → Skip read
-- New domain? → Read once, add to cache
-```
 
 ## Token Targets
 
-| File Type | Target | Maximum |
-|-----------|--------|---------|
-| Main instructions | <200 | 300 tokens |
-| Skills | <200 | 350 tokens |
-| Instructions | <150 | 200 tokens |
-| INDEX.md | <100 | 150 tokens |
+| File Type | Target | Max |
+|-----------|--------|-----|
+| Skills | <200 | 350 |
+| Instructions | <150 | 200 |
+| INDEX.md | <100 | 150 |
 
 ## Validation
-
 ```bash
-# Run full agent analysis
-python .github/scripts/agents.py --full-audit
-
-# Check compliance with 100k simulation
-python .github/scripts/agents.py --generate --sessions 100000
+python .github/scripts/audit.py --target skills
 ```
-
-## Key Metrics (v6.0 targets)
-
-| Metric | v5.8 | v6.0 Target |
-|--------|------|-------------|
-| API calls/session | 19.5 | 16.1 (-17%) |
-| Tokens/session | 2193 | 644 (-71%) |
-| Perfect sessions | 9.6% | 15%+ |

@@ -33,11 +33,12 @@ You are **AKIS**. Enforce strict workflow compliance. **DO NOT proceed** if prot
 ## START Protocol
 
 ```
-1. Read project_knowledge.json (lines 1-3)
-2. Read .github/skills/INDEX.md
-3. Detect complexity: Simple (<3 files) | Medium (3-5) | Complex (6+)
-4. If Complex → runSubagent with Plan first
-5. Say: "AKIS loaded. [Simple/Medium/Complex]. Ready."
+1. Read project_knowledge.json (lines 1-4: hot_cache, domain_index, change_tracking, gotchas)
+2. Read .github/skills/INDEX.md (skill catalog)
+3. Read docs/INDEX.md (documentation map)
+4. Detect complexity: Simple (<3 files) | Medium (3-5) | Complex (6+)
+5. If Complex → runSubagent with Plan first
+6. Say: "AKIS loaded. [Simple/Medium/Complex]. Ready."
 ```
 
 ---
@@ -134,18 +135,17 @@ NO ORPHAN ⊘ at session end
 ### END Summary Format
 ```
 ══════════════════════════════════════════════════════════════════════════════
-SESSION COMPLETE | Xm Ys | X/Y tasks | X files | X delegations | Complexity
+SESSION COMPLETE | Xm | X/Y tasks | X files | Complexity
 ══════════════════════════════════════════════════════════════════════════════
-WORKFLOW                          SCRIPTS OUTPUT
+WORKFLOW                          SCRIPTS
 ──────────────────────────────────────────────────────────────────────────────
-<MAIN> [description]              knowledge.py: X entities updated
-├─ <WORK> Task 1           ✓      skills.py: X existing, Y candidates
-├─ <DELEGATE> → agent      ✓      instructions.py: X patterns, Y gaps
-├─ <WORK> Task 2           ✓      cleanup.py: X items | docs.py: X updates
-└─ <END> Finalize          ✓      
+<MAIN> [description]              knowledge: X entities, Y gotchas
+├─ <WORK> Task 1           ✓      skills: X exist | instructions: X patterns
+├─ <WORK> Task 2           ✓      docs: X updated, Y gaps | cleanup: X items
+└─ <END> Finalize          ✓
 ──────────────────────────────────────────────────────────────────────────────
-SKILLS: skill1, skill2, skill3 | DELEGATED: agent1, agent2
-SUGGESTIONS: [from skills.py --suggest or "None"]
+SKILLS LOADED: [list] | DELEGATIONS: [count or "none"]
+SUGGESTIONS: skills: [N] | instructions: [N] | docs: [N]
 ══════════════════════════════════════════════════════════════════════════════
 ```
 
