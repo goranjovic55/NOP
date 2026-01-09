@@ -1,6 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func, or_
+from sqlalchemy import select, update, delete, func, or_, cast
+from sqlalchemy.dialects.postgresql import INET
 from typing import Optional, List, Dict, Any
+from uuid import UUID
 import uuid
 import math
 
@@ -12,8 +14,18 @@ class AssetService:
         self.db = db
 
     async def get_assets(self, page: int = 1, size: int = 50, search: Optional[str] = None, 
-                         asset_type: Optional[str] = None, status: Optional[str] = None) -> AssetList:
+                         asset_type: Optional[str] = None, status: Optional[str] = None,
+                         agent_id: Optional[UUID] = None, exclude_agent_assets: bool = False) -> AssetList:
         query = select(Asset)
+        
+        # Filter by agent POV if specified, otherwise optionally exclude agent assets
+        if agent_id:
+            # POV mode - show only assets discovered by this agent
+            query = query.where(Asset.agent_id == agent_id)
+        elif exclude_agent_assets:
+            # C2 mode with filter - show only assets discovered by C2 (no agent_id)
+            query = query.where(Asset.agent_id.is_(None))
+        
         if search:
             query = query.where(or_(Asset.hostname.ilike(f"%{search}%"), 
                                     Asset.ip_address.cast(str).ilike(f"%{search}%"),
@@ -115,7 +127,7 @@ class AssetService:
             query = select(Asset).where(Asset.id == asset_uuid)
         except ValueError:
             # If not a UUID, try to find by IP
-            query = select(Asset).where(Asset.ip_address == asset_id)
+            query = select(Asset).where(Asset.ip_address == cast(asset_id, INET))
 
         result = await self.db.execute(query)
         a = result.scalar_one_or_none()
@@ -170,19 +182,33 @@ class AssetService:
         await self.db.commit()
         return result.rowcount
 
-    async def get_asset_stats(self) -> AssetStats:
+    async def get_asset_stats(self, agent_id: Optional[UUID] = None, exclude_agent_assets: bool = False) -> AssetStats:
         # Total assets
         total_query = select(func.count(Asset.id))
+        if agent_id:
+            # POV mode - count only agent's assets
+            total_query = total_query.where(Asset.agent_id == agent_id)
+        elif exclude_agent_assets:
+            # C2 mode with filter - count only C2's assets
+            total_query = total_query.where(Asset.agent_id.is_(None))
         total_result = await self.db.execute(total_query)
         total_assets = total_result.scalar() or 0
 
         # Online assets
         online_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.ONLINE)
+        if agent_id:
+            online_query = online_query.where(Asset.agent_id == agent_id)
+        elif exclude_agent_assets:
+            online_query = online_query.where(Asset.agent_id.is_(None))
         online_result = await self.db.execute(online_query)
         online_assets = online_result.scalar() or 0
 
         # Offline assets
         offline_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.OFFLINE)
+        if agent_id:
+            offline_query = offline_query.where(Asset.agent_id == agent_id)
+        elif exclude_agent_assets:
+            offline_query = offline_query.where(Asset.agent_id.is_(None))
         offline_result = await self.db.execute(offline_query)
         offline_assets = offline_result.scalar() or 0
 

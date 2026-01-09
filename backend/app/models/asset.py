@@ -2,7 +2,7 @@
 Asset model for network devices and hosts
 """
 
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, Float
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.sql import func
 import uuid
@@ -62,6 +62,9 @@ class Asset(Base):
     first_seen = Column(DateTime(timezone=True), server_default=func.now())
     last_seen = Column(DateTime(timezone=True), server_default=func.now())
     discovery_method = Column(String(50), nullable=True)  # arp, ping, scan, etc.
+    
+    # Agent association - which agent discovered this asset
+    agent_id = Column(UUID(as_uuid=True), ForeignKey('agents.id', ondelete='SET NULL'), nullable=True, index=True)
     
     # Additional metadata
     notes = Column(Text, nullable=True)

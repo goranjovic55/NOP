@@ -1,0 +1,132 @@
+{
+  "total_sessions": 100000,
+  "perfect_detections": 14280,
+  "overall_accuracy": 14.3,
+  "session_types": {
+    "refactor": 15157,
+    "bugfix": 24738,
+    "debug": 15144,
+    "feature": 34949,
+    "docs": 4995,
+    "test": 5017
+  },
+  "skill_metrics": {
+    "debugging": {
+      "true_positives": 69336,
+      "false_positives": 3529,
+      "false_negatives": 0,
+      "precision": 95.2,
+      "recall": 100.0,
+      "f1": 97.5
+    },
+    "frontend-react": {
+      "true_positives": 97398,
+      "false_positives": 1918,
+      "false_negatives": 546,
+      "precision": 98.1,
+      "recall": 99.4,
+      "f1": 98.8
+    },
+    "backend-api": {
+      "true_positives": 84889,
+      "false_positives": 416,
+      "false_negatives": 14344,
+      "precision": 99.5,
+      "recall": 85.5,
+      "f1": 92.0
+    },
+    "testing": {
+      "true_positives": 20552,
+      "false_positives": 8390,
+      "false_negatives": 50196,
+      "precision": 71.0,
+      "recall": 29.0,
+      "f1": 41.2
+    },
+    "docker": {
+      "true_positives": 21640,
+      "false_positives": 35550,
+      "false_negatives": 15969,
+      "precision": 37.8,
+      "recall": 57.5,
+      "f1": 45.7
+    },
+    "documentation": {
+      "true_positives": 539,
+      "false_positives": 0,
+      "false_negatives": 4456,
+      "precision": 100.0,
+      "recall": 10.8,
+      "f1": 19.5
+    }
+  },
+  "gaps": [
+    {
+      "skill": "testing",
+      "issue": "low_recall",
+      "current": 29.0,
+      "missed": 50196,
+      "recommendation": "Add more triggers to detect testing"
+    },
+    {
+      "skill": "testing",
+      "issue": "low_precision",
+      "current": 71.0,
+      "false_alarms": 8390,
+      "recommendation": "Make testing triggers more specific"
+    },
+    {
+      "skill": "docker",
+      "issue": "low_recall",
+      "current": 57.5,
+      "missed": 15969,
+      "recommendation": "Add more triggers to detect docker"
+    },
+    {
+      "skill": "docker",
+      "issue": "low_precision",
+      "current": 37.8,
+      "false_alarms": 35550,
+      "recommendation": "Make docker triggers more specific"
+    },
+    {
+      "skill": "documentation",
+      "issue": "low_recall",
+      "current": 10.8,
+      "missed": 4456,
+      "recommendation": "Add more triggers to detect documentation"
+    }
+  ],
+  "improvements": [
+    {
+      "skill": "testing",
+      "type": "add_trigger",
+      "code": "# Add to testing detection:\n# Check for additional patterns",
+      "expected_impact": "+71% recall"
+    },
+    {
+      "skill": "testing",
+      "type": "refine_trigger",
+      "code": "# Refine testing detection:\n# Add minimum match threshold",
+      "expected_impact": "+29% precision"
+    },
+    {
+      "skill": "docker",
+      "type": "add_trigger",
+      "code": "# Add to docker detection:\n# Check for additional patterns",
+      "expected_impact": "+42% recall"
+    },
+    {
+      "skill": "docker",
+      "type": "refine_trigger",
+      "code": "# Refine docker detection:\n# Add minimum match threshold",
+      "expected_impact": "+62% precision"
+    },
+    {
+      "skill": "documentation",
+      "type": "add_trigger",
+      "code": "# Add to documentation detection:\n# Check for additional patterns",
+      "expected_impact": "+89% recall"
+    }
+  ]
+}

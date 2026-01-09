@@ -1,0 +1,647 @@
+{
+  "total_scenarios": 100000,
+  "skill_metrics": {
+    "debugging": {
+      "matched": 18575,
+      "expected": 20726,
+      "precision": 89.2,
+      "recall": 80.0,
+      "f1": 84.4
+    },
+    "backend-api": {
+      "matched": 75019,
+      "expected": 56837,
+      "precision": 75.8,
+      "recall": 100.0,
+      "f1": 86.2
+    },
+    "documentation": {
+      "matched": 75021,
+      "expected": 3167,
+      "precision": 4.2,
+      "recall": 100.0,
+      "f1": 8.1
+    },
+    "testing": {
+      "matched": 4152,
+      "expected": 4152,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "docker": {
+      "matched": 8141,
+      "expected": 8141,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "frontend-react": {
+      "matched": 38302,
+      "expected": 34779,
+      "precision": 90.8,
+      "recall": 100.0,
+      "f1": 95.2
+    }
+  },
+  "discovered_patterns": [
+    {
+      "pattern_id": "websocket-patterns",
+      "description": "Real-time WebSocket connection management, message handling, broadcasting, and cleanup patterns",
+      "frequency": 6213,
+      "technologies": [
+        "fastapi",
+        "websocket",
+        "asyncio"
+      ],
+      "file_patterns": [
+        "ws_\\w+\\.py$",
+        "useWebSocket\\.ts$",
+        "websocket"
+      ],
+      "code_indicators": [
+        "send_text",
+        "accept",
+        "receive_text",
+        "websocket",
+        "broadcast"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        1,
+        7,
+        29,
+        34,
+        60
+      ],
+      "suggested_skill_name": "websocket-patterns",
+      "suggested_skill_description": "Real-time WebSocket connection management, message handling, broadcasting, and cleanup patterns",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "authentication-patterns",
+      "description": "JWT, OAuth, bearer tokens, authentication flows, authorization patterns",
+      "frequency": 5115,
+      "technologies": [
+        "fastapi",
+        "oauth",
+        "jwt"
+      ],
+      "file_patterns": [
+        "auth\\.py$",
+        "jwt",
+        "oauth",
+        "login"
+      ],
+      "code_indicators": [
+        "bearer",
+        "jwt",
+        "authenticate",
+        "token",
+        "authorize",
+        "oauth"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        4,
+        8,
+        11,
+        90,
+        93
+      ],
+      "suggested_skill_name": "authentication-patterns",
+      "suggested_skill_description": "JWT, OAuth, bearer tokens, authentication flows, authorization patterns",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "network-analysis",
+      "description": "Scapy packet capture, network protocol analysis, async sniffing",
+      "frequency": 4168,
+      "technologies": [
+        "pcap",
+        "scapy",
+        "asyncio"
+      ],
+      "file_patterns": [
+        "sniffer",
+        "capture",
+        "packet",
+        "scapy"
+      ],
+      "code_indicators": [
+        "AsyncSniffer",
+        "scapy",
+        "packet",
+        "sniff",
+        "pcap"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        46,
+        55,
+        57,
+        118,
+        154
+      ],
+      "suggested_skill_name": "network-analysis",
+      "suggested_skill_description": "Scapy packet capture, network protocol analysis, async sniffing",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "error-handling-patterns",
+      "description": "Exception handling, error boundaries, graceful degradation, logging",
+      "frequency": 4149,
+      "technologies": [
+        "react",
+        "fastapi",
+        "error-boundary",
+        "exception"
+      ],
+      "file_patterns": [
+        "error",
+        "exception",
+        "handler"
+      ],
+      "code_indicators": [
+        "raise",
+        "try",
+        "except",
+        "finally",
+        "ErrorBoundary",
+        "catch"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        19,
+        40,
+        83,
+        150,
+        169
+      ],
+      "suggested_skill_name": "error-handling-patterns",
+      "suggested_skill_description": "Exception handling, error boundaries, graceful degradation, logging",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "database-migration",
+      "description": "Alembic migration patterns, revision management, upgrade/downgrade procedures",
+      "frequency": 4112,
+      "technologies": [
+        "sqlalchemy",
+        "alembic"
+      ],
+      "file_patterns": [
+        "alembic/",
+        "migrations/",
+        "_revision\\.py$"
+      ],
+      "code_indicators": [
+        "downgrade",
+        "migration",
+        "revision",
+        "alembic",
+        "upgrade"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        77,
+        98,
+        178,
+        185,
+        193
+      ],
+      "suggested_skill_name": "database-migration",
+      "suggested_skill_description": "Alembic migration patterns, revision management, upgrade/downgrade procedures",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "state-management",
+      "description": "React state management with Zustand/Redux, stores, actions, selectors",
+      "frequency": 4060,
+      "technologies": [
+        "react",
+        "redux",
+        "zustand"
+      ],
+      "file_patterns": [
+        "store\\.ts$",
+        "useStore",
+        "redux",
+        "zustand"
+      ],
+      "code_indicators": [
+        "zustand",
+        "create",
+        "redux",
+        "useStore",
+        "dispatch",
+        "state"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        50,
+        71,
+        108,
+        147,
+        170
+      ],
+      "suggested_skill_name": "state-management",
+      "suggested_skill_description": "React state management with Zustand/Redux, stores, actions, selectors",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "performance-patterns",
+      "description": "React memoization, lazy loading, caching strategies, async optimization",
+      "frequency": 3087,
+      "technologies": [
+        "caching",
+        "react",
+        "fastapi",
+        "memoization"
+      ],
+      "file_patterns": [
+        "useMemo",
+        "useCallback",
+        "lazy",
+        "cache"
+      ],
+      "code_indicators": [
+        "async",
+        "lazy",
+        "cache",
+        "Suspense",
+        "useMemo",
+        "useCallback"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        5,
+        9,
+        13,
+        16,
+        61
+      ],
+      "suggested_skill_name": "performance-patterns",
+      "suggested_skill_description": "React memoization, lazy loading, caching strategies, async optimization",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "ci-cd-patterns",
+      "description": "GitHub Actions workflows, automated testing, deployment pipelines",
+      "frequency": 3013,
+      "technologies": [
+        "docker",
+        "github-actions"
+      ],
+      "file_patterns": [
+        "\\.github/workflows/",
+        "\\.yml$"
+      ],
+      "code_indicators": [
+        "actions",
+        "test",
+        "deploy",
+        "build",
+        "workflow"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        68,
+        69,
+        114,
+        116,
+        123
+      ],
+      "suggested_skill_name": "ci-cd-patterns",
+      "suggested_skill_description": "GitHub Actions workflows, automated testing, deployment pipelines",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "api-design-patterns",
+      "description": "API versioning, router organization, endpoint design, OpenAPI",
+      "frequency": 2157,
+      "technologies": [
+        "fastapi"
+      ],
+      "file_patterns": [
+        "api/v\\d+/",
+        "router",
+        "endpoints/"
+      ],
+      "code_indicators": [
+        "v2",
+        "versioning",
+        "APIRouter",
+        "prefix",
+        "v1"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        59,
+        257,
+        302,
+        421,
+        485
+      ],
+      "suggested_skill_name": "api-design-patterns",
+      "suggested_skill_description": "API versioning, router organization, endpoint design, OpenAPI",
+      "confidence": 1.0
+    },
+    {
+      "pattern_id": "logging-patterns",
+      "description": "Structured logging, log levels, monitoring integration",
+      "frequency": 1998,
+      "technologies": [
+        "python",
+        "logging"
+      ],
+      "file_patterns": [
+        "logger",
+        "logging\\.py$"
+      ],
+      "code_indicators": [
+        "logging",
+        "info",
+        "warning",
+        "error",
+        "debug",
+        "logger"
+      ],
+      "error_indicators": [],
+      "example_scenarios": [
+        160,
+        162,
+        310,
+        327,
+        360
+      ],
+      "suggested_skill_name": "logging-patterns",
+      "suggested_skill_description": "Structured logging, log levels, monitoring integration",
+      "confidence": 1.0
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "improve_detection",
+      "skill": "documentation",
+      "current_f1": 8.1,
+      "issue": "Low F1 score - detection patterns may be too narrow or too broad",
+      "action": "Review documentation triggers in suggest_skill.py"
+    },
+    {
+      "type": "add_skill",
+      "skill": "websocket-patterns",
+      "frequency": 6213,
+      "confidence": 1.0,
+      "description": "Real-time WebSocket connection management, message handling, broadcasting, and cleanup patterns",
+      "technologies": [
+        "websocket",
+        "fastapi",
+        "asyncio"
+      ],
+      "file_patterns": [
+        "ws_\\w+\\.py$",
+        "useWebSocket\\.ts$",
+        "websocket"
+      ],
+      "code_indicators": [
+        "send_text",
+        "accept",
+        "receive_text",
+        "websocket",
+        "broadcast"
+      ],
+      "action": "Create .github/skills/websocket-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "authentication-patterns",
+      "frequency": 5115,
+      "confidence": 1.0,
+      "description": "JWT, OAuth, bearer tokens, authentication flows, authorization patterns",
+      "technologies": [
+        "oauth",
+        "fastapi",
+        "jwt"
+      ],
+      "file_patterns": [
+        "auth\\.py$",
+        "jwt",
+        "oauth",
+        "login"
+      ],
+      "code_indicators": [
+        "bearer",
+        "jwt",
+        "authenticate",
+        "token",
+        "authorize",
+        "oauth"
+      ],
+      "action": "Create .github/skills/authentication-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "network-analysis",
+      "frequency": 4168,
+      "confidence": 1.0,
+      "description": "Scapy packet capture, network protocol analysis, async sniffing",
+      "technologies": [
+        "scapy",
+        "pcap",
+        "asyncio"
+      ],
+      "file_patterns": [
+        "sniffer",
+        "capture",
+        "packet",
+        "scapy"
+      ],
+      "code_indicators": [
+        "AsyncSniffer",
+        "scapy",
+        "packet",
+        "sniff",
+        "pcap"
+      ],
+      "action": "Create .github/skills/network-analysis/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "error-handling-patterns",
+      "frequency": 4149,
+      "confidence": 1.0,
+      "description": "Exception handling, error boundaries, graceful degradation, logging",
+      "technologies": [
+        "error-boundary",
+        "react",
+        "fastapi",
+        "exception"
+      ],
+      "file_patterns": [
+        "error",
+        "exception",
+        "handler"
+      ],
+      "code_indicators": [
+        "raise",
+        "try",
+        "except",
+        "finally",
+        "ErrorBoundary",
+        "catch"
+      ],
+      "action": "Create .github/skills/error-handling-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "database-migration",
+      "frequency": 4112,
+      "confidence": 1.0,
+      "description": "Alembic migration patterns, revision management, upgrade/downgrade procedures",
+      "technologies": [
+        "sqlalchemy",
+        "alembic"
+      ],
+      "file_patterns": [
+        "alembic/",
+        "migrations/",
+        "_revision\\.py$"
+      ],
+      "code_indicators": [
+        "downgrade",
+        "migration",
+        "revision",
+        "alembic",
+        "upgrade"
+      ],
+      "action": "Create .github/skills/database-migration/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "state-management",
+      "frequency": 4060,
+      "confidence": 1.0,
+      "description": "React state management with Zustand/Redux, stores, actions, selectors",
+      "technologies": [
+        "zustand",
+        "react",
+        "redux"
+      ],
+      "file_patterns": [
+        "store\\.ts$",
+        "useStore",
+        "redux",
+        "zustand"
+      ],
+      "code_indicators": [
+        "zustand",
+        "create",
+        "redux",
+        "useStore",
+        "dispatch",
+        "state"
+      ],
+      "action": "Create .github/skills/state-management/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "performance-patterns",
+      "frequency": 3087,
+      "confidence": 1.0,
+      "description": "React memoization, lazy loading, caching strategies, async optimization",
+      "technologies": [
+        "fastapi",
+        "memoization",
+        "react",
+        "caching"
+      ],
+      "file_patterns": [
+        "useMemo",
+        "useCallback",
+        "lazy",
+        "cache"
+      ],
+      "code_indicators": [
+        "async",
+        "lazy",
+        "cache",
+        "Suspense",
+        "useMemo",
+        "useCallback"
+      ],
+      "action": "Create .github/skills/performance-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "ci-cd-patterns",
+      "frequency": 3013,
+      "confidence": 1.0,
+      "description": "GitHub Actions workflows, automated testing, deployment pipelines",
+      "technologies": [
+        "docker",
+        "github-actions"
+      ],
+      "file_patterns": [
+        "\\.github/workflows/",
+        "\\.yml$"
+      ],
+      "code_indicators": [
+        "actions",
+        "test",
+        "deploy",
+        "build",
+        "workflow"
+      ],
+      "action": "Create .github/skills/ci-cd-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "api-design-patterns",
+      "frequency": 2157,
+      "confidence": 1.0,
+      "description": "API versioning, router organization, endpoint design, OpenAPI",
+      "technologies": [
+        "fastapi"
+      ],
+      "file_patterns": [
+        "api/v\\d+/",
+        "router",
+        "endpoints/"
+      ],
+      "code_indicators": [
+        "v2",
+        "versioning",
+        "APIRouter",
+        "prefix",
+        "v1"
+      ],
+      "action": "Create .github/skills/api-design-patterns/SKILL.md"
+    },
+    {
+      "type": "add_skill",
+      "skill": "logging-patterns",
+      "frequency": 1998,
+      "confidence": 1.0,
+      "description": "Structured logging, log levels, monitoring integration",
+      "technologies": [
+        "python",
+        "logging"
+      ],
+      "file_patterns": [
+        "logger",
+        "logging\\.py$"
+      ],
+      "code_indicators": [
+        "logging",
+        "info",
+        "error",
+        "warning",
+        "debug",
+        "logger"
+      ],
+      "action": "Create .github/skills/logging-patterns/SKILL.md"
+    }
+  ],
+  "generated_code": "# NEW SKILL DETECTION PATTERNS\n# Generated from 100k simulation analysis\n\nNEW_SKILL_TRIGGERS = {\n    'websocket-patterns': {\n        'description': 'Real-time WebSocket connection management, message handling, broadcasting, and c',\n        'file_patterns': ['ws_\\\\w+\\\\.py$', 'useWebSocket\\\\.ts$', 'websocket'],\n        'technologies': {'fastapi', 'websocket', 'asyncio'},\n        'code_indicators': {'send_text', 'receive_text', 'websocket', 'broadcast', 'accept'},\n        'confidence_threshold': 0.7,\n    },\n    'authentication-patterns': {\n        'description': 'JWT, OAuth, bearer tokens, authentication flows, authorization patterns',\n        'file_patterns': ['auth\\\\.py$', 'jwt', 'oauth', 'login'],\n        'technologies': {'fastapi', 'oauth', 'jwt'},\n        'code_indicators': {'token', 'bearer', 'authorize', 'oauth', 'jwt', 'authenticate'},\n        'confidence_threshold': 0.7,\n    },\n    'network-analysis': {\n        'description': 'Scapy packet capture, network protocol analysis, async sniffing',\n        'file_patterns': ['sniffer', 'capture', 'packet', 'scapy'],\n        'technologies': {'pcap', 'scapy', 'asyncio'},\n        'code_indicators': {'AsyncSniffer', 'scapy', 'packet', 'sniff', 'pcap'},\n        'confidence_threshold': 0.7,\n    },\n    'error-handling-patterns': {\n        'description': 'Exception handling, error boundaries, graceful degradation, logging',\n        'file_patterns': ['error', 'exception', 'handler'],\n        'technologies': {'react', 'fastapi', 'error-boundary', 'exception'},\n        'code_indicators': {'ErrorBoundary', 'try', 'except', 'finally', 'raise', 'catch'},\n        'confidence_threshold': 0.7,\n    },\n    'database-migration': {\n        'description': 'Alembic migration patterns, revision management, upgrade/downgrade procedures',\n        'file_patterns': ['alembic/', 'migrations/', '_revision\\\\.py$'],\n        'technologies': {'sqlalchemy', 'alembic'},\n        'code_indicators': {'revision', 'alembic', 'upgrade', 'downgrade', 'migration'},\n        'confidence_threshold': 0.7,\n    },\n    'state-management': {\n        'description': 'React state management with Zustand/Redux, stores, actions, selectors',\n        'file_patterns': ['store\\\\.ts$', 'useStore', 'redux', 'zustand'],\n        'technologies': {'react', 'redux', 'zustand'},\n        'code_indicators': {'useStore', 'dispatch', 'zustand', 'create', 'state', 'redux'},\n        'confidence_threshold': 0.7,\n    },\n    'performance-patterns': {\n        'description': 'React memoization, lazy loading, caching strategies, async optimization',\n        'file_patterns': ['useMemo', 'useCallback', 'lazy', 'cache'],\n        'technologies': {'caching', 'react', 'fastapi', 'memoization'},\n        'code_indicators': {'lazy', 'cache', 'Suspense', 'async', 'useMemo', 'useCallback'},\n        'confidence_threshold': 0.7,\n    },\n    'ci-cd-patterns': {\n        'description': 'GitHub Actions workflows, automated testing, deployment pipelines',\n        'file_patterns': ['\\\\.github/workflows/', '\\\\.yml$'],\n        'technologies': {'docker', 'github-actions'},\n        'code_indicators': {'workflow', 'actions', 'test', 'deploy', 'build'},\n        'confidence_threshold': 0.7,\n    },\n    'api-design-patterns': {\n        'description': 'API versioning, router organization, endpoint design, OpenAPI',\n        'file_patterns': ['api/v\\\\d+/', 'router', 'endpoints/'],\n        'technologies': {'fastapi'},\n        'code_indicators': {'v2', 'prefix', 'versioning', 'v1', 'APIRouter'},\n        'confidence_threshold': 0.7,\n    },\n    'logging-patterns': {\n        'description': 'Structured logging, log levels, monitoring integration',\n        'file_patterns': ['logger', 'logging\\\\.py$'],\n        'technologies': {'python', 'logging'},\n        'code_indicators': {'logging', 'error', 'info', 'logger', 'warning', 'debug'},\n        'confidence_threshold': 0.7,\n    },\n}\n\n\ndef detect_new_skills(files: List[str], code_patterns: Set[str], technologies: Set[str]) -> List[str]:\n    \"\"\"Detect new skills based on simulation-discovered patterns.\"\"\"\n    detected = []\n    \n    for skill_name, triggers in NEW_SKILL_TRIGGERS.items():\n        score = 0\n        max_score = 0\n        \n        # Check file patterns\n        for pattern in triggers.get('file_patterns', []):\n            max_score += 1\n            for f in files:\n                if re.search(pattern, f):\n                    score += 1\n                    break\n        \n        # Check technologies\n        for tech in triggers.get('technologies', set()):\n            max_score += 1\n            if tech in technologies:\n                score += 1\n        \n        # Check code indicators\n        for indicator in triggers.get('code_indicators', set()):\n            max_score += 1\n            if indicator in code_patterns:\n                score += 1\n        \n        if max_score > 0 and score / max_score >= triggers.get('confidence_threshold', 0.7):\n            detected.append(skill_name)\n    \n    return detected"
+}

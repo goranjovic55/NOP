@@ -2,13 +2,14 @@
 Asset management endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
 import uuid
 
 from app.core.database import get_db
+from app.core.pov_middleware import get_agent_pov
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats
 from app.services.asset_service import AssetService
 from app.models.asset import Asset
@@ -18,29 +19,49 @@ router = APIRouter()
 
 @router.get("/", response_model=AssetList)
 async def get_assets(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=500),
     search: Optional[str] = Query(None),
     asset_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    exclude_agent_assets: bool = Query(True, description="Exclude agent-discovered assets (C2 view)"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get list of assets with pagination and filtering"""
+    """Get list of assets with pagination and filtering
+    
+    - In C2 view (no POV): exclude_agent_assets=True (default) shows only C2-scanned assets
+    - In POV view: agent_id filter overrides exclude_agent_assets
+    """
+    agent_pov = get_agent_pov(request)
+    print(f"[ASSETS DEBUG] X-Agent-POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
     asset_service = AssetService(db)
-    return await asset_service.get_assets(
+    result = await asset_service.get_assets(
         page=page,
         size=size,
         search=search,
         asset_type=asset_type,
-        status=status
+        status=status,
+        agent_id=agent_pov,
+        exclude_agent_assets=exclude_agent_assets if not agent_pov else False
     )
+    print(f"[ASSETS DEBUG] Returning {result.total} assets for agent_pov={agent_pov}")
+    return result
 
 
 @router.get("/stats", response_model=AssetStats)
-async def get_asset_stats(db: AsyncSession = Depends(get_db)):
-    """Get asset statistics"""
+async def get_asset_stats(
+    request: Request,
+    exclude_agent_assets: bool = Query(True, description="Exclude agent-discovered assets"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get asset statistics (supports agent POV and C2 filtering)"""
+    agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
-    return await asset_service.get_asset_stats()
+    return await asset_service.get_asset_stats(
+        agent_id=agent_pov,
+        exclude_agent_assets=exclude_agent_assets if not agent_pov else False
+    )
 
 
 @router.get("/online", response_model=List[dict])

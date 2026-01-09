@@ -3,9 +3,11 @@ Dashboard service for metrics and activity aggregation
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
-from typing import List
+from sqlalchemy import select, func, desc, cast
+from sqlalchemy.dialects.postgresql import INET
+from typing import List, Optional
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from app.models.asset import Asset, AssetStatus
 from app.models.scan import Scan, ScanStatus
@@ -24,16 +26,20 @@ class DashboardService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_metrics(self) -> DashboardMetrics:
-        """Get dashboard metrics"""
+    async def get_metrics(self, agent_id: Optional[UUID] = None) -> DashboardMetrics:
+        """Get dashboard metrics (optionally filtered by agent)"""
         
         # Discovered hosts (total assets)
         discovered_query = select(func.count(Asset.id))
+        if agent_id:
+            discovered_query = discovered_query.where(Asset.agent_id == agent_id)
         discovered_result = await self.db.execute(discovered_query)
         discovered_hosts = discovered_result.scalar() or 0
 
         # Online hosts
         online_query = select(func.count(Asset.id)).where(Asset.status == AssetStatus.ONLINE)
+        if agent_id:
+            online_query = online_query.where(Asset.agent_id == agent_id)
         online_result = await self.db.execute(online_query)
         online_hosts = online_result.scalar() or 0
 
@@ -81,11 +87,13 @@ class DashboardService:
             total_exploits=exploits_count
         )
 
-    async def get_recent_activity(self) -> RecentActivityResponse:
-        """Get recent activity (hosts, scans, exploits)"""
+    async def get_recent_activity(self, agent_id: Optional[UUID] = None) -> RecentActivityResponse:
+        """Get recent activity (hosts, scans, exploits) - optionally filtered by agent"""
         
         # Last 5 discovered hosts
         discovered_query = select(Asset).order_by(desc(Asset.first_seen)).limit(5)
+        if agent_id:
+            discovered_query = discovered_query.where(Asset.agent_id == agent_id)
         discovered_result = await self.db.execute(discovered_query)
         discovered_assets = discovered_result.scalars().all()
         
@@ -115,7 +123,7 @@ class DashboardService:
             # Try to find asset by IP for hostname
             hostname = None
             if ip_address != "N/A":
-                asset_query = select(Asset).where(Asset.ip_address == ip_address)
+                asset_query = select(Asset).where(Asset.ip_address == cast(ip_address, INET))
                 asset_result = await self.db.execute(asset_query)
                 asset = asset_result.scalar_one_or_none()
                 if asset:

@@ -1,58 +1,57 @@
-# Workflow Log: {TASK_NAME}
+````markdown
+# {TASK_NAME} | {YYYY-MM-DD} | ~{N}min | {complexity}
 
-**Date**: {YYYY-MM-DD HH:MM}  
-**Duration**: ~{N} minutes
+## Metrics
+| Tasks | Files | Skills | Delegations | Scripts |
+|-------|-------|--------|-------------|---------|
+| {done}/{total} | {N} modified | {N} loaded | {N} agents | knowledge✓ skills✓ docs✓ |
 
----
+## Worktree
+```
+<MAIN> ✓ {Original request}
+├─ <WORK> ✓ {Task 1}
+├─ <DELEGATE> ✓ → {agent-name}: {task description}
+├─ <WORK> ✓ {Task 2}
+└─ <END> ✓ Review and commit
+```
 
 ## Summary
-
-{One paragraph describing what was accomplished}
+{Brief description of what was accomplished - 2-3 sentences max}
 
 ## Changes
+| File | Change |
+|------|--------|
+| `path/file.ext` | Created/Modified - brief description |
 
-### Files Created
-- `path/to/file.ext` - Description
-
-### Files Modified  
-- `path/to/file.ext` - What changed
-
-### Files Deleted
-- `path/to/file.ext` - Why removed
-
-## Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| {Choice made} | {Why this approach} |
-
-## Knowledge Updates
-
-### New Entities Added
-```json
-{"type":"entity","name":"...","entityType":"...","observations":["..."]}
+## Script Output
+```
+knowledge.py: {N} entities updated
+skills.py: {N} existing, {N} candidates ({list})
+instructions.py: {N} patterns, {N} gaps
+cleanup.py: {N} items cleaned
+docs.py: {N} updates needed
 ```
 
-### Relations Added
-```json
-{"type":"relation","from":"...","to":"...","relationType":"..."}
-```
+## Skills Used
+- `{skill1}` → file1.py, file2.py
+- `{skill2}` → Dockerfile
 
-## Skills
+## Delegations
+{Omit if none}
+| Agent | Task | Result |
+|-------|------|--------|
+| `{agent-name}` | {delegated task} | {outcome} |
 
-### Skills Used
-- `skill-name` - How it helped
+## Skill Suggestions
+{From skills.py --suggest or "None"}
 
-### Skills Created/Updated
-- `skill-name` - Pattern extracted from this work
+## Problems & Solutions
+{Omit if none}
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| {what} | {why} | {fix} |
 
 ## Verification
+{Commands/tests run to verify}
 
-- [ ] Tests pass
-- [ ] No lint errors
-- [ ] Knowledge updated
-- [ ] Committed with descriptive message
-
-## Notes
-
-{Any additional context, gotchas, or future considerations}
+````

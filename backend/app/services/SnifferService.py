@@ -594,12 +594,36 @@ class SnifferService:
                 protocol = f"IP_{proto}"
                 self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
             
-            # Track connections (src -> dst) with protocol info
+            # Track connections (src -> dst) with protocol info and timestamps
             conn_key = f"{src}-{dst}"
+            current_time = time.time()
             if conn_key not in self.stats["connections"]:
-                self.stats["connections"][conn_key] = {"bytes": 0, "protocols": set()}
+                self.stats["connections"][conn_key] = {
+                    "bytes": 0, 
+                    "protocols": set(),
+                    "first_seen": current_time,
+                    "last_seen": current_time,
+                    "packet_count": 0
+                }
             self.stats["connections"][conn_key]["bytes"] += len(packet)
             self.stats["connections"][conn_key]["protocols"].add(protocol)
+            self.stats["connections"][conn_key]["last_seen"] = current_time
+            self.stats["connections"][conn_key]["packet_count"] += 1
+            
+            # Also track in burst stats if burst capture is active
+            if hasattr(self, 'burst_stats') and self.burst_stats is not None:
+                if conn_key not in self.burst_stats["connections"]:
+                    self.burst_stats["connections"][conn_key] = {
+                        "bytes": 0, 
+                        "protocols": set(),
+                        "first_seen": current_time,
+                        "last_seen": current_time,
+                        "packet_count": 0
+                    }
+                self.burst_stats["connections"][conn_key]["bytes"] += len(packet)
+                self.burst_stats["connections"][conn_key]["protocols"].add(protocol)
+                self.burst_stats["connections"][conn_key]["last_seen"] = current_time
+                self.burst_stats["connections"][conn_key]["packet_count"] += 1
 
         if self.callback:
             self.callback(packet_data)
@@ -653,7 +677,10 @@ class SnifferService:
                 "source": src, 
                 "target": dst, 
                 "value": conn_data["bytes"],
-                "protocols": list(conn_data["protocols"])
+                "protocols": list(conn_data["protocols"]),
+                "last_seen": conn_data.get("last_seen"),
+                "first_seen": conn_data.get("first_seen"),
+                "packet_count": conn_data.get("packet_count", 0)
             })
 
         return {
@@ -662,8 +689,48 @@ class SnifferService:
             "top_talkers": [{"ip": ip, "bytes": b} for ip, b in sorted_talkers],
             "protocols": self.stats["protocols"],
             "traffic_history": self.traffic_history,
-            "connections": connections
+            "connections": connections,
+            "current_time": time.time()
         }
+
+    def start_burst_capture(self) -> None:
+        """Start a burst capture session to collect fresh traffic data"""
+        self.burst_stats = {
+            "connections": {},
+            "start_time": time.time()
+        }
+
+    def stop_burst_capture(self) -> Dict[str, Any]:
+        """Stop burst capture and return captured connections"""
+        if not hasattr(self, 'burst_stats') or self.burst_stats is None:
+            return {"connections": [], "duration": 0}
+        
+        current_time = time.time()
+        duration = current_time - self.burst_stats.get("start_time", current_time)
+        
+        # Format burst connections
+        connections = []
+        for key, conn_data in self.burst_stats["connections"].items():
+            src, dst = key.split('-')
+            connections.append({
+                "source": src, 
+                "target": dst, 
+                "value": conn_data["bytes"],
+                "protocols": list(conn_data["protocols"]),
+                "last_seen": conn_data.get("last_seen"),
+                "first_seen": conn_data.get("first_seen"),
+                "packet_count": conn_data.get("packet_count", 0)
+            })
+        
+        result = {
+            "connections": connections,
+            "duration": duration,
+            "current_time": current_time
+        }
+        
+        # Clear burst stats
+        self.burst_stats = None
+        return result
 
     def export_pcap(self, filename: str = "capture.pcap") -> str:
         filepath = os.path.join("/app/evidence", filename)

@@ -94,14 +94,21 @@ export interface DiskIO {
   };
 }
 
+export interface POVInstruction {
+  title: string;
+  detail?: string;
+  type: 'success' | 'header' | 'command' | 'target' | 'warning' | 'error' | 'info';
+}
+
 export interface FileSystemItem {
   name: string;
   path: string;
-  type: 'file' | 'directory' | 'unknown';
+  type: 'file' | 'directory' | 'unknown' | 'instructions';
   size?: number;
   modified?: string;
   permissions?: string;
   error?: string;
+  instructions?: POVInstruction[];  // POV mode instructions
 }
 
 export interface FileSystemBrowse {
@@ -118,12 +125,14 @@ export interface FileContent {
 }
 
 export const hostService = {
-  getSystemInfo: async (token: string): Promise<SystemInfo> => {
+  getSystemInfo: async (token: string, agentPOV?: string): Promise<SystemInfo> => {
     const url = `${API_URL}/system/info`;
     try {
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (agentPOV) {
+        headers['X-Agent-POV'] = agentPOV;
+      }
+      const response = await axios.get(url, { headers });
       return response.data;
     } catch (error: any) {
       console.error('[hostService.getSystemInfo] Error:', error.response?.status, error.message);
@@ -131,66 +140,96 @@ export const hostService = {
     }
   },
 
-  getSystemMetrics: async (token: string): Promise<SystemMetrics> => {
-    const response = await axios.get(`${API_URL}/system/metrics`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  getSystemMetrics: async (token: string, agentPOV?: string): Promise<SystemMetrics> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/system/metrics`, { headers });
     return response.data;
   },
 
-  getProcesses: async (token: string, limit: number = 50): Promise<Process[]> => {
+  getProcesses: async (token: string, limit: number = 50, agentPOV?: string): Promise<Process[]> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.get(`${API_URL}/system/processes`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
       params: { limit },
     });
     return response.data;
   },
 
-  getNetworkConnections: async (token: string, limit: number = 50): Promise<NetworkConnection[]> => {
+  getNetworkConnections: async (token: string, limit: number = 50, agentPOV?: string): Promise<NetworkConnection[]> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.get(`${API_URL}/system/connections`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
       params: { limit },
     });
     return response.data;
   },
 
-  getDiskIO: async (token: string): Promise<DiskIO> => {
+  getDiskIO: async (token: string, agentPOV?: string): Promise<DiskIO> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.get(`${API_URL}/system/disk-io`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
     });
     return response.data;
   },
 
-  browseFileSystem: async (token: string, path: string = '/'): Promise<FileSystemBrowse> => {
+  browseFileSystem: async (token: string, path: string = '/', agentPOV?: string): Promise<FileSystemBrowse> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.get(`${API_URL}/filesystem/browse`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
       params: { path },
     });
     return response.data;
   },
 
-  readFile: async (token: string, path: string): Promise<FileContent> => {
+  readFile: async (token: string, path: string, agentPOV?: string): Promise<FileContent> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.get(`${API_URL}/filesystem/read`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
       params: { path },
     });
     return response.data;
   },
 
-  writeFile: async (token: string, path: string, content: string): Promise<{ status: string; path: string; message: string }> => {
+  writeFile: async (token: string, path: string, content: string, agentPOV?: string): Promise<{ status: string; path: string; message: string }> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.post(
       `${API_URL}/filesystem/write`,
       { path, content },
       {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       }
     );
     return response.data;
   },
 
-  deletePath: async (token: string, path: string): Promise<{ status: string; message: string }> => {
+  deletePath: async (token: string, path: string, agentPOV?: string): Promise<{ status: string; message: string }> => {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     const response = await axios.delete(`${API_URL}/filesystem/delete`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
       params: { path },
     });
     return response.data;

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
+import { usePOV, getPOVHeaders } from '../context/POVContext';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
-import { CyberTabs } from '../components/CyberUI';
+import { CyberTabs, CyberPageTitle } from '../components/CyberUI';
 
 interface Packet {
   id: string;
@@ -174,6 +176,14 @@ const Sparkline = ({ data, width = 60, height = 20, color = '#00f0ff' }: { data:
 };
 
 const Traffic: React.FC = () => {
+  const location = useLocation();
+  const navigationState = location.state as { 
+    filterHost?: string; 
+    connectionFilter?: { source: string; target: string }; 
+    autoStart?: boolean;
+    autoDetectInterface?: boolean;
+  } | null;
+
   const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
     return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
   });
@@ -183,6 +193,10 @@ const Traffic: React.FC = () => {
   const [isInterfaceListOpen, setIsInterfaceListOpen] = useState(false);
   const [isSniffing, setIsSniffing] = useState(false);
   const [filter, setFilter] = useState(() => {
+    // Check if navigated from topology with a filter - use filterHost directly as it's already formatted
+    if (navigationState?.filterHost) {
+      return navigationState.filterHost;
+    }
     return localStorage.getItem('nop_traffic_filter') || '';
   });
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
@@ -212,16 +226,31 @@ const Traffic: React.FC = () => {
   const packetListEndRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
   const { setIsPinging, setIsCapturing, setIsCrafting, setIsStorming } = useTrafficStore();
+  const { activeAgent } = usePOV();
 
   useEffect(() => {
+    const fetchInterfaces = async () => {
+      try {
+        const response = await fetch(`/api/v1/traffic/interfaces`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            ...getPOVHeaders(activeAgent)
+          }
+        });
+        const data = await response.json();
+        setInterfaces(data);
+      } catch (err) {
+        console.error('Failed to fetch interfaces:', err);
+      }
+    };
+
     fetchInterfaces();
     const interval = setInterval(fetchInterfaces, 1000); // Poll interfaces every second
     return () => {
       clearInterval(interval);
       if (wsRef.current) wsRef.current.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, activeAgent]);
 
   useEffect(() => {
     // Fetch online assets when ping or craft tab is active
@@ -250,34 +279,61 @@ const Traffic: React.FC = () => {
     localStorage.setItem('nop_traffic_filter', filter);
   }, [filter]);
 
+  // Handle navigation state from Topology page
+  useEffect(() => {
+    if (navigationState?.filterHost) {
+      setFilter(`host ${navigationState.filterHost}`);
+      setActiveTab('capture'); // Switch to capture tab when coming from topology
+    }
+    if (navigationState?.connectionFilter) {
+      setFilter(`host ${navigationState.connectionFilter.source} and host ${navigationState.connectionFilter.target}`);
+      setActiveTab('capture');
+    }
+    // Clear the navigation state to avoid re-applying on refresh
+    if (navigationState) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState]);
+
   useEffect(() => {
     if (packetListEndRef.current && !selectedPacket) {
       packetListEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [packets, selectedPacket]);
 
+  // Auto-detect interface and optionally auto-start sniffing when navigated from topology
   useEffect(() => {
     if (interfaces.length > 0 && !selectedIface) {
-      setSelectedIface(interfaces[0].name);
+      // If auto-detect requested, find the best interface (prefer eth0, br0, or first non-lo)
+      if (navigationState?.autoDetectInterface) {
+        const preferredIface = interfaces.find(i => 
+          i.name === 'eth0' || i.name === 'br0' || i.name.startsWith('enp') || i.name.startsWith('ens')
+        ) || interfaces.find(i => i.name !== 'lo') || interfaces[0];
+        setSelectedIface(preferredIface.name);
+      } else {
+        setSelectedIface(interfaces[0].name);
+      }
     }
-  }, [interfaces, selectedIface]);
+  }, [interfaces, selectedIface, navigationState]);
 
-  const fetchInterfaces = async () => {
-    try {
-      const response = await fetch(`/api/v1/traffic/interfaces`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setInterfaces(data);
-    } catch (err) {
-      console.error('Failed to fetch interfaces:', err);
+  // Auto-start sniffing when navigated from topology with autoStart flag
+  useEffect(() => {
+    if (navigationState?.autoStart && selectedIface && !isSniffing && interfaces.length > 0) {
+      // Small delay to ensure interface is ready
+      const timer = setTimeout(() => {
+        toggleSniffing();
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [navigationState?.autoStart, selectedIface, interfaces]);
 
   const fetchOnlineAssets = async () => {
     try {
       const response = await fetch(`/api/v1/assets/online`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          ...getPOVHeaders(activeAgent)
+        }
       });
       if (response.ok) {
         const data = await response.json();
@@ -534,7 +590,18 @@ const Traffic: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
+    <div className="h-full flex flex-col p-4 space-y-4">
+      {/* Page Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <CyberPageTitle color="red" className="flex items-center">
+            <span className="mr-3 text-3xl">◆</span>
+            Traffic Analysis
+          </CyberPageTitle>
+          <p className="text-cyber-gray-light text-sm mt-1">Packet capture, network ping, and traffic analysis</p>
+        </div>
+      </div>
+
       {/* Tab Navigation */}
       <CyberTabs 
         tabs={[
@@ -603,11 +670,7 @@ const Traffic: React.FC = () => {
 
         <button
           onClick={toggleSniffing}
-          className={`px-6 py-1 border-2 font-bold uppercase tracking-widest text-xs transition-all ${
-            isSniffing
-              ? 'border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-white'
-              : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
-          }`}
+          className={`btn-base btn-md ${isSniffing ? 'btn-red' : 'btn-green'}`}
         >
           {isSniffing ? 'Stop Capture' : 'Start Capture'}
         </button>
@@ -615,7 +678,7 @@ const Traffic: React.FC = () => {
         <button 
           onClick={handleExport}
           disabled={isExporting || packets.length === 0}
-          className="px-4 py-1 border border-cyber-gray text-cyber-gray-light text-xs uppercase hover:border-cyber-blue hover:text-cyber-blue disabled:opacity-50"
+          className="btn-base btn-md btn-gray"
         >
           {isExporting ? 'Exporting...' : 'Export PCAP'}
         </button>
@@ -624,14 +687,14 @@ const Traffic: React.FC = () => {
       {/* Main Content - Vertical Split View */}
       <div className="flex-1 flex flex-row min-h-0 gap-4">
         {/* Left Part: Live Packet Capture */}
-        <div className={`${selectedPacket ? 'w-1/2' : 'w-2/3'} bg-black border border-cyber-gray flex flex-col min-h-0 transition-all`}>
-          <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
+        <div className={`${selectedPacket ? 'w-1/2' : 'w-2/3'} dashboard-card flex flex-col min-h-0 transition-all`}>
+          <div className="p-4 border-b border-cyber-gray flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Live Packet Capture</span>
               {selectedFlow && (
                 <button
                   onClick={() => setSelectedFlow(null)}
-                  className="text-[10px] text-cyber-red border border-cyber-red px-2 py-0.5 hover:bg-cyber-red hover:text-white transition-all"
+                  className="btn-base btn-sm btn-red"
                 >
                   ✕ Clear Filter
                 </button>
@@ -685,8 +748,8 @@ const Traffic: React.FC = () => {
         </div>
 
         {/* Right Part: Streams / Flow */}
-        <div className={`${selectedPacket ? 'w-1/2' : 'w-1/3'} bg-cyber-dark border border-cyber-gray flex flex-col min-h-0 transition-all`}>
-          <div className="bg-cyber-darker px-4 py-1 border-b border-cyber-gray flex justify-between items-center">
+        <div className={`${selectedPacket ? 'w-1/2' : 'w-1/3'} dashboard-card flex flex-col min-h-0 transition-all`}>
+          <div className="p-4 border-b border-cyber-gray flex justify-between items-center">
             <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Active Flows</span>
             <span className="text-xs text-cyber-gray-light opacity-50">{streams.length} Conversations</span>
           </div>
@@ -729,8 +792,8 @@ const Traffic: React.FC = () => {
       {activeTab === 'ping' && (
         <div className="flex-1 flex flex-row min-h-0 gap-4">
           {/* Left Part: Advanced Ping Configuration */}
-          <div className="w-1/2 bg-cyber-dark border border-cyber-gray flex flex-col min-h-0">
-            <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray">
+          <div className="w-1/2 dashboard-card flex flex-col min-h-0">
+            <div className="p-4 border-b border-cyber-gray">
               <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Advanced Ping Configuration</span>
             </div>
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
@@ -821,11 +884,7 @@ const Traffic: React.FC = () => {
                         <button
                           key={proto}
                           onClick={() => setPingProtocol(proto)}
-                          className={`py-1.5 border font-bold uppercase text-[10px] transition-all text-center ${
-                            pingProtocol === proto
-                              ? 'bg-cyber-green text-black border-cyber-green'
-                              : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-green hover:text-cyber-green'
-                          }`}
+                          className={`btn-base btn-sm ${pingProtocol === proto ? 'btn-green' : 'btn-gray'}`}
                         >
                           {proto.toUpperCase()}
                         </button>
@@ -921,11 +980,7 @@ const Traffic: React.FC = () => {
                     <button
                       onClick={handlePing}
                       disabled={pingInProgress}
-                      className={`px-4 py-2 border font-bold uppercase tracking-wider text-xs transition-all ${
-                        pingInProgress
-                          ? 'border-cyber-gray text-cyber-gray opacity-50 cursor-not-allowed'
-                          : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'
-                      }`}
+                      className="btn-base btn-md btn-green"
                     >
                       {pingInProgress ? 'Pinging...' : 'Execute Ping'}
                     </button>
@@ -978,8 +1033,8 @@ const Traffic: React.FC = () => {
           </div>
 
           {/* Right Part: Ping Response */}
-          <div className="w-1/2 bg-black border border-cyber-gray flex flex-col min-h-0">
-            <div className="bg-cyber-darker px-4 py-2 border-b border-cyber-gray flex justify-between items-center">
+          <div className="w-1/2 dashboard-card flex flex-col min-h-0">
+            <div className="p-4 border-b border-cyber-gray flex justify-between items-center">
               <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest">Ping Response</span>
               {pingResults && !pingResults.error && (
                 <span className="text-[10px] text-cyber-green">

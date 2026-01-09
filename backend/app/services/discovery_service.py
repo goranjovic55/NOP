@@ -22,13 +22,14 @@ class DiscoveryService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def process_scan_results(self, results: Dict[str, Any], is_full_network_scan: bool = True, discovery_method: str = "nmap"):
+    async def process_scan_results(self, results: Dict[str, Any], is_full_network_scan: bool = True, discovery_method: str = "nmap", agent_id: uuid.UUID = None):
         """Process nmap scan results and update assets in database
         
         Args:
             results: Scan results from nmap
             is_full_network_scan: Whether this was a full network scan
             discovery_method: Method used for discovery (arp, ping, comprehensive, etc.)
+            agent_id: ID of agent if scan was initiated in POV mode (tags assets with agent_id)
         """
         if "hosts" not in results:
             logger.warning("No hosts found in scan results")
@@ -95,6 +96,9 @@ class DiscoveryService:
                 # Update existing asset
                 asset.last_seen = datetime.now()
                 asset.status = AssetStatus.ONLINE
+                # Update agent_id if scanning from POV context
+                if agent_id:
+                    asset.agent_id = agent_id
                 if hostname:
                     asset.hostname = hostname
                 if mac_address:
@@ -108,7 +112,10 @@ class DiscoveryService:
                 asset.asset_type = asset_type
                 # Always update discovery method to show the last scan method used
                 asset.discovery_method = discovery_method
-                logger.info(f"Updated asset: {ip_address} (discovery: {discovery_method})")
+                # Tag with agent_id if scanning in POV mode
+                if agent_id:
+                    asset.agent_id = agent_id
+                logger.info(f"Updated asset: {ip_address} (discovery: {discovery_method}, agent_id: {agent_id})")
                 
                 # Log event for asset update (optional, but good for visibility)
                 event = Event(
@@ -133,10 +140,11 @@ class DiscoveryService:
                     services=services,
                     discovery_method=discovery_method,
                     asset_type=asset_type,
-                    confidence_score=0.8
+                    confidence_score=0.8,
+                    agent_id=agent_id  # Tag with agent_id if scanning in POV mode
                 )
                 self.db.add(asset)
-                logger.info(f"Created new asset: {ip_address}")
+                logger.info(f"Created new asset: {ip_address} (agent_id: {agent_id})")
                 
                 # Log event for new asset discovery
                 event = Event(

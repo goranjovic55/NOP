@@ -1,228 +1,95 @@
-# NOP Documentation Index
+# Documentation Index
 
-**Network Observatory Platform** - Comprehensive documentation for developers and operators.
-
-**Last Updated**: 2025-12-29
-
----
+**Last Updated**: 2026-01-09 | **Total Documents**: 52
 
 ## Quick Links
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [Quick Start](guides/QUICK_START.md) | Get up and running in 5 minutes | All users |
-| [Deployment Guide](guides/DEPLOYMENT.md) | Production deployment instructions | DevOps |
-| [API Reference](technical/API_rest_v1.md) | REST API documentation | Developers |
-| [Contributing](development/CONTRIBUTING.md) | How to contribute to the project | Contributors |
+| Category | Count | Description |
+|----------|-------|-------------|
+| [Analysis](#analysis) | 16 | Analysis documents and reports |
+| [Architecture](#architecture) | 3 | System design and architecture decisions |
+| [Design](#design) | 3 | UI/UX specifications and component library |
+| [Development](#development) | 11 | Contributing, testing, and development guides |
+| [Features](#features) | 6 | Feature documentation and user guides |
+| [Guides](#guides) | 7 | Setup, deployment, and how-to guides |
+| [Screenshots](#screenshots) | 1 | Screenshots documentation |
+| [Technical](#technical) | 5 | API references and specifications |
 
 ---
 
-## 📐 Architecture
+## Analysis
 
-### [ARCH_system_v1.md](architecture/ARCH_system_v1.md)
-**System Architecture Overview**
-- Multi-tier architecture: Frontend, Backend, Database, Infrastructure
-- Service layer patterns and interactions
-- Technology stack: FastAPI, React, PostgreSQL, Redis
-- Docker-based deployment architecture
+- [Agent Architecture Reality Check & Implementation Gap Analysis](analysis/AGENT_ARCHITECTURE_GAP_ANALYSIS.md)
+- [Agent Ecosystem Analysis Report](analysis/AGENT_ECOSYSTEM_ANALYSIS.md)
+- [Agent POV Mode Implementation Summary](analysis/AGENT_POV_IMPLEMENTATION.md)
+- [Agent SOCKS Proxy Implementation](analysis/AGENT_SOCKS_PROXY.md)
+- [Agent Creation Bug Fix - Complete](analysis/BUG_FIX_SUMMARY.md)
+- [Agent Creation Bug Fix - Complete](analysis/BUG_FIX_SUMMARY_20260105_002748.md)
+- [Ecosystem Measurement Analysis](analysis/ECOSYSTEM_MEASUREMENTS.md)
+- [Knowledge System Analysis](analysis/KNOWLEDGE_ANALYSIS.md)
+- [POV Mode Implementation Status](analysis/POV_MODE_STATUS.md)
+- [POV Mode with SOCKS Proxy - Implementation Guide](analysis/POV_SOCKS_USAGE.md)
+- [POV Mode Verification - USER CONFIRMATION REQUIRED](analysis/POV_VERIFICATION_USER_CONFIRMATION_REQUIRED.md)
+- [Production Ready - Quick Reference](analysis/PRODUCTION_READY.md)
+- [Production Ready - Quick Reference](analysis/PRODUCTION_READY_20260105_002748.md)
+- [AKIS Analysis Reports](analysis/README.md)
+- [SOCKS Proxy Implementation - Complete Summary & Proof](analysis/SOCKS_IMPLEMENTATION_SUMMARY.md)
+- [Audit-Optimize Workflow: In-Depth Analysis & Optimizations](analysis/audit-optimize-analysis.md)
 
-**Topics**: System design, Component architecture, Data flow, Security architecture
+## Architecture
 
----
+- [Network Observatory Platform - System Architecture](architecture/ARCH_system_v1.md)
+- [State Management](architecture/STATE_MANAGEMENT.md)
+- [Agent C2 Architecture Plan](architecture/agent-c2-architecture.md)
 
-## 🛠️ Technical Documentation
+## Design
 
-### [API_rest_v1.md](technical/API_rest_v1.md)
-**REST API Reference**
-- Authentication endpoints (JWT)
-- Asset management API
-- Network scanning and discovery
-- Traffic analysis WebSocket API
-- Settings and configuration endpoints
+- [React Components](design/COMPONENTS.md)
+- [Network Observatory Platform - UI/UX Mockups](design/UI_UX_SPEC.md)
+- [Unified Style Guide - NOP Frontend](design/UNIFIED_STYLE_GUIDE.md)
 
-**Topics**: API endpoints, Request/response schemas, Authentication, WebSocket protocols
+## Development
 
----
+- [agent_new](development/AGENT_NEW.md)
+- [Contributing to NOP](development/CONTRIBUTING.md)
+- [create_fresh_agent](development/CREATE_FRESH_AGENT.md)
+- [generate_knowledge](development/GENERATE_KNOWLEDGE.md)
+- [Network Observatory Platform - Development Roadmap](development/ROADMAP.md)
+- [Automation Scripts](development/SCRIPTS.md)
+- [Testing Guide - NOP](development/TESTING.md)
+- [test_agent](development/TEST_AGENT.md)
+- [test_pov_filtering](development/TEST_POV_FILTERING.md)
+- [test_socks_e2e](development/TEST_SOCKS_E2E.md)
+- [Agent/C2 Framework - Future Improvements Roadmap](development/agent-improvements-roadmap.md)
 
-## 📚 User Guides
+## Features
 
-### [QUICK_START.md](guides/QUICK_START.md)
-**Quick Start Guide**
-- Installation prerequisites
-- Docker Compose setup
-- First login and navigation
-- Basic network scanning
-- Quick troubleshooting
+- [Agent & Command-and-Control (C2) System](features/AGENTS_C2.md)
+- [Feature Proposals](features/FEATURE_PROPOSALS.md)
+- [Granular Traffic Filtering](features/GRANULAR_TRAFFIC_FILTERING.md)
+- [Implemented Features](features/IMPLEMENTED_FEATURES.md)
+- [Storm Functionality](features/STORM_FEATURE.md)
+- [Live Traffic Topology View](features/live-traffic-topology.md)
 
-**Audience**: New users, Quick setup
+## Guides
 
-### [CONFIGURATION.md](guides/CONFIGURATION.md)
-**Configuration Guide**
-- Environment variables
-- Database configuration
-- Redis settings
-- Network interface configuration
-- Security settings (JWT, encryption)
-- Docker Compose parameters
+- [Agent POV Testing Environment](guides/AGENT-POV-TESTING.md)
+- [🧪 Agent Testing Guide](guides/AGENT-TESTING-GUIDE.md)
+- [Network Observatory Platform - Configuration Reference](guides/CONFIGURATION.md)
+- [Network Observatory Platform - Deployment Guide](guides/DEPLOYMENT.md)
+- [Quick Start Guide - NOP](guides/QUICK_START.md)
+- [Agent Test Environment - Summary](guides/SETUP-COMPLETE.md)
+- [SOCKS Relay Testing Guide](guides/SOCKS_TESTING_GUIDE.md)
 
-**Audience**: System administrators
+## Screenshots
 
-### [DEPLOYMENT.md](guides/DEPLOYMENT.md)
-**Deployment Guide**
-- Production deployment checklist
-- Docker deployment patterns
-- Security hardening
-- Performance tuning
-- Backup and recovery
-- Monitoring and logging
+- [Exploit Page Screenshots](screenshots/README.md)
 
-**Audience**: DevOps, System administrators
+## Technical
 
----
+- [Network Observatory Platform - API Specification](technical/API_rest_v1.md)
+- [Broadcast Filter Testing Guide](technical/BROADCAST_FILTER_TESTING.md)
+- [Backend Services](technical/SERVICES.md)
+- [SOCKS Integration E2E Test Results](technical/SOCKS_E2E_TEST_RESULTS.md)
+- [SOCKS Integration Complete ✅](technical/SOCKS_INTEGRATION_COMPLETE.md)
 
-## 💻 Development
-
-### [CONTRIBUTING.md](development/CONTRIBUTING.md)
-**Contributing Guidelines**
-- Code style and standards
-- Git workflow and branching
-- Pull request process
-- Testing requirements
-- Documentation standards
-
-**Audience**: Contributors, Developers
-
-### [TESTING.md](development/TESTING.md)
-**Testing Guide**
-- Test environment setup
-- Unit testing patterns
-- Integration testing with Docker
-- Test suites overview
-- Running tests
-- CI/CD integration
-
-**Audience**: Developers, QA
-
-### [ROADMAP.md](development/ROADMAP.md)
-**Product Roadmap**
-- Completed features
-- In-progress development
-- Planned enhancements
-- Future vision
-- Version history
-
-**Audience**: Product team, Contributors
-
----
-
-## 🎨 Design
-
-### [UI_UX_SPEC.md](design/UI_UX_SPEC.md)
-**UI/UX Specifications**
-- Cyberpunk theme design system
-- Component library
-- Color palette and typography
-- Layout patterns
-- Interaction patterns
-- Accessibility guidelines
-
-**Audience**: Frontend developers, Designers
-
----
-
-## ✨ Features
-
-### [IMPLEMENTED_FEATURES.md](features/IMPLEMENTED_FEATURES.md)
-**Implemented Features**
-- Network discovery and scanning
-- Real-time packet capture
-- Protocol dissection and analysis
-- Multi-protocol remote access
-- Credential vault
-- Topology visualization
-- Host monitoring
-
-**Audience**: Users, Product team
-
-### [FEATURE_PROPOSALS.md](features/FEATURE_PROPOSALS.md)
-**Feature Proposals**
-- Proposed enhancements
-- Community requests
-- Feature specifications
-- Implementation considerations
-
-**Audience**: Product team, Contributors
-
----
-
-## 🔍 Document Categories
-
-### By Role
-- **New Users**: Quick Start → Configuration → Deployment
-- **Developers**: Contributing → Testing → API Reference → Architecture
-- **DevOps**: Deployment → Configuration → Architecture
-- **Designers**: UI/UX Spec
-- **Product Team**: Roadmap → Implemented Features → Feature Proposals
-
-### By Topic
-- **Setup**: Quick Start, Configuration, Deployment
-- **Development**: Contributing, Testing, Roadmap
-- **Technical**: Architecture, API Reference
-- **Features**: Implemented Features, Feature Proposals
-- **Design**: UI/UX Spec
-
----
-
-## 📊 Documentation Statistics
-
-- **Total Documents**: 11 core documents
-- **Total Size**: ~176 KB
-- **Categories**: 6 (Architecture, Technical, Guides, Development, Design, Features)
-- **Coverage**: System architecture, API, deployment, development, design
-- **Duplication**: <5% (consolidated approach)
-
----
-
-## 🔄 Related Resources
-
-### Agent Framework
-- **Skills**: `.claude/skills.md` - 13 core coding skills
-- **Domain Skills**: `.claude/skills/domain.md` - 8 NOP-specific patterns
-- **Knowledge Graph**: `project_knowledge.json` - Entity-relation model
-- **Global Patterns**: `.github/global_knowledge.json` - Universal patterns
-- **Workflows**: `.github/workflows/` - Agent workflow definitions
-
-### Code Documentation
-- **Backend**: `backend/app/` - Inline docstrings and type hints
-- **Frontend**: `frontend/src/` - JSDoc comments and TypeScript types
-- **Tests**: `backend/tests/` - Test documentation
-
----
-
-## 📝 Documentation Maintenance
-
-### Update Workflows
-1. **update_documents**: Run to consolidate and optimize documentation
-2. **update_knowledge**: Sync with knowledge graph
-3. **update_skills**: Update skill patterns
-
-### Standards
-- Use Markdown for all documentation
-- Include examples and code snippets
-- Keep TOC for documents >1000 lines
-- Version with `_v[N]` suffix for major changes
-- Update this index when adding/removing documents
-
-### Naming Conventions
-| Type | Pattern | Example |
-|------|---------|---------|
-| Architecture | `ARCH_[system]_v[N].md` | `ARCH_system_v1.md` |
-| API | `API_[service]_v[N].md` | `API_rest_v1.md` |
-| Guides | `[PURPOSE].md` | `QUICK_START.md` |
-| Development | `[PURPOSE].md` | `CONTRIBUTING.md` |
-
----
-
-**Version**: 1.0  
-**Maintained by**: NOP Development Team  
-**Feedback**: Submit issues or suggestions via GitHub issues

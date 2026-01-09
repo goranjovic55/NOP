@@ -1,8 +1,9 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { assetService, Asset } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore, Vulnerability } from '../store/scanStore';
+import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 
 interface AssetListItemProps {
@@ -68,10 +69,12 @@ AssetListItem.displayName = 'AssetListItem';
 const Scans: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationState = location.state as { targetIp?: string } | null;
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const logEndRef = useRef<HTMLDivElement>(null);
 
   const [manualIp, setManualIp] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -80,20 +83,32 @@ const Scans: React.FC = () => {
   const [ipFilter, setIpFilter] = useState(localStorage.getItem('nop_scans_ip_filter') || '');
   const [scanFilter, setScanFilter] = useState<'all' | 'scanned' | 'unscanned'>(() => (localStorage.getItem('nop_scans_scan_filter') as any) || 'all');
 
+  // Handle navigation state from Topology page - auto-add scan tab for target IP
+  useEffect(() => {
+    if (navigationState?.targetIp) {
+      // Check if tab already exists
+      const existingTab = tabs.find(t => t.ip === navigationState.targetIp);
+      if (!existingTab) {
+        addTab(navigationState.targetIp, navigationState.targetIp);
+      } else {
+        setActiveTab(existingTab.id);
+      }
+      // Clear the navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState, tabs, addTab, setActiveTab]);
+
   useEffect(() => {
     if (!token) return;
     setLoadingAssets(true);
-    assetService.getAssets(token)
+    assetService.getAssets(token, undefined, activeAgent?.id)
       .then((resp) => setAssets(resp))
       .catch((err) => console.error('Failed to load assets', err))
       .finally(() => setLoadingAssets(false));
-  }, [token]);
+  }, [token, activeAgent]);
 
-  useEffect(() => {
-    if (activeTab?.logs && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [activeTab?.logs]);
+  // Removed auto-scroll behavior - log area now has fixed height with scrollbar
+  // Users can manually scroll through logs without being forced to the bottom
 
   const filteredAssets = useMemo(() => {
     return assets
@@ -159,8 +174,8 @@ const Scans: React.FC = () => {
                 }
               }
               
-              // Refresh assets list
-              const updatedAssets = await assetService.getAssets(token);
+              // Refresh assets list with POV filter
+              const updatedAssets = await assetService.getAssets(token, undefined, activeAgent?.id);
               setAssets(updatedAssets);
               
               onScanComplete?.(tab.ip, scanStatus);
@@ -532,7 +547,7 @@ const Scans: React.FC = () => {
                           }`}>&gt; {log}</div>
                         ))
                       )}
-                      <div ref={logEndRef} />
+
                     </div>
                   </div>
                 </div>

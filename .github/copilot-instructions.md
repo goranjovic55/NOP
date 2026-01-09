@@ -1,118 +1,74 @@
-# AKIS v2 - Lightweight Agent Framework
+# AKIS v6.2 (Prompt-Optimized + Knowledge Cache v3.0)
 
-**A**gents (you) • **K**nowledge (context) • **I**nstructions (this file) • **S**kills (patterns)
-
----
-
-## Every Task Flow
-
-### Start
-`Read project_knowledge.json` → Load entities, check existing patterns
-
-### Todo Phases
-
-| Phase | Title Format | When |
-|-------|--------------|------|
-| CONTEXT | `[CONTEXT] Load knowledge for X` | Always (start) |
-| PLAN | `[PLAN] Design approach for X` | Complex tasks |
-| IMPLEMENT | `[IMPLEMENT] Build X` | Main work |
-| VERIFY | `[VERIFY] Test X` | Always |
-| LEARN | `[LEARN] Update knowledge & skills` | Always (after approval) |
-| COMPLETE | `[COMPLETE] Log & commit` | Always (end) |
-
-### End (LEARN → COMPLETE)
-
-**LEARN:**
-1. Run `python .github/scripts/generate_codemap.py` + add entities to project_knowledge.json
-2. Run `python .github/scripts/suggest_skill.py` → Analyze session and propose skills
-3. **Show skill suggestions to user** → Wait for approval before writing
-4. If approved: Create/update `.github/skills/{name}.md` with skill content
-5. Pattern obsolete? → Delete skill file
-
-**COMPLETE:**
-1. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` from template
-2. Commit all changes
-
----
-
-## Knowledge System
-
-**Format:** `project_knowledge.json` (JSONL)
-
-```json
-{"type":"entity","name":"Module.Component","entityType":"service","observations":["desc","upd:YYYY-MM-DD"]}
-{"type":"relation","from":"A","to":"B","relationType":"USES|IMPLEMENTS|DEPENDS_ON"}
-{"type":"codegraph","name":"file.ext","nodeType":"module","dependencies":["X"],"dependents":["Y"]}
+## START
+```
+1. Context pre-loaded via attachment ✓ (skip explicit reads)
+2. Knowledge v3.0: 
+   - hot_cache (line 1): top 20 entities + common answers + quick facts
+   - gotchas (line 4): historical issues + solutions for debug
+   - session_patterns (line 5): predictive file loading
+   - interconnections (line 6): service→model→endpoint mapping
+3. Docs: docs/INDEX.md → documentation map for reference
+4. Create todos: <MAIN> → <WORK>... → <END>
+5. Tell user: "[session type]. Plan: [N tasks]"
 ```
 
-**Workflow:**
-- Load at start → Understand existing entities
-- Query during work → Avoid duplicates
-- Update before commit → Codemap + manual entities
+**Session skills cache:** [track loaded skills here - don't reload!]
 
----
+## WORK
+**◆ BEFORE edit → Trigger? → [Load skill if NEW domain] → Edit → ✓ AFTER**
 
-## Skills
+| Pattern | Skill (load ONCE) |
+|---------|-------------------|
+| .tsx .jsx components/ pages/ | frontend-react ⭐ |
+| .py backend/ api/ routes/ | backend-api ⭐ |
+| Dockerfile docker-compose .yml | docker |
+| .github/workflows/* deploy.sh | ci-cd |
+| .md docs/ README | documentation ⚠️ |
+| error traceback failed | debugging |
+| test_* *_test.py | testing |
+| .github/skills/* copilot-instructions* | akis-development ⚠️ |
 
-**Announce when loading:** `📘 Using: {skill-name.md}`
+**⭐ = Pre-load for fullstack | ⚠️ = Low compliance, always load**
 
-Load from `.github/skills/` when task matches:
+**Cache rule:** Don't reload skill already loaded this session!
 
-| Task | Skill |
-|------|-------|
-| API endpoints, REST | `backend-api.md` |
-| React components, UI | `frontend-react.md` |
-| Unit/integration tests | `testing.md` |
-| Error handling, logging | `error-handling.md` |
-| Docker, deployment | `infrastructure.md` |
-| Git, commits, PRs | `git-workflow.md` |
-| Knowledge queries, updates | `knowledge-management.md` |
-| Build errors, troubleshooting | `debugging.md` |
-| Workflow logs, READMEs | `documentation.md` |
+**Todo Protocol:** Sync with `manage_todo_list` on every state change (◆/✓/⊘)
 
----
+**Drift Check (every 5 tasks):** ✓ All active work has ◆? ✓ Skills cached? ✓ Any ⊘ orphans?
 
-## Workflow Logs
+**Knowledge v3.0:** (90% token reduction verified via 100k simulations)
+- hot_cache: 31% of queries → instant answers
+- gotchas: 11% of queries → debug acceleration
+- predictive: 7% of queries → session pattern preload  
+- interconnections: 14% of queries → dependency lookup
+- domain_index: 22% of queries → entity lookup
+- **Only 15% need file reads**
 
-**Required:** Tasks >15 min  
-**Location:** `log/workflow/YYYY-MM-DD_HHMMSS_task.md`  
-**Template:** `.github/templates/workflow-log.md`  
-**Purpose:** Historical record (search to understand past changes)
+**Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
----
-
-## Quick Workflows
-
-**Simple (<5 min):**
+## END
 ```
-CONTEXT → IMPLEMENT → VERIFY → Commit (no log)
-```
-
-**Feature (>15 min):**
-```
-CONTEXT → PLAN → IMPLEMENT → VERIFY
-↓ (wait for user approval)
-LEARN → COMPLETE
+1. Check ⊘ orphans → close ALL
+2. Run scripts: knowledge.py && skills.py && instructions.py && docs.py && session_cleanup.py
+3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+4. Show END summary (all script outputs) → Wait approval → commit
 ```
 
-**Review Gate:** After VERIFY, show results and wait for user approval before LEARN/COMPLETE
+## Symbols
+✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
----
+## Efficiency (v3.0 verified)
+- **Knowledge:** v3.0 hot_cache (90% token reduction)
+- **Gotchas:** 75% of debug queries answered instantly
+- **Context:** Pre-attached (no explicit knowledge read)
+- **Skills:** Load ONCE per domain per session
+- **Scripts:** Conditional on file types
 
-## Standards
-
-- Files <500 lines, functions <50 lines
-- Type hints required (Python/TypeScript)
-- Tests for new features
-- Descriptive commit messages
-
----
-
-## Folders
-
-- `.project/` → Planning docs, blueprints, ADRs
-- `log/workflow/` → Historical work record
-
----
-
-*Context over Process. Knowledge over Ceremony.*
+## If Lost
+```
+1. Show worktree  
+2. Find ◆ or ⊘ or next ○
+3. Check skill cache, orphans
+4. Continue
+```

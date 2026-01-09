@@ -2,10 +2,13 @@
 Host management endpoints for system monitoring and access
 """
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Body
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Body, Request
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+import uuid
 import psutil
 import platform
 import asyncio
@@ -14,6 +17,9 @@ import os
 import shutil
 from datetime import datetime
 from app.core.security import get_current_user
+from app.core.database import get_db
+from app.core.pov_middleware import get_agent_pov
+from app.services.agent_service import AgentService
 
 router = APIRouter()
 
@@ -25,9 +31,42 @@ class WriteFileRequest(BaseModel):
 
 @router.get("/system/info")
 async def get_system_info(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get basic system information"""
+    """Get basic system information (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return agent's host info from metadata
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
+            host_info = agent.agent_metadata['host_info'].copy()
+            
+            # Transform 'interfaces' to 'network_interfaces' for frontend compatibility
+            if 'interfaces' in host_info:
+                host_info['network_interfaces'] = [
+                    {
+                        'name': iface['name'],
+                        'address': iface['ip']  # Map 'ip' to 'address'
+                    }
+                    for iface in host_info['interfaces']
+                    if not iface['ip'].startswith('127.')  # Skip loopback like C2 does
+                ]
+                # Keep original interfaces for other uses
+                # del host_info['interfaces']
+            
+            # Add source indicator
+            host_info['_source'] = 'agent'
+            host_info['_agent_id'] = str(agent.id)
+            host_info['_agent_name'] = agent.name
+            return host_info
+        else:
+            raise HTTPException(status_code=404, detail="Agent host information not available")
+    
+    # Default: return local C2 server host info
     try:
         # Get network interfaces
         network_interfaces = []
@@ -60,9 +99,68 @@ async def get_system_info(
 
 @router.get("/system/metrics")
 async def get_system_metrics(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get real-time system metrics"""
+    """Get real-time system metrics (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return agent's host metrics from metadata in full format
+        agent = await AgentService.get_agent(db, agent_pov)
+        if agent and agent.agent_metadata and 'host_info' in agent.agent_metadata:
+            host_info = agent.agent_metadata['host_info']
+            # Convert simplified agent data to full SystemMetrics format
+            return {
+                "cpu": {
+                    "percent_total": host_info.get('cpu_percent', 0),
+                    "percent_per_core": [],
+                    "core_count": 0,
+                    "thread_count": 0,
+                    "frequency": {
+                        "current": 0,
+                        "min": 0,
+                        "max": 0
+                    }
+                },
+                "memory": {
+                    "total": 0,
+                    "available": 0,
+                    "percent": host_info.get('memory_percent', 0),
+                    "used": 0,
+                    "free": 0,
+                    "swap_total": 0,
+                    "swap_used": 0,
+                    "swap_free": 0,
+                    "swap_percent": 0
+                },
+                "disk": [{
+                    "device": "agent",
+                    "mountpoint": "/",
+                    "fstype": "unknown",
+                    "total": 0,
+                    "used": 0,
+                    "free": 0,
+                    "percent": host_info.get('disk_percent', 0)
+                }],
+                "network": {
+                    "bytes_sent": 0,
+                    "bytes_recv": 0,
+                    "packets_sent": 0,
+                    "packets_recv": 0
+                },
+                "processes": 0,
+                "timestamp": agent.agent_metadata.get('last_host_update'),
+                "_source": "agent",
+                "_agent_id": str(agent.id),
+                "_agent_name": agent.name
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Agent metrics not available")
+    
+    # Default: return local C2 server metrics
     try:
         # CPU metrics
         cpu_percent = psutil.cpu_percent(interval=1, percpu=True)
@@ -141,10 +239,20 @@ async def get_system_metrics(
 
 @router.get("/system/processes")
 async def get_processes(
+    request: Request,
     current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     limit: int = 50
 ) -> List[Dict[str, Any]]:
-    """Get list of running processes"""
+    """Get list of running processes (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty list for agent POV (processes not tracked from agent yet)
+        return []
+    
+    # Default: return local C2 server processes
     try:
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent', 'status']):
@@ -170,10 +278,20 @@ async def get_processes(
 
 @router.get("/system/connections")
 async def get_network_connections(
+    request: Request,
     current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     limit: int = 50
 ) -> List[Dict[str, Any]]:
-    """Get list of network connections (netstat-like)"""
+    """Get list of network connections (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty list for agent POV (connections not tracked from agent yet)
+        return []
+    
+    # Default: return local C2 server connections
     try:
         connections = []
         for conn in psutil.net_connections(kind='inet'):
@@ -202,8 +320,8 @@ async def get_network_connections(
             except (AttributeError, OSError):
                 continue
         
-        # Sort by status (ESTABLISHED first, then LISTEN)
-        status_order = {"ESTABLISHED": 0, "LISTEN": 1, "TIME_WAIT": 2}
+        # Sort by status (ESTABLISHED first)
+        status_order = {"ESTABLISHED": 0, "LISTEN": 1, "TIME_WAIT": 2, "CLOSE_WAIT": 3}
         connections.sort(key=lambda x: status_order.get(x['status'], 99))
         return connections[:limit]
     except Exception as e:
@@ -212,9 +330,19 @@ async def get_network_connections(
 
 @router.get("/system/disk-io")
 async def get_disk_io(
-    current_user: Dict = Depends(get_current_user)
+    request: Request,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get disk I/O statistics"""
+    """Get disk I/O statistics (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request)
+    
+    if agent_pov:
+        # Return empty dict for agent POV (disk I/O not tracked from agent yet)
+        return {}
+    
+    # Default: return local C2 server disk I/O
     try:
         disk_io = psutil.disk_io_counters(perdisk=True)
         result = {}
@@ -235,9 +363,97 @@ async def get_disk_io(
 @router.get("/filesystem/browse")
 async def browse_filesystem(
     path: str = "/",
-    current_user: Dict = Depends(get_current_user)
+    request: Request = None,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Browse filesystem directory"""
+    """Browse filesystem directory (supports agent POV with relay)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request) if request else None
+    
+    if agent_pov:
+        from app.api.v1.endpoints.agents import connected_agents
+        import asyncio
+        
+        agent_id = agent_pov if isinstance(agent_pov, UUID) else UUID(agent_pov)
+        agent = await AgentService.get_agent(db, agent_id)
+        agent_id_str = str(agent_id)
+        
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        # Check if agent is connected
+        if agent_id_str not in connected_agents:
+            # Agent offline - return error
+            return {
+                "current_path": path,
+                "parent_path": None,
+                "items": [{
+                    "name": "⚠️ Agent Offline",
+                    "path": path,
+                    "type": "instructions",
+                    "instructions": [
+                        {
+                            "title": "✗ Agent Offline",
+                            "detail": "Agent must be connected to browse filesystem",
+                            "type": "error"
+                        },
+                        {
+                            "title": "Start the agent on the target host",
+                            "detail": "The agent needs to be running to relay filesystem commands",
+                            "type": "info"
+                        }
+                    ]
+                }]
+            }
+        
+        # Agent is connected - relay filesystem request
+        agent_ws = connected_agents[agent_id_str]
+        request_id = str(uuid.uuid4())
+        
+        # Create a future to wait for the response
+        response_future = asyncio.Future()
+        
+        # Store pending request (will be picked up by agent message handler)
+        if not hasattr(browse_filesystem, '_pending_requests'):
+            browse_filesystem._pending_requests = {}
+        browse_filesystem._pending_requests[request_id] = response_future
+        
+        try:
+            # Send filesystem browse request to agent
+            await agent_ws.send_json({
+                "type": "filesystem_browse",
+                "request_id": request_id,
+                "path": path
+            })
+            
+            # Wait for response with timeout
+            try:
+                result = await asyncio.wait_for(response_future, timeout=10.0)
+                return result
+            except asyncio.TimeoutError:
+                return {
+                    "current_path": path,
+                    "parent_path": None,
+                    "items": [{
+                        "name": "⚠️ Request Timeout",
+                        "path": path,
+                        "type": "instructions",
+                        "instructions": [
+                            {
+                                "title": "✗ Request Timeout",
+                                "detail": "Agent did not respond in time",
+                                "type": "error"
+                            }
+                        ]
+                    }]
+                }
+        finally:
+            # Clean up pending request
+            if request_id in browse_filesystem._pending_requests:
+                del browse_filesystem._pending_requests[request_id]
+    
+    # Default: browse C2 server filesystem
     try:
         target_path = Path(path).resolve()
         
@@ -284,9 +500,24 @@ async def browse_filesystem(
 @router.get("/filesystem/read")
 async def read_file(
     path: str,
-    current_user: Dict = Depends(get_current_user)
+    request: Request = None,
+    current_user: Dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Read file contents"""
+    """Read file contents (supports agent POV)"""
+    # Check if viewing from agent POV
+    agent_pov = get_agent_pov(request) if request else None
+    
+    if agent_pov:
+        # POV mode: return message that file access requires SOCKS proxy
+        return {
+            "path": path,
+            "content": "[Agent POV Mode] File access requires SOCKS proxy connection to agent",
+            "is_binary": False,
+            "size": 0
+        }
+    
+    # Default: read from C2 server filesystem
     try:
         target_path = Path(path).resolve()
         
@@ -439,8 +670,17 @@ async def download_file(
         raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
 
 
+# Terminal session tracking for agent relay
+agent_terminal_sessions = {}  # session_id -> {agent_ws, user_ws}
+
+
 @router.websocket("/terminal")
-async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
+async def terminal_websocket(
+    websocket: WebSocket, 
+    token: Optional[str] = None,
+    agent_pov: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
     """
     WebSocket endpoint for terminal access using PTY
     
@@ -448,6 +688,7 @@ async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     - Proper PTY (pseudo-terminal) emulation
     - Window resize support
     - Signal handling
+    - Agent POV support for remote agent terminal access
     """
     import pty
     import struct
@@ -464,6 +705,140 @@ async def terminal_websocket(websocket: WebSocket, token: Optional[str] = None):
     # For now, just check that token is provided
     
     await websocket.accept()
+    
+    # Check if POV mode is active - relay terminal through agent
+    if agent_pov:
+        try:
+            from app.api.v1.endpoints.agents import connected_agents
+            import uuid as uuid_module
+            
+            agent_uuid = UUID(agent_pov)
+            agent = await AgentService.get_agent(db, agent_uuid)
+            
+            if not agent:
+                await websocket.send_text(f"\x1b[1;31m✗ Agent not found\x1b[0m\r\n")
+                await websocket.close(code=1008, reason="Agent not found")
+                return
+            
+            agent_id_str = str(agent_uuid)
+            
+            # Check if agent is connected
+            if agent_id_str not in connected_agents:
+                await websocket.send_text(f"\x1b[1;33m╔══════════════════════════════════════════════════════════════╗\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[1;33m║  Agent POV Mode: {agent.name:<43}║\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[1;33m╚══════════════════════════════════════════════════════════════╝\x1b[0m\r\n\r\n")
+                await websocket.send_text(f"\x1b[1;31m✗ Agent is OFFLINE - cannot relay terminal\x1b[0m\r\n\r\n")
+                await websocket.send_text(f"\x1b[90mThe agent must be connected to relay terminal commands.\x1b[0m\r\n")
+                await websocket.send_text(f"\x1b[90mPlease start the agent on the target host.\x1b[0m\r\n\r\n")
+                await websocket.close(code=1000, reason="Agent offline")
+                return
+            
+            # Agent is connected - set up terminal relay
+            agent_ws = connected_agents[agent_id_str]
+            session_id = str(uuid_module.uuid4())
+            
+            # Display connection header
+            await websocket.send_text(f"\x1b[1;35m╔══════════════════════════════════════════════════════════════╗\x1b[0m\r\n")
+            await websocket.send_text(f"\x1b[1;35m║\x1b[0m  \x1b[1;32m⌬\x1b[0m \x1b[1;36mNOP TERMINAL v1.0 - Agent Relay\x1b[0m                     \x1b[1;35m║\x1b[0m\r\n")
+            await websocket.send_text(f"\x1b[1;35m║\x1b[0m  \x1b[33mConnecting to: {agent.name:<41}\x1b[0m\x1b[1;35m║\x1b[0m\r\n")
+            await websocket.send_text(f"\x1b[1;35m╚══════════════════════════════════════════════════════════════╝\x1b[0m\r\n")
+            await websocket.send_text(f"\r\n")
+            
+            # Send terminal start command to agent
+            try:
+                await agent_ws.send_json({
+                    "type": "terminal_start",
+                    "session_id": session_id
+                })
+            except Exception as e:
+                await websocket.send_text(f"\x1b[1;31m✗ Failed to start terminal on agent: {str(e)}\x1b[0m\r\n")
+                await websocket.close(code=1011, reason="Failed to start agent terminal")
+                return
+            
+            await websocket.send_text(f"\x1b[1;32m✓ Connection established\x1b[0m\r\n")
+            await websocket.send_text(f"\x1b[90m─────────────────────────────────────────────────────────────\x1b[0m\r\n")
+            await websocket.send_text(f"\r\n")
+            
+            # Store session for receiving agent responses
+            agent_terminal_sessions[session_id] = {
+                "agent_ws": agent_ws,
+                "user_ws": websocket,
+                "agent_id": agent_id_str
+            }
+            
+            try:
+                # Relay loop - send user input to agent
+                while True:
+                    try:
+                        data = await websocket.receive()
+                        
+                        if data['type'] == 'websocket.receive':
+                            if 'text' in data:
+                                text = data['text']
+                                
+                                # Check if it's a resize command (JSON)
+                                if text.startswith('{'):
+                                    try:
+                                        cmd = json.loads(text)
+                                        if cmd.get('type') == 'resize':
+                                            await agent_ws.send_json({
+                                                "type": "terminal_resize",
+                                                "session_id": session_id,
+                                                "cols": cmd.get('cols', 80),
+                                                "rows": cmd.get('rows', 24)
+                                            })
+                                            continue
+                                    except json.JSONDecodeError:
+                                        pass
+                                
+                                # Send terminal input to agent
+                                await agent_ws.send_json({
+                                    "type": "terminal_input",
+                                    "session_id": session_id,
+                                    "data": text
+                                })
+                                
+                            elif 'bytes' in data:
+                                import base64
+                                await agent_ws.send_json({
+                                    "type": "terminal_input",
+                                    "session_id": session_id,
+                                    "data": base64.b64encode(data['bytes']).decode('utf-8'),
+                                    "is_binary": True
+                                })
+                                
+                        elif data['type'] == 'websocket.disconnect':
+                            break
+                            
+                    except WebSocketDisconnect:
+                        break
+                        
+            except Exception as e:
+                try:
+                    await websocket.send_text(f"\r\n\x1b[31mError: {str(e)}\x1b[0m\r\n")
+                except:
+                    pass
+            finally:
+                # Clean up session
+                if session_id in agent_terminal_sessions:
+                    del agent_terminal_sessions[session_id]
+                
+                # Send terminal stop to agent
+                try:
+                    await agent_ws.send_json({
+                        "type": "terminal_stop",
+                        "session_id": session_id
+                    })
+                except:
+                    pass
+                
+                await websocket.send_text(f"\r\n\x1b[1;33m⚠ Connection closed\x1b[0m\r\n")
+            
+            return  # Exit after POV terminal relay
+            
+        except (ValueError, Exception) as e:
+            await websocket.send_text(f"\x1b[1;31m[Error activating POV mode: {str(e)}]\x1b[0m\r\n")
+            # Fall back to C2 terminal
     
     # Create PTY
     master_fd, slave_fd = pty.openpty()

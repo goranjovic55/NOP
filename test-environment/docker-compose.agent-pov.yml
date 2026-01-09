@@ -1,0 +1,132 @@
+version: '3.8'
+
+# Agent POV Testing Environment
+# This setup creates an isolated network (agent-network) with test hosts
+# that are NOT visible from the main NOP network (nop-internal).
+# The agent-host can download/execute the agent and scan the isolated network.
+
+networks:
+  # Main NOP network (backend, frontend, postgres)
+  docker_nop-internal:
+    external: true
+  
+  # Isolated agent network - targets only visible from here
+  agent-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/16
+          gateway: 10.10.1.1
+
+services:
+  # ========================================
+  # Agent Host - Downloads and runs agent
+  # ========================================
+  agent-host:
+    build: ./agent-pov-host
+    container_name: agent-pov-host
+    hostname: agent-host
+    networks:
+      docker_nop-internal:
+      agent-network:
+        ipv4_address: 10.10.1.10
+    environment:
+      - BACKEND_URL=http://docker-backend-1:12001
+      - AGENT_NETWORK=10.10.0.0/16
+    volumes:
+      - ./agent-downloads:/downloads
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    command: /bin/bash -c "tail -f /dev/null"
+
+  # ========================================
+  # Isolated Targets - Only visible from agent-network
+  # ========================================
+  
+  # SSH Server (Ubuntu with weak credentials)
+  isolated-ssh:
+    build: ./ssh-server
+    container_name: isolated-ssh
+    hostname: isolated-ssh
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.10
+    restart: unless-stopped
+
+  # Web Server (Apache with vulnerabilities)
+  isolated-web:
+    build: ./web-server
+    container_name: isolated-web
+    hostname: isolated-web
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.20
+    restart: unless-stopped
+
+  # Database Server (MySQL with default credentials)
+  isolated-db:
+    build: ./database-server
+    container_name: isolated-db
+    hostname: isolated-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=dbuser
+      - MYSQL_PASSWORD=dbpass123
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.30
+    restart: unless-stopped
+
+  # FTP Server (standard FTP)
+  isolated-ftp:
+    build: ./ftp-server
+    container_name: isolated-ftp
+    hostname: isolated-ftp
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.40
+    restart: unless-stopped
+
+  # VNC Server (weak password)
+  isolated-vnc:
+    build: ./vnc-server
+    container_name: isolated-vnc
+    hostname: isolated-vnc
+    environment:
+      - VNC_PASSWORD=password
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.50
+    restart: unless-stopped
+
+  # File Server (SMB with open shares)
+  isolated-fileserver:
+    build: ./file-server
+    container_name: isolated-fileserver
+    hostname: isolated-fileserver
+    networks:
+      agent-network:
+        ipv4_address: 10.10.2.60
+    restart: unless-stopped
+
+  # Additional Web Server (different subnet for network discovery testing)
+  isolated-web2:
+    build: ./web-server
+    container_name: isolated-web2
+    hostname: isolated-web2
+    networks:
+      agent-network:
+        ipv4_address: 10.10.3.10
+    restart: unless-stopped
+
+  # Additional SSH Server (different subnet)
+  isolated-ssh2:
+    build: ./ssh-server
+    container_name: isolated-ssh2
+    hostname: isolated-ssh2
+    networks:
+      agent-network:
+        ipv4_address: 10.10.3.20
+    restart: unless-stopped

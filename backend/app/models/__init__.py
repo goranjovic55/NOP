@@ -11,6 +11,7 @@ from .event import Event
 from .vulnerability import Vulnerability
 from .topology import TopologyEdge
 from .settings import Settings
+from .agent import Agent
 from .cve_cache import CVECache
 from .exploit_module import ExploitModule
 
@@ -25,6 +26,7 @@ __all__ = [
     "Vulnerability",
     "TopologyEdge",
     "Settings",
+    "Agent",
     "CVECache",
     "ExploitModule"
 ]

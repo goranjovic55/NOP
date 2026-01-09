@@ -7,6 +7,8 @@ import subprocess
 import json
 import ipaddress
 import socket
+import tempfile
+import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import xml.etree.ElementTree as ET
@@ -19,6 +21,21 @@ class NetworkScanner:
 
     def __init__(self):
         self.scan_results = {}
+    
+    def _create_proxychains_config(self, socks_port: int) -> str:
+        """Create temporary proxychains config file"""
+        config_content = f"""# Temporary ProxyChains config for agent SOCKS proxy
+strict_chain
+proxy_dns
+tcp_read_time_out 15000
+tcp_connect_time_out 8000
+[ProxyList]
+socks5 127.0.0.1 {socks_port}
+"""
+        fd, config_path = tempfile.mkstemp(prefix='proxychains_', suffix='.conf')
+        with os.fdopen(fd, 'w') as f:
+            f.write(config_content)
+        return config_path
     
     def _validate_ip_or_network(self, target: str) -> bool:
         """Validate IP address or network CIDR notation"""
@@ -53,16 +70,28 @@ class NetworkScanner:
                 return False
         return True
 
-    async def ping_sweep(self, network: str) -> List[str]:
-        """Perform ping sweep to discover live hosts"""
+    async def ping_sweep(self, network: str, proxy_port: Optional[int] = None) -> List[str]:
+        """Perform ping sweep to discover live hosts
+        
+        Args:
+            network: Network CIDR or IP address
+            proxy_port: Optional SOCKS proxy port for agent POV mode
+        """
+        config_path = None
         try:
             # Validate network CIDR to prevent command injection
             if not self._validate_ip_or_network(network):
                 logger.error(f"Invalid network format: {network}")
                 return []
             
-            # Use nmap for ping sweep with timeout
-            cmd = ["nmap", "-sn", network]
+            # Build nmap command
+            cmd = []
+            if proxy_port:
+                config_path = self._create_proxychains_config(proxy_port)
+                cmd = ["proxychains4", "-f", config_path, "-q"]
+                logger.info(f"Using SOCKS proxy on port {proxy_port} for ping sweep")
+            
+            cmd.extend(["nmap", "-sn", network])
             result = await asyncio.wait_for(
                 asyncio.create_subprocess_exec(
                     *cmd,
@@ -95,9 +124,23 @@ class NetworkScanner:
         except Exception as e:
             logger.error(f"Error in ping sweep: {str(e)}")
             return []
+        finally:
+            # Cleanup proxychains config
+            if config_path and os.path.exists(config_path):
+                try:
+                    os.unlink(config_path)
+                except:
+                    pass
 
-    async def port_scan(self, host: str, ports: str = "1-1000") -> Dict[str, Any]:
-        """Perform port scan on a host"""
+    async def port_scan(self, host: str, ports: str = "1-1000", proxy_port: Optional[int] = None) -> Dict[str, Any]:
+        """Perform port scan on a host
+        
+        Args:
+            host: Target host IP
+            ports: Port range (e.g., '1-1000', '22,80,443')
+            proxy_port: Optional SOCKS proxy port for agent POV mode
+        """
+        config_path = None
         try:
             # Validate IP address to prevent command injection
             if not self._validate_ip_or_network(host):
@@ -109,9 +152,16 @@ class NetworkScanner:
                 logger.error(f"Invalid port range: {ports}")
                 return {"error": "Invalid port range format"}
             
+            # Build nmap command
+            cmd = []
+            if proxy_port:
+                config_path = self._create_proxychains_config(proxy_port)
+                cmd = ["proxychains4", "-f", config_path, "-q"]
+                logger.info(f"Using SOCKS proxy on port {proxy_port} for port scan")
+            
             # Add -Pn to skip ping probe as we might have already established it's up
             # or we want to scan it regardless
-            cmd = ["nmap", "-sS", "-Pn", "-p", ports, "-oX", "-", host]
+            cmd.extend(["nmap", "-sS", "-Pn", "-p", ports, "-oX", "-", host])
             result = await asyncio.wait_for(
                 asyncio.create_subprocess_exec(
                     *cmd,
@@ -134,6 +184,13 @@ class NetworkScanner:
         except Exception as e:
             logger.error(f"Error in port scan: {str(e)}")
             return {"error": str(e)}
+        finally:
+            # Cleanup proxychains config
+            if config_path and os.path.exists(config_path):
+                try:
+                    os.unlink(config_path)
+                except:
+                    pass
 
     async def service_detection(self, host: str, ports: List[int]) -> Dict[str, Any]:
         """Perform service detection on specific ports"""
@@ -371,14 +428,19 @@ class NetworkScanner:
             logger.error(f"Error processing nmap results: {str(e)}")
             return {"error": str(e)}
 
-    async def discover_network(self, network: str) -> Dict[str, Any]:
-        """Discover all hosts in a network"""
+    async def discover_network(self, network: str, proxy_port: Optional[int] = None) -> Dict[str, Any]:
+        """Discover all hosts in a network
+        
+        Args:
+            network: Network CIDR to scan
+            proxy_port: Optional SOCKS proxy port for agent POV mode
+        """
         try:
             # Validate network
             ipaddress.ip_network(network, strict=False)
 
-            # Perform ping sweep
-            live_hosts = await self.ping_sweep(network)
+            # Perform ping sweep (with proxy if POV mode)
+            live_hosts = await self.ping_sweep(network, proxy_port=proxy_port)
 
             result = {
                 "network": network,
@@ -393,7 +455,7 @@ class NetworkScanner:
                     # Use -sn -PR for ARP scan if in same network, but nmap -sn is usually enough
                     # For detailed info we need at least some port scanning
                     # We use -Pn to skip ping since we already know it's alive
-                    host_result = await self.port_scan(host, "1-1000")
+                    host_result = await self.port_scan(host, "1-1000", proxy_port=proxy_port)
                     
                     if "error" not in host_result and host_result.get("hosts"):
                         result["hosts"].extend(host_result.get("hosts", []))

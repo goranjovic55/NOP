@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
 import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
@@ -12,6 +13,7 @@ type AccessMode = 'login' | 'exploit';
 
 const Access: React.FC = () => {
   const { token } = useAuthStore();
+  const { activeAgent } = usePOV();
   const location = useLocation();
   const { tabs, activeTabId, setActiveTab, removeTab, addTab, updateTabStatus } = useAccessStore();
   const { 
@@ -107,14 +109,14 @@ const Access: React.FC = () => {
 
   useEffect(() => {
     fetchAllAssets();
-  }, []);
+  }, [activeAgent]);
 
   useEffect(() => {
     // Refresh assets when token changes
     if (token) {
       fetchAllAssets();
     }
-  }, [token]);
+  }, [token, activeAgent]);
 
   // Handle navigation from Scans page with state
   useEffect(() => {
@@ -347,8 +349,8 @@ const Access: React.FC = () => {
         setLoading(false);
         return;
       }
-      const allAssets = await assetService.getAssets(authToken);
-      console.log('Fetched assets:', allAssets.length);
+      const allAssets = await assetService.getAssets(authToken, undefined, activeAgent?.id);
+      console.log('Fetched assets:', allAssets.length, 'POV agent:', activeAgent?.id || 'none');
       setAssets(allAssets);
     } catch (error) {
       console.error('Failed to fetch assets:', error);

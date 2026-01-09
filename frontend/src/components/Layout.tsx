@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
+import { useAgentStore } from '../store/agentStore';
 import { useScanStore } from '../store/scanStore';
 import { useAccessStore } from '../store/accessStore';
 import { useDiscoveryStore } from '../store/discoveryStore';
@@ -15,6 +17,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { activeAgent, setActiveAgent } = usePOV();
+  const { agents } = useAgentStore();
   const { tabs: scanTabs } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
@@ -26,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const connectedCount = accessTabs.filter(tab => tab.status === 'connected').length;
   const activeExploitCount = getActiveSessionCount();
   const isTrafficActive = isPinging || isCapturing || isCrafting || isStorming;
+  const agentCount = agents.filter(agent => agent.status === 'online').length;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
@@ -35,6 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
     { name: 'Scripts', href: '/scripts', icon: '◇', symbol: '◆' },
+    { name: 'Agents', href: '/agents', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },
   ];
@@ -113,6 +119,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {activeExploitCount || connectedCount}
                     </div>
                   )}
+                  {item.name === 'Agents' && agentCount > 0 && (
+                    <div className={`absolute right-2 flex items-center justify-center bg-cyber-purple text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {agentCount}
+                    </div>
+                  )}
                 </Link>
               </li>
             ))}
@@ -155,9 +166,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <header className="bg-cyber-dark border-b border-cyber-gray px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-cyber-red text-xl font-bold tracking-wider uppercase cyber-glow-red">
-              {navigation.find(item => isActive(item.href))?.name || 'Network Observatory Platform'}
+              {activeAgent ? (
+                <>
+                  NOP - <span className="text-cyber-purple">{activeAgent.name}</span>
+                </>
+              ) : (
+                navigation.find(item => isActive(item.href))?.name || 'Network Observatory Platform'
+              )}
             </h1>
             <div className="flex items-center space-x-6">
+              {activeAgent && (
+                <div className="flex items-center space-x-3 bg-cyber-purple/20 border-2 border-cyber-purple px-5 py-2 rounded cyber-glow-purple shadow-lg shadow-cyber-purple/50">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse"></div>
+                    <span className="text-cyber-purple text-sm font-bold tracking-wide uppercase">
+                      Agent POV: {activeAgent.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveAgent(null)}
+                    className="px-4 py-1.5 bg-cyber-purple border-2 border-cyber-purple text-white text-xs uppercase font-bold hover:bg-cyber-purple-dark hover:border-cyber-purple-light transition cyber-glow-purple flex items-center space-x-1"
+                    title="Exit Agent POV and return to global view"
+                  >
+                    <span>✕</span>
+                    <span>Exit POV</span>
+                  </button>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-cyber-green rounded-full cyber-pulse"></div>
                 <span className="text-cyber-green text-sm font-medium tracking-wide uppercase">

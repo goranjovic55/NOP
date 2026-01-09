@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import ProtocolConnection from '../components/ProtocolConnection';
 import { CyberPageTitle } from '../components/CyberUI';
+import { assetService } from '../services/assetService';
+import { useAuthStore } from '../store/authStore';
+import { usePOV } from '../context/POVContext';
+
+interface Asset {
+  id: string;
+  ip_address: string;
+  hostname?: string;
+  status: string;
+  os_type?: string;
+  open_ports?: number[];
+}
 
 const AccessHub: React.FC = () => {
+  const { token } = useAuthStore();
+  const { activeAgent, isAgentPOV } = usePOV();
   const { tabs, activeTabId, setActiveTab, removeTab, addTab } = useAccessStore();
   const activeTab = tabs.find(t => t.id === activeTabId);
   const [showNewConnectionModal, setShowNewConnectionModal] = useState(false);
@@ -13,6 +27,8 @@ const AccessHub: React.FC = () => {
   const [connectionHeight, setConnectionHeight] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
   const [showVault, setShowVault] = useState(false);
+  const [discoveredAssets, setDiscoveredAssets] = useState<Asset[]>([]);
+  const [showDiscoveredAssets, setShowDiscoveredAssets] = useState(true);
   const [vaultPassword, setVaultPassword] = useState('');
   const [vaultSortBy, setVaultSortBy] = useState<'recent' | 'frequent' | 'name'>('recent');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
@@ -32,6 +48,22 @@ const AccessHub: React.FC = () => {
     lastUsedTimestamp: number;
     group?: string;
   }>>([]);
+
+  // Fetch discovered assets (POV aware)
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!token) return;
+      try {
+        const assets = await assetService.getAssets(token, undefined, activeAgent?.id);
+        setDiscoveredAssets(assets.filter((a: Asset) => a.status === 'online'));
+      } catch (e) {
+        console.error('Failed to fetch assets', e);
+      }
+    };
+    fetchAssets();
+    const interval = setInterval(fetchAssets, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, [token, activeAgent]);
 
   // Load vault credentials from localStorage on mount
   React.useEffect(() => {
@@ -240,6 +272,24 @@ const AccessHub: React.FC = () => {
     }
   };
 
+  // Guess protocol from open ports
+  const guessProtocol = (ports?: number[]): Protocol => {
+    if (!ports || ports.length === 0) return 'ssh';
+    if (ports.includes(22)) return 'ssh';
+    if (ports.includes(5900) || ports.includes(5901)) return 'vnc';
+    if (ports.includes(3389)) return 'rdp';
+    if (ports.includes(21)) return 'ftp';
+    if (ports.includes(23)) return 'telnet';
+    if (ports.includes(80) || ports.includes(443) || ports.includes(8080)) return 'web';
+    return 'ssh';
+  };
+
+  // Quick connect to discovered asset
+  const handleAssetConnect = (asset: Asset) => {
+    const protocol = guessProtocol(asset.open_ports);
+    addTab(asset.ip_address, protocol, asset.hostname);
+  };
+
   return (
     <div className={`h-full flex ${isFullscreen ? 'fixed inset-0 z-50 bg-cyber-dark p-4' : ''}`}>
       <div className={`flex-1 flex flex-col ${isFullscreen ? '' : 'space-y-4'}`}>
@@ -247,6 +297,12 @@ const AccessHub: React.FC = () => {
           <div className="flex justify-between items-center">
             <CyberPageTitle color="red">ACCESS</CyberPageTitle>
             <div className="flex space-x-2">
+              <button 
+                onClick={() => setShowDiscoveredAssets(!showDiscoveredAssets)}
+                className={`btn-cyber px-4 py-2 ${showDiscoveredAssets ? 'border-cyber-purple text-cyber-purple bg-cyber-purple bg-opacity-10' : 'border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-black'}`}
+              >
+                ◎ Targets ({discoveredAssets.length})
+              </button>
               <button 
                 onClick={toggleVault}
                 className={`btn-cyber px-4 py-2 ${showVault ? 'border-cyber-green text-cyber-green bg-cyber-green bg-opacity-10' : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'}`}
@@ -262,6 +318,40 @@ const AccessHub: React.FC = () => {
             </div>
           </div>
         )}
+
+      {/* Discovered Assets Panel */}
+      {showDiscoveredAssets && !isFullscreen && discoveredAssets.length > 0 && (
+        <div className="bg-cyber-darker border border-cyber-purple p-4 rounded-lg">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-cyber-purple font-bold uppercase text-xs tracking-widest">
+              {isAgentPOV ? `◎ Agent Targets (${activeAgent?.name})` : '◎ Discovered Targets'}
+            </span>
+            <span className="text-xs text-cyber-gray">{discoveredAssets.length} online</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+            {discoveredAssets.slice(0, 12).map((asset) => (
+              <button
+                key={asset.id}
+                onClick={() => handleAssetConnect(asset)}
+                className="bg-cyber-dark border border-cyber-gray hover:border-cyber-purple p-2 rounded text-left transition-colors group"
+              >
+                <div className="text-xs text-cyber-purple font-mono truncate">{asset.ip_address}</div>
+                <div className="text-xs text-cyber-gray truncate">{asset.hostname || 'Unknown'}</div>
+                {asset.open_ports && asset.open_ports.length > 0 && (
+                  <div className="text-xs text-cyber-green mt-1">
+                    {asset.open_ports.slice(0, 3).join(', ')}{asset.open_ports.length > 3 ? '...' : ''}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          {discoveredAssets.length > 12 && (
+            <div className="text-xs text-cyber-gray mt-2 text-center">
+              +{discoveredAssets.length - 12} more targets
+            </div>
+          )}
+        </div>
+      )}
 
       {/* New Connection Modal */}
       {showNewConnectionModal && (
