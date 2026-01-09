@@ -1,9 +1,13 @@
 ---
 name: debugging
 description: Load when encountering errors, exceptions, tracebacks, failed operations, or needing to debug any issue
+triggers: ["error", "exception", "traceback", "failed", "bug", "fix", "debug"]
 ---
 
 # Debugging
+
+## When to Use
+Load this skill when: encountering any error, debugging issues, fixing bugs, analyzing tracebacks.
 
 Systematic troubleshooting for build, runtime, and infrastructure errors. Applies to any project.
 

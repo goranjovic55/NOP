@@ -2,6 +2,7 @@
 
 | Template | Use | Location |
 |----------|-----|----------|
+| `agent.md` | Specialist agents | `.github/agents/` |
 | `skill.md` | Reusable patterns | `.github/skills/` |
 | `feature-doc.md` | Feature documentation | `docs/features/` |
 | `guide-doc.md` | How-to guides | `docs/guides/` |

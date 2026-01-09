@@ -1,9 +1,13 @@
 ---
 name: frontend-react
 description: Load when editing .tsx, .jsx files or working in components/, pages/ directories for React/TypeScript patterns
+triggers: [".tsx", ".jsx", "components/", "pages/", "store/", "hooks/"]
 ---
 
 # Frontend React Patterns
+
+## When to Use
+Load this skill when: editing React components, working with TypeScript/JSX, updating stores or hooks.
 
 React/TypeScript development patterns for any project.
 

@@ -1,9 +1,14 @@
+````markdown
 ---
 name: {skill-name}
 description: {When to load this skill - file patterns, directories, or conditions}
+triggers: ["{pattern1}", "{pattern2}", "{directory}/"]
 ---
 
 # {Skill Title}
+
+## When to Use
+Load this skill when: {describe file patterns, directories, or conditions that trigger this skill}
 
 {One-line description of what this skill covers}
 
@@ -33,3 +38,5 @@ description: {When to load this skill - file patterns, directories, or condition
 
 ## Related
 - `{related-skill}/SKILL.md`
+
+````

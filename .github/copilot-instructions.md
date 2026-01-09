@@ -32,6 +32,10 @@
 
 **Cache rule:** Don't reload skill already loaded this session!
 
+**Todo Protocol:** Sync with `manage_todo_list` on every state change (◆/✓/⊘)
+
+**Drift Check (every 5 tasks):** ✓ All active work has ◆? ✓ Skills cached? ✓ Any ⊘ orphans?
+
 **Knowledge v3.0:** (90% token reduction verified via 100k simulations)
 - hot_cache: 31% of queries → instant answers
 - gotchas: 11% of queries → debug acceleration

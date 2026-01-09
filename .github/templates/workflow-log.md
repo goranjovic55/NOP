@@ -1,8 +1,10 @@
-# {TASK_NAME}
+````markdown
+# {TASK_NAME} | {YYYY-MM-DD} | ~{N}min | {complexity}
 
-**Date**: {YYYY-MM-DD HH:MM}
-**Branch**: {branch-name}
-**Files Changed**: {N}
+## Metrics
+| Tasks | Files | Skills | Scripts |
+|-------|-------|--------|---------|
+| {done}/{total} | {N} modified | {N} loaded | knowledge✓ skills✓ docs✓ |
 
 ## Worktree
 ```
@@ -13,21 +15,36 @@
 ```
 
 ## Summary
-{Brief description of what was accomplished}
+{Brief description of what was accomplished - 2-3 sentences max}
 
 ## Changes
-- Created: `path/file.ext`
-- Modified: `path/file.ext`
+| File | Change |
+|------|--------|
+| `path/file.ext` | Created/Modified - brief description |
 
-## Problems Encountered
-- Problem: {what went wrong}
-- Cause: {root cause}
-- Solution: {how it was fixed}
+## Script Output
+```
+knowledge.py: {N} entities updated
+skills.py: {N} existing, {N} candidates ({list})
+instructions.py: {N} patterns, {N} gaps
+cleanup.py: {N} items cleaned
+docs.py: {N} updates needed
+```
 
-## Lessons Learned
-- {Key insight or pattern discovered}
-- {What would be done differently}
-- {Useful technique or approach}
+## Skills Used
+- `{skill1}` → file1.py, file2.py
+- `{skill2}` → Dockerfile
 
 ## Skill Suggestions
-{paste suggest_skill.py output if useful}
+{From skills.py --suggest or "None"}
+
+## Problems & Solutions
+{Omit if none}
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| {what} | {why} | {fix} |
+
+## Verification
+{Commands/tests run to verify}
+
+````

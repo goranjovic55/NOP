@@ -1,9 +1,13 @@
 ---
 name: akis-development
 description: Load when editing .github/copilot-instructions*, .github/instructions/*, .github/skills/* for AKIS framework patterns
+triggers: [".github/copilot-instructions", ".github/instructions/", ".github/skills/", ".github/agents/", "project_knowledge.json"]
 ---
 
 # AKIS Development v6.0
+
+## When to Use
+Load this skill when: editing AKIS framework files, modifying copilot instructions, updating skills or agents.
 
 Patterns for editing Agent Knowledge and Instruction System files. Focus: token efficiency + prompt minimization.
 
@@ -63,11 +67,11 @@ Patterns for editing Agent Knowledge and Instruction System files. Focus: token 
 ## Validation
 
 ```bash
-# Run prompt optimization analysis
-python .github/scripts/akis_prompt_optimizer.py --count 100000
+# Run full agent analysis
+python .github/scripts/agents.py --full-audit
 
-# Check compliance with improvements
-python .github/scripts/analyze_akis.py --full --count 100000
+# Check compliance with 100k simulation
+python .github/scripts/agents.py --generate --sessions 100000
 ```
 
 ## Key Metrics (v6.0 targets)

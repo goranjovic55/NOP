@@ -1,9 +1,13 @@
 ---
 name: backend-api
 description: Load when editing .py files in backend/, api/, routes/, endpoints/ directories for FastAPI/async SQLAlchemy patterns
+triggers: [".py", "backend/", "api/", "routes/", "endpoints/", "services/", "models/"]
 ---
 
 # Backend API Patterns
+
+## When to Use
+Load this skill when: editing Python files in backend/, creating API endpoints, working with FastAPI or SQLAlchemy.
 
 FastAPI with async SQLAlchemy. Applicable to any Python REST API project.
 

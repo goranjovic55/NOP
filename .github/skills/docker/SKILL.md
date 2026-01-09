@@ -1,9 +1,13 @@
 ---
 name: docker
 description: Load when editing Dockerfile, docker-compose*.yml, or managing containers and container infrastructure
+triggers: ["Dockerfile", "docker-compose", ".yml", "container", "docker/"]
 ---
 
 # Docker Development Workflow
+
+## When to Use
+Load this skill when: editing Docker files, managing containers, configuring docker-compose.
 
 Container management for development and production. Works with any Docker/Compose project.
 

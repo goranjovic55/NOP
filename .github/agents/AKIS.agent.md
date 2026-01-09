@@ -109,9 +109,9 @@ NO ORPHAN ⊘ at session end
 1. Close orphan ⊘ tasks
 2. Run tests if test files exist for modified code
 3. Run: git diff --stat (verify expected files changed)
-4. Run: python .github/scripts/generate_knowledge.py && python .github/scripts/suggest_skill.py
-   → Show any skill suggestions from script output
-5. Run: python .github/scripts/session_cleanup.py && python .github/scripts/update_docs.py
+4. Run: python .github/scripts/knowledge.py && python .github/scripts/skills.py && python .github/scripts/instructions.py
+   → Show any skill/instruction suggestions from script output
+5. Run: python .github/scripts/session_cleanup.py && python .github/scripts/docs.py
 6. Collect session metrics:
    - Duration (from session start)
    - Tasks completed/total
@@ -143,7 +143,7 @@ WORKFLOW TREE
 ═══════════════════════════════════════════════════════════
 SKILL SUGGESTIONS
 ═══════════════════════════════════════════════════════════
-[Output from suggest_skill.py or "None"]
+[Output from skills.py --suggest or "None"]
 ═══════════════════════════════════════════════════════════
 ```
 
@@ -182,7 +182,7 @@ SKILL SUGGESTIONS
 - .github/skills/docker/SKILL.md (for Dockerfile, docker-compose)
 
 ## Skill Suggestions
-[Number] suggestions from suggest_skill.py:
+[Number] suggestions from skills.py --suggest:
 1. **skill-name** - Brief description
 2. **skill-name** - Brief description
 [Or "None" if no suggestions]
@@ -198,6 +198,29 @@ SKILL SUGGESTIONS
 ## Notes
 [Optional: patterns observed, gotchas, deployment instructions]
 ```
+
+---
+
+## Unified Scripts Interface
+
+All AKIS scripts use consistent flags:
+```bash
+python .github/scripts/{script}.py              # Default (--update mode)
+python .github/scripts/{script}.py --update     # Update based on session
+python .github/scripts/{script}.py --generate   # Full generation + 100k simulation
+python .github/scripts/{script}.py --suggest    # Suggest without applying
+python .github/scripts/{script}.py --dry-run    # Preview changes
+```
+
+**Available Scripts:**
+| Script | Purpose |
+|--------|---------|
+| `knowledge.py` | Update project knowledge cache |
+| `skills.py` | Detect and suggest new skills |
+| `instructions.py` | Optimize instruction patterns |
+| `docs.py` | Update documentation coverage |
+| `agents.py` | Manage specialist agents |
+| `session_cleanup.py` | Clean session artifacts |
 
 ---
 

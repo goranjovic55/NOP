@@ -1,9 +1,13 @@
 ---
 name: knowledge
 description: Load when working with project_knowledge.json, context files, or managing project knowledge
+triggers: ["project_knowledge.json", "knowledge", "context", "cache", "gotchas"]
 ---
 
 # Knowledge Management v3.0
+
+## When to Use
+Load this skill when: querying project knowledge, updating knowledge cache, working with gotchas.
 
 Query and maintain project knowledge files for context. Cross-project pattern.
 
@@ -67,7 +71,7 @@ project_knowledge.json structure:
 | Load entire file | Read hot_cache (line 1) first |
 | Search without index | Use domain_index (line 2) |
 | Re-analyze unchanged files | Check change_tracking hashes |
-| Manual edits | Auto-generation with generate_knowledge.py |
+| Manual edits | Auto-generation with knowledge.py |
 
 ## Quick Reference
 
@@ -175,10 +179,10 @@ cat .github/skills/INDEX.md
 ### End of Session
 ```bash
 # 1. Regenerate knowledge if structure changed
-python scripts/generate_knowledge.py
+python .github/scripts/knowledge.py
 
 # 2. Check for skill suggestions
-python scripts/suggest_skill.py
+python .github/scripts/skills.py --suggest
 
 # 3. Create workflow log
 ```

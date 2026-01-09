@@ -1,9 +1,13 @@
 ---
 name: testing
 description: Load when editing test_*, *.test.*, *_test.py files or working with pytest, jest testing frameworks
+triggers: ["test_", ".test.", "_test.py", "pytest", "jest", "tests/"]
 ---
 
 # Testing Patterns
+
+## When to Use
+Load this skill when: writing tests, running pytest/jest, editing test files.
 
 Testing strategies for Python and TypeScript/React projects.
 

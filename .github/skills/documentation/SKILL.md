@@ -1,9 +1,13 @@
 ---
 name: documentation
 description: Load when editing docs/, README, any .md files for documentation structure and best practices
+triggers: [".md", "docs/", "README", "CHANGELOG", "guides/"]
 ---
 
 # Documentation
+
+## When to Use
+Load this skill when: editing any `.md` file, updating `docs/` content, creating README files, or writing documentation.
 
 Keep docs clear, current, and close to code. Cross-project documentation patterns.
 
