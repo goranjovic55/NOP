@@ -1,11 +1,11 @@
-# Skills Index v6.0
+# Skills Index v6.3
 
 **Agent Skills Standard** - Load skills ONCE per domain per session.
 
 ## Core Rule: Skill Caching
 - **Load once:** Don't reload skill already loaded this session
 - **Track loaded:** Keep list: [frontend-react, backend-api, ...]
-- **Attachment context:** Skill descriptions already in system prompt
+- **Announce:** Say "SKILL: {name} loaded" when loading
 
 ## Domain Triggers
 

@@ -3,7 +3,7 @@ name: AKIS
 description: Protocol enforcement agent for strict workflow compliance. Orchestrates sub-agents and enforces TODO tracking, skill loading, and verification gates.
 ---
 
-# AKIS v5.8 - Protocol Enforcement Agent
+# AKIS v6.3 - Protocol Enforcement Agent
 
 > `@AKIS` in GitHub Copilot Chat
 

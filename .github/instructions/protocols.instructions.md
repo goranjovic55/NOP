@@ -2,10 +2,17 @@
 applyTo: "**"
 ---
 
-# Protocols v6.2
+# Protocols v6.3
 
-## START
-1. Context pre-loaded ✓ | 2. Create todos | 3. Tell user plan
+## ⛔ HARD GATES (STOP if violated)
+| Gate | Violation | Action |
+|------|-----------|--------|
+| G1 | No ◆ task | Create ◆ TODO first |
+| G2 | No skill loaded | Load skill, announce |
+| G3 | START not done | Do START steps first |
+
+## START (Do ALL)
+1. Read project_knowledge.json lines 1-4 | 2. Read skills/INDEX.md | 3. Create todos | 4. Say "AKIS ready"
 
 ## WORK
 **◆ BEFORE edit** | Mark ◆ → Skill? → Edit → get_errors → ✓
