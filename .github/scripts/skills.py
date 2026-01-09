@@ -242,6 +242,66 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
     return candidates
 
 
+# Token targets (balanced for effectiveness)
+SKILL_TOKEN_TARGETS = {
+    'target': 250,  # Increased from 200 for effectiveness
+    'max': 350,
+    'min': 100,  # Skills below this are too terse
+}
+
+
+def validate_skill_quality(skills_dir: Path) -> List[Dict[str, Any]]:
+    """Validate skill quality - check for Critical Gotchas and token balance."""
+    issues = []
+    
+    for skill_path in skills_dir.glob("*/SKILL.md"):
+        skill_name = skill_path.parent.name
+        try:
+            content = skill_path.read_text(encoding='utf-8')
+            word_count = len(content.split())
+            
+            # Check for Critical Gotchas section
+            has_gotchas = '## ⚠️ Critical Gotchas' in content or '## Critical Gotchas' in content
+            
+            # Check token balance
+            is_too_terse = word_count < SKILL_TOKEN_TARGETS['min']
+            is_too_verbose = word_count > SKILL_TOKEN_TARGETS['max']
+            
+            if not has_gotchas:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'missing_gotchas',
+                    'message': f"Missing ⚠️ Critical Gotchas section",
+                    'severity': 'warning'
+                })
+            
+            if is_too_terse:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'too_terse',
+                    'message': f"Too terse ({word_count} words, min {SKILL_TOKEN_TARGETS['min']})",
+                    'severity': 'warning'
+                })
+            
+            if is_too_verbose:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'too_verbose',
+                    'message': f"Too verbose ({word_count} words, max {SKILL_TOKEN_TARGETS['max']})",
+                    'severity': 'warning'
+                })
+                
+        except (IOError, UnicodeDecodeError):
+            issues.append({
+                'skill': skill_name,
+                'issue': 'read_error',
+                'message': f"Could not read skill file",
+                'severity': 'error'
+            })
+    
+    return issues
+
+
 def read_workflow_logs(workflow_dir: Path) -> List[Dict[str, Any]]:
     """Read workflow log files."""
     logs = []
@@ -327,11 +387,23 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     print("AKIS Skills Update (Session Mode)")
     print("=" * 60)
     
+    root = Path.cwd()
+    skills_dir = root / '.github' / 'skills'
+    
     # Get session context
     session_files = get_session_files()
     diff = get_git_diff()
     
     print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Validate skill quality
+    quality_issues = validate_skill_quality(skills_dir)
+    if quality_issues:
+        print(f"\n⚠️  Skill quality issues: {len(quality_issues)}")
+        for issue in quality_issues[:5]:
+            print(f"  - {issue['skill']}: {issue['message']}")
+    else:
+        print(f"\n✅ All skills pass quality checks")
     
     # Detect existing skills
     existing = detect_existing_skills(session_files, diff)
@@ -353,6 +425,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     return {
         'mode': 'update',
         'session_files': len(session_files),
+        'quality_issues': quality_issues,
         'existing_skills': [{'name': s.skill_name, 'confidence': s.confidence} for s in existing],
         'new_candidates': [{'name': s.skill_name, 'confidence': s.confidence} for s in new_candidates],
     }

@@ -5,6 +5,11 @@ description: Load when editing test_*, *.test.*, or *_test.py files, or working 
 
 # Testing
 
+## ⚠️ Critical Gotchas
+- **Async fixtures:** Use `@pytest.fixture` with `async def` for async tests
+- **Mock boundaries:** Only mock at service boundaries, not internal logic
+- **Flaky tests:** Add `pytest.mark.flaky` or fix the race condition
+
 ## Rules
 - **Test behavior, not implementation**
 - **Isolate tests:** No shared state
@@ -24,7 +29,7 @@ description: Load when editing test_*, *.test.*, or *_test.py files, or working 
 ```python
 class TestItemService:
     @pytest.fixture
-    def service(self, db_session):
+    async def service(self, db_session):
         return ItemService(db_session)
     
     async def test_create_returns_item_with_id(self, service):

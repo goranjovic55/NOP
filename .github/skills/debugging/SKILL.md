@@ -5,13 +5,17 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 
 # Debugging
 
+## ⚠️ Critical Gotchas
+- **Docker restart ≠ rebuild:** Code changes need `--build`
+- **Container old code:** Use `docker compose up -d --build --force-recreate`
+- **Frontend 401:** Check authStore logout(), not API
+
 ## Process
 1. **READ** error completely
 2. **IDENTIFY** type (build/runtime/network/type)
 3. **LOCATE** source (file:line)
-4. **ISOLATE** minimum reproduction
-5. **FIX** with targeted change
-6. **VERIFY** error resolved
+4. **FIX** with targeted change
+5. **VERIFY** error resolved
 
 ## Avoid
 
@@ -24,9 +28,9 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 ## Quick Fixes
 
 ```bash
-# Container issues
+# Container issues (MOST COMMON)
 docker logs container-name --tail 50
-docker exec container-name cat /path/to/file
+docker compose up -d --build --force-recreate backend
 
 # Python
 python -m py_compile file.py   # Syntax check
@@ -40,7 +44,7 @@ lsof -i :8000 && kill <PID>
 # Null safety
 value = data.get('property', 'default')
 
-# Type guard
-if data and 'property' in data:
-    # safe access
+# JSONB not saving?
+flag_modified(item, 'metadata')
+await db.commit()
 ```
