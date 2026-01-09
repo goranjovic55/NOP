@@ -45,7 +45,7 @@
 ## END
 ```
 1. Check ⊘ orphans → close ALL
-2. If code files: generate_knowledge.py && suggest_skill.py && suggest_instructions.py
+2. If code files: update_knowledge.py && suggest_skill.py && suggest_instructions.py
    If docs only: suggest_skill.py && suggest_instructions.py
 3. session_cleanup.py && update_docs.py
 4. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md

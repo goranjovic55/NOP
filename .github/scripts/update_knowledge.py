@@ -1,20 +1,37 @@
 #!/usr/bin/env python3
 """
-AKIS Knowledge Generator v3.0
+AKIS Knowledge Updater v3.2
 
-Generates optimized project_knowledge.json with multi-layer caching.
+Updates project_knowledge.json based on current session or generates from scratch.
 Supports Python, TypeScript/JavaScript, and common web frameworks.
+Enriched with workflow-derived patterns and solutions.
 
-KNOWLEDGE SCHEMA v3.0:
-  Layer 1 - HOT_CACHE: Top 20 entities + common answers + quick facts
+MODES:
+  Default (no args): Update knowledge based on current session files
+                     Intelligently inserts and rearranges based on session activity
+  --generate:        Full generation from all workflows, codebase, and docs
+
+KNOWLEDGE SCHEMA v3.2:
+  Layer 1 - HOT_CACHE: Top 20 entities + common answers + quick facts (workflow-enriched)
   Layer 2 - DOMAIN_INDEX: Per-domain entity indexes (fast lookup)
-  Layer 3 - GOTCHAS: Historical issues + solutions (debug acceleration)
-  Layer 4 - INTERCONNECTIONS: Service→Model→Endpoint mapping
-  Layer 5 - SESSION_PATTERNS: Predictive file loading based on history
-  Layer 6 - ENTITIES + CODEGRAPH: Full knowledge (on-demand)
+  Layer 3 - CHANGE_TRACKING: File hashes for staleness detection
+  Layer 4 - GOTCHAS: Historical issues + solutions (enriched from workflow logs)
+  Layer 5 - INTERCONNECTIONS: Service→Model→Endpoint→Page mapping (with frontend chains)
+  Layer 6 - SESSION_PATTERNS: Predictive file loading based on history
+  Layer 7+ - ENTITIES + CODEGRAPH: Full knowledge (on-demand)
 
 Usage:
-    python .github/scripts/generate_knowledge.py [--dry-run] [--v3]
+    # Update based on current session (default - for end of session)
+    python .github/scripts/update_knowledge.py
+    
+    # Update with specific files from current session
+    python .github/scripts/update_knowledge.py --files file1.py file2.tsx
+    
+    # Full generation from scratch (all workflows + codebase)
+    python .github/scripts/update_knowledge.py --generate
+    
+    # Dry run (show what would change)
+    python .github/scripts/update_knowledge.py --dry-run
 """
 
 import os
@@ -309,62 +326,185 @@ def generate_gotchas(root: Path) -> Dict:
     """
     Generate GOTCHAS layer (Layer 3).
     Historical issues and solutions for debug acceleration.
+    Now enriched with solutions extracted from workflow logs.
     """
+    # Base gotchas (hardcoded common issues)
     gotchas = {
         'db_connection': {
             'symptom': 'Connection refused to database',
             'solution': 'Check docker-compose up -d db, verify DATABASE_URL env',
-            'files': ['backend/app/core/database.py', 'docker-compose.yml']
+            'files': ['backend/app/core/database.py', 'docker-compose.yml'],
+            'source': 'manual'
         },
         'alembic_conflict': {
             'symptom': 'Multiple heads in alembic',
             'solution': 'alembic merge heads, then alembic upgrade head',
-            'files': ['backend/alembic/versions/']
+            'files': ['backend/alembic/versions/'],
+            'source': 'manual'
         },
         'cors_error': {
             'symptom': 'CORS error in browser console',
             'solution': 'Check backend/app/main.py CORSMiddleware origins',
-            'files': ['backend/app/main.py']
+            'files': ['backend/app/main.py'],
+            'source': 'manual'
         },
         'websocket_timeout': {
             'symptom': 'WebSocket connection closes unexpectedly',
             'solution': 'Check nginx proxy_read_timeout, guacamole ping interval',
-            'files': ['frontend/nginx.conf', 'backend/app/api/v1/access_hub.py']
+            'files': ['frontend/nginx.conf', 'backend/app/api/v1/access_hub.py'],
+            'source': 'manual'
         },
         'import_error': {
             'symptom': 'ModuleNotFoundError in backend',
             'solution': 'Verify __init__.py exists, check PYTHONPATH',
-            'files': ['backend/app/__init__.py']
+            'files': ['backend/app/__init__.py'],
+            'source': 'manual'
         },
         'typescript_error': {
             'symptom': 'TypeScript type errors after model change',
             'solution': 'Regenerate types from OpenAPI, check frontend/src/types/',
-            'files': ['frontend/src/types/']
+            'files': ['frontend/src/types/'],
+            'source': 'manual'
         },
         'docker_build_fail': {
             'symptom': 'Docker build fails with memory error',
             'solution': 'Use scripts/build-with-limits.sh, increase Docker memory',
-            'files': ['scripts/build-with-limits.sh', 'Dockerfile']
+            'files': ['scripts/build-with-limits.sh', 'Dockerfile'],
+            'source': 'manual'
         },
         'agent_connection': {
             'symptom': 'Agent not connecting to backend',
             'solution': 'Check SOCKS proxy config, verify agent WS endpoint',
-            'files': ['scripts/agent.py', 'backend/app/api/v1/agents.py']
+            'files': ['scripts/agent.py', 'backend/app/api/v1/agents.py'],
+            'source': 'manual'
         }
     }
     
+    # Extract additional gotchas from workflow logs
+    workflow_gotchas = extract_workflow_gotchas(root)
+    gotchas.update(workflow_gotchas)
+    
     return {
         'type': 'gotchas',
-        'version': '3.0',
-        'description': 'Historical issues + solutions - 75% debug acceleration',
-        'issues': gotchas
+        'version': '3.1',
+        'description': 'Historical issues + solutions - 75% debug acceleration (enriched from workflow logs)',
+        'issues': gotchas,
+        'workflow_derived_count': len(workflow_gotchas)
     }
 
 
-def generate_interconnections(entities: List[Dict], codegraph: List[Dict]) -> Dict:
+def extract_workflow_gotchas(root: Path) -> Dict:
+    """Extract problem→solution patterns from workflow logs."""
+    workflow_dir = root / 'log' / 'workflow'
+    if not workflow_dir.exists():
+        return {}
+    
+    gotchas = {}
+    
+    for log_file in workflow_dir.glob('*.md'):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        
+        # Extract learnings section
+        learning_match = re.search(r'## Learnings?\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+        if learning_match:
+            learnings_text = learning_match.group(1)
+            
+            # Parse numbered learnings like "1. **Pattern**: Description"
+            for match in re.finditer(r'\d+\.\s*\*\*([^*]+)\*\*:\s*(.+?)(?=\n\d+\.|\Z)', learnings_text, re.DOTALL):
+                pattern_name = match.group(1).strip().lower().replace(' ', '_').replace('-', '_')
+                solution = match.group(2).strip().replace('\n', ' ')
+                
+                if len(solution) > 20 and pattern_name not in gotchas:
+                    gotchas[pattern_name] = {
+                        'symptom': f"Related to: {pattern_name.replace('_', ' ')}",
+                        'solution': solution[:200],
+                        'files': [],
+                        'source': f'workflow:{log_file.name}'
+                    }
+        
+        # Extract from Decision & Execution Flow (SUCCESS patterns)
+        decision_match = re.search(r'## Decision.*?Flow\s*\n```(.*?)```', content, re.DOTALL)
+        if decision_match:
+            flow_text = decision_match.group(1)
+            
+            # Find successful attempts
+            for match in re.finditer(r'\[DECISION:\s*([^\]]+)\].*?→ ✓\s*(.+?)(?=\[DECISION|\Z)', flow_text, re.DOTALL):
+                problem = match.group(1).strip()
+                solution_lines = match.group(2).strip()
+                
+                # Extract the solution from successful attempts
+                success_match = re.search(r'✓\s*(.+?)(?=\n|$)', solution_lines)
+                if success_match:
+                    solution = success_match.group(1).strip()
+                    problem_key = re.sub(r'[^a-z0-9_]', '_', problem.lower())[:30]
+                    
+                    if problem_key not in gotchas and len(solution) > 10:
+                        gotchas[problem_key] = {
+                            'symptom': problem,
+                            'solution': solution[:200],
+                            'files': [],
+                            'source': f'workflow:{log_file.name}'
+                        }
+    
+    return gotchas
+
+
+def extract_code_observations(root: Path) -> Dict[str, List[str]]:
+    """Extract valuable observations about code from workflow logs."""
+    workflow_dir = root / 'log' / 'workflow'
+    if not workflow_dir.exists():
+        return {}
+    
+    observations = {}  # file_path -> list of observations
+    
+    for log_file in workflow_dir.glob('*.md'):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        
+        # Extract files modified with changes
+        files_match = re.search(r'## Files Modified\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+        if files_match:
+            files_text = files_match.group(1)
+            
+            # Parse table rows: | file | changes |
+            for match in re.finditer(r'\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|', files_text):
+                file_path = match.group(1).strip()
+                changes = match.group(2).strip()
+                
+                # Clean file path
+                file_path = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', file_path)
+                file_path = file_path.strip('`').strip()
+                
+                if file_path and not file_path.startswith('File') and changes and len(changes) > 5:
+                    if file_path not in observations:
+                        observations[file_path] = []
+                    if changes not in observations[file_path]:
+                        observations[file_path].append(changes)
+        
+        # Extract specific patterns for key files
+        for pattern in [
+            (r'frontend/src/pages/(\w+)\.tsx', 'page'),
+            (r'backend/app/services/(\w+)\.py', 'service'),
+            (r'backend/app/api/v1/(\w+)\.py', 'endpoint'),
+        ]:
+            for match in re.finditer(pattern[0], content):
+                file_path = match.group(0)
+                if file_path not in observations:
+                    observations[file_path] = []
+    
+    return observations
+
+
+def generate_interconnections(entities: List[Dict], codegraph: List[Dict], root: Path = Path.cwd()) -> Dict:
     """
     Generate INTERCONNECTIONS layer (Layer 4).
-    Service→Model→Endpoint mapping for dependency lookup.
+    Service→Model→Endpoint→Page mapping for dependency lookup.
+    Now includes frontend pages and deeper chains.
     """
     # Build service→model→endpoint chains
     chains = {}
@@ -373,11 +513,13 @@ def generate_interconnections(entities: List[Dict], codegraph: List[Dict]) -> Di
     services = [e for e in codegraph if e.get('nodeType') == 'service']
     models = [e for e in codegraph if e.get('nodeType') == 'model']
     endpoints = [e for e in codegraph if e.get('nodeType') == 'endpoint']
+    pages = [e for e in codegraph if e.get('nodeType') == 'page']
+    stores = [e for e in codegraph if e.get('nodeType') == 'store']
     
     # Build reverse dependency map
     for service in services:
         service_name = Path(service.get('name', '')).stem
-        chain = {'models': [], 'endpoints': [], 'stores': []}
+        chain = {'models': [], 'endpoints': [], 'stores': [], 'pages': []}
         
         # Find models this service uses
         for dep in service.get('dependencies', []):
@@ -391,6 +533,34 @@ def generate_interconnections(entities: List[Dict], codegraph: List[Dict]) -> Di
         
         if chain['models'] or chain['endpoints']:
             chains[service_name] = chain
+    
+    # Add page→endpoint→service chains (frontend perspective)
+    frontend_chains = {}
+    pages_dir = root / 'frontend' / 'src' / 'pages'
+    if pages_dir.exists():
+        for page_file in pages_dir.glob('*.tsx'):
+            try:
+                content = page_file.read_text(encoding='utf-8')
+            except (UnicodeDecodeError, PermissionError):
+                continue
+            
+            page_name = page_file.stem
+            chain = {'stores': [], 'api_calls': [], 'components': []}
+            
+            # Find store imports
+            for match in re.finditer(r'from\s+[\'"].*?store/(\w+)[\'"]', content):
+                chain['stores'].append(match.group(1))
+            
+            # Find API calls (fetch patterns)
+            for match in re.finditer(r'fetch\([\'"]([^\'\"]+)[\'"]', content):
+                chain['api_calls'].append(match.group(1))
+            
+            # Find component imports
+            for match in re.finditer(r'from\s+[\'"].*?components/([^/\'\"]+)', content):
+                chain['components'].append(match.group(1))
+            
+            if any(chain.values()):
+                frontend_chains[page_name] = chain
     
     # Common modification patterns
     patterns = {
@@ -410,16 +580,78 @@ def generate_interconnections(entities: List[Dict], codegraph: List[Dict]) -> Di
             'frontend/src/pages/<Name>.tsx',
             'frontend/src/App.tsx (add route)',
             'frontend/src/components/Layout.tsx (add nav)'
+        ],
+        'fix_auth_issue': [
+            'frontend/src/store/authStore.ts',
+            'backend/app/core/security.py',
+            'backend/app/api/v1/auth.py'
+        ],
+        'add_websocket': [
+            'backend/app/api/v1/<name>.py (WebSocket endpoint)',
+            'frontend/src/pages/<Name>.tsx (useEffect + WebSocket)',
+            'docker-compose.yml (check timeouts)'
         ]
     }
     
+    # Extract modification patterns from workflow logs
+    workflow_patterns = extract_modification_patterns(root)
+    patterns.update(workflow_patterns)
+    
     return {
         'type': 'interconnections',
-        'version': '3.0',
-        'description': 'Service→Model→Endpoint chains - 14% of queries',
-        'chains': chains,
+        'version': '3.1',
+        'description': 'Service→Model→Endpoint→Page chains - 14% of queries (enhanced with frontend)',
+        'backend_chains': chains,
+        'frontend_chains': frontend_chains,
         'modification_patterns': patterns
     }
+
+
+def extract_modification_patterns(root: Path) -> Dict:
+    """Extract file modification patterns from workflow logs."""
+    workflow_dir = root / 'log' / 'workflow'
+    if not workflow_dir.exists():
+        return {}
+    
+    # Track which files are often modified together
+    co_modifications = {}
+    
+    for log_file in workflow_dir.glob('*.md'):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        
+        # Extract files modified
+        files_match = re.search(r'## Files Modified\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+        if files_match:
+            files_text = files_match.group(1)
+            
+            # Parse table rows
+            files_in_session = []
+            for match in re.finditer(r'\|\s*([^|]+)\s*\|', files_text):
+                file_path = match.group(1).strip()
+                file_path = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', file_path)
+                file_path = file_path.strip('`').strip()
+                
+                if file_path and not file_path.startswith('File') and '/' in file_path:
+                    files_in_session.append(file_path)
+            
+            # Track co-modifications
+            if len(files_in_session) >= 2:
+                # Use first file as key, rest as co-modified
+                key_file = files_in_session[0]
+                if key_file not in co_modifications:
+                    co_modifications[key_file] = set()
+                co_modifications[key_file].update(files_in_session[1:])
+    
+    # Convert to patterns (top 5 most common co-modification groups)
+    patterns = {}
+    for key_file, related in sorted(co_modifications.items(), key=lambda x: -len(x[1]))[:5]:
+        pattern_name = f"modify_{Path(key_file).stem}"
+        patterns[pattern_name] = [key_file] + list(related)[:4]
+    
+    return patterns
 
 
 def generate_session_patterns() -> Dict:
@@ -476,11 +708,12 @@ def generate_session_patterns() -> Dict:
     }
 
 
-def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
+def generate_hot_cache(entities: List[Dict], codegraph: List[Dict], root: Path = Path.cwd()) -> Dict:
     """
     Generate HOT_CACHE layer (Layer 1).
     Contains top 20 most important entities + common answers + quick facts.
     This should be always in context (via attachment).
+    Now enriched with workflow-derived query patterns.
     """
     # Calculate frecency scores (frequency + recency)
     frecency_scores: Dict[str, float] = {}
@@ -492,6 +725,11 @@ def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
             reference_counts[dep] += 1
         # Also count exports (more exports = more important)
         reference_counts[entry.get('name', '')] += len(entry.get('exports', []))
+    
+    # Boost entities that appear frequently in workflow logs
+    workflow_mentions = count_workflow_mentions(root)
+    for name, count in workflow_mentions.items():
+        reference_counts[name] += count * 2  # Workflow mention = 2x weight
     
     # Score entities based on:
     # - Type importance (Service/Store > Model > Schema)
@@ -518,12 +756,16 @@ def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
         # Add reference bonus
         ref_bonus = min(reference_counts.get(name, 0) * 0.1, 0.5)
         
+        # Add workflow mention bonus
+        short_name = name.split('.')[-1]
+        workflow_bonus = min(workflow_mentions.get(short_name, 0) * 0.15, 0.4)
+        
         # Add recency bonus (updated today = 0.2, this week = 0.1)
         updated = entity.get('updated', '')
         today = datetime.now().strftime('%Y-%m-%d')
         recency_bonus = 0.2 if updated == today else 0.1 if updated else 0
         
-        frecency_scores[name] = base_score + ref_bonus + recency_bonus
+        frecency_scores[name] = base_score + ref_bonus + workflow_bonus + recency_bonus
     
     # Get top 20 entities by frecency
     top_entities = sorted(frecency_scores.items(), key=lambda x: -x[1])[:20]
@@ -571,8 +813,15 @@ def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
             '1. Create model in backend/app/models/<name>.py',
             '2. Import in backend/app/models/__init__.py',
             '3. Run: alembic revision --autogenerate && alembic upgrade head'
-        ]
+        ],
+        'how_to_fix_401': 'Call logout() from authStore on 401 to trigger app-level redirect',
+        'docker_restart_vs_build': 'docker-compose restart != rebuild. Code changes require docker-compose build first',
+        'so_broadcast': 'Raw sockets require sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1) for broadcast addresses'
     }
+    
+    # Extract additional answers from workflow learnings
+    workflow_answers = extract_workflow_quick_answers(root)
+    common_answers.update(workflow_answers)
     
     # Hot paths (most edited directories)
     hot_paths = [
@@ -594,19 +843,83 @@ def generate_hot_cache(entities: List[Dict], codegraph: List[Dict]) -> Dict:
         'framework_frontend': 'React + TypeScript + Zustand',
         'test_command': 'pytest backend/tests/',
         'lint_command': 'ruff check backend/',
-        'default_branch': 'main'
+        'default_branch': 'main',
+        'docker_dev_command': 'docker-compose -f docker-compose.dev.yml up --build',
+        'frontend_dev_command': 'npm run dev'
     }
     
     return {
         'type': 'hot_cache',
-        'version': '3.0',
+        'version': '3.1',
         'generated': datetime.now().strftime('%Y-%m-%d %H:%M'),
-        'description': 'Top 20 entities + common answers + quick facts - 31% of queries',
+        'description': 'Top 20 entities + common answers + quick facts - 31% of queries (workflow-enriched)',
         'top_entities': top_entity_map,
         'common_answers': common_answers,
         'hot_paths': hot_paths,
-        'quick_facts': quick_facts
+        'quick_facts': quick_facts,
+        'workflow_enriched': True
     }
+
+
+def count_workflow_mentions(root: Path) -> Dict[str, int]:
+    """Count entity mentions in workflow logs for frecency boosting."""
+    workflow_dir = root / 'log' / 'workflow'
+    if not workflow_dir.exists():
+        return {}
+    
+    mentions = Counter()
+    
+    for log_file in workflow_dir.glob('*.md'):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        
+        # Count mentions of common patterns
+        patterns = [
+            r'(\w+Service)',
+            r'(\w+Store)',
+            r'(\w+\.tsx)',
+            r'(\w+\.py)',
+        ]
+        
+        for pattern in patterns:
+            for match in re.finditer(pattern, content):
+                name = match.group(1).replace('.tsx', '').replace('.py', '')
+                mentions[name] += 1
+    
+    return dict(mentions)
+
+
+def extract_workflow_quick_answers(root: Path) -> Dict:
+    """Extract quick answer patterns from workflow logs."""
+    workflow_dir = root / 'log' / 'workflow'
+    if not workflow_dir.exists():
+        return {}
+    
+    answers = {}
+    
+    for log_file in workflow_dir.glob('*.md'):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        
+        # Extract anti-patterns
+        for match in re.finditer(r'\*\*Anti-pattern\*\*:\s*(.+?)(?=\n|$)', content):
+            pattern = match.group(1).strip()
+            key = f"avoid_{re.sub(r'[^a-z0-9_]', '_', pattern.lower())[:30]}"
+            if key not in answers:
+                answers[key] = f"AVOID: {pattern}"
+        
+        # Extract patterns
+        for match in re.finditer(r'\*\*Pattern\*\*:\s*(.+?)(?=\n|$)', content):
+            pattern = match.group(1).strip()
+            key = f"pattern_{re.sub(r'[^a-z0-9_]', '_', pattern.lower())[:30]}"
+            if key not in answers:
+                answers[key] = pattern
+    
+    return answers
 
 
 def generate_domain_index(entities: List[Dict], codegraph: List[Dict]) -> Dict:
@@ -758,60 +1071,201 @@ def merge_knowledge(existing: List[Dict], new_codegraph: List[Dict]) -> List[Dic
     return result
 
 
-def main():
-    dry_run = '--dry-run' in sys.argv
-    v3 = '--v3' in sys.argv or True  # Default to v3.0
+def get_session_files() -> List[str]:
+    """Get files modified in current git session."""
+    import subprocess
+    try:
+        # Get staged and modified files
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', 'HEAD'],
+            capture_output=True, text=True, timeout=10
+        )
+        files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        # Also get staged files
+        result2 = subprocess.run(
+            ['git', 'diff', '--cached', '--name-only'],
+            capture_output=True, text=True, timeout=10
+        )
+        staged = result2.stdout.strip().split('\n') if result2.stdout.strip() else []
+        
+        # Combine and deduplicate
+        all_files = list(set(files + staged))
+        return [f for f in all_files if f]
+    except Exception:
+        return []
+
+
+def update_knowledge_for_session(root: Path, session_files: List[str], existing: List[Dict]) -> List[Dict]:
+    """Update knowledge incrementally based on session files."""
     
-    # Find project root (where project_knowledge.json is or should be)
+    # Analyze only session files
+    analyzer = CodeAnalyzer(root)
+    
+    for file_path in session_files:
+        full_path = root / file_path
+        if not full_path.exists():
+            continue
+        
+        if analyzer.should_skip(full_path):
+            continue
+        
+        rel_path = full_path.relative_to(root)
+        
+        if file_path.endswith('.py'):
+            result = analyzer.analyze_python(full_path)
+        elif file_path.endswith(('.ts', '.tsx', '.js', '.jsx')):
+            result = analyzer.analyze_typescript(full_path)
+        else:
+            continue
+        
+        if result:
+            analyzer.modules[str(rel_path)] = {
+                'nodeType': analyzer.get_node_type(full_path),
+                'imports': result['imports'],
+                'exports': result['exports']
+            }
+    
+    if not analyzer.modules:
+        return existing
+    
+    # Build codegraph for session files only
+    codegraph = analyzer.build_dependency_graph()
+    
+    # Merge with existing
+    merged = merge_knowledge(existing, codegraph)
+    
+    return merged
+
+
+def boost_session_entities(hot_cache: Dict, session_files: List[str]) -> Dict:
+    """Boost frecency of entities touched in current session."""
+    if not session_files:
+        return hot_cache
+    
+    top_entities = hot_cache.get('top_entities', {})
+    
+    # Extract entity names from session files
+    session_entities = set()
+    for f in session_files:
+        stem = Path(f).stem
+        session_entities.add(stem)
+        # Also add camelCase variants
+        session_entities.add(stem.replace('_', ''))
+    
+    # Boost frecency for session entities
+    for name, data in top_entities.items():
+        if name.lower() in {e.lower() for e in session_entities}:
+            data['frecency'] = round(data.get('frecency', 1.0) + 0.5, 2)
+            data['session_touched'] = True
+    
+    hot_cache['top_entities'] = top_entities
+    return hot_cache
+
+
+def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='AKIS Knowledge Updater')
+    parser.add_argument('--generate', action='store_true', 
+                        help='Full generation from all workflows, codebase, and docs')
+    parser.add_argument('--files', nargs='*', default=None,
+                        help='Specific files to update knowledge for')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Show what would change without writing')
+    parser.add_argument('--v3', action='store_true', default=True,
+                        help='Use v3.x schema (default)')
+    args = parser.parse_args()
+    
+    dry_run = args.dry_run
+    full_generate = args.generate
+    v3 = args.v3 or True
+    
+    # Find project root
     root = Path.cwd()
     knowledge_path = root / 'project_knowledge.json'
     
-    print(f"🔍 Scanning project: {root}")
-    print(f"📦 Schema version: {'v3.0 (optimized)' if v3 else 'v1.0 (legacy)'}")
+    # Determine mode
+    if full_generate:
+        print("=" * 60)
+        print(" AKIS KNOWLEDGE UPDATER v3.2 - FULL GENERATION MODE")
+        print("=" * 60)
+        print(f"\n🔍 Scanning entire project: {root}")
+        session_files = None
+    else:
+        print("=" * 60)
+        print(" AKIS KNOWLEDGE UPDATER v3.2 - SESSION UPDATE MODE")
+        print("=" * 60)
+        
+        # Get session files
+        if args.files:
+            session_files = args.files
+        else:
+            session_files = get_session_files()
+        
+        if session_files:
+            print(f"\n📝 Updating knowledge for {len(session_files)} session files:")
+            for f in session_files[:10]:
+                print(f"   • {f}")
+            if len(session_files) > 10:
+                print(f"   ... and {len(session_files) - 10} more")
+        else:
+            print("\n📝 No session files detected. Running full update...")
+            full_generate = True
     
-    # Analyze codebase
-    analyzer = CodeAnalyzer(root)
-    analyzer.scan_files()
-    
-    print(f"📊 Found {len(analyzer.modules)} source files")
-    
-    # Build codegraph
-    codegraph = analyzer.build_dependency_graph()
-    
-    # Load and merge
+    # Load existing knowledge
     existing = load_existing_knowledge(knowledge_path)
-    merged = merge_knowledge(existing, codegraph)
+    
+    if full_generate:
+        # Full generation mode - analyze entire codebase
+        print(f"📦 Schema version: v3.2 (workflow-enriched)")
+        
+        analyzer = CodeAnalyzer(root)
+        analyzer.scan_files()
+        
+        print(f"📊 Found {len(analyzer.modules)} source files")
+        
+        codegraph = analyzer.build_dependency_graph()
+        merged = merge_knowledge(existing, codegraph)
+    else:
+        # Session update mode - analyze only session files
+        merged = update_knowledge_for_session(root, session_files, existing)
+        codegraph = [e for e in merged if e.get('type') == 'codegraph']
+        print(f"📊 Analyzed {len(session_files)} session files")
     
     # Separate entities for layer generation
     entities = [e for e in merged if e.get('type') == 'entity']
     
     # Count changes
     old_entities = len([e for e in existing if e.get('type') == 'entity'])
-    old_relations = len([e for e in existing if e.get('type') == 'relation'])
     old_codegraph = len([e for e in existing if e.get('type') == 'codegraph'])
     
     new_entities = len([e for e in merged if e.get('type') == 'entity'])
-    new_relations = len([e for e in merged if e.get('type') == 'relation'])
-    new_codegraph = len(codegraph)
+    new_codegraph = len([e for e in merged if e.get('type') == 'codegraph'])
     
-    print(f"📊 Entities: {old_entities} → {new_entities} (deduplicated)")
-    print(f"📊 Relations: {old_relations} → {new_relations} (deduplicated)")
+    print(f"📊 Entities: {old_entities} → {new_entities}")
     print(f"📈 Codegraph: {old_codegraph} → {new_codegraph} entries")
     
     if dry_run:
         print("\n🔍 DRY RUN - No changes written")
         print("\nSample entries:")
-        for entry in codegraph[:3]:
+        sample_codegraph = [e for e in merged if e.get('type') == 'codegraph'][:3]
+        for entry in sample_codegraph:
             print(json.dumps(entry))
         return
     
     if v3:
-        # v3.0 Schema with all caching layers
-        hot_cache = generate_hot_cache(entities, codegraph)
-        domain_index = generate_domain_index(entities, codegraph)
+        # v3.2 Schema with all caching layers (workflow-enriched)
+        hot_cache = generate_hot_cache(entities, codegraph if full_generate else [e for e in merged if e.get('type') == 'codegraph'], root)
+        
+        # Boost session entities in hot cache
+        if session_files:
+            hot_cache = boost_session_entities(hot_cache, session_files)
+        
+        domain_index = generate_domain_index(entities, codegraph if full_generate else [e for e in merged if e.get('type') == 'codegraph'])
         change_tracking = generate_change_tracking(root, entities)
         gotchas = generate_gotchas(root)
-        interconnections = generate_interconnections(entities, codegraph)
+        interconnections = generate_interconnections(entities, codegraph if full_generate else [e for e in merged if e.get('type') == 'codegraph'], root)
         session_patterns = generate_session_patterns()
         domain_map = update_domain_map(merged)
         
@@ -835,14 +1289,20 @@ def main():
             for entry in merged:
                 f.write(json.dumps(entry) + '\n')
         
-        print(f"✅ Updated {knowledge_path} (v3.0 optimized schema)")
-        print(f"   📦 Layer 1: HOT_CACHE ({len(hot_cache.get('top_entities', {}))} top entities + quick facts)")
+        workflow_gotchas = gotchas.get('workflow_derived_count', 0)
+        mode_str = "SESSION UPDATE" if session_files else "FULL GENERATION"
+        print(f"\n✅ Knowledge updated ({mode_str})")
+        print(f"   📦 Layer 1: HOT_CACHE ({len(hot_cache.get('top_entities', {}))} entities, {len(hot_cache.get('common_answers', {}))} answers)")
         print(f"   📦 Layer 2: DOMAIN_INDEX (frontend/backend/infra)")
         print(f"   📦 Layer 3: CHANGE_TRACKING ({len(change_tracking.get('file_hashes', {}))} files)")
-        print(f"   📦 Layer 4: GOTCHAS ({len(gotchas.get('issues', {}))} known issues)")
-        print(f"   📦 Layer 5: INTERCONNECTIONS ({len(interconnections.get('chains', {}))} service chains)")
+        print(f"   📦 Layer 4: GOTCHAS ({len(gotchas.get('issues', {}))} issues, {workflow_gotchas} from workflows)")
+        print(f"   📦 Layer 5: INTERCONNECTIONS ({len(interconnections.get('backend_chains', {}))} backend + {len(interconnections.get('frontend_chains', {}))} frontend chains)")
         print(f"   📦 Layer 6: SESSION_PATTERNS ({len(session_patterns.get('patterns', {}))} patterns)")
         print(f"   📦 Layer 7+: {new_entities} entities + {new_codegraph} codegraph")
+        
+        if session_files:
+            boosted = sum(1 for e in hot_cache.get('top_entities', {}).values() if e.get('session_touched'))
+            print(f"\n   🔥 Session boost applied to {boosted} entities")
     else:
         # v1.0 Legacy Schema
         domain_map = update_domain_map(merged)

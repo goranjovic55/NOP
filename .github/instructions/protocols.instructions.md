@@ -23,7 +23,7 @@ Interrupt: ⊘ current → <SUB:N> → handle → resume
 
 ## END
 1. Check ⊘ orphans
-2. If code: generate_knowledge.py && suggest_skill.py && suggest_instructions.py
+2. If code: update_knowledge.py && suggest_skill.py && suggest_instructions.py
    If docs only: suggest_skill.py && suggest_instructions.py
 3. session_cleanup.py && update_docs.py
 4. ⚠️ **Create workflow log** (high deviation - don't skip!)
