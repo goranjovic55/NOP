@@ -57,7 +57,7 @@
 ```
 
 ## Symbols
-✓ done | ◆ working | ○ pending | ⊘ paused
+✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
 ## Efficiency (v3.0 verified)
 - **Knowledge:** v3.0 hot_cache (90% token reduction)
