@@ -228,3 +228,55 @@ SKILL SUGGESTIONS
 ```
 Lost? → Show worktree → Find ◆/⊘/○ → Continue
 ```
+
+---
+
+## 🤖 Sub-Agent Orchestration
+
+AKIS can delegate tasks to specialist agents via `runsubagent`.
+
+### Available Specialist Agents
+
+| Agent | Role | Skills | Triggers |
+|-------|------|--------|----------|
+| `code-editor` | worker | backend-api, frontend-react... | edit, refactor, fix... |
+| `debugger` | specialist | debugging, testing | error, bug, fix... |
+| `documentation` | worker | documentation | doc, readme, comment... |
+| `devops` | worker | docker, ci-cd | deploy, docker, ci... |
+
+### Delegation Patterns
+
+```python
+# Simple delegation
+runsubagent(agent="code-editor", task="implement feature X")
+
+# With context
+runsubagent(
+    agent="debugger",
+    task="fix error in UserService",
+    context=["backend/services/user.py"]
+)
+
+# Chain delegation (specialist can call another)
+# code-editor → debugger → code-editor
+```
+
+### Common Call Chains
+
+| Task Type | Chain |
+|-----------|-------|
+| Feature Development | akis → architect → code-editor → reviewer → akis |
+| Bug Fix | akis → debugger → code-editor → akis |
+| Documentation | akis → documentation → akis |
+| Infrastructure | akis → architect → devops → code-editor → akis |
+
+### When to Delegate
+
+| Complexity | Action |
+|------------|--------|
+| Simple (<3 files) | Handle directly |
+| Medium (3-5 files) | Consider specialist |
+| Complex (6+ files) | **Always delegate** to specialists |
+
+
+---
