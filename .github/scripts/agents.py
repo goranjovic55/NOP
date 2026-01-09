@@ -61,6 +61,15 @@ from datetime import datetime
 # Configuration
 # ============================================================================
 
+# Audit thresholds for scoring
+KNOWLEDGE_HOT_CACHE_MIN = 15
+KNOWLEDGE_COMMON_ANSWERS_MIN = 10
+KNOWLEDGE_GOTCHAS_MIN = 10
+DOCS_HIGH_THRESHOLD = 30
+DOCS_MEDIUM_THRESHOLD = 20
+DOCS_LOW_THRESHOLD = 10
+ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation']
+
 # Agent types that can be optimized
 AGENT_TYPES = {
     'code-editor': {
@@ -2013,20 +2022,20 @@ def audit_knowledge_system(root: Path) -> Dict[str, Any]:
     else:
         issues.append(f'Missing knowledge layers: {[k for k, v in layers.items() if not v]}')
     
-    if hot_cache_entities >= 15:
+    if hot_cache_entities >= KNOWLEDGE_HOT_CACHE_MIN:
         score += 0.2
     else:
-        issues.append(f'Hot cache has only {hot_cache_entities} entities (need 15+)')
+        issues.append(f'Hot cache has only {hot_cache_entities} entities (need {KNOWLEDGE_HOT_CACHE_MIN}+)')
     
-    if common_answers >= 10:
+    if common_answers >= KNOWLEDGE_COMMON_ANSWERS_MIN:
         score += 0.2
     else:
-        issues.append(f'Only {common_answers} common answers (need 10+)')
+        issues.append(f'Only {common_answers} common answers (need {KNOWLEDGE_COMMON_ANSWERS_MIN}+)')
     
-    if gotchas_count >= 10:
+    if gotchas_count >= KNOWLEDGE_GOTCHAS_MIN:
         score += 0.15
     else:
-        issues.append(f'Only {gotchas_count} gotchas (need 10+)')
+        issues.append(f'Only {gotchas_count} gotchas (need {KNOWLEDGE_GOTCHAS_MIN}+)')
     
     # Check freshness
     for entry in knowledge_entries:
@@ -2134,8 +2143,7 @@ def audit_skills_system(root: Path) -> Dict[str, Any]:
                 issues.append(f'Missing SKILL.md in {item.name}/')
     
     # Check for essential skills
-    essential_skills = ['backend-api', 'frontend-react', 'debugging', 'documentation']
-    for skill in essential_skills:
+    for skill in ESSENTIAL_SKILLS:
         if skill in skill_categories:
             score += 0.05
         else:
@@ -2164,14 +2172,14 @@ def audit_docs_system(root: Path) -> Dict[str, Any]:
         doc_files.append(str(md_file.relative_to(docs_dir)))
     
     # Score based on coverage
-    if len(doc_files) >= 30:
+    if len(doc_files) >= DOCS_HIGH_THRESHOLD:
         score += 0.4
-    elif len(doc_files) >= 20:
+    elif len(doc_files) >= DOCS_MEDIUM_THRESHOLD:
         score += 0.3
-    elif len(doc_files) >= 10:
+    elif len(doc_files) >= DOCS_LOW_THRESHOLD:
         score += 0.2
     else:
-        issues.append(f'Only {len(doc_files)} documentation files (need 30+)')
+        issues.append(f'Only {len(doc_files)} documentation files (need {DOCS_HIGH_THRESHOLD}+)')
     
     # Check for INDEX.md
     if (docs_dir / 'INDEX.md').exists():
@@ -2393,7 +2401,7 @@ def generate_optimizations(
         })
     
     # Skills optimizations
-    essential_missing = 4 - len([s for s in ['backend-api', 'frontend-react', 'debugging', 'documentation'] 
+    essential_missing = len(ESSENTIAL_SKILLS) - len([s for s in ESSENTIAL_SKILLS 
                                   if s in skills_audit.get('categories', [])])
     if essential_missing > 0:
         optimizations.append({
@@ -2703,7 +2711,7 @@ Examples:
         result = run_suggest()
     elif args.audit:
         result = run_audit(args.sessions)
-    elif getattr(args, 'full_audit', False):
+    elif args.full_audit:
         result = run_full_audit(args.sessions, args.dry_run)
     elif args.compare:
         result = run_compare(args.sessions)
