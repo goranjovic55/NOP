@@ -23,11 +23,23 @@ Interrupt: ⊘ current → <SUB:N> → handle → resume
 
 ## END
 1. Check ⊘ orphans
-2. If code: update_knowledge.py && suggest_skill.py && suggest_instructions.py
-   If docs only: suggest_skill.py && suggest_instructions.py
-3. session_cleanup.py && update_docs.py
+2. If code: knowledge.py && skills.py && instructions.py
+   If docs only: skills.py && instructions.py
+3. session_cleanup.py && docs.py
 4. ⚠️ **Create workflow log** (high deviation - don't skip!)
 5. Wait approval → commit
+
+## Unified Script Interface
+All AKIS scripts use consistent parameters:
+```bash
+python .github/scripts/{script}.py              # Default (--update mode)
+python .github/scripts/{script}.py --update     # Update based on session
+python .github/scripts/{script}.py --generate   # Full generation + 100k simulation
+python .github/scripts/{script}.py --suggest    # Suggest without applying
+python .github/scripts/{script}.py --dry-run    # Preview changes
+```
+
+**Scripts:** `docs.py`, `knowledge.py`, `skills.py`, `instructions.py`, `agents.py`
 
 ## Skill Triggers (load ONCE per domain)
 | Pattern | Skill |
