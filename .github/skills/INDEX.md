@@ -14,6 +14,7 @@
 | `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | ⭐ Pre-load fullstack |
 | `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | ⭐ Pre-load fullstack |
 | `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | On first touch |
+| `.github/workflows/*`, deploy scripts | [ci-cd](ci-cd/SKILL.md) | On first touch |
 | Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | On first error |
 | `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | ⚠️ **Always load** |
 | `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | On first test |
@@ -35,6 +36,7 @@
 .tsx/.jsx → frontend-react (cache)
 .py → backend-api (cache)
 Dockerfile → docker (cache)
+.github/workflows/* → ci-cd (cache)
 error → debugging (cache)
 .md → documentation (always load)
 test_* → testing (cache)

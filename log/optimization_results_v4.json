@@ -1,0 +1,65 @@
+{
+  "total_sessions": 100000,
+  "perfect_detections": 96043,
+  "overall_accuracy": 96.0,
+  "session_types": {
+    "refactor": 14899,
+    "feature": 35071,
+    "bugfix": 25041,
+    "debug": 14972,
+    "docs": 5012,
+    "test": 5005
+  },
+  "skill_metrics": {
+    "frontend-react": {
+      "true_positives": 97960,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "debugging": {
+      "true_positives": 69325,
+      "false_positives": 3522,
+      "false_negatives": 0,
+      "precision": 95.2,
+      "recall": 100.0,
+      "f1": 97.5
+    },
+    "backend-api": {
+      "true_positives": 99188,
+      "false_positives": 435,
+      "false_negatives": 0,
+      "precision": 99.6,
+      "recall": 100.0,
+      "f1": 99.8
+    },
+    "testing": {
+      "true_positives": 70539,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "docker": {
+      "true_positives": 37894,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "documentation": {
+      "true_positives": 5012,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    }
+  },
+  "gaps": [],
+  "improvements": []
+}

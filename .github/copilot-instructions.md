@@ -22,6 +22,7 @@
 | .tsx .jsx components/ pages/ | frontend-react ⭐ |
 | .py backend/ api/ routes/ | backend-api ⭐ |
 | Dockerfile docker-compose .yml | docker |
+| .github/workflows/* deploy.sh | ci-cd |
 | .md docs/ README | documentation ⚠️ |
 | error traceback failed | debugging |
 | test_* *_test.py | testing |

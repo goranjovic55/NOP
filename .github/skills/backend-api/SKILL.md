@@ -218,3 +218,39 @@ docker exec -it backend cat /var/log/app.log
 | Circular import | Cross-module imports | Import inside function |
 | N+1 queries | Missing eager load | Use `selectinload()` |
 | WebSocket drops silently | No heartbeat/ping | Add ping/pong mechanism |
+
+## Fullstack Integration
+
+**When working with frontend (54% co-occurrence):**
+
+```python
+# CORS for frontend dev server
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Response model matches frontend interface
+class ItemResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+```
+
+**When working with Docker (56% co-occurrence):**
+
+```bash
+# Backend container restart workflow
+docker compose -f docker-compose.dev.yml restart backend
+docker compose -f docker-compose.dev.yml logs -f backend
+
+# Test endpoint from host
+curl http://localhost:8000/api/v1/health | jq
+```
+
+**See also:** `frontend-react/SKILL.md` (API calls), `docker/SKILL.md` (container workflow)
