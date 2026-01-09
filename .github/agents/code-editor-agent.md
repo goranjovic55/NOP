@@ -19,29 +19,23 @@ code-editor
 ## Orchestration Role
 **Worker** - Specialized code editing
 
-## Sub-Agent Links (runsubagent)
+## Sub-Agent Orchestration (VS Code Insiders)
 
-| Relationship | Agents |
-|--------------|--------|
-| Called by | akis, architect |
-| Can call | debugger, reviewer |
+| Relationship | Details |
+|--------------|---------|
+| Called by | AKIS via `#runsubagent code-editor` |
+| Returns to | AKIS (always) |
+| Chain-calls | **None** - Specialists do NOT call other agents |
 
-### Calling This Agent
-```python
-# From AKIS or other agents:
-runsubagent(
-    agent="code-editor",
-    task="[specific task description]",
-    context=[relevant_files]
-)
+### How AKIS Calls This Agent
+```
+#runsubagent code-editor implement feature X in UserService
+#runsubagent code-editor refactor the authentication module
+#runsubagent code-editor add input validation to API endpoints
 ```
 
-### Calling Other Agents
-```python
-# This agent can delegate to:
-runsubagent(agent="debugger", task="...")
-runsubagent(agent="reviewer", task="...")
-```
+### Return Protocol
+When task is complete, return results to AKIS. If the task reveals a need for another specialist (e.g., debugging needed), report this to AKIS rather than calling the specialist directly.
 
 
 ---

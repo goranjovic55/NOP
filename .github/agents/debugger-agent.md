@@ -19,28 +19,23 @@ debugger
 ## Orchestration Role
 **Specialist** - Error resolution specialist
 
-## Sub-Agent Links (runsubagent)
+## Sub-Agent Orchestration (VS Code Insiders)
 
-| Relationship | Agents |
-|--------------|--------|
-| Called by | akis, code-editor |
-| Can call | code-editor |
+| Relationship | Details |
+|--------------|---------|
+| Called by | AKIS via `#runsubagent debugger` |
+| Returns to | AKIS (always) |
+| Chain-calls | **None** - Specialists do NOT call other agents |
 
-### Calling This Agent
-```python
-# From AKIS or other agents:
-runsubagent(
-    agent="debugger",
-    task="[specific task description]",
-    context=[relevant_files]
-)
+### How AKIS Calls This Agent
+```
+#runsubagent debugger fix TypeError in backend/services/auth.py
+#runsubagent debugger investigate failing tests in user module
+#runsubagent debugger analyze traceback and identify root cause
 ```
 
-### Calling Other Agents
-```python
-# This agent can delegate to:
-runsubagent(agent="code-editor", task="...")
-```
+### Return Protocol
+When debugging is complete, return root cause analysis and fix to AKIS. If code changes are needed, report this to AKIS who will delegate to code-editor.
 
 
 ---

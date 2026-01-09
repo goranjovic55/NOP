@@ -19,28 +19,23 @@ devops
 ## Orchestration Role
 **Worker** - CI/CD and infrastructure
 
-## Sub-Agent Links (runsubagent)
+## Sub-Agent Orchestration (VS Code Insiders)
 
-| Relationship | Agents |
-|--------------|--------|
-| Called by | akis, architect |
-| Can call | code-editor |
+| Relationship | Details |
+|--------------|---------|
+| Called by | AKIS via `#runsubagent devops` |
+| Returns to | AKIS (always) |
+| Chain-calls | **None** - Specialists do NOT call other agents |
 
-### Calling This Agent
-```python
-# From AKIS or other agents:
-runsubagent(
-    agent="devops",
-    task="[specific task description]",
-    context=[relevant_files]
-)
+### How AKIS Calls This Agent
+```
+#runsubagent devops add health check endpoint to docker-compose
+#runsubagent devops create GitHub Actions workflow for testing
+#runsubagent devops configure nginx for load balancing
 ```
 
-### Calling Other Agents
-```python
-# This agent can delegate to:
-runsubagent(agent="code-editor", task="...")
-```
+### Return Protocol
+When infrastructure task is complete, return results to AKIS. If code changes are needed alongside infrastructure changes, report this to AKIS who will delegate to code-editor.
 
 
 ---

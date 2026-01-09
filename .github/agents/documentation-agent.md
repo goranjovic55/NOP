@@ -19,22 +19,23 @@ documentation
 ## Orchestration Role
 **Worker** - Documentation writer
 
-## Sub-Agent Links (runsubagent)
+## Sub-Agent Orchestration (VS Code Insiders)
 
-| Relationship | Agents |
-|--------------|--------|
-| Called by | akis, architect |
-| Can call | none |
+| Relationship | Details |
+|--------------|---------|
+| Called by | AKIS via `#runsubagent documentation` |
+| Returns to | AKIS (always) |
+| Chain-calls | **None** - Specialists do NOT call other agents |
 
-### Calling This Agent
-```python
-# From AKIS or other agents:
-runsubagent(
-    agent="documentation",
-    task="[specific task description]",
-    context=[relevant_files]
-)
+### How AKIS Calls This Agent
 ```
+#runsubagent documentation update README with new API endpoints
+#runsubagent documentation add JSDoc comments to React components
+#runsubagent documentation create user guide for new feature
+```
+
+### Return Protocol
+When documentation task is complete, return results to AKIS. Report any discovered gaps or issues for AKIS to address.
 
 
 

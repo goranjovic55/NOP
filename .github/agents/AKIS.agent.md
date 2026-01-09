@@ -231,44 +231,48 @@ Lost? → Show worktree → Find ◆/⊘/○ → Continue
 
 ---
 
-## 🤖 Sub-Agent Orchestration
+## 🤖 Sub-Agent Orchestration (VS Code Insiders)
 
-AKIS can delegate tasks to specialist agents via `runsubagent`.
+AKIS delegates tasks to specialist agents via `#runsubagent`. Specialists return results to AKIS; they do NOT chain-call other agents.
 
 ### Available Specialist Agents
 
 | Agent | Role | Skills | Triggers |
 |-------|------|--------|----------|
-| `code-editor` | worker | backend-api, frontend-react... | edit, refactor, fix... |
-| `debugger` | specialist | debugging, testing | error, bug, fix... |
-| `documentation` | worker | documentation | doc, readme, comment... |
-| `devops` | worker | docker, ci-cd | deploy, docker, ci... |
+| `code-editor` | worker | backend-api, frontend-react, testing | edit, refactor, fix, implement |
+| `debugger` | specialist | debugging, testing | error, bug, debug, traceback |
+| `documentation` | worker | documentation | doc, readme, comment, explain |
+| `devops` | worker | docker, ci-cd | deploy, docker, ci, pipeline |
 
-### Delegation Patterns
+### Delegation via #runsubagent
 
-```python
-# Simple delegation
-runsubagent(agent="code-editor", task="implement feature X")
+```
+# In VS Code Insiders, use #runsubagent to delegate:
 
-# With context
-runsubagent(
-    agent="debugger",
-    task="fix error in UserService",
-    context=["backend/services/user.py"]
-)
+#runsubagent code-editor implement feature X in UserService
 
-# Chain delegation (specialist can call another)
-# code-editor → debugger → code-editor
+#runsubagent debugger fix TypeError in backend/services/auth.py
+
+#runsubagent documentation update README with new API endpoints
+
+#runsubagent devops add health check endpoint to docker-compose
 ```
 
-### Common Call Chains
+### Orchestration Flow
 
-| Task Type | Chain |
-|-----------|-------|
-| Feature Development | akis → architect → code-editor → reviewer → akis |
-| Bug Fix | akis → debugger → code-editor → akis |
-| Documentation | akis → documentation → akis |
-| Infrastructure | akis → architect → devops → code-editor → akis |
+```
+AKIS receives task
+    ↓
+Detects task type via triggers
+    ↓
+#runsubagent {specialist} {task}
+    ↓
+Specialist completes work, returns to AKIS
+    ↓
+AKIS continues or delegates next task
+    ↓
+(Specialists NEVER call other specialists)
+```
 
 ### When to Delegate
 
@@ -277,6 +281,15 @@ runsubagent(
 | Simple (<3 files) | Handle directly |
 | Medium (3-5 files) | Consider specialist |
 | Complex (6+ files) | **Always delegate** to specialists |
+
+### Task Type Detection
+
+| If task contains... | Delegate to... |
+|---------------------|----------------|
+| edit, refactor, fix code, implement | `#runsubagent code-editor` |
+| error, bug, debug, traceback, exception | `#runsubagent debugger` |
+| doc, readme, comment, explain | `#runsubagent documentation` |
+| deploy, docker, ci, pipeline, workflow | `#runsubagent devops` |
 
 
 ---
