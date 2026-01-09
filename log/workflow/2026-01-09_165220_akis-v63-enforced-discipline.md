@@ -85,4 +85,5 @@ git diff --stat                                       # 7 files changed
 ## Notes
 - Docker skill now has explicit "restart ≠ rebuild" warning at top
 - Delegation table added to main instructions (Simple/Medium/Complex)
-- All skills now under 200 token target
+- All skills now under 250 token target (max 350) - balanced for effectiveness
+- Added Critical Gotchas section to ALL skills for actionable guidance

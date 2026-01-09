@@ -29,7 +29,7 @@ description: Load when editing test_*, *.test.*, or *_test.py files, or working 
 ```python
 class TestItemService:
     @pytest.fixture
-    async def service(self, db_session):
+    def service(self, db_session):
         return ItemService(db_session)
     
     async def test_create_returns_item_with_id(self, service):
