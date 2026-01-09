@@ -7,12 +7,17 @@ applyTo: "**"
 ## ⛔ HARD GATES (STOP if violated)
 | Gate | Violation | Action |
 |------|-----------|--------|
-| G1 | No ◆ task | Create ◆ TODO first |
+| G1 | No ◆ task active | Create ◆ TODO first |
 | G2 | No skill loaded | Load skill, announce |
 | G3 | START not done | Do START steps first |
 
 ## START (Do ALL)
-1. Read project_knowledge.json lines 1-4 | 2. Read skills/INDEX.md | 3. Create todos | 4. Say "AKIS ready"
+```
+1. Read project_knowledge.json lines 1-4 (hot_cache, domain_index, gotchas)
+2. Read .github/skills/INDEX.md (skill catalog)
+3. Create todos: <MAIN> → <WORK>... → <END>
+4. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
+```
 
 ## WORK
 **◆ BEFORE edit** | Mark ◆ → Skill? → Edit → get_errors → ✓

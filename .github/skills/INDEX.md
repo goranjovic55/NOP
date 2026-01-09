@@ -5,7 +5,7 @@
 ## Core Rule: Skill Caching
 - **Load once:** Don't reload skill already loaded this session
 - **Track loaded:** Keep list: [frontend-react, backend-api, ...]
-- **Announce:** Say "SKILL: {name} loaded" when loading
+- **Announce:** Say "SKILL: frontend-react loaded" when loading a skill
 
 ## Domain Triggers
 
