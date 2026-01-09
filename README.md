@@ -2,6 +2,24 @@
 
 A comprehensive, self-contained network assessment platform designed for deployment as a network monitoring appliance. Provides complete visibility into LAN environments through passive discovery, real-time traffic analysis, and intelligent topology mapping.
 
+## 🚀 Deployment Options
+
+### Docker Deployment (Recommended for Production)
+Traditional multi-container deployment with full features.
+
+### 📦 **NEW: Portable Executable** (Without Docker)
+Single executable that runs anywhere - **no Docker, no dependencies, no installation required!**
+
+**Choose your path:**
+- ⚡ **Quick portable (1-2 weeks)**: Single 200-400MB executable using Nuitka
+- 🖥️ **Professional desktop app (2-4 weeks)**: Native 80-150MB app using Tauri
+- 🌐 **Server-client (1-3 weeks)**: Flexible multi-user deployment
+- 🚀 **Ultimate performance (4-6 months)**: 30-60MB Go binary
+
+👉 **[Portable Executable Quick Start Guide](docs/PORTABLE_EXECUTABLE_QUICK_START.md)**  
+📖 **[Full Analysis & Implementation Options](docs/architecture/PORTABLE_EXECUTABLE_SOLUTIONS.md)**
+
+
 ## Core Value Proposition
 
 - **Single-pane visibility** into all network assets and traffic
