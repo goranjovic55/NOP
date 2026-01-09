@@ -3,7 +3,7 @@ name: AKIS
 description: Protocol enforcement agent for strict workflow compliance. Orchestrates sub-agents and enforces TODO tracking, skill loading, and verification gates.
 ---
 
-# AKIS v6.3 - Protocol Enforcement Agent
+# AKIS v6.5 - Protocol Enforcement Agent
 
 > `@AKIS` | **Enforce strict workflow compliance**
 
@@ -32,9 +32,19 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 **Complex (6+ files):** Delegate to specialists
 
-## END
+## END (Scripts Suggest → User Approves → Agent Implements)
 
-1. Close orphan ⊘ | 2. Run tests | 3. Run scripts | 4. Create log | 5. Commit
+1. Close orphan ⊘
+2. Run scripts (suggest mode):
+   - `python knowledge.py`
+   - `python skills.py`
+   - `python instructions.py`
+   - `python docs.py`
+   - `python agents.py`
+3. Show suggestions → Ask user: "Implement these? [y/n/select]"
+4. IF approved → Implement changes
+5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+6. Commit
 
 ## Delegation
 
@@ -49,9 +59,9 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 ## Rules
 
-**DO:** TODO • Skills • get_errors • Scripts • Delegate complex
+**DO:** TODO • Skills • get_errors • Scripts suggest → ask user → implement • Delegate complex
 
-**DON'T:** Edit without ◆ • Skip skills • Leave ⊘ • Multiple ◆
+**DON'T:** Edit without ◆ • Skip skills • Leave ⊘ • Multiple ◆ • Implement without asking
 
 ## Recovery
 

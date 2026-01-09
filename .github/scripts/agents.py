@@ -1651,6 +1651,84 @@ def run_analyze(sessions: int = 100000) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def run_report() -> Dict[str, Any]:
+    """Report agent status without modifying any files (safe default)."""
+    print("=" * 60)
+    print("AKIS Agents Report (Safe Mode)")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    
+    # Get session context
+    session_files = get_session_files()
+    print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Check existing agents
+    agents_dir = root / '.github' / 'agents'
+    existing_agents = []
+    if agents_dir.exists():
+        existing_agents = list(agents_dir.glob('*.md'))
+    print(f"🤖 Existing agents: {len(existing_agents)}")
+    for agent in existing_agents[:5]:
+        print(f"  • {agent.stem}")
+    
+    # Determine what would need updating
+    updates_needed = []
+    session_text = ' '.join(session_files).lower()
+    
+    for agent_type, config in AGENT_TYPES.items():
+        for trigger in config['triggers']:
+            if trigger in session_text:
+                updates_needed.append({
+                    'agent': agent_type,
+                    'trigger': trigger,
+                    'description': config.get('description', ''),
+                })
+                break
+    
+    # Check for missing agents
+    missing_agents = []
+    for agent_type, config in AGENT_TYPES.items():
+        agent_file = agents_dir / f"{agent_type}.agent.md"
+        if not agent_file.exists():
+            missing_agents.append(agent_type)
+    
+    # Output implementation-ready suggestions
+    if missing_agents:
+        print(f"\n📋 SUGGESTED NEW AGENTS (create files):")
+        print("-" * 60)
+        for agent_type in missing_agents:
+            config = AGENT_TYPES[agent_type]
+            print(f"CREATE: .github/agents/{agent_type}.agent.md")
+            print(f"```markdown")
+            print(f"---")
+            print(f"name: {agent_type}")
+            print(f"description: {config.get('description', 'Specialist agent')}")
+            print(f"---")
+            print(f"")
+            print(f"# {agent_type.replace('-', ' ').title()} Agent")
+            print(f"")
+            print(f"## Triggers")
+            print(f"- {', '.join(config.get('triggers', []))}")
+            print(f"```")
+            print()
+        print("-" * 60)
+        print(f"\n💡 Agent: Create the agent files above")
+    
+    if updates_needed:
+        print(f"\n📋 Agents used this session:")
+        for u in updates_needed[:5]:
+            print(f"  • {u['agent']} (triggered by '{u['trigger']}')")
+    
+    return {
+        'mode': 'report',
+        'session_files': len(session_files),
+        'existing_agents': len(existing_agents),
+        'updates_needed': len(updates_needed),
+        'missing_agents': missing_agents,
+    }
+
+
 def run_update(dry_run: bool = False) -> Dict[str, Any]:
     """Update existing agents based on current session."""
     print("=" * 60)
@@ -2667,7 +2745,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python agents.py                    # Update (default)
+  python agents.py                    # Report only (safe default)
   python agents.py --update           # Update existing agents
   python agents.py --generate         # Full generation with metrics + agent files
   python agents.py --suggest          # Suggest without applying
@@ -2680,8 +2758,8 @@ Examples:
     )
     
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--update', action='store_true', default=True,
-                           help='Update existing agents (default)')
+    mode_group.add_argument('--update', action='store_true',
+                           help='Actually update existing agents')
     mode_group.add_argument('--generate', action='store_true',
                            help='Full generation with 100k simulation and agent file creation')
     mode_group.add_argument('--suggest', action='store_true',
@@ -2717,8 +2795,11 @@ Examples:
         result = run_compare(args.sessions)
     elif args.analyze:
         result = run_analyze(args.sessions)
-    else:
+    elif args.update:
         result = run_update(args.dry_run)
+    else:
+        # Default: safe report-only mode
+        result = run_report()
     
     # Save output if requested
     if args.output:

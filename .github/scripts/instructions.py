@@ -394,6 +394,62 @@ def generate_suggestions(gaps: List[InstructionPattern]) -> List[Dict[str, Any]]
 # Main Functions
 # ============================================================================
 
+def run_analyze() -> Dict[str, Any]:
+    """Analyze instructions without modifying any files (safe default)."""
+    print("=" * 60)
+    print("AKIS Instructions Analysis (Report Only)")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    
+    # Get session files
+    session_files = get_session_files()
+    print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Analyze current coverage
+    coverage = analyze_instruction_files(root)
+    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    
+    print(f"✅ Covered patterns: {len([c for c in coverage.values() if c])}")
+    print(f"❌ Gaps: {len(gaps)}")
+    
+    # Output implementation-ready suggestions
+    if gaps:
+        print(f"\n📋 SUGGESTED INSTRUCTIONS (create files):")
+        print("-" * 60)
+        for gap in gaps:
+            file_path = f".github/instructions/{gap.name}.instructions.md"
+            print(f"CREATE: {file_path}")
+            print(f"```markdown")
+            print(f"---")
+            print(f"applyTo: \"**\"")
+            print(f"---")
+            print(f"")
+            print(f"# {gap.name.replace('_', ' ').title()}")
+            print(f"")
+            print(f"{gap.description}")
+            print(f"")
+            print(f"## Category: {gap.category}")
+            print(f"")
+            print(f"## Expected Behavior")
+            print(f"{gap.expected_behavior}")
+            print(f"")
+            print(f"## Failure Mode")
+            print(f"{gap.failure_mode}")
+            print(f"```")
+            print()
+        print("-" * 60)
+        print(f"\n💡 Agent: Create the instruction files above")
+    
+    return {
+        'mode': 'analyze',
+        'session_files': len(session_files),
+        'covered': len([c for c in coverage.values() if c]),
+        'gaps': len(gaps),
+        'suggested_instructions': [{'name': g.name, 'category': g.category, 'description': g.description} for g in gaps],
+    }
+
+
 def run_update(dry_run: bool = False) -> Dict[str, Any]:
     """Update instructions based on current session."""
     print("=" * 60)
@@ -553,8 +609,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python instructions.py                    # Update (default)
-  python instructions.py --update           # Update based on session
+  python instructions.py                    # Analyze only (safe default)
+  python instructions.py --update           # Create/update instruction files
   python instructions.py --generate         # Full generation with metrics
   python instructions.py --suggest          # Suggest without applying
   python instructions.py --dry-run          # Preview changes
@@ -562,8 +618,8 @@ Examples:
     )
     
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--update', action='store_true', default=True,
-                           help='Update based on current session (default)')
+    mode_group.add_argument('--update', action='store_true',
+                           help='Actually create/update instruction files')
     mode_group.add_argument('--generate', action='store_true',
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
@@ -583,8 +639,11 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
-    else:
+    elif args.update:
         result = run_update(args.dry_run)
+    else:
+        # Default: safe analyze-only mode
+        result = run_analyze()
     
     # Save output if requested
     if args.output:

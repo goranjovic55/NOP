@@ -1,4 +1,4 @@
-# AKIS v6.3 (Enforced Discipline + Knowledge Cache v3.0)
+# AKIS v6.5 (Scripts Suggest, Agent Implements)
 
 ## ⛔ HARD GATES (STOP if violated)
 | Gate | Violation | Action |
@@ -6,6 +6,7 @@
 | G1 | No ◆ task active | Create TODO with ◆ first |
 | G2 | Editing without skill | Load skill, announce it |
 | G3 | START not done | Do START steps 1-4 first |
+| G4 | Session ending without END | Do END steps 1-5 before closing |
 
 ## START (Do ALL steps)
 ```
@@ -37,13 +38,34 @@
 
 **Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
-## END
+## END (⛔ G4 - MANDATORY before session close)
 ```
 1. Check ⊘ orphans → close ALL
-2. Run scripts: knowledge.py && skills.py && instructions.py && docs.py && session_cleanup.py
-3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-4. Show END summary (all script outputs) → Wait approval → commit
+2. Run scripts (suggest mode - safe analysis):
+   python knowledge.py   # Suggests entity updates
+   python skills.py      # Suggests skill additions
+   python instructions.py # Suggests instruction gaps
+   python docs.py         # Suggests doc updates
+   python agents.py       # Suggests agent updates
+3. SHOW suggestions to user and ASK:
+   "Scripts suggest these updates. Implement? [y/n/select]"
+4. IF approved, IMPLEMENT suggestions:
+   - knowledge: Append JSONL lines to project_knowledge.json
+   - skills: Create .github/skills/{name}/SKILL.md stubs
+   - instructions: Create .github/instructions/{name}.instructions.md
+   - docs: Update docs/ files as suggested
+   - agents: Update .github/agents/*.agent.md
+5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md with:
+   - Summary of changes
+   - Worktree (todos with status symbols)
+   - Files modified
+   - Script suggestions implemented
+6. Show END summary → Wait approval → commit
 ```
+
+**Scripts = analysis only | Agent = asks user, then implements**
+
+**Trigger:** User says "wrap up", "done", "end session", "commit"
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated

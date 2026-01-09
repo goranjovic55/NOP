@@ -342,6 +342,65 @@ def simulate_sessions(n: int, doc_coverage: float = 0.70) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def run_analyze() -> Dict[str, Any]:
+    """Analyze docs without modifying any files (safe default)."""
+    print("=" * 60)
+    print("AKIS Documentation Analysis (Report Only)")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    
+    # Get session files
+    session_files = get_session_files()
+    print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Match files to patterns
+    updates_needed = []
+    for sf in session_files:
+        for pattern in LEARNED_PATTERNS:
+            if re.match(pattern.file_pattern, sf):
+                updates_needed.append({
+                    'file': sf,
+                    'target_doc': pattern.target_doc,
+                    'type': pattern.update_type,
+                    'confidence': pattern.confidence,
+                    'section': pattern.section,
+                })
+                break
+    
+    # Group by target doc
+    by_target = {}
+    for u in updates_needed:
+        target = u['target_doc']
+        if target not in by_target:
+            by_target[target] = []
+        by_target[target].append(u)
+    
+    print(f"📝 Documentation updates needed: {len(updates_needed)}")
+    
+    # Output implementation-ready suggestions
+    if by_target:
+        print(f"\n📋 SUGGESTED DOC UPDATES:")
+        print("-" * 60)
+        for target, updates in by_target.items():
+            print(f"UPDATE: {target}")
+            print(f"  Add/update sections for:")
+            for u in updates[:5]:
+                print(f"    - {u['file']} ({u['type']})")
+            if len(updates) > 5:
+                print(f"    ... and {len(updates) - 5} more")
+            print()
+        print("-" * 60)
+        print(f"\n💡 Agent: Update the documentation files above")
+    
+    return {
+        'mode': 'analyze',
+        'session_files': len(session_files),
+        'updates_needed': len(updates_needed),
+        'by_target': {k: [{'file': u['file'], 'type': u['type']} for u in v] for k, v in by_target.items()},
+    }
+
+
 def run_update(dry_run: bool = False) -> Dict[str, Any]:
     """Update docs based on current session."""
     print("=" * 60)
@@ -560,8 +619,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python docs.py                    # Update (default)
-  python docs.py --update           # Update based on session
+  python docs.py                    # Analyze only (safe default)
+  python docs.py --update           # Apply documentation updates
   python docs.py --generate         # Full generation with metrics
   python docs.py --suggest          # Suggest without applying
   python docs.py --index            # Regenerate INDEX.md
@@ -570,8 +629,8 @@ Examples:
     )
     
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--update', action='store_true', default=True,
-                           help='Update based on current session (default)')
+    mode_group.add_argument('--update', action='store_true',
+                           help='Actually update documentation files')
     mode_group.add_argument('--generate', action='store_true',
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
@@ -595,8 +654,11 @@ Examples:
         result = run_suggest()
     elif args.index:
         result = run_index(args.dry_run)
-    else:
+    elif args.update:
         result = run_update(args.dry_run)
+    else:
+        # Default: safe analyze-only mode
+        result = run_analyze()
     
     # Save output if requested
     if args.output:

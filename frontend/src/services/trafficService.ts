@@ -38,6 +38,14 @@ export interface TrafficStats {
   traffic_history: { time: string; value: number }[];
   connections: TrafficConnection[];
   current_time?: number;
+  is_sniffing?: boolean;
+  interface?: string;
+}
+
+export interface CaptureStatus {
+  is_sniffing: boolean;
+  interface: string | null;
+  filter: string | null;
 }
 
 export const trafficService = {
@@ -76,6 +84,44 @@ export const trafficService = {
       headers['X-Agent-POV'] = agentPOV;
     }
     const response = await axios.get(`${API_URL}/traffic/stats`, { headers });
+    return response.data;
+  },
+
+  /**
+   * Start persistent packet capture (continues when leaving page)
+   */
+  startCapture: async (
+    token: string,
+    iface: string = 'eth0',
+    filter: string = ''
+  ): Promise<{ success: boolean; is_sniffing: boolean }> => {
+    const response = await axios.post(
+      `${API_URL}/traffic/start-capture`,
+      { interface: iface, filter },
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+  },
+
+  /**
+   * Stop persistent packet capture
+   */
+  stopCapture: async (token: string): Promise<{ success: boolean; was_sniffing: boolean }> => {
+    const response = await axios.post(
+      `${API_URL}/traffic/stop-capture`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get current capture status
+   */
+  getCaptureStatus: async (token: string): Promise<CaptureStatus> => {
+    const response = await axios.get(`${API_URL}/traffic/capture-status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   },
 

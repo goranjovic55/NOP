@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useTrafficStore } from '../store/trafficStore';
 import { usePOV, getPOVHeaders } from '../context/POVContext';
+import { trafficService } from '../services/trafficService';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
 import { CyberTabs, CyberPageTitle } from '../components/CyberUI';
@@ -279,6 +280,50 @@ const Traffic: React.FC = () => {
     localStorage.setItem('nop_traffic_filter', filter);
   }, [filter]);
 
+  // Check capture status on page load and reconnect WebSocket if capture is running
+  useEffect(() => {
+    const checkCaptureStatus = async () => {
+      try {
+        const status = await trafficService.getCaptureStatus(token!);
+        setIsSniffing(status.is_sniffing);
+        setIsCapturing(status.is_sniffing);
+        if (status.interface && !selectedIface) {
+          setSelectedIface(status.interface);
+        }
+        
+        // If capture is running, reconnect WebSocket to see live packets
+        if (status.is_sniffing && !wsRef.current) {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.host;
+          const ws = new WebSocket(`${protocol}//${host}/api/v1/traffic/ws`);
+
+          ws.onopen = () => {
+            ws.send(JSON.stringify({ 
+              interface: status.interface || selectedIface, 
+              filter: status.filter || filter 
+            }));
+          };
+
+          ws.onmessage = (event) => {
+            const packet = JSON.parse(event.data);
+            setPackets(prev => [...prev.slice(-499), packet]);
+          };
+
+          ws.onclose = () => {
+            // WebSocket closed but capture may still be running
+          };
+          ws.onerror = (err) => console.error('WS Error:', err);
+          wsRef.current = ws;
+        }
+      } catch (err) {
+        console.error('Failed to check capture status:', err);
+      }
+    };
+    if (token) {
+      checkCaptureStatus();
+    }
+  }, [token, setIsCapturing]);
+
   // Handle navigation state from Topology page
   useEffect(() => {
     if (navigationState?.filterHost) {
@@ -344,35 +389,51 @@ const Traffic: React.FC = () => {
     }
   };
 
-  const toggleSniffing = () => {
+  const toggleSniffing = async () => {
     if (isSniffing) {
+      // Stop persistent capture (doesn't matter if WS is connected or not)
+      try {
+        await trafficService.stopCapture(token!);
+      } catch (err) {
+        console.error('Failed to stop capture:', err);
+      }
       if (wsRef.current) wsRef.current.close();
       setIsSniffing(false);
       setIsCapturing(false);  // Update global store
     } else {
       setPackets([]);
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-
-      const ws = new WebSocket(`${protocol}//${host}/api/v1/traffic/ws`);
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ interface: selectedIface, filter }));
+      
+      // Start persistent capture first
+      try {
+        await trafficService.startCapture(token!, selectedIface, filter);
         setIsSniffing(true);
         setIsCapturing(true);  // Update global store
-      };
+        
+        // Then connect WebSocket for live packet viewing
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const ws = new WebSocket(`${protocol}//${host}/api/v1/traffic/ws`);
 
-      ws.onmessage = (event) => {
-        const packet = JSON.parse(event.data);
-        setPackets(prev => [...prev.slice(-499), packet]);
-      };
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ interface: selectedIface, filter }));
+        };
 
-      ws.onclose = () => {
+        ws.onmessage = (event) => {
+          const packet = JSON.parse(event.data);
+          setPackets(prev => [...prev.slice(-499), packet]);
+        };
+
+        ws.onclose = () => {
+          // WebSocket closed but capture may still be running
+          // Don't update isSniffing here - let it reflect backend state
+        };
+        ws.onerror = (err) => console.error('WS Error:', err);
+        wsRef.current = ws;
+      } catch (err) {
+        console.error('Failed to start capture:', err);
         setIsSniffing(false);
-        setIsCapturing(false);  // Update global store
-      };
-      ws.onerror = (err) => console.error('WS Error:', err);
-      wsRef.current = ws;
+        setIsCapturing(false);
+      }
     }
   };
 

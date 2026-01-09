@@ -9,11 +9,14 @@ description: Load when editing Python files in backend/, api/, routes/, services
 - **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
 - **401 on frontend:** Call `logout()` from authStore to trigger app redirect
 - **Missing import:** json module often forgotten in services
+- **Auth tokens:** Always validate JWT expiry before trusting claims
+- **Alembic migrations:** Run `alembic upgrade head` after model changes
 
 ## Rules
 - **Endpoint→Service→Model:** No DB logic in routes
 - **Always `response_model`:** Type safety + auto-docs
 - **Async all the way:** `await` all I/O
+- **Auth patterns:** Use `Depends(get_current_user)` for protected routes
 
 ## Avoid
 
