@@ -19,3 +19,7 @@ applyTo: "**"
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
+
+## Delegation
+- **Simple (<3 files):** Handle directly
+- **Complex (6+ files):** Delegate with `<DELEGATE> → agent ⧖`

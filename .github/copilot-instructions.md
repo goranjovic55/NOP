@@ -48,6 +48,15 @@
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
+## Delegation (use ⧖)
+| Complexity | Action |
+|------------|--------|
+| Simple (<3 files) | Handle directly |
+| Medium (3-5 files) | Consider delegation |
+| Complex (6+ files) | **Delegate** to specialist |
+
+**Mark in TODO:** `<DELEGATE> → agent-name ⧖`
+
 ## Efficiency
 - **Knowledge:** Read once at START (lines 1-4 only)
 - **Skills:** Load ONCE per domain per session

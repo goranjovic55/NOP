@@ -1,14 +1,14 @@
-# AKIS v6.3 Enforced Discipline Fix | 2026-01-09 | ~20min
+# AKIS v6.3 Enforced Discipline Fix | 2026-01-09 | ~25min
 
 ## Summary
-Fixed AKIS instruction compliance issue where agent was not consistently following START rules in default sessions. Root cause was the v6.0+ assumption that "Context pre-loaded via attachment" - but context is NOT pre-attached in standard Copilot sessions. Added HARD GATES enforcement and explicit START actions. Also audited and optimized all instruction files to be under token targets.
+Fixed AKIS instruction compliance issue where agent was not consistently following START rules in default sessions. Root cause was the v6.0+ assumption that "Context pre-loaded via attachment" - but context is NOT pre-attached in standard Copilot sessions. Added HARD GATES enforcement and explicit START actions. Also audited and optimized all instruction files and enhanced skills with actionable guidance.
 
 ## Session Metrics
 | Metric | Value |
 |--------|-------|
-| Duration | ~20min |
-| Tasks | 8 completed / 8 total |
-| Files Modified | 6 |
+| Duration | ~25min |
+| Tasks | 10 completed / 10 total |
+| Files Modified | 7 |
 | Skills Loaded | 1 (akis-development) |
 | Complexity | Medium |
 
@@ -22,15 +22,18 @@ Fixed AKIS instruction compliance issue where agent was not consistently followi
 ├─ <WORK> Update skills/INDEX.md + agent version ✓
 ├─ <WORK> Audit instruction files                ✓
 ├─ <WORK> Optimize instruction token counts      ✓
+├─ <WORK> Enhance docker skill with gotchas      ✓
+├─ <WORK> Add delegation guidance to main file   ✓
 └─ <END> Create workflow log                     ✓
 ```
 
 ## Files Modified
 | File | Changes |
 |------|---------|
-| .github/copilot-instructions.md | Added HARD GATES, explicit START actions, removed "pre-loaded" assumption |
-| .github/instructions/protocols.instructions.md | Removed duplication, reduced 245→92 tokens |
-| .github/instructions/quality.instructions.md | Removed stats table, reduced 158→69 tokens |
+| .github/copilot-instructions.md | Added HARD GATES, explicit START, delegation guidance |
+| .github/instructions/protocols.instructions.md | Removed duplication, added delegation, reduced tokens |
+| .github/instructions/quality.instructions.md | Reduced 158→69 tokens |
+| .github/skills/docker/SKILL.md | Added Critical Gotchas, Auto-Detect Environment table |
 | .github/skills/INDEX.md | Updated to v6.3, added "Announce" rule |
 | .github/agents/AKIS.agent.md | Updated version to v6.3 |
 | project_knowledge.json | Added 2 new gotchas documenting this issue |
@@ -38,42 +41,48 @@ Fixed AKIS instruction compliance issue where agent was not consistently followi
 ## Root Cause Analysis
 
 ### Problem
-Agent was not consistently following START rules in default sessions, only when explicitly told to respect rules.
+1. Agent not following START rules in default sessions
+2. Docker skill not effectively guiding dev vs prod usage
+3. Sub-agents not being used optimally
 
 ### Root Causes
-1. **Incorrect Assumption**: `copilot-instructions.md` v6.0+ said "Context pre-loaded via attachment ✓ (skip explicit reads)" - but **context is NOT pre-attached** in standard Copilot sessions
-2. **Missing Enforcement**: Default instructions lacked HARD GATES blocking rules that exist in AKIS.agent.md
-3. **Over-optimization**: v6.0 prompt optimization focused on token reduction (70%+) and inadvertently removed critical enforcement language
-4. **Instruction Duplication**: protocols.instructions.md duplicated content from copilot-instructions.md
+1. **Incorrect Assumption**: Instructions assumed "Context pre-loaded" - NOT true in standard sessions
+2. **Missing Enforcement**: Default instructions lacked HARD GATES
+3. **Over-optimization**: v6.0 token reduction removed critical enforcement language
+4. **Skills too terse**: Docker skill lacked decision logic (when to use dev)
+5. **No delegation guidance**: Main instructions didn't explain when to delegate
 
 ### Solution
-1. Added HARD GATES section with G1-G3 blocking rules at TOP of copilot-instructions.md
-2. Changed START to explicit read commands:
-   - `Read project_knowledge.json lines 1-4`
-   - `Read .github/skills/INDEX.md`
-3. Added G3 gate: "START not done → Do START steps first"
-4. Removed misleading "pre-loaded" and "skip explicit reads" language
+1. Added HARD GATES section with G1-G3 blocking rules
+2. Changed START to explicit read commands
+3. Enhanced docker skill with:
+   - ⚠️ Critical Gotchas section (restart≠rebuild)
+   - Auto-Detect Environment table
+4. Added Delegation section to copilot-instructions.md
 5. Made instruction files complementary, not duplicative
 
-## Instruction Files Audit
+## Skills Audit
 
-| File | Before | After | Target | Status |
-|------|--------|-------|--------|--------|
-| protocols.instructions.md | 245 tokens | 92 tokens | <150 | ✅ |
-| quality.instructions.md | 158 tokens | 69 tokens | <150 | ✅ |
-| structure.instructions.md | 131 tokens | 101 tokens | <150 | ✅ |
-
-## Skills Used
-- .github/skills/akis-development/SKILL.md (for AKIS framework updates)
+| Skill | Tokens | Status |
+|-------|--------|--------|
+| docker | 152 | ✅ Enhanced with gotchas |
+| documentation | 150 | ✅ |
+| backend-api | 164 | ✅ |
+| frontend-react | 176 | ✅ |
+| knowledge | 179 | ✅ |
+| debugging | 153 | ✅ |
+| testing | 148 | ✅ |
+| akis-development | 137 | ✅ |
+| ci-cd | 119 | ✅ |
 
 ## Verification
 ```bash
-python .github/scripts/audit.py --target instructions # 0 issues, all under target
-git diff --stat                                       # 6 files changed
+python .github/scripts/audit.py --target skills       # 0 issues
+python .github/scripts/audit.py --target instructions # 0 issues
+git diff --stat                                       # 7 files changed
 ```
 
 ## Notes
-- The key insight is that AKIS.agent.md (invoked via @AKIS) has explicit read commands and works well - but the default copilot-instructions.md was optimized to assume pre-loading that doesn't exist
-- v6.3 now enforces: "Do ALL steps" in START, not "skip explicit reads"
-- Instruction files should be complementary to main instructions, not duplicate them
-- Added gotchas to project_knowledge.json for future reference
+- Docker skill now has explicit "restart ≠ rebuild" warning at top
+- Delegation table added to main instructions (Simple/Medium/Complex)
+- All skills now under 200 token target
