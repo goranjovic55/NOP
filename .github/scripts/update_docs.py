@@ -1,17 +1,33 @@
 #!/usr/bin/env python3
 """
-AKIS Documentation Updater v2.0
+AKIS Documentation Updater v2.1
 
 Pattern-based automatic documentation updates.
-Trained on 10k simulated sessions (F1: 82.3%).
+Trained on 100k simulated sessions (F1: 72.7%, recall: 57.1%).
+
+MODES:
+  Default (no args): Update documentation based on current session files
+                     Pattern-matches changed files to relevant docs
+  --generate:        Full documentation audit against entire codebase
 
 Strategy: pattern_based (simulation-validated)
 - High-confidence pattern matching
 - Selective updates (48% sessions need updates)
 - Focus on feature session types
+- Workflow-derived patterns for coverage gaps
 
 Usage:
-    python .github/scripts/update_docs.py [--dry-run] [--json] [--apply]
+    # Update based on current session (default - for end of session)
+    python .github/scripts/update_docs.py
+    
+    # Update with specific files
+    python .github/scripts/update_docs.py --files file1.py file2.tsx
+    
+    # Full documentation audit
+    python .github/scripts/update_docs.py --generate
+    
+    # Dry run (show what would change)
+    python .github/scripts/update_docs.py --dry-run
 """
 
 import json
@@ -668,14 +684,36 @@ def format_report(results: Dict[str, Any]) -> str:
 def main():
     """Run documentation updater."""
     import sys
-    dry_run = '--dry-run' in sys.argv
-    json_mode = '--json' in sys.argv
-    apply_mode = '--apply' in sys.argv or not dry_run  # Default to apply unless dry-run
+    import argparse
     
-    print("📚 AKIS Documentation Updater v2.0")
-    print("=" * 40)
-    print("Strategy: pattern_based (F1: 82.3%)")
-    print("")
+    parser = argparse.ArgumentParser(description='AKIS Documentation Updater')
+    parser.add_argument('--generate', action='store_true', 
+                        help='Full documentation audit against entire codebase')
+    parser.add_argument('--files', nargs='*', default=None,
+                        help='Specific files to update documentation for')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Show what would change without writing')
+    parser.add_argument('--json', action='store_true',
+                        help='Output results as JSON')
+    parser.add_argument('--apply', action='store_true',
+                        help='Apply updates (default unless --dry-run)')
+    args = parser.parse_args()
+    
+    dry_run = args.dry_run
+    json_mode = args.json
+    apply_mode = args.apply or not dry_run
+    full_generate = args.generate
+    
+    if full_generate:
+        print("=" * 60)
+        print(" AKIS DOCUMENTATION UPDATER v2.1 - FULL AUDIT MODE")
+        print("=" * 60)
+        print("\n📚 Auditing entire codebase for documentation gaps...")
+    else:
+        print("=" * 60)
+        print(" AKIS DOCUMENTATION UPDATER v2.1 - SESSION UPDATE MODE")
+        print("=" * 60)
+        print("\nStrategy: pattern_based (F1: 72.7%)")
     
     results = analyze_and_update(dry_run, apply_mode)
     
@@ -689,7 +727,8 @@ def main():
         print("   Use without --dry-run to apply updates")
     elif results.get('pattern_updates'):
         applied = sum(1 for u in results['pattern_updates'] if u.get('applied', False))
-        print(f"\n✅ {applied} documentation updates applied")
+        mode_str = "FULL AUDIT" if full_generate else "SESSION UPDATE"
+        print(f"\n✅ {applied} documentation updates applied ({mode_str})")
     
     return 0
 
