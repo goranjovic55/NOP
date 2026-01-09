@@ -142,7 +142,6 @@ const Topology: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false); // Controls auto-refresh
   const [refreshRate, setRefreshRate] = useState<number>(5000); // Refresh rate in ms (default 5s)
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -911,15 +910,15 @@ const Topology: React.FC = () => {
             const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
             const color = applyOpacity(baseColor, opacity);
             
-            // Draw selection glow first (behind the line)
+            // Draw selection glow first (behind the line) - green glow to match asset highlighting
             if (isSelected) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.lineTo(end.x, end.y);
-              ctx.strokeStyle = '#ffffff';
-              ctx.lineWidth = width + 2;
-              ctx.shadowBlur = 15;
-              ctx.shadowColor = '#ffffff';
+              ctx.strokeStyle = '#00ff41';
+              ctx.lineWidth = width + 4;
+              ctx.shadowBlur = 20;
+              ctx.shadowColor = '#00ff41';
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
@@ -979,11 +978,11 @@ const Topology: React.FC = () => {
           onNodeHover={(node: any) => {
             document.body.style.cursor = node ? 'pointer' : 'default';
             setHoveredNode(node || null);
-            if (node) setHoveredLink(null); // Clear link hover when hovering node
           }}
           onLinkHover={(link: any) => {
-            setHoveredLink(link || null);
-            if (link) setHoveredNode(null); // Clear node hover when hovering link
+            // Only change cursor on link hover - no visual highlighting
+            // Details box shows on click via ConnectionContextMenu
+            document.body.style.cursor = link ? 'pointer' : 'default';
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;
@@ -1098,60 +1097,6 @@ const Topology: React.FC = () => {
                       <span>{hoveredNode.details.os_info}</span>
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Link Hover Tooltip */}
-        {hoveredLink && (
-          <div 
-            className="absolute z-20 bg-cyber-darker border border-cyber-green p-4 shadow-lg pointer-events-none"
-            style={{ 
-              top: 20, 
-              right: 20,
-              minWidth: '260px'
-            }}
-          >
-            <h3 className="text-cyber-green font-bold text-sm mb-3 uppercase tracking-widest">Connection</h3>
-            <div className="space-y-1 text-sm text-cyber-gray-light">
-              <div className="flex justify-between">
-                <span className="font-semibold">Source:</span>
-                <span className="text-cyber-blue">{typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Target:</span>
-                <span className="text-cyber-blue">{typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Direction:</span>
-                <span className={hoveredLink.bidirectional ? 'text-cyber-green' : 'text-cyber-blue'}>
-                  {hoveredLink.bidirectional ? '↔ Bidirectional' : '→ Unidirectional'}
-                </span>
-              </div>
-              {hoveredLink.protocols && hoveredLink.protocols.length > 0 && (
-                <div className="flex justify-between">
-                  <span className="font-semibold">Protocols:</span>
-                  <span className="text-cyber-purple">{hoveredLink.protocols.join(', ')}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="font-semibold">Traffic:</span>
-                <span>
-                  {formatTrafficMB(hoveredLink.value + (hoveredLink.reverseValue || 0))} MB
-                </span>
-              </div>
-              {hoveredLink.bidirectional && (
-                <>
-                  <div className="flex justify-between text-xs mt-2 pt-2 border-t border-cyber-gray">
-                    <span>→ Forward:</span>
-                    <span>{formatTrafficMB(hoveredLink.value)} MB</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span>← Reverse:</span>
-                    <span>{formatTrafficMB(hoveredLink.reverseValue || 0)} MB</span>
-                  </div>
                 </>
               )}
             </div>
