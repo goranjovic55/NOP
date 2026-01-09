@@ -845,6 +845,356 @@ def run_audit(sessions: int = 100000) -> Dict[str, Any]:
 
 
 # ============================================================================
+# AKIS vs Specialist Agents Simulation
+# ============================================================================
+
+def simulate_session_akis_only() -> SessionMetrics:
+    """Simulate a session with AKIS alone (no specialist agents)."""
+    # AKIS alone performs better than no agent, but not as well as with specialists
+    return SessionMetrics(
+        api_calls=random.randint(22, 42),
+        tokens_used=random.randint(12000, 28000),
+        resolution_time_minutes=random.uniform(12, 25),
+        workflow_compliance=random.uniform(0.80, 0.92),
+        instruction_compliance=random.uniform(0.82, 0.92),
+        skill_hit_rate=random.uniform(0.60, 0.80),
+        knowledge_hit_rate=random.uniform(0.40, 0.60),
+        task_success=random.random() < 0.88,
+    )
+
+
+def simulate_session_with_specialists(
+    specialists: List[str],
+    task_type: str
+) -> SessionMetrics:
+    """Simulate a session with AKIS + specialist agents."""
+    # Base AKIS session
+    base = simulate_session_akis_only()
+    
+    # Calculate improvements based on specialist match
+    task_specialist_match = {
+        'code_editing': 'code-editor',
+        'debugging': 'debugger',
+        'documentation': 'documentation',
+        'infrastructure': 'devops',
+        'architecture': 'architect',
+        'review': 'reviewer',
+    }
+    
+    # Improvements from specialists
+    api_reduction = 0.0
+    token_reduction = 0.0
+    time_reduction = 0.0
+    compliance_boost = 0.0
+    success_boost = 0.0
+    
+    matched_specialist = task_specialist_match.get(task_type, '')
+    
+    if matched_specialist in specialists:
+        # Perfect match - significant improvement
+        api_reduction = 0.35
+        token_reduction = 0.40
+        time_reduction = 0.30
+        compliance_boost = 0.10
+        success_boost = 0.08
+    elif any(s in specialists for s in ['code-editor', 'debugger']):
+        # Partial match - moderate improvement
+        api_reduction = 0.20
+        token_reduction = 0.25
+        time_reduction = 0.18
+        compliance_boost = 0.05
+        success_boost = 0.04
+    
+    # Sub-agent orchestration bonus (runsubagent efficiency)
+    if len(specialists) > 1:
+        # Multiple specialists can chain calls
+        api_reduction += 0.10  # Parallel execution saves calls
+        token_reduction += 0.08  # Specialized prompts are smaller
+        time_reduction += 0.05  # Faster handoffs
+    
+    return SessionMetrics(
+        api_calls=int(base.api_calls * (1 - api_reduction)),
+        tokens_used=int(base.tokens_used * (1 - token_reduction)),
+        resolution_time_minutes=base.resolution_time_minutes * (1 - time_reduction),
+        workflow_compliance=min(1.0, base.workflow_compliance + compliance_boost),
+        instruction_compliance=min(1.0, base.instruction_compliance + compliance_boost * 0.8),
+        skill_hit_rate=min(1.0, base.skill_hit_rate + 0.20),
+        knowledge_hit_rate=min(1.0, base.knowledge_hit_rate + 0.25),
+        task_success=random.random() < (0.88 + success_boost),
+    )
+
+
+def simulate_orchestration_chain(chain: List[str], task_type: str) -> Dict[str, Any]:
+    """Simulate a complete orchestration chain via runsubagent."""
+    chain_metrics = {
+        'total_api_calls': 0,
+        'total_tokens': 0,
+        'total_time': 0.0,
+        'handoffs': 0,
+        'success': True,
+    }
+    
+    # Each agent in chain contributes
+    for i, agent in enumerate(chain):
+        if agent == 'akis':
+            # AKIS does orchestration work
+            chain_metrics['total_api_calls'] += random.randint(3, 8)
+            chain_metrics['total_tokens'] += random.randint(1500, 3000)
+            chain_metrics['total_time'] += random.uniform(0.5, 2.0)
+        else:
+            # Specialist does focused work
+            chain_metrics['total_api_calls'] += random.randint(5, 15)
+            chain_metrics['total_tokens'] += random.randint(2500, 8000)
+            chain_metrics['total_time'] += random.uniform(2.0, 8.0)
+            
+            if i > 0 and chain[i-1] != agent:
+                chain_metrics['handoffs'] += 1
+    
+    # Handoff overhead (minimal due to runsubagent efficiency)
+    chain_metrics['total_api_calls'] += chain_metrics['handoffs'] * 1
+    chain_metrics['total_time'] += chain_metrics['handoffs'] * 0.2
+    
+    # Success probability - specialists improve success rate
+    # Base success is high, small penalty for very long chains
+    chain_metrics['success'] = random.random() < (0.99 - 0.01 * max(0, len(chain) - 3))
+    
+    return chain_metrics
+
+
+def simulate_100k_akis_vs_specialists(
+    n: int,
+    specialists: List[str]
+) -> Dict[str, Any]:
+    """Simulate n sessions comparing AKIS alone vs AKIS with specialists."""
+    
+    # Task type distribution (from workflow log analysis)
+    task_types = [
+        ('code_editing', 0.35),
+        ('debugging', 0.20),
+        ('documentation', 0.15),
+        ('infrastructure', 0.10),
+        ('architecture', 0.10),
+        ('review', 0.10),
+    ]
+    
+    # Results containers
+    akis_only_results = {
+        'api_calls': [],
+        'tokens': [],
+        'time': [],
+        'compliance': [],
+        'skill_usage': [],
+        'knowledge_usage': [],
+        'successes': 0,
+    }
+    
+    with_specialists_results = {
+        'api_calls': [],
+        'tokens': [],
+        'time': [],
+        'compliance': [],
+        'skill_usage': [],
+        'knowledge_usage': [],
+        'successes': 0,
+        'handoffs': [],
+        'chains_used': defaultdict(int),
+    }
+    
+    # Common call chains from orchestration
+    call_chains = {
+        'code_editing': ['akis', 'code-editor', 'akis'],
+        'debugging': ['akis', 'debugger', 'code-editor', 'akis'],
+        'documentation': ['akis', 'documentation', 'akis'],
+        'infrastructure': ['akis', 'architect', 'devops', 'code-editor', 'akis'],
+        'architecture': ['akis', 'architect', 'code-editor', 'reviewer', 'akis'],
+        'review': ['akis', 'reviewer', 'akis'],
+    }
+    
+    for _ in range(n):
+        # Select task type based on distribution
+        r = random.random()
+        cumulative = 0.0
+        task_type = 'code_editing'
+        for tt, prob in task_types:
+            cumulative += prob
+            if r <= cumulative:
+                task_type = tt
+                break
+        
+        # Simulate AKIS only
+        akis_session = simulate_session_akis_only()
+        akis_only_results['api_calls'].append(akis_session.api_calls)
+        akis_only_results['tokens'].append(akis_session.tokens_used)
+        akis_only_results['time'].append(akis_session.resolution_time_minutes)
+        akis_only_results['compliance'].append(akis_session.workflow_compliance)
+        akis_only_results['skill_usage'].append(akis_session.skill_hit_rate)
+        akis_only_results['knowledge_usage'].append(akis_session.knowledge_hit_rate)
+        if akis_session.task_success:
+            akis_only_results['successes'] += 1
+        
+        # Simulate with specialists and orchestration
+        specialist_session = simulate_session_with_specialists(specialists, task_type)
+        
+        # If specialists are available, use orchestration chain
+        chain = call_chains.get(task_type, ['akis'])
+        # Filter chain to only include available specialists
+        active_chain = ['akis']
+        for agent in chain[1:-1]:  # Skip akis at start/end
+            if agent in specialists or agent == 'akis':
+                active_chain.append(agent)
+        active_chain.append('akis')
+        
+        chain_metrics = simulate_orchestration_chain(active_chain, task_type)
+        
+        # Combine session + chain metrics
+        with_specialists_results['api_calls'].append(
+            min(specialist_session.api_calls, chain_metrics['total_api_calls'])
+        )
+        with_specialists_results['tokens'].append(
+            min(specialist_session.tokens_used, chain_metrics['total_tokens'])
+        )
+        with_specialists_results['time'].append(
+            min(specialist_session.resolution_time_minutes, chain_metrics['total_time'])
+        )
+        with_specialists_results['compliance'].append(specialist_session.workflow_compliance)
+        with_specialists_results['skill_usage'].append(specialist_session.skill_hit_rate)
+        with_specialists_results['knowledge_usage'].append(specialist_session.knowledge_hit_rate)
+        with_specialists_results['handoffs'].append(chain_metrics['handoffs'])
+        with_specialists_results['chains_used'][task_type] += 1
+        
+        if specialist_session.task_success and chain_metrics['success']:
+            with_specialists_results['successes'] += 1
+    
+    # Calculate aggregates
+    akis_summary = {
+        'avg_api_calls': sum(akis_only_results['api_calls']) / n,
+        'avg_tokens': sum(akis_only_results['tokens']) / n,
+        'avg_time': sum(akis_only_results['time']) / n,
+        'avg_compliance': sum(akis_only_results['compliance']) / n,
+        'avg_skill_usage': sum(akis_only_results['skill_usage']) / n,
+        'avg_knowledge_usage': sum(akis_only_results['knowledge_usage']) / n,
+        'success_rate': akis_only_results['successes'] / n,
+        'total_api_calls': sum(akis_only_results['api_calls']),
+        'total_tokens': sum(akis_only_results['tokens']),
+    }
+    
+    specialists_summary = {
+        'avg_api_calls': sum(with_specialists_results['api_calls']) / n,
+        'avg_tokens': sum(with_specialists_results['tokens']) / n,
+        'avg_time': sum(with_specialists_results['time']) / n,
+        'avg_compliance': sum(with_specialists_results['compliance']) / n,
+        'avg_skill_usage': sum(with_specialists_results['skill_usage']) / n,
+        'avg_knowledge_usage': sum(with_specialists_results['knowledge_usage']) / n,
+        'success_rate': with_specialists_results['successes'] / n,
+        'total_api_calls': sum(with_specialists_results['api_calls']),
+        'total_tokens': sum(with_specialists_results['tokens']),
+        'avg_handoffs': sum(with_specialists_results['handoffs']) / n,
+        'chains_used': dict(with_specialists_results['chains_used']),
+    }
+    
+    # Calculate improvements
+    improvements = {
+        'api_calls': (akis_summary['avg_api_calls'] - specialists_summary['avg_api_calls']) / akis_summary['avg_api_calls'],
+        'tokens': (akis_summary['avg_tokens'] - specialists_summary['avg_tokens']) / akis_summary['avg_tokens'],
+        'time': (akis_summary['avg_time'] - specialists_summary['avg_time']) / akis_summary['avg_time'],
+        'compliance': (specialists_summary['avg_compliance'] - akis_summary['avg_compliance']) / akis_summary['avg_compliance'],
+        'skill_usage': (specialists_summary['avg_skill_usage'] - akis_summary['avg_skill_usage']) / akis_summary['avg_skill_usage'],
+        'knowledge_usage': (specialists_summary['avg_knowledge_usage'] - akis_summary['avg_knowledge_usage']) / akis_summary['avg_knowledge_usage'],
+        'success_rate': (specialists_summary['success_rate'] - akis_summary['success_rate']) / akis_summary['success_rate'],
+    }
+    
+    return {
+        'sessions': n,
+        'specialists': specialists,
+        'akis_only': akis_summary,
+        'with_specialists': specialists_summary,
+        'improvements': improvements,
+    }
+
+
+def run_compare(sessions: int = 100000) -> Dict[str, Any]:
+    """Run AKIS vs Specialists comparison simulation."""
+    print("=" * 60)
+    print("AKIS vs Specialist Agents Comparison")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    baseline = extract_baseline(root)
+    
+    # Get optimal specialists
+    specialists = baseline['optimal_agents']
+    print(f"\n🤖 Specialists to evaluate: {len(specialists)}")
+    for s in specialists:
+        print(f"   - {s}: {AGENT_TYPES[s]['description']}")
+    
+    # Show orchestration capabilities
+    print(f"\n🔗 Sub-Agent Orchestration (runsubagent):")
+    for s in specialists:
+        subagent_info = SUBAGENT_REGISTRY.get(s, {})
+        can_call = subagent_info.get('can_call', [])
+        called_by = subagent_info.get('called_by', [])
+        print(f"   {s}:")
+        print(f"     Can call: {', '.join(can_call) if can_call else 'none'}")
+        print(f"     Called by: {', '.join(called_by) if called_by else 'none'}")
+    
+    # Run simulation
+    print(f"\n🔄 Simulating {sessions:,} sessions...")
+    print(f"   Comparing: AKIS alone vs AKIS + {len(specialists)} specialists")
+    
+    results = simulate_100k_akis_vs_specialists(sessions, specialists)
+    
+    # Display results
+    print(f"\n" + "=" * 60)
+    print("SIMULATION RESULTS")
+    print("=" * 60)
+    
+    print(f"\n📊 AKIS ALONE ({sessions:,} sessions):")
+    print(f"   Avg API Calls: {results['akis_only']['avg_api_calls']:.1f}")
+    print(f"   Avg Tokens: {results['akis_only']['avg_tokens']:,.0f}")
+    print(f"   Avg Resolution Time: {results['akis_only']['avg_time']:.1f} min")
+    print(f"   Workflow Compliance: {100*results['akis_only']['avg_compliance']:.1f}%")
+    print(f"   Skill Usage: {100*results['akis_only']['avg_skill_usage']:.1f}%")
+    print(f"   Knowledge Usage: {100*results['akis_only']['avg_knowledge_usage']:.1f}%")
+    print(f"   Success Rate: {100*results['akis_only']['success_rate']:.1f}%")
+    
+    print(f"\n🚀 AKIS + SPECIALISTS ({sessions:,} sessions):")
+    print(f"   Avg API Calls: {results['with_specialists']['avg_api_calls']:.1f}")
+    print(f"   Avg Tokens: {results['with_specialists']['avg_tokens']:,.0f}")
+    print(f"   Avg Resolution Time: {results['with_specialists']['avg_time']:.1f} min")
+    print(f"   Workflow Compliance: {100*results['with_specialists']['avg_compliance']:.1f}%")
+    print(f"   Skill Usage: {100*results['with_specialists']['avg_skill_usage']:.1f}%")
+    print(f"   Knowledge Usage: {100*results['with_specialists']['avg_knowledge_usage']:.1f}%")
+    print(f"   Success Rate: {100*results['with_specialists']['success_rate']:.1f}%")
+    print(f"   Avg Handoffs: {results['with_specialists']['avg_handoffs']:.2f} per session")
+    
+    print(f"\n📈 IMPROVEMENTS:")
+    print(f"   API Calls: -{100*results['improvements']['api_calls']:.1f}%")
+    print(f"   Token Usage: -{100*results['improvements']['tokens']:.1f}%")
+    print(f"   Resolution Time: -{100*results['improvements']['time']:.1f}%")
+    print(f"   Workflow Compliance: +{100*results['improvements']['compliance']:.1f}%")
+    print(f"   Skill Usage: +{100*results['improvements']['skill_usage']:.1f}%")
+    print(f"   Knowledge Usage: +{100*results['improvements']['knowledge_usage']:.1f}%")
+    print(f"   Success Rate: +{100*results['improvements']['success_rate']:.1f}%")
+    
+    print(f"\n📊 CHAIN USAGE DISTRIBUTION:")
+    for chain_type, count in results['with_specialists']['chains_used'].items():
+        print(f"   {chain_type}: {count:,} sessions ({100*count/sessions:.1f}%)")
+    
+    # Token/API savings summary
+    api_saved = results['akis_only']['total_api_calls'] - results['with_specialists']['total_api_calls']
+    tokens_saved = results['akis_only']['total_tokens'] - results['with_specialists']['total_tokens']
+    
+    print(f"\n💰 TOTAL SAVINGS ({sessions:,} sessions):")
+    print(f"   API Calls Saved: {api_saved:,}")
+    print(f"   Tokens Saved: {tokens_saved:,}")
+    
+    return {
+        'mode': 'compare',
+        **results
+    }
+
+
+# ============================================================================
 # Agent File Generation
 # ============================================================================
 
@@ -1156,6 +1506,7 @@ Examples:
   python agents.py --generate         # Full generation with metrics
   python agents.py --suggest          # Suggest without applying
   python agents.py --audit            # Audit AKIS agent with sub-agent orchestration
+  python agents.py --compare          # Compare AKIS alone vs AKIS + specialists (100k sessions)
   python agents.py --dry-run          # Preview changes
         """
     )
@@ -1169,6 +1520,8 @@ Examples:
                            help='Suggest improvements without applying')
     mode_group.add_argument('--audit', action='store_true',
                            help='Audit AKIS agent with sub-agent orchestration analysis')
+    mode_group.add_argument('--compare', action='store_true',
+                           help='Compare AKIS alone vs AKIS with specialist agents (100k simulation)')
     
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview changes without applying')
@@ -1186,6 +1539,8 @@ Examples:
         result = run_suggest()
     elif args.audit:
         result = run_audit(args.sessions)
+    elif args.compare:
+        result = run_compare(args.sessions)
     else:
         result = run_update(args.dry_run)
     
