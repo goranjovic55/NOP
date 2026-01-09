@@ -5,8 +5,12 @@ description: Load when editing .md files, docs/ directory, README, or CHANGELOG.
 
 # Documentation
 
+## ⚠️ Critical Gotchas
+- **Update with code:** Doc changes must be in same commit as code
+- **Broken links:** Check relative paths after file moves
+- **Stale examples:** Verify code samples still work
+
 ## Rules
-- **Update with code:** Doc changes in same commit
 - **Include examples:** Code samples for every concept
 - **Link, don't duplicate:** Reference existing docs
 
@@ -17,8 +21,7 @@ docs/
 ├── guides/          # How-to (task-oriented)
 ├── features/        # Feature docs
 ├── technical/       # API refs, specs
-├── architecture/    # Design decisions
-└── development/     # Contributing, setup
+└── architecture/    # Design decisions
 ```
 
 ## Placement
@@ -28,7 +31,6 @@ docs/
 | How-to | `docs/guides/` |
 | Feature | `docs/features/` |
 | API ref | `docs/technical/` |
-| Design | `docs/architecture/` |
 | Quick start | `README.md` |
 
 ## Patterns
@@ -41,6 +43,4 @@ What + why.
 \`\`\`python
 result = feature.do()
 \`\`\`
-## Configuration
-| Option | Default | Description |
 ```

@@ -1,16 +1,18 @@
-# AKIS v6.2 (Prompt-Optimized + Knowledge Cache v3.0)
+# AKIS v6.3 (Enforced Discipline + Knowledge Cache v3.0)
 
-## START
+## ⛔ HARD GATES (STOP if violated)
+| Gate | Violation | Action |
+|------|-----------|--------|
+| G1 | No ◆ task active | Create TODO with ◆ first |
+| G2 | Editing without skill | Load skill, announce it |
+| G3 | START not done | Do START steps 1-4 first |
+
+## START (Do ALL steps)
 ```
-1. Context pre-loaded via attachment ✓ (skip explicit reads)
-2. Knowledge v3.0: 
-   - hot_cache (line 1): top 20 entities + common answers + quick facts
-   - gotchas (line 4): historical issues + solutions for debug
-   - session_patterns (line 5): predictive file loading
-   - interconnections (line 6): service→model→endpoint mapping
-3. Docs: docs/INDEX.md → documentation map for reference
-4. Create todos: <MAIN> → <WORK>... → <END>
-5. Tell user: "[session type]. Plan: [N tasks]"
+1. Read project_knowledge.json lines 1-4 (hot_cache, domain_index, gotchas)
+2. Read .github/skills/INDEX.md (skill catalog)
+3. Create todos: <MAIN> → <WORK>... → <END>
+4. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
 ```
 
 **Session skills cache:** [track loaded skills here - don't reload!]
@@ -33,18 +35,6 @@
 
 **Cache rule:** Don't reload skill already loaded this session!
 
-**Todo Protocol:** Sync with `manage_todo_list` on every state change (◆/✓/⊘)
-
-**Drift Check (every 5 tasks):** ✓ All active work has ◆? ✓ Skills cached? ✓ Any ⊘ orphans?
-
-**Knowledge v3.0:** (90% token reduction verified via 100k simulations)
-- hot_cache: 31% of queries → instant answers
-- gotchas: 11% of queries → debug acceleration
-- predictive: 7% of queries → session pattern preload  
-- interconnections: 14% of queries → dependency lookup
-- domain_index: 22% of queries → entity lookup
-- **Only 15% need file reads**
-
 **Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
 ## END
@@ -58,12 +48,19 @@
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## Efficiency (v3.0 verified)
-- **Knowledge:** v3.0 hot_cache (90% token reduction)
-- **Gotchas:** 75% of debug queries answered instantly
-- **Context:** Pre-attached (no explicit knowledge read)
+## Delegation (use ⧖)
+| Complexity | Action |
+|------------|--------|
+| Simple (<3 files) | Handle directly |
+| Medium (3-5 files) | Consider delegation |
+| Complex (6+ files) | **Delegate** to specialist |
+
+**Mark in TODO:** `<DELEGATE> → agent-name ⧖`
+
+## Efficiency
+- **Knowledge:** Read once at START (lines 1-4 only)
 - **Skills:** Load ONCE per domain per session
-- **Scripts:** Conditional on file types
+- **Scripts:** Run at END only
 
 ## If Lost
 ```

@@ -5,6 +5,11 @@ description: Load when editing .github/workflows/*.yml files, deploy scripts, or
 
 # CI/CD
 
+## ⚠️ Critical Gotchas
+- **Secrets in logs:** Never echo secrets, use `::add-mask::`
+- **Missing permissions:** Add `permissions:` block or workflow fails silently
+- **Cache invalidation:** Update cache key when deps change
+
 ## Rules
 - **Path filters:** Use `paths:` to skip unnecessary runs
 - **Permissions:** Minimal `permissions:` block

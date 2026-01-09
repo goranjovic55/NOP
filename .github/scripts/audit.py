@@ -388,8 +388,8 @@ class ComponentAnalyzer:
         words = len(content.split())
         sections = len(re.findall(r'^##\s+', content, re.MULTILINE))
         
-        # Skills should be <200 words
-        cognitive_load = min(1.0, words / 200)
+        # Skills should be <250 words (balanced for effectiveness)
+        cognitive_load = min(1.0, words / 250)
         
         # Check Agent Skills Standard compliance
         # Standard only requires: name + description (no triggers field)
@@ -399,18 +399,21 @@ class ComponentAnalyzer:
         good_description = bool(description_match and len(description_match.group(1).strip()) > 50)
         has_patterns = 'Patterns' in content or '## Critical' in content or '## Rules' in content
         has_avoid = 'Avoid' in content
+        has_gotchas = '## ⚠️ Critical Gotchas' in content or '## Critical Gotchas' in content
         
-        discipline_score = sum([has_name, has_description, good_description, has_patterns, has_avoid]) / 5
+        discipline_score = sum([has_name, has_description, good_description, has_patterns, has_avoid, has_gotchas]) / 6
         
         issues = []
-        if words > 200:
-            issues.append(f"Too verbose: {words} words (target <200)")
+        if words > 350:  # Max is 350
+            issues.append(f"Too verbose: {words} words (max 350)")
         if not has_name:
             issues.append("Missing name field (required by Agent Skills Standard)")
         if not has_description:
             issues.append("Missing description field (required by Agent Skills Standard)")
         if not good_description:
             issues.append("Description too short (should explain what skill does AND when to use)")
+        if not has_gotchas:
+            issues.append("Missing ⚠️ Critical Gotchas section (required for effectiveness)")
         
         suggestions = []
         
@@ -762,13 +765,13 @@ class OptimizationEngine:
     def _skill_optimizations(self, result: AuditResult) -> List[Dict]:
         opts = []
         
-        if result.token_count > 200:
+        if result.token_count > 350:  # Max is 350, target is 250
             opts.append({
                 'type': 'compress',
                 'component': result.component,
-                'target_tokens': 180,
-                'token_reduction': result.token_count - 180,
-                'rationale': 'Skills must be <200 tokens'
+                'target_tokens': 250,
+                'token_reduction': result.token_count - 250,
+                'rationale': 'Skills must be <350 tokens (target 250, balanced for effectiveness)'
             })
         
         if result.traceability_score < 0.6:

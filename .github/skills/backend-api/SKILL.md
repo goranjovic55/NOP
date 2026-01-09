@@ -5,11 +5,15 @@ description: Load when editing Python files in backend/, api/, routes/, services
 
 # Backend API
 
+## ⚠️ Critical Gotchas
+- **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
+- **401 on frontend:** Call `logout()` from authStore to trigger app redirect
+- **Missing import:** json module often forgotten in services
+
 ## Rules
 - **Endpoint→Service→Model:** No DB logic in routes
 - **Always `response_model`:** Type safety + auto-docs
 - **Async all the way:** `await` all I/O
-- **JSONB mutations:** Use `flag_modified()`
 
 ## Avoid
 
@@ -30,15 +34,7 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(404, "Not found")
     return item
 
-# Service layer
-class ItemService:
-    def __init__(self, db: AsyncSession = Depends(get_db)):
-        self.db = db
-    async def get_by_id(self, id: int) -> Item | None:
-        result = await self.db.execute(select(Item).where(Item.id == id))
-        return result.scalar_one_or_none()
-
-# JSONB mutation
+# JSONB mutation (CRITICAL)
 flag_modified(item, 'metadata')
 await db.commit()
 ```
