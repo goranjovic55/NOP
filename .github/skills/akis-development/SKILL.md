@@ -9,20 +9,31 @@ description: Load when editing AKIS framework files including .github/copilot-in
 - **Skills too terse:** Balance tokens with effectiveness (include Critical Gotchas)
 - **Pre-loaded assumption:** Context is NOT pre-attached, require explicit reads
 - **Missing enforcement:** Add HARD GATES for discipline
+- **Agent verbosity:** Remove ASCII art, use template references
+- **Duplicate content:** Skills table in agent → reference INDEX.md
 
 ## Token Targets (Balanced)
 
-| File Type | Target | Max | Notes |
+| Component | Target | Max | Notes |
 |-----------|--------|-----|-------|
 | Skills | <250 | 350 | Include gotchas! |
 | Instructions | <150 | 200 | Complementary |
+| Agents | <300 | 500 | Essential only |
 | INDEX.md | <100 | 150 | Quick reference |
 
+## Agent Optimization Pattern
+
+1. **Audit first:** `python .github/scripts/audit.py --target agents`
+2. **Remove duplicates:** Skills table → reference INDEX.md
+3. **Compress sections:** ASCII art → single line
+4. **Use references:** Templates → `.github/templates/`
+5. **Measure:** 100k simulation before/after
+
 ## Rules
-- **Skill cache:** Load once per domain per session
-- **Tables > prose** for mappings and triggers
+- **Tables > prose** for mappings
 - **Symbols:** ✓ ◆ ○ ⊘ ⧖ ⚠️ ⭐
-- **Always include:** Critical Gotchas section in skills
+- **Always include:** Critical Gotchas section
+- **Reference templates:** Don't embed verbose examples
 
 ## Avoid
 
@@ -30,9 +41,11 @@ description: Load when editing AKIS framework files including .github/copilot-in
 |--------|---------|
 | Verbose paragraphs | Numbered steps |
 | Token-only focus | Balance effectiveness |
-| Skip gotchas | Include ⚠️ Critical Gotchas |
+| Embedded templates | Reference .github/templates/ |
+| ASCII art summaries | Single-line format |
 
 ## Validation
 ```bash
 python .github/scripts/audit.py --target skills
+python .github/scripts/audit.py --target agents
 ```
