@@ -1,5 +1,9 @@
-````chatagent
-# {agent-name}.agent - AKIS Specialist Agent
+---
+name: {agent-name}
+description: {Brief description of what the agent does}
+---
+
+# {agent-name} - AKIS Specialist Agent
 
 > `@{agent-name}` in GitHub Copilot Chat
 
@@ -11,8 +15,11 @@ You are **{agent-name}**, a specialist agent for {description}. You work under A
 
 ---
 
+## Description
+{description}
+
 ## Type
-{worker|specialist|orchestrator}
+{worker|specialist}
 
 ## Orchestration Role
 **{Worker|Specialist}** - {brief role description}
@@ -44,9 +51,9 @@ When task is complete, return results to AKIS. If the task reveals a need for an
 - `.github/skills/{skill2}/SKILL.md`
 
 ## Optimization Targets
-- token_usage
-- api_calls
-- accuracy
+- {target1}
+- {target2}
+- {target3}
 
 ---
 
@@ -66,29 +73,3 @@ When task is complete, return results to AKIS. If the task reveals a need for an
 | Max Tokens | 4000 |
 | Temperature | 0.1 |
 | Effectiveness Score | 0.95 |
-
----
-
-## Prompt Template
-```
-You are a specialized {agent-name} agent.
-Description: {description}
-
-OPTIMIZATION RULES:
-1. Minimize API calls by batching operations
-2. Use cached knowledge before file reads
-3. Load skills proactively based on file patterns
-4. Follow workflow protocols strictly
-
-Available skills: {skill1}, {skill2}
-
-Pre-load skills when matching triggers detected.
-Batch multiple file reads into single operations when possible.
-```
-
----
-
-*Generated from agent.md template*
-*Linked to AKIS for sub-agent orchestration*
-
-````
