@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated**: 2026-01-09 | **Total Active Documents**: 44
+**Last Updated**: 2026-01-09 | **Total Active Documents**: 45
 
 ## Quick Links
 
@@ -14,7 +14,7 @@
 | [Guides](#guides) | 7 | Setup, deployment, and how-to guides |
 | [Screenshots](#screenshots) | 1 | Screenshots documentation |
 | [Technical](#technical) | 5 | API references and specifications |
-| [Archive](archive/INDEX.md) | 52+ | Historical documentation (superseded) |
+| [Archive](archive/INDEX.md) | 53 | Historical documentation (superseded) |
 
 ---
 
