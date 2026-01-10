@@ -3,22 +3,22 @@
   "generated_at": "2026-01-10T03:11:39.033229",
   "hot_cache": {
     "top_entities": [
-      "agents",
-      "audit",
-      "docs",
-      "instructions",
-      "knowledge",
-      "skills",
-      "traffic",
-      "SnifferService",
-      "ConnectionContextMenu",
-      "HostContextMenu",
-      "Agents",
-      "Host",
-      "Topology",
-      "Traffic",
-      "trafficService",
-      "authStore"
+      "workflows",
+      "websocket",
+      "router",
+      "control_flow",
+      "workflow_compiler",
+      "workflow_executor",
+      "ConfigPanel",
+      "ExecutionOverlay",
+      "WorkflowCanvas",
+      "useClipboard",
+      "useKeyboardShortcuts",
+      "useUndoRedo",
+      "useWorkflowExecution",
+      "WorkflowBuilder",
+      "blocks",
+      "workflowExport"
     ],
     "common_answers": [],
     "quick_facts": []
@@ -34,146 +34,146 @@
       "path": ".github/scripts/agents.py",
       "type": "module",
       "exports": [
-        "generate_agent_file",
-        "simulate_session_with_agent",
-        "count_documentation",
-        "generate_subagent_orchestration_map",
-        "optimize_agent"
+        "audit_akis_agent",
+        "audit_docs_system",
+        "get_session_files",
+        "simulate_akis_effectiveness",
+        "simulate_orchestration_chain"
       ],
-      "updated_at": "2026-01-10T03:11:39.033197"
+      "updated_at": "2026-01-10T20:52:01.906160"
     },
     {
       "name": "audit",
       "path": ".github/scripts/audit.py",
       "type": "module",
       "exports": [
-        "SessionSimulator",
-        "get_patterns",
-        "WorkflowParser",
-        "ComponentAnalyzer",
-        "analyze_instruction"
+        "simulate_optimized",
+        "SessionMetrics",
+        "AuditResult",
+        "analyze_instruction",
+        "SimulationResult"
       ],
-      "updated_at": "2026-01-10T03:11:39.033207"
+      "updated_at": "2026-01-10T20:52:01.906169"
     },
     {
       "name": "docs",
       "path": ".github/scripts/docs.py",
       "type": "module",
       "exports": [
-        "run_index",
-        "get_existing_docs",
+        "simulate_sessions",
+        "get_session_files",
         "GroundTruthExtractor",
-        "extract_all",
-        "run_analyze"
+        "run_analyze",
+        "get_existing_docs"
       ],
-      "updated_at": "2026-01-10T03:11:39.033210"
+      "updated_at": "2026-01-10T20:52:01.906171"
     },
     {
       "name": "instructions",
       "path": ".github/scripts/instructions.py",
       "type": "module",
       "exports": [
-        "generate_suggestions",
-        "extract_patterns_from_logs",
-        "read_workflow_logs",
         "SimulatedSession",
-        "InstructionPattern"
+        "get_session_files",
+        "simulate_sessions",
+        "read_workflow_logs",
+        "run_analyze"
       ],
-      "updated_at": "2026-01-10T03:11:39.033211"
+      "updated_at": "2026-01-10T20:52:01.906172"
     },
     {
       "name": "knowledge",
       "path": ".github/scripts/knowledge.py",
       "type": "module",
       "exports": [
-        "CodeAnalyzer",
-        "read_workflow_logs",
-        "CodeEntity",
-        "run_analyze",
-        "main"
+        "simulate_sessions",
+        "get_session_files",
+        "analyze_python",
+        "analyze_typescript",
+        "CodeAnalyzer"
       ],
-      "updated_at": "2026-01-10T03:11:39.033213"
+      "updated_at": "2026-01-10T20:52:01.906174"
     },
     {
       "name": "skills",
       "path": ".github/scripts/skills.py",
       "type": "module",
       "exports": [
+        "simulate_sessions",
+        "get_session_files",
         "SkillSuggestion",
-        "validate_skill_quality",
         "get_git_diff",
-        "read_workflow_logs",
-        "run_analyze"
+        "validate_skill_quality"
       ],
-      "updated_at": "2026-01-10T03:11:39.033214"
+      "updated_at": "2026-01-10T20:52:01.906177"
     },
     {
       "name": "traffic",
       "path": "backend/app/api/v1/endpoints/traffic.py",
       "type": "endpoint",
       "exports": [
-        "get_interfaces",
-        "advanced_ping",
+        "PingRequest",
         "packet_callback",
-        "start_storm",
-        "export_traffic"
+        "traffic_ws",
+        "get_interfaces",
+        "ping_host"
       ],
-      "updated_at": "2026-01-10T03:11:39.033216"
+      "updated_at": "2026-01-10T20:52:01.906178"
     },
     {
       "name": "SnifferService",
       "path": "backend/app/services/SnifferService.py",
       "type": "service",
       "exports": [
-        "get_interfaces",
-        "set_filter_unicast",
         "set_filter_multicast",
-        "start_storm",
-        "start_burst_capture"
+        "SnifferService",
+        "craft_and_send_packet",
+        "start_burst_capture",
+        "set_track_source_only"
       ],
-      "updated_at": "2026-01-10T03:11:39.033217"
+      "updated_at": "2026-01-10T20:52:01.906185"
     },
     {
       "name": "ConnectionContextMenu",
       "path": "frontend/src/components/ConnectionContextMenu.tsx",
       "type": "component",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033218"
+      "updated_at": "2026-01-10T20:52:01.906187"
     },
     {
       "name": "HostContextMenu",
       "path": "frontend/src/components/HostContextMenu.tsx",
       "type": "component",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033219"
+      "updated_at": "2026-01-10T20:52:01.906188"
     },
     {
       "name": "Agents",
       "path": "frontend/src/pages/Agents.tsx",
       "type": "page",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033221"
+      "updated_at": "2026-01-10T20:52:01.906197"
     },
     {
       "name": "Host",
       "path": "frontend/src/pages/Host.tsx",
       "type": "page",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033222"
+      "updated_at": "2026-01-10T20:52:01.906198"
     },
     {
       "name": "Topology",
       "path": "frontend/src/pages/Topology.tsx",
       "type": "page",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033223"
+      "updated_at": "2026-01-10T20:52:01.906201"
     },
     {
       "name": "Traffic",
       "path": "frontend/src/pages/Traffic.tsx",
       "type": "page",
       "exports": [],
-      "updated_at": "2026-01-10T03:11:39.033225"
+      "updated_at": "2026-01-10T20:52:01.906202"
     },
     {
       "name": "trafficService",
@@ -181,12 +181,12 @@
       "type": "module",
       "exports": [
         "BurstCaptureResult",
+        "trafficService",
+        "TrafficStats",
         "CaptureStatus",
-        "TrafficConnection",
-        "BurstCaptureConnection",
-        "trafficService"
+        "BurstCaptureConnection"
       ],
-      "updated_at": "2026-01-10T03:11:39.033226"
+      "updated_at": "2026-01-10T20:52:01.906205"
     },
     {
       "name": "authStore",
@@ -195,8 +195,297 @@
       "exports": [
         "useAuthStore"
       ],
-      "updated_at": "2026-01-10T03:11:39.033227"
+      "updated_at": "2026-01-10T20:52:01.906207"
+    },
+    {
+      "name": "simulation",
+      "path": ".github/scripts/simulation.py",
+      "type": "module",
+      "exports": [
+        "aggregate_results",
+        "SimulationResults",
+        "extract_patterns_from_workflow_logs",
+        "generate_delegation_recommendation",
+        "run_delegation_optimization"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906175"
+    },
+    {
+      "name": "workflows",
+      "path": "backend/app/api/v1/endpoints/workflows.py",
+      "type": "endpoint",
+      "exports": [
+        "execute_single_block",
+        "list_workflows",
+        "compile_workflow",
+        "list_executions",
+        "update_workflow"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781709"
+    },
+    {
+      "name": "router",
+      "path": "backend/app/api/v1/router.py",
+      "type": "endpoint",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906181"
+    },
+    {
+      "name": "workflow",
+      "path": "backend/app/models/workflow.py",
+      "type": "model",
+      "exports": [
+        "Workflow",
+        "WorkflowExecution",
+        "WorkflowStatus",
+        "ExecutionStatus"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906182"
+    },
+    {
+      "name": "workflow",
+      "path": "backend/app/schemas/workflow.py",
+      "type": "module",
+      "exports": [
+        "WorkflowStatus",
+        "WorkflowSettings",
+        "WorkflowEdge",
+        "Config",
+        "ExecutionResponse"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906183"
+    },
+    {
+      "name": "App",
+      "path": "frontend/src/App.tsx",
+      "type": "module",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906186"
+    },
+    {
+      "name": "Layout",
+      "path": "frontend/src/components/Layout.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906190"
+    },
+    {
+      "name": "BlockNode",
+      "path": "frontend/src/components/workflow/BlockNode.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906191"
+    },
+    {
+      "name": "BlockPalette",
+      "path": "frontend/src/components/workflow/BlockPalette.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906192"
+    },
+    {
+      "name": "ConfigPanel",
+      "path": "frontend/src/components/workflow/ConfigPanel.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T22:10:45.781728"
+    },
+    {
+      "name": "WorkflowCanvas",
+      "path": "frontend/src/components/workflow/WorkflowCanvas.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T22:10:45.781731"
+    },
+    {
+      "name": "index",
+      "path": "frontend/src/components/workflow/index.ts",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906196"
+    },
+    {
+      "name": "Scripts",
+      "path": "frontend/src/pages/Scripts.tsx",
+      "type": "page",
+      "exports": [],
+      "updated_at": "2026-01-10T20:52:01.906199"
+    },
+    {
+      "name": "WorkflowBuilder",
+      "path": "frontend/src/pages/WorkflowBuilder.tsx",
+      "type": "page",
+      "exports": [
+        "handleExport"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781737"
+    },
+    {
+      "name": "workflowApi",
+      "path": "frontend/src/services/workflowApi.ts",
+      "type": "module",
+      "exports": [
+        "workflowApi"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906206"
+    },
+    {
+      "name": "workflowStore",
+      "path": "frontend/src/store/workflowStore.ts",
+      "type": "store",
+      "exports": [
+        "useWorkflowStore"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906208"
+    },
+    {
+      "name": "blocks",
+      "path": "frontend/src/types/blocks.ts",
+      "type": "module",
+      "exports": [
+        "getBlockDefinition",
+        "getBlocksByCategory",
+        "BLOCK_DEFINITIONS",
+        "getBlockCounts",
+        "CATEGORY_ICONS"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781738"
+    },
+    {
+      "name": "workflow",
+      "path": "frontend/src/types/workflow.ts",
+      "type": "module",
+      "exports": [
+        "WorkflowSettings",
+        "WorkflowEdge",
+        "NodeResult",
+        "ParameterDefinition",
+        "WorkflowExecution"
+      ],
+      "updated_at": "2026-01-10T20:52:01.906211"
+    },
+    {
+      "name": "websocket",
+      "path": "backend/app/api/websocket.py",
+      "type": "endpoint",
+      "exports": [
+        "unsubscribe",
+        "get_subscriber_count",
+        "ConnectionManager",
+        "subscribe",
+        "broadcast"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781720"
+    },
+    {
+      "name": "router",
+      "path": "backend/app/api/websockets/router.py",
+      "type": "endpoint",
+      "exports": [
+        "broadcast_message",
+        "connect_websocket",
+        "workflow_execution_websocket",
+        "disconnect_websocket",
+        "topology_websocket"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781723"
+    },
+    {
+      "name": "control_flow",
+      "path": "backend/app/services/control_flow.py",
+      "type": "service",
+      "exports": [
+        "execute_parallel",
+        "set_variable",
+        "ControlFlowExecutor",
+        "ExecutionContext",
+        "ExpressionEvaluator"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781724"
+    },
+    {
+      "name": "workflow_compiler",
+      "path": "backend/app/services/workflow_compiler.py",
+      "type": "service",
+      "exports": [
+        "to_dict",
+        "ValidationError",
+        "CompilationError",
+        "CompiledDAG",
+        "NodeType"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781725"
+    },
+    {
+      "name": "workflow_executor",
+      "path": "backend/app/services/workflow_executor.py",
+      "type": "service",
+      "exports": [
+        "get_state",
+        "ExecutionContext",
+        "WorkflowExecutor",
+        "set_var",
+        "to_dict"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781727"
+    },
+    {
+      "name": "ExecutionOverlay",
+      "path": "frontend/src/components/workflow/ExecutionOverlay.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T22:10:45.781729"
+    },
+    {
+      "name": "useClipboard",
+      "path": "frontend/src/hooks/useClipboard.ts",
+      "type": "module",
+      "exports": [
+        "useClipboard"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781732"
+    },
+    {
+      "name": "useKeyboardShortcuts",
+      "path": "frontend/src/hooks/useKeyboardShortcuts.ts",
+      "type": "module",
+      "exports": [
+        "useKeyboardShortcuts",
+        "KEYBOARD_SHORTCUTS"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781733"
+    },
+    {
+      "name": "useUndoRedo",
+      "path": "frontend/src/hooks/useUndoRedo.ts",
+      "type": "module",
+      "exports": [
+        "useUndoRedo"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781734"
+    },
+    {
+      "name": "useWorkflowExecution",
+      "path": "frontend/src/hooks/useWorkflowExecution.ts",
+      "type": "module",
+      "exports": [
+        "useWorkflowExecution"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781736"
+    },
+    {
+      "name": "workflowExport",
+      "path": "frontend/src/utils/workflowExport.ts",
+      "type": "module",
+      "exports": [
+        "exportWorkflow",
+        "regenerateIds",
+        "validateWorkflow",
+        "triggerImport",
+        "ExportedWorkflow"
+      ],
+      "updated_at": "2026-01-10T22:10:45.781740"
     }
   ],
-  "last_updated": "2026-01-10T03:11:39.033236"
+  "last_updated": "2026-01-10T22:10:45.781776"
 }

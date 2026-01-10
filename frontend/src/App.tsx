@@ -10,6 +10,7 @@ import Traffic from './pages/Traffic';
 import Scans from './pages/Scans';
 import Access from './pages/Access';
 import Host from './pages/Host';
+import WorkflowBuilder from './pages/WorkflowBuilder';
 import Settings from './pages/Settings';
 import Agents from './pages/Agents';
 import Login from './pages/Login';
@@ -48,6 +49,7 @@ function App() {
                   <Route path="/scans" element={<Scans />} />
                   <Route path="/access" element={<Access />} />
                   <Route path="/host" element={<Host />} />
+                  <Route path="/workflows" element={<WorkflowBuilder />} />
                   <Route path="/agents" element={<Agents />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/login" element={<Navigate to="/dashboard" replace />} />

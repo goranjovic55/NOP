@@ -8,7 +8,12 @@ description: Update docs, READMEs, comments. Returns trace to AKIS.
 > `@documentation` | Update docs with trace
 
 ## Triggers
-doc, readme, comment, explain, document
+| Pattern | Type |
+|---------|------|
+| doc, readme, explain, document | Keywords |
+| .md | Extensions |
+| docs/, .github/agents/, .github/instructions/ | Directories |
+| .github/skills/, project_knowledge | AKIS |
 
 ## Requirements (⛔ ENFORCED)
 | Section | Required |

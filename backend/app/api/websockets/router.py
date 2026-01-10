@@ -3,9 +3,11 @@ WebSocket router for real-time communication
 """
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Optional
 import json
 import asyncio
 from app.api.v1.websockets.exploit import router as exploit_ws_router
+from app.api.websocket import handle_websocket_connection
 
 websocket_router = APIRouter()
 
@@ -80,3 +82,14 @@ async def events_websocket(websocket: WebSocket):
             
     except WebSocketDisconnect:
         disconnect_websocket(websocket)
+
+
+@websocket_router.websocket("/workflow/execution")
+async def workflow_execution_websocket(websocket: WebSocket, execution_id: Optional[str] = None):
+    """
+    WebSocket endpoint for workflow execution updates.
+    
+    Connect with optional execution_id to subscribe immediately.
+    Send { "action": "subscribe", "executionId": "..." } to subscribe to updates.
+    """
+    await handle_websocket_connection(websocket, execution_id)
