@@ -11,16 +11,27 @@ import { WorkflowCreate, NodeExecutionStatus, WorkflowNode, WorkflowEdge } from 
 import { CyberCard, CyberButton, CyberInput, CyberPageTitle } from '../components/CyberUI';
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution';
 import { useUndoRedo } from '../hooks/useUndoRedo';
-import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useClipboard } from '../hooks/useClipboard';
 import { exportWorkflow, triggerImport, regenerateIds, validateWorkflow } from '../utils/workflowExport';
+
+// Compact shortcuts for persistent legend
+const SHORTCUT_LEGEND = [
+  { keys: '⌘S', desc: 'Save' },
+  { keys: '⌘Z', desc: 'Undo' },
+  { keys: '⌘⇧Z', desc: 'Redo' },
+  { keys: 'Del', desc: 'Delete' },
+  { keys: '⌘D', desc: 'Duplicate' },
+  { keys: '⌘C/V/X', desc: 'Copy/Paste/Cut' },
+  { keys: 'Esc', desc: 'Deselect' },
+  { keys: 'F5', desc: 'Run' },
+];
 
 const WorkflowBuilder: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   
   const {
     workflows,
@@ -45,7 +56,7 @@ const WorkflowBuilder: React.FC = () => {
   } = useWorkflowStore();
 
   // Undo/Redo
-  const { saveState, undo, redo, canUndo, canRedo, clearHistory } = useUndoRedo();
+  const { saveState, undo, redo, clearHistory } = useUndoRedo();
   
   // Clipboard
   const { copy, cut, paste, duplicate, hasContent: hasClipboardContent } = useClipboard();
@@ -360,16 +371,16 @@ const WorkflowBuilder: React.FC = () => {
     <div className="h-full flex flex-col bg-cyber-black">
       {/* Header */}
       <div className="p-4 border-b border-cyber-gray flex items-center justify-between">
-        {/* Left: Title and Workflow selector */}
+        {/* Left: Title and Flow selector */}
         <div className="flex items-center gap-4">
-          <CyberPageTitle color="purple">◇ WORKFLOWS</CyberPageTitle>
+          <CyberPageTitle color="purple">◇ FLOWS</CyberPageTitle>
           
           <select
             value={currentWorkflowId || ''}
             onChange={(e) => setCurrentWorkflow(e.target.value || null)}
             className="cyber-select min-w-[200px]"
           >
-            <option value="">[ SELECT WORKFLOW ]</option>
+            <option value="">[ SELECT FLOW ]</option>
             {workflows.map(w => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
@@ -401,15 +412,6 @@ const WorkflowBuilder: React.FC = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          <CyberButton
-            variant="gray"
-            size="sm"
-            onClick={() => setShowKeyboardHelp(true)}
-            title="Keyboard Shortcuts"
-          >
-            ⌨
-          </CyberButton>
-          
           {currentWorkflow && (
             <>
               <CyberButton variant="gray" size="sm" onClick={handleExport}>
@@ -454,12 +456,12 @@ const WorkflowBuilder: React.FC = () => {
             <div className="absolute inset-0 flex items-center justify-center">
               <CyberCard className="p-8 text-center">
                 <div className="text-cyber-purple text-4xl mb-4">◇</div>
-                <h2 className="text-xl text-cyber-gray-light mb-4 font-mono">NO WORKFLOW SELECTED</h2>
+                <h2 className="text-xl text-cyber-gray-light mb-4 font-mono">NO FLOW SELECTED</h2>
                 <CyberButton
                   variant="purple"
                   onClick={() => setShowNewWorkflowModal(true)}
                 >
-                  + CREATE NEW WORKFLOW
+                  + CREATE NEW FLOW
                 </CyberButton>
               </CyberCard>
             </div>
@@ -486,6 +488,22 @@ const WorkflowBuilder: React.FC = () => {
             onClose={() => setSelectedNodeId(null)} 
           />
         )}
+
+        {/* Persistent Keyboard Shortcuts Legend */}
+        <div className="absolute bottom-4 right-4 z-10">
+          <div className="bg-cyber-darker/90 border border-cyber-gray/50 rounded px-3 py-2">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {SHORTCUT_LEGEND.map((s, i) => (
+                <div key={i} className="flex items-center gap-1 text-xs">
+                  <kbd className="px-1 py-0.5 bg-cyber-black border border-cyber-gray/40 rounded text-[10px] font-mono text-cyber-blue">
+                    {s.keys}
+                  </kbd>
+                  <span className="text-cyber-gray-light">{s.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* New Workflow Modal */}
@@ -493,14 +511,14 @@ const WorkflowBuilder: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <CyberCard className="p-6 w-96 border-cyber-purple">
             <h3 className="text-lg font-mono text-cyber-purple mb-4 flex items-center gap-2">
-              <span>◇</span> NEW WORKFLOW
+              <span>◇</span> NEW FLOW
             </h3>
             
             <CyberInput
               type="text"
               value={newWorkflowName}
               onChange={(e) => setNewWorkflowName(e.target.value)}
-              placeholder="Workflow name..."
+              placeholder="Flow name..."
               className="w-full mb-4"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleCreateWorkflow()}
@@ -530,45 +548,7 @@ const WorkflowBuilder: React.FC = () => {
         </div>
       )}
 
-      {/* Keyboard Shortcuts Help Modal */}
-      {showKeyboardHelp && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <CyberCard className="p-6 w-[500px] max-h-[80vh] overflow-y-auto border-cyber-blue">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-mono text-cyber-blue flex items-center gap-2">
-                <span>⌨</span> KEYBOARD SHORTCUTS
-              </h3>
-              <CyberButton
-                variant="gray"
-                size="sm"
-                onClick={() => setShowKeyboardHelp(false)}
-              >
-                ✕
-              </CyberButton>
-            </div>
-            
-            <div className="space-y-1">
-              {KEYBOARD_SHORTCUTS.map((shortcut, idx) => (
-                <div 
-                  key={idx}
-                  className="flex justify-between items-center py-2 border-b border-cyber-gray/30"
-                >
-                  <span className="text-cyber-gray-light text-sm">{shortcut.description}</span>
-                  <kbd className="px-2 py-1 bg-cyber-darker border border-cyber-gray rounded text-xs font-mono text-cyber-blue">
-                    {shortcut.keys}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-4 text-xs text-cyber-gray">
-              <p>* Zoom controls handled by canvas</p>
-              <p>* Undo/Redo available: {canUndo() ? 'Yes' : 'No'} / {canRedo() ? 'Yes' : 'No'}</p>
-            </div>
-          </CyberCard>
-        </div>
-      )}
-    </div>
+      </div>
   );
 };
 
