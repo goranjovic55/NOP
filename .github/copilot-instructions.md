@@ -41,23 +41,25 @@
 ## END (⛔ G4 - MANDATORY before session close)
 ```
 1. Check ⊘ orphans → close ALL
-2. Run scripts with --update flag (auto-apply changes):
-   python .github/scripts/knowledge.py --update    # Auto-append entities
-   python .github/scripts/skills.py --update       # Auto-create skill stubs
-   python .github/scripts/instructions.py --update # Auto-create instruction files
-   python .github/scripts/docs.py --update         # Auto-update docs
-   python .github/scripts/agents.py --update       # Auto-update agents
-3. CONFIRM: Check output shows success (no errors)
-4. VERIFY: Modified files look correct, nothing destroyed
-5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md with:
-   - Summary of changes
-   - Worktree (todos with status symbols)
-   - Files modified
-   - Scripts run with --update
-6. Show END summary → commit
+2. Run scripts WITHOUT flag (analyze mode - show suggestions):
+   python .github/scripts/knowledge.py      # Shows entity suggestions
+   python .github/scripts/skills.py         # Shows skill gaps
+   python .github/scripts/instructions.py   # Shows instruction gaps
+   python .github/scripts/docs.py           # Shows doc updates
+   python .github/scripts/agents.py         # Shows agent updates
+3. SHOW suggestions to user and ASK:
+   "Scripts suggest these updates. Implement? [y/n/select]"
+4. IF user AGREES (no changes needed):
+   → Run with --update flag: python .github/scripts/{script}.py --update
+   → VERIFY: Read modified files to confirm content is correct
+   → Report: "✓ {N} files updated successfully"
+5. IF user wants CHANGES or DEVIATIONS:
+   → Agent implements manually based on user feedback
+6. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+7. Show END summary → commit
 ```
 
-**Scripts with --update = auto-apply | Agent = confirm success, verify files**
+**Flow:** Analyze → Ask → (Agree? --update → Verify) or (Deviate? Agent writes)
 
 **Trigger:** User says "wrap up", "done", "end session", "commit"
 

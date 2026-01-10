@@ -43,21 +43,30 @@ Task and workflow tracking for consistent, visible progress.
 
 ## END Phase Scripts (⛔ MANDATORY)
 
-Run scripts with `--update` flag to auto-apply changes. Agent confirms result.
+**Step 1:** Run scripts WITHOUT flag to see suggestions:
+```bash
+python .github/scripts/knowledge.py      # Shows suggestions
+python .github/scripts/skills.py         # Shows gaps
+python .github/scripts/instructions.py   # Shows gaps
+python .github/scripts/docs.py           # Shows updates
+python .github/scripts/agents.py         # Shows updates
+```
 
-| Script | Default (analyze) | With --update | Agent Action |
-|--------|-------------------|---------------|--------------|
-| `knowledge.py` | Show suggestions | Auto-append | Confirm changes |
-| `skills.py` | Show gaps | Auto-create | Confirm files created |
-| `instructions.py` | Show gaps | Auto-create | Confirm files created |
-| `docs.py` | Show updates | Auto-update | Confirm docs updated |
-| `agents.py` | Show updates | Auto-update | Confirm agents updated |
+**Step 2:** Ask user: "Implement these? [y/n/select]"
 
-**Flow:**
-1. Run: `python .github/scripts/{script}.py --update`
-2. Confirm: Check output for success/errors
-3. Verify: Ensure nothing was destroyed
-4. Report: Show summary to user
+**Step 3:** Based on response:
+| User Response | Agent Action |
+|---------------|--------------|
+| y (yes) | Run `--update` flag, then verify files written correctly |
+| n (no) | Skip this script |
+| select | User picks specific items; agent implements only those manually |
+
+**Step 4:** After `--update`, agent MUST verify:
+- Check script output for success/errors
+- Read modified files to confirm content is correct
+- Report: "✓ {N} files updated successfully" or fix issues
+
+**Flow:** Analyze → Ask → (Agree? `--update` → Verify) or (Deviate? Agent writes)
 
 ## Workflow Log
 

@@ -24,17 +24,19 @@ description: Load when editing AKIS framework files including .github/copilot-in
 
 ## END Phase Scripts
 
-All scripts support `--update` flag for auto-apply:
+**Two-step flow:**
+1. Run WITHOUT flag → Show suggestions → Ask user
+2. IF agreed → Run with `--update` → Verify files written correctly
 
-| Script | Default | --update | Agent Role |
-|--------|---------|----------|------------|
-| `knowledge.py` | Analyze | Auto-append | Confirm success |
-| `skills.py` | Analyze | Auto-create | Confirm files |
-| `instructions.py` | Analyze | Auto-create | Confirm files |
-| `docs.py` | Analyze | Auto-update | Confirm docs |
-| `agents.py` | Analyze | Auto-update | Confirm agents |
+| Script | Default | --update | After --update |
+|--------|---------|----------|----------------|
+| `knowledge.py` | Analyze | Auto-append | Verify entities |
+| `skills.py` | Analyze | Auto-create | Verify files |
+| `instructions.py` | Analyze | Auto-create | Verify files |
+| `docs.py` | Analyze | Auto-update | Verify docs |
+| `agents.py` | Analyze | Auto-update | Verify agents |
 
-**Pattern:** `python .github/scripts/{script}.py --update` → Confirm → Verify
+**Flow:** Analyze → Ask → (Agree? `--update` → Verify) or (Deviate? Agent writes)
 
 ## Agent Optimization Pattern
 

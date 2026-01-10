@@ -32,21 +32,24 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 **Complex (6+ files):** Delegate to specialists
 
-## END (Scripts Auto-Update → Agent Confirms)
+## END (Analyze → Ask → Update → Verify)
 
 1. Close orphan ⊘
-2. Run scripts with `--update` flag (auto-apply changes):
+2. Run scripts WITHOUT flag (show suggestions):
    ```bash
-   python .github/scripts/knowledge.py --update    # Auto-append entities
-   python .github/scripts/skills.py --update       # Auto-create skill stubs
-   python .github/scripts/instructions.py --update # Auto-create instructions
-   python .github/scripts/docs.py --update         # Auto-update docs
-   python .github/scripts/agents.py --update       # Auto-update agents
+   python .github/scripts/knowledge.py      # Shows suggestions
+   python .github/scripts/skills.py         # Shows gaps
+   python .github/scripts/instructions.py   # Shows gaps
+   python .github/scripts/docs.py           # Shows updates
+   python .github/scripts/agents.py         # Shows updates
    ```
-3. Confirm output shows success (no errors)
-4. Verify: Check modified files look correct, nothing destroyed
-5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-6. Commit
+3. Ask user: "Implement these? [y/n/select]"
+4. IF user agrees → Run with `--update` flag
+5. VERIFY: Read modified files to confirm content is correct
+6. Report: "✓ {N} files updated successfully" or fix issues
+7. IF user wants deviations → Agent implements manually
+8. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+9. Commit
 
 ## Delegation
 
