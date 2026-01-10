@@ -7,6 +7,7 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import ProtocolConnection from '../components/ProtocolConnection';
 import { useAccessStore, Protocol } from '../store/accessStore';
+import { logger } from '../utils/logger';
 
 const Host: React.FC = () => {
   const { token, logout, _hasHydrated } = useAuthStore();
@@ -141,7 +142,7 @@ const Host: React.FC = () => {
       
       ws.onerror = (error) => {
         term.writeln('\x1b[1;31m✗ Connection error\x1b[0m');
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket error:', error);
       };
       
       ws.onclose = (event) => {
@@ -198,7 +199,7 @@ const Host: React.FC = () => {
       setSystemInfo(info);
       setLoading(false);
     } catch (error: any) {
-      console.error('Failed to fetch system info:', error);
+      logger.error('Failed to fetch system info:', error);
       setLoading(false);
       if (error?.response?.status === 401) {
         // Session expired - auto logout and let app redirect to login
@@ -218,7 +219,7 @@ const Host: React.FC = () => {
       setMetrics(data);
       setError(null);
     } catch (error: any) {
-      console.error('Failed to fetch metrics:', error);
+      logger.error('Failed to fetch metrics:', error);
       if (error?.response?.status === 401) {
         // Session expired - auto logout and let app redirect to login
         logout();
@@ -233,7 +234,7 @@ const Host: React.FC = () => {
       const data = await hostService.getProcesses(token, 15, activeAgent?.id);
       setProcesses(data);
     } catch (error: any) {
-      console.error('Failed to fetch processes:', error);
+      logger.error('Failed to fetch processes:', error);
       if (error?.response?.status === 401) {
         logout();
         return;
@@ -247,7 +248,7 @@ const Host: React.FC = () => {
       const data = await hostService.getNetworkConnections(token, 20, activeAgent?.id);
       setConnections(data);
     } catch (error: any) {
-      console.error('Failed to fetch connections:', error);
+      logger.error('Failed to fetch connections:', error);
       if (error?.response?.status === 401) {
         logout();
         return;
@@ -261,7 +262,7 @@ const Host: React.FC = () => {
       const data = await hostService.getDiskIO(token, activeAgent?.id);
       setDiskIO(data);
     } catch (error: any) {
-      console.error('Failed to fetch disk I/O:', error);
+      logger.error('Failed to fetch disk I/O:', error);
       if (error?.response?.status === 401) {
         logout();
         return;
@@ -276,7 +277,7 @@ const Host: React.FC = () => {
       setCurrentPath(data.current_path);
       setFileItems(data.items);
     } catch (error: any) {
-      console.error('Failed to browse directory:', error);
+      logger.error('Failed to browse directory:', error);
       if (error?.response?.status === 401) {
         logout();
         return;
@@ -294,7 +295,7 @@ const Host: React.FC = () => {
         setFileContent(content.content);
         setEditMode(false);
       } catch (error) {
-        console.error('Failed to read file:', error);
+        logger.error('Failed to read file:', error);
       }
     }
   };
@@ -306,7 +307,7 @@ const Host: React.FC = () => {
       setEditMode(false);
       alert('File saved successfully');
     } catch (error) {
-      console.error('Failed to save file:', error);
+      logger.error('Failed to save file:', error);
       alert('Failed to save file');
     }
   };
@@ -333,7 +334,7 @@ const Host: React.FC = () => {
         setTransferStatus('⚠ Directory access not supported in this browser');
       }
     } catch (err) {
-      console.error('Directory picker cancelled or failed:', err);
+      logger.error('Directory picker cancelled or failed:', err);
     }
   };
 
@@ -455,7 +456,7 @@ const Host: React.FC = () => {
           [id]: { ...prev[id], status: 'paused' }
         }));
       } else {
-        console.error('Upload failed:', error);
+        logger.error('Upload failed:', error);
         setUploadProgress(prev => ({ 
           ...prev, 
           [id]: { ...prev[id], status: 'failed' }
@@ -534,7 +535,7 @@ const Host: React.FC = () => {
             await writable.close();
             setTransferStatus(`✓ Saved ${data.filename} to local directory`);
           } catch (err) {
-            console.error('Direct save failed, falling back to download:', err);
+            logger.error('Direct save failed, falling back to download:', err);
             triggerBrowserDownload(bytes, data.filename);
           }
         } else {
@@ -558,7 +559,7 @@ const Host: React.FC = () => {
         throw new Error('Download failed');
       }
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       setDownloadProgress(prev => ({
         ...prev,
         [downloadId]: { ...prev[downloadId], status: 'failed' }

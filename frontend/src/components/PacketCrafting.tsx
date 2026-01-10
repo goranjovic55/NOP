@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Asset } from '../services/assetService';
 import { CyberSectionHeader } from './CyberUI';
+import { logger } from '../utils/logger';
 
 interface PacketCraftingProps {
   onBack?: () => void;
@@ -188,7 +189,7 @@ const PacketCrafting: React.FC<PacketCraftingProps> = ({ onBack, assets = [] }) 
       const data = await res.json();
       setResponse(data);
     } catch (err) {
-      console.error('Failed to send packet:', err);
+      logger.error('Failed to send packet:', err);
       setResponse({ success: false, error: 'Failed to send packet. Check network permissions or destination IP.' });
     } finally {
       setIsSending(false);

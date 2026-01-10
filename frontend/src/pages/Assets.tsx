@@ -234,7 +234,7 @@ const Assets: React.FC = () => {
         }, 5000);
       }
     } catch (err) {
-      console.error('Discovery failed:', err);
+      logger.error('Discovery failed:', err);
       setIsScanning(false);
       setIsDiscovering(false);
     }
@@ -256,7 +256,7 @@ const Assets: React.FC = () => {
             }
           }
         } catch (err) {
-          console.error("Failed to poll scan status", err);
+          logger.error("Failed to poll scan status", err);
           setIsScanning(false);
           setIsDiscovering(false);
           setActiveScanId(null);
@@ -297,7 +297,7 @@ const Assets: React.FC = () => {
       await assetService.importPassiveDiscovery(token);
       fetchAssets(false);
     } catch (err) {
-      console.error('Failed to import passive discovery:', err);
+      logger.error('Failed to import passive discovery:', err);
     }
   }, [token, scanSettings.passiveDiscoveryEnabled, fetchAssets]);
 
@@ -505,7 +505,7 @@ const Assets: React.FC = () => {
                     await assetService.deleteAllAssets(token || '');
                     fetchAssets(true);
                   } catch (err) {
-                    console.error('Failed to clear assets:', err);
+                    logger.error('Failed to clear assets:', err);
                   }
                 }
               }} 

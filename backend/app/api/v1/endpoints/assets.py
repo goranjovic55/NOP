@@ -11,7 +11,10 @@ import uuid
 
 from app.core.database import get_db
 from app.core.pov_middleware import get_agent_pov
-from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats
+from app.schemas.asset import (
+    AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats,
+    OnlineAssetResponse, AssetClassificationResponse
+)
 from app.services.asset_service import AssetService
 from app.models.asset import Asset
 
@@ -67,7 +70,7 @@ async def get_asset_stats(
     )
 
 
-@router.get("/online", response_model=List[dict])
+@router.get("/online", response_model=List[OnlineAssetResponse])
 async def get_online_assets(db: AsyncSession = Depends(get_db)):
     """Get list of all assets (online and offline) for dropdown"""
     asset_service = AssetService(db)
@@ -78,16 +81,16 @@ async def get_online_assets(db: AsyncSession = Depends(get_db)):
     )
     # Return simplified list with IP, hostname, and status
     return [
-        {
-            "ip_address": asset.ip_address,
-            "hostname": asset.hostname or asset.ip_address,
-            "status": asset.status
-        }
+        OnlineAssetResponse(
+            ip_address=str(asset.ip_address),
+            hostname=asset.hostname or str(asset.ip_address),
+            status=str(asset.status)
+        )
         for asset in result.assets
     ]
 
 
-@router.get("/classification")
+@router.get("/classification", response_model=AssetClassificationResponse)
 async def get_asset_classification(db: AsyncSession = Depends(get_db)):
     """Get asset classification breakdown by OS type"""
     try:

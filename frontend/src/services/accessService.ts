@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 const API_URL = '/api/v1/access';
 
@@ -17,7 +18,7 @@ export const accessService = {
       });
       return response.data.credentials || [];
     } catch (error) {
-      console.error('Credential fetch error:', error);
+      logger.error('Credential fetch error:', error);
       return [];
     }
   },

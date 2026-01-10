@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useScanStore, Vulnerability } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 interface AssetListItemProps {
   asset: Asset & { has_been_scanned?: boolean; last_detailed_scan?: string | null };
@@ -103,7 +104,7 @@ const Scans: React.FC = () => {
     setLoadingAssets(true);
     assetService.getAssets(token, undefined, activeAgent?.id)
       .then((resp) => setAssets(resp))
-      .catch((err) => console.error('Failed to load assets', err))
+      .catch((err) => logger.error('Failed to load assets', err))
       .finally(() => setLoadingAssets(false));
   }, [token, activeAgent]);
 
