@@ -24,13 +24,17 @@ description: Load when editing AKIS framework files including .github/copilot-in
 
 ## END Phase Scripts
 
-| Script | Output Type | Agent Action |
-|--------|-------------|--------------|
-| `knowledge.py` | Entity suggestions | Append JSONL to project_knowledge.json |
-| `skills.py` | Skill gaps | Create .github/skills/{name}/SKILL.md |
-| `instructions.py` | Instruction gaps | Create .github/instructions/{name}.instructions.md |
-| `docs.py` | Doc updates | Update docs/ files |
-| `agents.py` | Agent updates | Update .github/agents/*.agent.md |
+All scripts support `--update` flag for auto-apply:
+
+| Script | Default | --update | Agent Role |
+|--------|---------|----------|------------|
+| `knowledge.py` | Analyze | Auto-append | Confirm success |
+| `skills.py` | Analyze | Auto-create | Confirm files |
+| `instructions.py` | Analyze | Auto-create | Confirm files |
+| `docs.py` | Analyze | Auto-update | Confirm docs |
+| `agents.py` | Analyze | Auto-update | Confirm agents |
+
+**Pattern:** `python .github/scripts/{script}.py --update` → Confirm → Verify
 
 ## Agent Optimization Pattern
 

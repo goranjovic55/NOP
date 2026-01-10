@@ -43,17 +43,21 @@ Task and workflow tracking for consistent, visible progress.
 
 ## END Phase Scripts (⛔ MANDATORY)
 
-Run these scripts at session end and **interpret output as guidance**:
+Run scripts with `--update` flag to auto-apply changes. Agent confirms result.
 
-| Script | Purpose | Agent Action |
-|--------|---------|--------------|
-| `python .github/scripts/knowledge.py` | Suggests entity updates | Append to project_knowledge.json |
-| `python .github/scripts/skills.py` | Suggests new skills | Create .github/skills/{name}/SKILL.md |
-| `python .github/scripts/instructions.py` | Suggests instruction gaps | Create .github/instructions/{name}.instructions.md |
-| `python .github/scripts/docs.py` | Suggests doc updates | Update docs/ files |
-| `python .github/scripts/agents.py` | Suggests agent updates | Update .github/agents/*.agent.md |
+| Script | Default (analyze) | With --update | Agent Action |
+|--------|-------------------|---------------|--------------|
+| `knowledge.py` | Show suggestions | Auto-append | Confirm changes |
+| `skills.py` | Show gaps | Auto-create | Confirm files created |
+| `instructions.py` | Show gaps | Auto-create | Confirm files created |
+| `docs.py` | Show updates | Auto-update | Confirm docs updated |
+| `agents.py` | Show updates | Auto-update | Confirm agents updated |
 
-**Flow:** Run scripts → Show output → Ask user → Implement approved suggestions
+**Flow:**
+1. Run: `python .github/scripts/{script}.py --update`
+2. Confirm: Check output for success/errors
+3. Verify: Ensure nothing was destroyed
+4. Report: Show summary to user
 
 ## Workflow Log
 

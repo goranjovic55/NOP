@@ -32,19 +32,19 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 **Complex (6+ files):** Delegate to specialists
 
-## END (Scripts Suggest → User Approves → Agent Implements)
+## END (Scripts Auto-Update → Agent Confirms)
 
 1. Close orphan ⊘
-2. Run scripts from `.github/scripts/` (interpret output as guidance):
+2. Run scripts with `--update` flag (auto-apply changes):
    ```bash
-   python .github/scripts/knowledge.py   # → Append entities to project_knowledge.json
-   python .github/scripts/skills.py      # → Create .github/skills/{name}/SKILL.md
-   python .github/scripts/instructions.py # → Create .github/instructions/{name}.instructions.md
-   python .github/scripts/docs.py         # → Update docs/ files
-   python .github/scripts/agents.py       # → Update .github/agents/*.agent.md
+   python .github/scripts/knowledge.py --update    # Auto-append entities
+   python .github/scripts/skills.py --update       # Auto-create skill stubs
+   python .github/scripts/instructions.py --update # Auto-create instructions
+   python .github/scripts/docs.py --update         # Auto-update docs
+   python .github/scripts/agents.py --update       # Auto-update agents
    ```
-3. Show suggestions → Ask user: "Implement these? [y/n/select]"
-4. IF approved → Implement changes based on script output
+3. Confirm output shows success (no errors)
+4. Verify: Check modified files look correct, nothing destroyed
 5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
 6. Commit
 
