@@ -196,6 +196,16 @@ KNOWN_INSTRUCTION_PATTERNS = [
         keywords=["interrupt", "pause", "context", "switch"],
         severity="medium"
     ),
+    InstructionPattern(
+        name="workflow_discipline",
+        description="Follow workflow tracking discipline with symbols",
+        category="work",
+        triggers=["task_start", "multi_step"],
+        expected_behavior="Use ◆ before edit, ✓ after, close ⊘ orphans",
+        failure_mode="Untracked work, orphan tasks, lost progress",
+        keywords=["workflow", "discipline", "◆", "✓", "⊘", "orphan", "worktree"],
+        severity="high"
+    ),
 ]
 
 
