@@ -641,7 +641,7 @@ class SnifferService:
                 stop_filter=lambda p: not self.is_sniffing
             )
         except Exception as e:
-            print(f"Sniffing error: {e}")
+            logger.error("Sniffing error: %s", e)
             self.is_sniffing = False
 
     def start_sniffing(self, interface: str, callback: Optional[Callable], filter_str: Optional[str] = None, persistent: bool = False):

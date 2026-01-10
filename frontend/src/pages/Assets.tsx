@@ -152,7 +152,7 @@ const Assets: React.FC = () => {
           passiveDiscoveryEnabled: discovery.passive_discovery || false
         }));
       } catch (err) {
-        console.log('Could not fetch agent settings, using defaults');
+        // Agent settings not available, using defaults
       }
     };
     
