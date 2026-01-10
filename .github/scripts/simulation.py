@@ -2730,6 +2730,455 @@ def print_agent_simulation_report(results: Dict[str, AgentSimulationResult], ses
 
 
 # ============================================================================
+# AKIS Framework Comprehensive Analysis
+# ============================================================================
+
+def analyze_akis_framework(
+    patterns: Dict[str, Any],
+    config: SimulationConfig
+) -> Dict[str, Any]:
+    """
+    Comprehensive analysis of the entire AKIS framework across 100k sessions.
+    Analyzes: token efficiency, cognitive load, traceability, discipline,
+    efficiency, speed, and resolution rate.
+    """
+    
+    print("\n" + "=" * 80)
+    print("COMPREHENSIVE AKIS FRAMEWORK ANALYSIS")
+    print("=" * 80)
+    
+    # Run baseline simulation
+    print(f"\n🔄 Running BASELINE simulation ({config.session_count:,} sessions)...")
+    random.seed(config.seed)
+    baseline_config = AKISConfiguration(version="baseline")
+    baseline_results, baseline_sessions = run_simulation(patterns, baseline_config, config)
+    
+    # Run optimized simulation
+    print(f"\n🚀 Running OPTIMIZED simulation ({config.session_count:,} sessions)...")
+    random.seed(config.seed + 1)
+    optimized_results, optimized_sessions = run_optimized_simulation(patterns, config)
+    
+    n = len(baseline_sessions)
+    
+    # Token Efficiency Analysis
+    baseline_tokens_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    optimized_tokens_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    for s in baseline_sessions:
+        baseline_tokens_by_complexity[s.complexity].append(s.token_usage)
+    for s in optimized_sessions:
+        optimized_tokens_by_complexity[s.complexity].append(s.token_usage)
+    
+    token_efficiency = {
+        "baseline_avg": baseline_results.avg_token_usage,
+        "optimized_avg": optimized_results.avg_token_usage,
+        "improvement": (baseline_results.avg_token_usage - optimized_results.avg_token_usage) / baseline_results.avg_token_usage,
+        "total_saved": baseline_results.total_tokens - optimized_results.total_tokens,
+        "per_complexity": {
+            k: {
+                "baseline": sum(baseline_tokens_by_complexity[k])/len(baseline_tokens_by_complexity[k]) if baseline_tokens_by_complexity[k] else 0,
+                "optimized": sum(optimized_tokens_by_complexity[k])/len(optimized_tokens_by_complexity[k]) if optimized_tokens_by_complexity[k] else 0
+            }
+            for k in ['simple', 'medium', 'complex']
+        },
+        "efficiency_score": 1 - (optimized_results.avg_token_usage / 25000),
+    }
+    
+    # Cognitive Load Analysis
+    baseline_cognitive_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    optimized_cognitive_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    for s in baseline_sessions:
+        baseline_cognitive_by_complexity[s.complexity].append(s.cognitive_load)
+    for s in optimized_sessions:
+        optimized_cognitive_by_complexity[s.complexity].append(s.cognitive_load)
+    
+    high_cognitive_sessions = [s for s in baseline_sessions if s.cognitive_load > 0.7]
+    cognitive_load = {
+        "baseline_avg": baseline_results.avg_cognitive_load,
+        "optimized_avg": optimized_results.avg_cognitive_load,
+        "improvement": (baseline_results.avg_cognitive_load - optimized_results.avg_cognitive_load) / baseline_results.avg_cognitive_load,
+        "high_load_sessions": len(high_cognitive_sessions),
+        "contributing_factors": {
+            'high_task_count': sum(1 for s in high_cognitive_sessions if s.tasks_total > 5),
+            'many_skills': sum(1 for s in high_cognitive_sessions if s.skills_loaded > 3),
+            'many_deviations': sum(1 for s in high_cognitive_sessions if len(s.deviations) > 2),
+            'edge_cases': sum(1 for s in high_cognitive_sessions if s.edge_cases_hit),
+        },
+        "per_complexity": {
+            k: {
+                "baseline": sum(baseline_cognitive_by_complexity[k])/len(baseline_cognitive_by_complexity[k]) if baseline_cognitive_by_complexity[k] else 0,
+                "optimized": sum(optimized_cognitive_by_complexity[k])/len(optimized_cognitive_by_complexity[k]) if optimized_cognitive_by_complexity[k] else 0
+            }
+            for k in ['simple', 'medium', 'complex']
+        },
+        "efficiency_score": 1 - optimized_results.avg_cognitive_load,
+    }
+    
+    # Traceability Analysis
+    baseline_with_workflow_log = sum(1 for s in baseline_sessions if 'skip_workflow_log' not in s.deviations)
+    baseline_with_todo = sum(1 for s in baseline_sessions if 'incomplete_todo_tracking' not in s.deviations)
+    baseline_with_skills = sum(1 for s in baseline_sessions if s.skills_loaded > 0)
+    baseline_with_delegation_trace = sum(1 for s in baseline_sessions 
+                                         if s.delegation_used and 'skip_delegation_tracing' not in s.deviations)
+    
+    traceability = {
+        "baseline_avg": baseline_results.avg_traceability,
+        "optimized_avg": optimized_results.avg_traceability,
+        "improvement": (optimized_results.avg_traceability - baseline_results.avg_traceability) / baseline_results.avg_traceability,
+        "workflow_log_rate": baseline_with_workflow_log / n,
+        "todo_tracking_rate": baseline_with_todo / n,
+        "skill_documentation_rate": baseline_with_skills / n,
+        "delegation_trace_rate": baseline_with_delegation_trace / max(1, baseline_results.sessions_with_delegation),
+        "efficiency_score": optimized_results.avg_traceability,
+    }
+    
+    # Discipline Analysis (Protocol Adherence)
+    gate_compliance = {
+        'G1_todo': 1 - baseline_results.deviation_counts.get('incomplete_todo_tracking', 0) / n,
+        'G2_skill': 1 - baseline_results.deviation_counts.get('skip_skill_loading', 0) / n,
+        'G3_start': 1 - baseline_results.deviation_counts.get('skip_knowledge_loading', 0) / n,
+        'G4_end': 1 - baseline_results.deviation_counts.get('skip_workflow_log', 0) / n,
+        'G5_verify': 1 - baseline_results.deviation_counts.get('skip_verification', 0) / n,
+        'G6_single': 1 - baseline_results.deviation_counts.get('multiple_active_tasks', 0) / n,
+        'G7_parallel': 1 - baseline_results.deviation_counts.get('skip_parallel_for_complex', 0) / n,
+    }
+    
+    discipline = {
+        "baseline_avg": baseline_results.avg_discipline,
+        "optimized_avg": optimized_results.avg_discipline,
+        "improvement": (optimized_results.avg_discipline - baseline_results.avg_discipline) / baseline_results.avg_discipline,
+        "perfect_session_rate_baseline": baseline_results.perfect_session_rate,
+        "perfect_session_rate_optimized": optimized_results.perfect_session_rate,
+        "total_deviations_baseline": baseline_results.total_deviations,
+        "total_deviations_optimized": optimized_results.total_deviations,
+        "deviations_prevented": baseline_results.total_deviations - optimized_results.total_deviations,
+        "gate_compliance": gate_compliance,
+        "worst_gates": sorted(gate_compliance.items(), key=lambda x: x[1])[:3],
+        "efficiency_score": optimized_results.avg_discipline,
+    }
+    
+    # Efficiency Analysis (API Calls + Composite)
+    baseline_api_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    optimized_api_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    for s in baseline_sessions:
+        baseline_api_by_complexity[s.complexity].append(s.api_calls)
+    for s in optimized_sessions:
+        optimized_api_by_complexity[s.complexity].append(s.api_calls)
+    
+    baseline_composite = (
+        baseline_results.success_rate * 0.25 +
+        (1 - baseline_results.avg_cognitive_load) * 0.20 +
+        baseline_results.avg_discipline * 0.20 +
+        baseline_results.avg_traceability * 0.15 +
+        (1 - baseline_results.avg_token_usage / 25000) * 0.10 +
+        (1 - baseline_results.avg_resolution_time / 60) * 0.10
+    )
+    optimized_composite = (
+        optimized_results.success_rate * 0.25 +
+        (1 - optimized_results.avg_cognitive_load) * 0.20 +
+        optimized_results.avg_discipline * 0.20 +
+        optimized_results.avg_traceability * 0.15 +
+        (1 - optimized_results.avg_token_usage / 25000) * 0.10 +
+        (1 - optimized_results.avg_resolution_time / 60) * 0.10
+    )
+    
+    efficiency = {
+        "baseline_api_calls": baseline_results.avg_api_calls,
+        "optimized_api_calls": optimized_results.avg_api_calls,
+        "api_reduction": (baseline_results.avg_api_calls - optimized_results.avg_api_calls) / baseline_results.avg_api_calls,
+        "total_api_saved": baseline_results.total_api_calls - optimized_results.total_api_calls,
+        "baseline_composite": baseline_composite,
+        "optimized_composite": optimized_composite,
+        "composite_improvement": (optimized_composite - baseline_composite) / baseline_composite,
+        "per_complexity": {
+            k: {
+                "baseline": sum(baseline_api_by_complexity[k])/len(baseline_api_by_complexity[k]) if baseline_api_by_complexity[k] else 0,
+                "optimized": sum(optimized_api_by_complexity[k])/len(optimized_api_by_complexity[k]) if optimized_api_by_complexity[k] else 0
+            }
+            for k in ['simple', 'medium', 'complex']
+        },
+        "efficiency_score": optimized_composite,
+    }
+    
+    # Speed Analysis
+    baseline_speed_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    optimized_speed_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    for s in baseline_sessions:
+        baseline_speed_by_complexity[s.complexity].append(s.resolution_time_minutes)
+    for s in optimized_sessions:
+        optimized_speed_by_complexity[s.complexity].append(s.resolution_time_minutes)
+    
+    baseline_parallel_time = sum(s.parallel_time_saved_minutes for s in baseline_sessions if s.parallel_execution_used)
+    optimized_parallel_time = sum(s.parallel_time_saved_minutes for s in optimized_sessions if s.parallel_execution_used)
+    
+    speed = {
+        "baseline_avg": baseline_results.avg_resolution_time,
+        "baseline_p50": baseline_results.p50_resolution_time,
+        "baseline_p95": baseline_results.p95_resolution_time,
+        "optimized_avg": optimized_results.avg_resolution_time,
+        "optimized_p50": optimized_results.p50_resolution_time,
+        "optimized_p95": optimized_results.p95_resolution_time,
+        "p50_improvement": (baseline_results.p50_resolution_time - optimized_results.p50_resolution_time) / baseline_results.p50_resolution_time,
+        "baseline_parallel_time_saved": baseline_parallel_time,
+        "optimized_parallel_time_saved": optimized_parallel_time,
+        "per_complexity": {
+            k: {
+                "baseline": sum(baseline_speed_by_complexity[k])/len(baseline_speed_by_complexity[k]) if baseline_speed_by_complexity[k] else 0,
+                "optimized": sum(optimized_speed_by_complexity[k])/len(optimized_speed_by_complexity[k]) if optimized_speed_by_complexity[k] else 0
+            }
+            for k in ['simple', 'medium', 'complex']
+        },
+        "efficiency_score": 1 - (optimized_results.p50_resolution_time / 60),
+    }
+    
+    # Resolution Rate Analysis
+    baseline_success_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    optimized_success_by_complexity = {'simple': [], 'medium': [], 'complex': []}
+    for s in baseline_sessions:
+        baseline_success_by_complexity[s.complexity].append(1 if s.task_success else 0)
+    for s in optimized_sessions:
+        optimized_success_by_complexity[s.complexity].append(1 if s.task_success else 0)
+    
+    baseline_with_del_success = sum(1 for s in baseline_sessions if s.delegation_used and s.task_success)
+    baseline_without_del_success = sum(1 for s in baseline_sessions if not s.delegation_used and s.task_success)
+    
+    resolution_rate = {
+        "baseline_rate": baseline_results.success_rate,
+        "optimized_rate": optimized_results.success_rate,
+        "improvement": (optimized_results.success_rate - baseline_results.success_rate) / baseline_results.success_rate,
+        "additional_successes": optimized_results.successful_sessions - baseline_results.successful_sessions,
+        "with_delegation": baseline_with_del_success / max(1, baseline_results.sessions_with_delegation),
+        "without_delegation": baseline_without_del_success / max(1, n - baseline_results.sessions_with_delegation),
+        "per_complexity": {
+            k: {
+                "baseline": sum(baseline_success_by_complexity[k])/len(baseline_success_by_complexity[k]) if baseline_success_by_complexity[k] else 0,
+                "optimized": sum(optimized_success_by_complexity[k])/len(optimized_success_by_complexity[k]) if optimized_success_by_complexity[k] else 0
+            }
+            for k in ['simple', 'medium', 'complex']
+        },
+        "efficiency_score": optimized_results.success_rate,
+    }
+    
+    # Gate Analysis
+    gate_violations = {
+        'G1': baseline_results.deviation_counts.get('incomplete_todo_tracking', 0),
+        'G2': baseline_results.deviation_counts.get('skip_skill_loading', 0),
+        'G3': baseline_results.deviation_counts.get('skip_knowledge_loading', 0),
+        'G4': baseline_results.deviation_counts.get('skip_workflow_log', 0),
+        'G5': baseline_results.deviation_counts.get('skip_verification', 0),
+        'G6': baseline_results.deviation_counts.get('multiple_active_tasks', 0),
+        'G7': baseline_results.deviation_counts.get('skip_parallel_for_complex', 0),
+    }
+    
+    gate_analysis = {
+        "violation_counts": gate_violations,
+        "violation_rates": {k: v/n for k, v in gate_violations.items()},
+        "compliance_rates": {k: 1 - v/n for k, v in gate_violations.items()},
+        "priority_order": sorted(gate_violations.items(), key=lambda x: -x[1]),
+    }
+    
+    # Generate recommendations
+    recommendations = []
+    top_deviations = sorted(baseline_results.deviation_counts.items(), key=lambda x: -x[1])[:10]
+    for deviation, count in top_deviations:
+        rate = count / n
+        priority = "HIGH" if rate > 0.20 else "MEDIUM" if rate > 0.10 else "LOW"
+        rec = {
+            "deviation": deviation,
+            "rate": rate,
+            "priority": priority,
+        }
+        if 'skill_loading' in deviation:
+            rec["action"] = "Add visual warning for low-compliance skills"
+            rec["gate"] = "G2"
+        elif 'workflow_log' in deviation:
+            rec["action"] = "Add trigger word detection for session end"
+            rec["gate"] = "G4"
+        elif 'verification' in deviation:
+            rec["action"] = "Make verification part of edit cycle"
+            rec["gate"] = "G5"
+        elif 'delegation' in deviation:
+            rec["action"] = "Add explicit file count threshold reminder"
+            rec["gate"] = "Delegation"
+        elif 'parallel' in deviation:
+            rec["action"] = "Add parallel pair suggestions in TODO"
+            rec["gate"] = "G7"
+        else:
+            rec["action"] = "Review and enforce protocol"
+            rec["gate"] = "General"
+        recommendations.append(rec)
+    
+    analysis = {
+        "simulation_info": {
+            "total_sessions": config.session_count,
+            "timestamp": datetime.now().isoformat(),
+            "patterns_used": patterns.get("source_stats", {}),
+        },
+        "token_efficiency": token_efficiency,
+        "cognitive_load": cognitive_load,
+        "traceability": traceability,
+        "discipline": discipline,
+        "efficiency": efficiency,
+        "speed": speed,
+        "resolution_rate": resolution_rate,
+        "gate_analysis": gate_analysis,
+        "recommendations": recommendations,
+        "summary": {
+            "token_efficiency_score": token_efficiency["efficiency_score"],
+            "cognitive_load_score": cognitive_load["efficiency_score"],
+            "traceability_score": traceability["efficiency_score"],
+            "discipline_score": discipline["efficiency_score"],
+            "efficiency_score": efficiency["efficiency_score"],
+            "speed_score": speed["efficiency_score"],
+            "resolution_score": resolution_rate["efficiency_score"],
+        }
+    }
+    
+    return analysis
+
+
+def print_akis_analysis_report(analysis: Dict[str, Any]):
+    """Print comprehensive AKIS framework analysis report."""
+    
+    print("\n" + "=" * 80)
+    print("COMPREHENSIVE AKIS FRAMEWORK ANALYSIS REPORT")
+    print("=" * 80)
+    
+    info = analysis["simulation_info"]
+    print(f"\n📊 Simulation: {info['total_sessions']:,} sessions")
+    print(f"   Timestamp: {info['timestamp']}")
+    
+    # Token Efficiency
+    print("\n" + "-" * 80)
+    print("💰 TOKEN EFFICIENCY")
+    print("-" * 80)
+    te = analysis["token_efficiency"]
+    print(f"\n   Baseline:  {te['baseline_avg']:,.0f} tokens/session")
+    print(f"   Optimized: {te['optimized_avg']:,.0f} tokens/session")
+    print(f"   Improvement: {te['improvement']:.1%} reduction")
+    print(f"   Total Saved: {te['total_saved']:,} tokens")
+    print(f"   Efficiency Score: {te['efficiency_score']:.2f}")
+    
+    # Cognitive Load
+    print("\n" + "-" * 80)
+    print("🧠 COGNITIVE LOAD")
+    print("-" * 80)
+    cl = analysis["cognitive_load"]
+    print(f"\n   Baseline:  {cl['baseline_avg']:.1%}")
+    print(f"   Optimized: {cl['optimized_avg']:.1%}")
+    print(f"   Improvement: {cl['improvement']:.1%} reduction")
+    print(f"   High Load Sessions: {cl['high_load_sessions']:,}")
+    print(f"   Efficiency Score: {cl['efficiency_score']:.2f}")
+    
+    # Traceability
+    print("\n" + "-" * 80)
+    print("🔍 TRACEABILITY")
+    print("-" * 80)
+    tr = analysis["traceability"]
+    print(f"\n   Baseline:  {tr['baseline_avg']:.1%}")
+    print(f"   Optimized: {tr['optimized_avg']:.1%}")
+    print(f"   Improvement: {tr['improvement']:.1%}")
+    print(f"   Efficiency Score: {tr['efficiency_score']:.2f}")
+    print(f"\n   Component Rates:")
+    print(f"     Workflow Log: {tr['workflow_log_rate']:.1%}")
+    print(f"     TODO Tracking: {tr['todo_tracking_rate']:.1%}")
+    print(f"     Skill Documentation: {tr['skill_documentation_rate']:.1%}")
+    print(f"     Delegation Trace: {tr['delegation_trace_rate']:.1%}")
+    
+    # Discipline
+    print("\n" + "-" * 80)
+    print("📋 DISCIPLINE (Protocol Adherence)")
+    print("-" * 80)
+    di = analysis["discipline"]
+    print(f"\n   Baseline:  {di['baseline_avg']:.1%}")
+    print(f"   Optimized: {di['optimized_avg']:.1%}")
+    print(f"   Improvement: {di['improvement']:.1%}")
+    print(f"   Deviations Prevented: {di['deviations_prevented']:,}")
+    print(f"   Efficiency Score: {di['efficiency_score']:.2f}")
+    print(f"\n   Gate Compliance:")
+    for gate, rate in sorted(di['gate_compliance'].items()):
+        status = "✅" if rate > 0.85 else "⚠️" if rate > 0.75 else "❌"
+        print(f"     {status} {gate}: {rate:.1%}")
+    
+    # Efficiency
+    print("\n" + "-" * 80)
+    print("⚡ OVERALL EFFICIENCY")
+    print("-" * 80)
+    ef = analysis["efficiency"]
+    print(f"\n   Baseline Composite:  {ef['baseline_composite']:.2f}")
+    print(f"   Optimized Composite: {ef['optimized_composite']:.2f}")
+    print(f"   Efficiency Gain: {ef['composite_improvement']:.1%}")
+    print(f"\n   API Calls:")
+    print(f"     Baseline:  {ef['baseline_api_calls']:.1f} calls/session")
+    print(f"     Optimized: {ef['optimized_api_calls']:.1f} calls/session")
+    print(f"     Reduction: {ef['api_reduction']:.1%}")
+    print(f"     Total Saved: {ef['total_api_saved']:,}")
+    
+    # Speed
+    print("\n" + "-" * 80)
+    print("⏱️ SPEED (Resolution Time)")
+    print("-" * 80)
+    sp = analysis["speed"]
+    print(f"\n   Baseline P50:  {sp['baseline_p50']:.1f} min")
+    print(f"   Optimized P50: {sp['optimized_p50']:.1f} min")
+    print(f"   Improvement: {sp['p50_improvement']:.1%} faster")
+    print(f"   Efficiency Score: {sp['efficiency_score']:.2f}")
+    print(f"\n   Parallel Time Saved:")
+    print(f"     Baseline:  {sp['baseline_parallel_time_saved']:,.0f} min ({sp['baseline_parallel_time_saved']/60:,.0f} hrs)")
+    print(f"     Optimized: {sp['optimized_parallel_time_saved']:,.0f} min ({sp['optimized_parallel_time_saved']/60:,.0f} hrs)")
+    
+    # Resolution Rate
+    print("\n" + "-" * 80)
+    print("✅ RESOLUTION RATE (Success)")
+    print("-" * 80)
+    rr = analysis["resolution_rate"]
+    print(f"\n   Baseline:  {rr['baseline_rate']:.1%}")
+    print(f"   Optimized: {rr['optimized_rate']:.1%}")
+    print(f"   Improvement: {rr['improvement']:.1%}")
+    print(f"   Additional Successes: {rr['additional_successes']:,}")
+    print(f"   Efficiency Score: {rr['efficiency_score']:.2f}")
+    print(f"\n   By Delegation:")
+    print(f"     With Delegation: {rr['with_delegation']:.1%}")
+    print(f"     Without Delegation: {rr['without_delegation']:.1%}")
+    
+    # Gate Analysis
+    print("\n" + "-" * 80)
+    print("🚦 GATE ANALYSIS")
+    print("-" * 80)
+    ga = analysis["gate_analysis"]
+    print("\n   Violation Rates:")
+    for gate, rate in sorted(ga['violation_rates'].items(), key=lambda x: -x[1]):
+        status = "❌" if rate > 0.20 else "⚠️" if rate > 0.10 else "✅"
+        print(f"     {status} {gate}: {rate:.1%}")
+    
+    # Recommendations
+    print("\n" + "-" * 80)
+    print("📝 TOP RECOMMENDATIONS")
+    print("-" * 80)
+    for rec in analysis["recommendations"][:5]:
+        print(f"\n   [{rec['priority']}] {rec['deviation']}")
+        print(f"     Rate: {rec['rate']:.1%}")
+        print(f"     Gate: {rec['gate']}")
+        print(f"     Action: {rec['action']}")
+    
+    # Summary Scores
+    print("\n" + "=" * 80)
+    print("EFFICIENCY SCORE SUMMARY")
+    print("=" * 80)
+    
+    scores = analysis["summary"]
+    print("\n   Metric               Score")
+    print("   " + "-" * 35)
+    for metric, score in sorted(scores.items(), key=lambda x: -x[1]):
+        bar = "█" * int(score * 20) + "░" * (20 - int(score * 20))
+        print(f"   {metric.replace('_', ' ').title():<20} {bar} {score:.2f}")
+    
+    avg_score = sum(scores.values()) / len(scores)
+    print(f"\n   {'OVERALL AVERAGE':<20} {avg_score:.2f}")
+    
+    print("\n" + "=" * 80)
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -2749,6 +3198,8 @@ def main():
                        help='Run delegation optimization analysis comparing specialist vs AKIS')
     parser.add_argument('--agent-optimization', action='store_true',
                        help='Run per-agent simulation and optimization analysis')
+    parser.add_argument('--framework-analysis', action='store_true',
+                       help='Run comprehensive AKIS framework analysis')
     parser.add_argument('--agent', type=str,
                        help='Specific agent to analyze (default: all agents)')
     parser.add_argument('--extract-patterns', action='store_true',
@@ -2805,6 +3256,32 @@ def main():
             for scenario in issue['scenarios'][:3]:
                 print(f"     • {scenario}")
         
+        return
+    
+    # Handle comprehensive framework analysis mode
+    if args.framework_analysis:
+        config = SimulationConfig(
+            session_count=args.sessions,
+            seed=args.seed,
+        )
+        
+        # Run comprehensive analysis
+        analysis = analyze_akis_framework(merged_patterns, config)
+        
+        # Print report
+        print_akis_analysis_report(analysis)
+        
+        # Save results if requested
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                json.dump(analysis, f, indent=2, default=str)
+            
+            print(f"\n📄 Results saved to: {output_path}")
+        
+        print("\n✅ AKIS Framework Analysis complete!")
         return
     
     # Handle per-agent optimization mode
