@@ -403,3 +403,62 @@ Based on 100k simulation analysis:
 - `log/simulation_100k_results.json` → Full results data
 - `log/delegation_optimization_100k.json` → Delegation analysis data
 - `log/agent_optimization_100k.json` → Per-agent analysis data
+
+---
+
+## v7.0.1 Microadjustments (Latest Audit)
+
+### Latest Simulation Results (2026-01-10)
+
+| Metric | Baseline | Optimized | Improvement |
+|--------|----------|-----------|-------------|
+| **Discipline** | 80.7% | 86.8% | **+7.6%** |
+| **Cognitive Load** | 80.1% | 68.1% | **-15.0%** |
+| **Resolve Rate** | 86.5% | 88.7% | **+2.6%** |
+| **Speed (P50)** | 50.4 min | 42.9 min | **-14.8%** |
+| **Traceability** | 83.4% | 88.8% | **+6.5%** |
+| **Token Usage** | 20,442 | 15,297 | **-25.2%** |
+| **API Calls** | 38.0 | 26.1 | **-31.2%** |
+
+### Latest Total Savings
+
+- **Tokens Saved**: 514,595,244
+- **API Calls Saved**: 1,186,454
+- **Deviations Prevented**: 39,482
+- **Additional Successes**: 2,217
+
+### Microadjustments Applied
+
+Based on the latest 100k simulation audit:
+
+1. **G2 (31.1% deviation)** - Added ⚠️31% marker for documentation skill
+2. **Delegation (23.4% skip)** - Added "6+ files = ⛔ MUST delegate" explicit rule
+3. **G4 (21.9% skip)** - Added trigger word list and G4 CHECK reminder
+4. **G5 (17.9% deviation)** - Added inline VERIFY step in WORK phase
+5. **Tracing (15.2% skip)** - Simplified to single-line format
+
+### Updated Gate Table
+
+| Gate | Violation | Rate | Priority |
+|------|-----------|------|----------|
+| G2 | No skill loaded | **31.1%** | ⚠️ HIGHEST |
+| delegation | Skip for complex | **23.4%** | ⚠️ HIGH |
+| G4 | END skipped | **21.9%** | ⚠️ HIGH |
+| G5 | No verification | **17.9%** | ⚠️ |
+| tracing | Skip delegation trace | 15.2% | |
+| G7 | Skip parallel | 10.7% | |
+| G1 | No ◆ task | 10.1% | |
+| G3 | START not done | 8.1% | |
+| G6 | Multiple ◆ | 5.2% | |
+
+### Parallel Execution with G7 Enforcement
+
+| Metric | Without G7 | With G7 | Impact |
+|--------|------------|---------|--------|
+| Parallel Rate | 19.4% | 45.4% | **+134%** |
+| Sessions | 19,381 | 45,442 | +26,061 |
+| Total Time Saved | 4,402 hrs | 9,395 hrs | **+4,993 hrs** |
+
+---
+
+See `docs/analysis/AKIS_V7_FRAMEWORK_AUDIT.md` for complete audit details.

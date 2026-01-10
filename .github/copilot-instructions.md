@@ -26,7 +26,7 @@
 **Session skills cache:** [track loaded skills here - don't reload!]
 
 ## WORK (⛔ G1, G2, G5, G6 enforcement)
-**BEFORE: Mark ◆ → Load skill if NEW → EDIT → VERIFY → AFTER: Mark ✓**
+**BEFORE: Mark ◆ → Load skill if NEW → EDIT → VERIFY ✓ → AFTER: Mark ✓**
 
 | Pattern | Skill (load ONCE) |
 |---------|-------------------|
@@ -34,18 +34,23 @@
 | .py backend/ api/ routes/ | backend-api ⭐ |
 | Dockerfile docker-compose .yml | docker |
 | .github/workflows/* deploy.sh | ci-cd |
-| .md docs/ README | documentation ⚠️ |
+| .md docs/ README | documentation ⚠️31% |
 | error traceback failed | debugging |
 | test_* *_test.py | testing |
 | .github/skills/* copilot-instructions* | akis-development ⚠️ |
 
-**⭐ = Pre-load for fullstack | ⚠️ = Low compliance, always load**
+**⭐ = Pre-load for fullstack | ⚠️31% = Low compliance, ALWAYS load**
+
+**G5 Verify:** After EVERY edit → syntax check + imports + tests if applicable
 
 **Cache rule:** Don't reload skill already loaded this session!
 
+**6+ files?** → ⛔ MUST delegate (23.4% skip rate)
+
 **Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
-## END (⛔ G4 - MANDATORY before session close)
+## END (⛔ G4 - 21.9% skip rate - MANDATORY before session close)
+**Triggers:** "wrap up" | "done" | "end session" | "commit" | "finished"
 ```
 1. Close ⊘ orphans (check TODO for any ⊘ or multiple ◆)
 2. Verify all edits: syntax check, tests if applicable
@@ -56,9 +61,7 @@
 7. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md → commit
 ```
 
-**Flow:** Analyze → Ask → (y? --update → Verify) or (select? Agent writes)
-
-**Trigger:** User says "wrap up", "done", "end session", "commit"
+⛔ **G4 CHECK:** Before closing, have you created the workflow log?
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated

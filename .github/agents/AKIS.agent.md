@@ -55,22 +55,25 @@ description: Protocol enforcement + sub-agent orchestration with execution traci
 | architect | planner | 86.0% |
 | research | investigator | 84.0% |
 
-## Delegation Rules
+## Delegation Rules (23.4% skip rate for complex)
 
-| Complexity | Strategy |
-|------------|----------|
-| Simple (<3) | Optional |
-| Medium (3-5) | smart_delegation |
-| Complex (6+) | always_delegate |
+| Complexity | Files | Strategy |
+|------------|-------|----------|
+| Simple | <3 | Optional |
+| Medium | 3-5 | smart_delegation |
+| Complex | 6+ | ⛔ MUST delegate |
+
+**⛔ 6+ files = ALWAYS delegate (no exceptions)**
 
 **Parallel Pairs (G7):** code+docs, code+reviewer, research+code, architect+research
 **Sequential:** architect→code→debugger→reviewer
 
-## 📝 Tracing
+## 📝 Tracing (Simplified - 15.2% skip rate)
 
+Single-line format:
 ```
-[DELEGATE] → {agent} | task: {description}
-[RETURN]   ← {agent} | result: {outcome} | files: {list}
+[DELEGATE] → {agent} | {task}
+[RETURN]   ← {agent} | {outcome} | files: {N}
 ```
 
 ## ⚡ Rules
