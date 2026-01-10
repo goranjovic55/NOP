@@ -9,6 +9,7 @@
 | G4 | Session ending without END | Do END steps 1-6 before closing | 22.1% |
 | G5 | Edit without verification | Verify syntax/tests after edit | 17.9% |
 | G6 | Multiple ◆ tasks | Only ONE ◆ active at a time | 5.2% |
+| G7 | Skip parallel for eligible tasks | Use parallel agents when compatible | 10.7% |
 
 *Pre-optimization deviation rates from 100k simulation
 
@@ -79,10 +80,26 @@
 | documentation | doc, readme, explain |
 | devops | deploy, docker, ci |
 
-**Parallel OK:** code(A)+code(B), code+docs, reviewer+docs
-**Sequential:** architect→code→debugger→reviewer
+## Parallel Execution (⛔ G7 enforcement - saves 4,402 hrs/100k sessions)
 
-**Mark in TODO:** `<DELEGATE> → agent-name ⧖`
+**Compatible pairs - RUN IN PARALLEL when possible:**
+| Pair 1 | Pair 2 | Use Case |
+|--------|--------|----------|
+| code | documentation | Code + docs simultaneously |
+| code | reviewer | Implement A + review B |
+| research | code | Research + implement overlap |
+| architect | research | Design + research overlap |
+| debugger | documentation | Debug + docs together |
+
+**Parallel Rules:**
+1. ⚡ Check for compatible pairs before sequential delegation
+2. ⚡ Analyze dependencies - only parallelize independent tasks
+3. ⚡ Synchronize results after parallel completion
+4. ⚡ Detect conflicts early (same files = sequential)
+
+**Mark parallel in TODO:** `<PARALLEL> → agent1 ⧖ + agent2 ⧖`
+
+**Sequential ONLY:** architect→code→debugger→reviewer (dependency chain)
 
 ## Efficiency
 - **Knowledge:** Read once at START (lines 1-4 only)

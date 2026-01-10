@@ -1224,6 +1224,11 @@ def create_optimized_akis_config() -> AKISConfiguration:
         # Enhanced quality
         require_verification=True,
         require_syntax_check=True,
+        
+        # Parallel execution enforcement (G7)
+        enable_parallel_execution=True,
+        max_parallel_agents=3,
+        require_parallel_coordination=True,
     )
 
 
@@ -1272,6 +1277,19 @@ def simulate_optimized_session(
     # Remove some deviations due to better enforcement
     if metrics.deviations and random.random() < 0.4:
         metrics.deviations.pop()
+    
+    # Enforce parallel execution when possible (G7)
+    # If complex task and parallel wasn't used, try to enable it
+    if metrics.complexity == "complex" and not metrics.parallel_execution_used and metrics.delegation_used:
+        if random.random() < 0.75:  # Higher probability with enforcement
+            metrics.parallel_execution_used = True
+            metrics.parallel_agents_count = 2
+            metrics.parallel_execution_strategy = "parallel"
+            metrics.parallel_time_saved_minutes = random.uniform(8, 15)
+            metrics.parallel_execution_success = random.random() < 0.85
+            # Remove skip_parallel deviation if present
+            if "skip_parallel_for_complex" in metrics.deviations:
+                metrics.deviations.remove("skip_parallel_for_complex")
     
     return metrics
 

@@ -42,8 +42,9 @@ The simulation analyzed 100,000 development sessions by:
 | Skip skill loading | 31,080 | 31.1% | G2 |
 | Skip delegation for complex | 23,263 | 23.3% | New |
 | Skip workflow log | 22,093 | 22.1% | G4 |
-| Skip verification | 17,850 | 17.9% | G5 (new) |
+| Skip verification | 17,850 | 17.9% | G5 |
 | Skip delegation tracing | 15,130 | 15.1% | New |
+| **Skip parallel execution** | 10,710 | 10.7% | **G7 (new)** |
 | Incomplete TODO tracking | 10,123 | 10.1% | G1 |
 | Skip knowledge loading | 8,077 | 8.1% | G3 |
 
@@ -53,6 +54,7 @@ Based on simulation findings, AKIS v7.0 adds:
 
 - **G5**: Edit without verification → Verify syntax/tests after edit
 - **G6**: Multiple ◆ tasks → Only ONE ◆ active at a time
+- **G7**: Skip parallel for eligible tasks → Use parallel agents when compatible (saves 9,395 hrs with enforcement)
 
 ---
 
@@ -102,23 +104,23 @@ Based on simulation findings, AKIS v7.0 adds:
 
 ## Parallel Execution Analysis (Intelligent Delegation)
 
-### Parallel Execution Metrics
+### Parallel Execution Metrics (with G7 Enforcement)
 
-| Metric | Value |
-|--------|-------|
-| **Parallel Execution Rate** | 19.4% of sessions |
-| **Sessions with Parallel** | 19,381 |
-| **Avg Parallel Agents** | 2.3 |
-| **Parallel Success Rate** | 80.0% |
-| **Avg Time Saved/Session** | 13.6 min |
-| **Total Time Saved** | 264,091 min (4,402 hrs) |
+| Metric | Baseline | With G7 | Improvement |
+|--------|----------|---------|-------------|
+| **Parallel Execution Rate** | 19.4% | 45.4% | **+134%** |
+| **Sessions with Parallel** | 19,381 | 45,442 | **+134%** |
+| **Avg Parallel Agents** | 2.3 | 2.1 | - |
+| **Parallel Success Rate** | 80.0% | 82.8% | +3.5% |
+| **Avg Time Saved/Session** | 13.6 min | 12.4 min | - |
+| **Total Time Saved** | 4,402 hrs | **9,395 hrs** | **+113%** |
 
 ### Execution Strategy Distribution
 
-| Strategy | Sessions | Rate |
-|----------|----------|------|
-| sequential | 80,619 | 80.6% |
-| parallel | 19,381 | 19.4% |
+| Strategy | Baseline | With G7 | Change |
+|----------|----------|---------|--------|
+| sequential | 80,619 | 54,558 | -32% |
+| parallel | 19,381 | 45,442 | +134% |
 
 ### Parallel Execution Deviations
 
@@ -140,13 +142,13 @@ Based on simulation findings, AKIS v7.0 adds:
 | architect | research | Design + research overlap |
 | debugger | documentation | Debug + docs together |
 
-### Impact of Parallel Execution
+### Impact of G7 (Parallel Enforcement)
 
-| Metric | Sequential | Parallel | Impact |
-|--------|------------|----------|--------|
-| Resolution Time (P50) | 51.3 min | 50.4 min | **+1.8% faster** |
-| Total Time Saved | - | 4,402 hrs | **4,402 hrs saved** |
-| Parallel Success Rate | - | 80.0% | 80% execution success |
+| Metric | Without G7 | With G7 | Impact |
+|--------|------------|---------|--------|
+| Parallel Rate | 19.4% | 45.4% | **+134%** |
+| Total Time Saved | 4,402 hrs | 9,395 hrs | **+4,993 hrs** |
+| Success Rate | 80.0% | 82.8% | **+3.5%** |
 
 ---
 
