@@ -747,9 +747,9 @@ class Settings(BaseSettings):
 - [x] Replace all `print()` statements in backend ✅
 - [x] Replace all `console.log()` statements in frontend ✅
 - [x] Add `response_model` to endpoints missing them ✅
-- [ ] Create `backend/app/services/base_service.py`
-- [ ] Create `frontend/src/hooks/` directory with custom hooks
-- [ ] Enable TypeScript strict mode
+- [x] Create `backend/app/services/base_service.py` ✅
+- [x] Create `frontend/src/hooks/` directory with custom hooks ✅
+- [x] Enable TypeScript strict mode ✅ (already enabled in tsconfig.json)
 - [ ] Add comprehensive unit tests
 - [ ] Update API documentation
 
