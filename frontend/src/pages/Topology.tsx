@@ -237,6 +237,46 @@ const Topology: React.FC = () => {
   const [isLiveCapturing, setIsLiveCapturing] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<string>('');
   
+  // Fullscreen and resize state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [graphHeight, setGraphHeight] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_height');
+    return saved ? parseInt(saved, 10) : 600;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Use browser Fullscreen API for true fullscreen
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+    
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  };
+
+  // Listen for fullscreen changes (user presses Escape, etc.)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Resize handlers for manual height adjustment
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+  
   // Store node positions to preserve them between updates
   const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx?: number; fy?: number }>>(new Map());
   const isInitialLoadRef = useRef(true);
@@ -370,6 +410,36 @@ const Topology: React.FC = () => {
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
+
+  // Manual resize handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing && containerRef.current) {
+        const containerTop = containerRef.current.getBoundingClientRect().top;
+        const newHeight = e.clientY - containerTop;
+        if (newHeight >= 300 && newHeight <= window.innerHeight - 100) {
+          setGraphHeight(newHeight);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setIsResizing(false);
+        // Persist height to localStorage
+        localStorage.setItem('nop_topology_height', graphHeight.toString());
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, graphHeight]);
 
   const fetchData = useCallback(async (useBurstCapture: boolean = false, runSimulation: boolean = false) => {
     if (!token) return;
@@ -895,6 +965,23 @@ const Topology: React.FC = () => {
 
         <button onClick={() => fetchData(false, true)} className="btn-cyber px-2 py-1 text-xs">↻</button>
         
+        {/* Fullscreen toggle */}
+        <button 
+          onClick={toggleFullscreen}
+          className="px-2 py-1 border text-xs rounded border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue transition-colors"
+          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          )}
+        </button>
+        
         {/* Live capture status indicator */}
         {isLiveCapturing && (
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
@@ -907,7 +994,20 @@ const Topology: React.FC = () => {
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 bg-cyber-darker border border-cyber-gray relative overflow-hidden min-h-[600px]">
+      <div 
+        ref={containerRef} 
+        className="bg-cyber-darker border border-cyber-gray relative overflow-hidden"
+        style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
+      >
+        {/* Fullscreen close button - shown when in browser fullscreen */}
+        {isFullscreen && (
+          <button
+            onClick={toggleFullscreen}
+            className="absolute top-4 right-4 z-50 px-4 py-2 bg-cyber-dark border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-colors text-sm font-bold uppercase shadow-lg"
+          >
+            ✕ ESC to Exit
+          </button>
+        )}
         {loading && graphData.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
             <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
@@ -1360,55 +1460,66 @@ const Topology: React.FC = () => {
             <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
         </div>
+
+        {/* Context menus inside container for fullscreen support */}
+        {/* Host Context Menu */}
+        {selectedNode && contextMenuPosition && (
+          <HostContextMenu
+            host={{
+              id: selectedNode.id,
+              ip: selectedNode.ip,
+              name: selectedNode.name,
+              status: selectedNode.status,
+              details: selectedNode.details
+            }}
+            position={contextMenuPosition}
+            onClose={() => {
+              setSelectedNode(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Connection Context Menu */}
+        {selectedLink && contextMenuPosition && (
+          <ConnectionContextMenu
+            connection={{
+              source: typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source,
+              target: typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target,
+              protocols: selectedLink.protocols,
+              value: selectedLink.value,
+              reverseValue: selectedLink.reverseValue,
+              bidirectional: selectedLink.bidirectional
+            }}
+            position={contextMenuPosition}
+            onClose={() => {
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Click backdrop to close context menus */}
+        {(selectedNode || selectedLink) && (
+          <div 
+            className="absolute inset-0 z-40" 
+            onClick={() => {
+              setSelectedNode(null);
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
       </div>
 
-      {/* Host Context Menu */}
-      {selectedNode && contextMenuPosition && (
-        <HostContextMenu
-          host={{
-            id: selectedNode.id,
-            ip: selectedNode.ip,
-            name: selectedNode.name,
-            status: selectedNode.status,
-            details: selectedNode.details
-          }}
-          position={contextMenuPosition}
-          onClose={() => {
-            setSelectedNode(null);
-            setContextMenuPosition(null);
-          }}
-        />
-      )}
-
-      {/* Connection Context Menu */}
-      {selectedLink && contextMenuPosition && (
-        <ConnectionContextMenu
-          connection={{
-            source: typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source,
-            target: typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target,
-            protocols: selectedLink.protocols,
-            value: selectedLink.value,
-            reverseValue: selectedLink.reverseValue,
-            bidirectional: selectedLink.bidirectional
-          }}
-          position={contextMenuPosition}
-          onClose={() => {
-            setSelectedLink(null);
-            setContextMenuPosition(null);
-          }}
-        />
-      )}
-
-      {/* Click backdrop to close context menus */}
-      {(selectedNode || selectedLink) && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => {
-            setSelectedNode(null);
-            setSelectedLink(null);
-            setContextMenuPosition(null);
-          }}
-        />
+      {/* Resize Handle - drag to resize graph height */}
+      {!isFullscreen && (
+        <div
+          className="h-2 bg-cyber-gray hover:bg-cyber-blue cursor-ns-resize transition-colors flex items-center justify-center group"
+          onMouseDown={handleResizeMouseDown}
+        >
+          <div className="w-12 h-1 bg-cyber-blue rounded-full group-hover:bg-cyber-green transition-colors"></div>
+        </div>
       )}
     </div>
   );

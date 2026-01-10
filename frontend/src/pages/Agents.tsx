@@ -6,7 +6,7 @@ import { agentService, Agent, AgentCreate } from '../services/agentService';
 import { CyberPageTitle } from '../components/CyberUI';
 
 const Agents: React.FC = () => {
-  const { token } = useAuthStore();
+  const { token, logout, _hasHydrated } = useAuthStore();
   const { activeAgent, setActiveAgent } = usePOV();
   const navigate = useNavigate();
   
@@ -60,19 +60,18 @@ const Agents: React.FC = () => {
   });
 
   useEffect(() => {
-    // Small delay to ensure zustand persistence is hydrated
-    const timeout = setTimeout(() => {
-      loadAgents();
-      detectIPs();
-    }, 100);
+    // Wait for zustand persistence to hydrate before accessing token
+    if (!_hasHydrated) return;
+    
+    loadAgents();
+    detectIPs();
     
     // Poll for agent status updates
     const interval = setInterval(loadAgents, 10000);
     return () => {
-      clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [token]);
+  }, [token, _hasHydrated]);
 
   const detectIPs = async () => {
     // Detect if running in Codespaces and get forwarded URL
@@ -126,11 +125,13 @@ const Agents: React.FC = () => {
     try {
       const data = await agentService.getAgents(token);
       setAgents(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load agents:', error);
-      // If 401, user might need to re-login
-      if (error instanceof Error && error.message.includes('401')) {
-        console.error('[Agents] Authentication failed - token may be invalid');
+      // If 401, session expired - logout to trigger redirect to login
+      if (error?.response?.status === 401 || (error instanceof Error && error.message.includes('401'))) {
+        console.error('[Agents] Authentication failed - session expired, logging out');
+        logout();
+        return;
       }
     }
   };

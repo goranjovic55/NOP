@@ -94,7 +94,8 @@ const ConnectionContextMenu: React.FC<ConnectionContextMenuProps> = ({ connectio
       style={{ 
         left: adjustedPosition.x, 
         top: adjustedPosition.y,
-        maxHeight: '500px'
+        maxHeight: '500px',
+        position: 'fixed' // Ensure fixed works in fullscreen by being inside the fullscreen container
       }}
       onClick={(e) => e.stopPropagation()}
     >

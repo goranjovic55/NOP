@@ -84,7 +84,8 @@ const HostContextMenu: React.FC<HostContextMenuProps> = ({ host, position, onClo
       style={{ 
         left: adjustedPosition.x, 
         top: adjustedPosition.y,
-        maxHeight: '420px'
+        maxHeight: '420px',
+        position: 'fixed' // Ensure fixed works in fullscreen by being inside the fullscreen container
       }}
       onClick={(e) => e.stopPropagation()}
     >
