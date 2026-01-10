@@ -58,6 +58,9 @@ class SnifferService:
             "target_pps": 0
         }
         
+        # Track whether sniffing is in "persistent" mode (started via API, not WebSocket)
+        self.persistent_capture = False
+        
         self.start_background_sniffing()
 
     def start_background_sniffing(self):
@@ -641,10 +644,13 @@ class SnifferService:
             print(f"Sniffing error: {e}")
             self.is_sniffing = False
 
-    def start_sniffing(self, interface: str, callback: Optional[Callable], filter_str: Optional[str] = None):
+    def start_sniffing(self, interface: str, callback: Optional[Callable], filter_str: Optional[str] = None, persistent: bool = False):
         if self.is_sniffing and self.interface == interface and self.filter == filter_str:
             # Just update callback if already sniffing on same interface/filter
             self.callback = callback
+            # If this is a persistent call on existing sniffing, mark it persistent
+            if persistent:
+                self.persistent_capture = True
             return
 
         if self.is_sniffing:
@@ -654,6 +660,7 @@ class SnifferService:
         self.callback = callback
         self.filter = filter_str
         self.is_sniffing = True
+        self.persistent_capture = persistent
         self.captured_packets = []
 
         self.capture_thread = threading.Thread(target=self._run_sniff, daemon=True)
@@ -661,6 +668,7 @@ class SnifferService:
 
     def stop_sniffing(self):
         self.is_sniffing = False
+        self.persistent_capture = False
         if self.capture_thread:
             self.capture_thread.join(timeout=1.0)
         self.callback = None
@@ -690,20 +698,34 @@ class SnifferService:
             "protocols": self.stats["protocols"],
             "traffic_history": self.traffic_history,
             "connections": connections,
-            "current_time": time.time()
+            "current_time": time.time(),
+            "is_sniffing": self.is_sniffing,
+            "interface": self.interface
         }
 
     def start_burst_capture(self) -> None:
-        """Start a burst capture session to collect fresh traffic data"""
+        """Start a burst capture session to collect fresh traffic data.
+        If sniffer isn't running, start it temporarily for the burst."""
         self.burst_stats = {
             "connections": {},
             "start_time": time.time()
         }
+        
+        # Track if we started sniffing just for this burst
+        self._burst_started_sniffer = False
+        
+        # If not already sniffing, start sniffing for the burst
+        if not self.is_sniffing:
+            self._burst_started_sniffer = True
+            # Use default interface
+            interface = self.interface or "eth0"
+            self.start_sniffing(interface, None, None)
 
     def stop_burst_capture(self) -> Dict[str, Any]:
-        """Stop burst capture and return captured connections"""
+        """Stop burst capture and return captured connections.
+        If we started sniffing just for this burst, stop it."""
         if not hasattr(self, 'burst_stats') or self.burst_stats is None:
-            return {"connections": [], "duration": 0}
+            return {"connections": [], "duration": 0, "current_time": time.time()}
         
         current_time = time.time()
         duration = current_time - self.burst_stats.get("start_time", current_time)
@@ -730,6 +752,12 @@ class SnifferService:
         
         # Clear burst stats
         self.burst_stats = None
+        
+        # If we started sniffing just for this burst, stop it
+        if hasattr(self, '_burst_started_sniffer') and self._burst_started_sniffer:
+            self.stop_sniffing()
+            self._burst_started_sniffer = False
+        
         return result
 
     def export_pcap(self, filename: str = "capture.pcap") -> str:

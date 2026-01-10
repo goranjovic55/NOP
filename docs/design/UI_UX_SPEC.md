@@ -2,6 +2,50 @@
 
 ## Pages
 
+### Topology Page
+**File**: `frontend/src/pages/Topology.tsx` | **Updated**: 2026-01-10
+
+Force-directed network topology visualization using ForceGraph2D.
+
+**Features:**
+- Browser Fullscreen API (true fullscreen, not CSS fixed)
+- Resize handle for adjusting graph container height
+- Context menus for nodes (HostContextMenu) and connections (ConnectionContextMenu)
+- Zoom, pan, and node drag interactions
+
+**Gotcha:** Context menus must be rendered inside the fullscreen container element, otherwise they won't be visible in fullscreen mode.
+
+### Host Page
+**File**: `frontend/src/pages/Host.tsx` | **Updated**: 2026-01-10
+
+Host system management with tabbed interface: Metrics, Terminal, Filesystem.
+
+**Features:**
+- Real-time system metrics (CPU, memory, disk, network)
+- Interactive terminal with xterm.js
+- Filesystem browser with navigation
+- Process list with kill support
+
+**Gotcha:** All fetch functions (fetchProcesses, fetchConnections, fetchDiskIO, browseDirectory) must check for 401 errors and call logout() to handle expired tokens.
+
+### Agents Page
+**File**: `frontend/src/pages/Agents.tsx` | **Updated**: 2026-01-10
+
+Agent management and POV (point-of-view) switching.
+
+**Features:**
+- Deploy new agents with config
+- View agent status and heartbeat
+- Switch POV for network perspective
+- Download agent binaries
+
+**Gotcha:** Must wait for `_hasHydrated` before accessing token from authStore to avoid race condition where token appears null during Zustand hydration.
+
+### Traffic Page
+**File**: `frontend/src/pages/Traffic.tsx` | **Updated**: 2026-01-09
+
+Live traffic analysis and pcap capture interface.
+
 
 ## Interface Design & User Experience v1.0
 

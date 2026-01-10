@@ -92,7 +92,12 @@ async def traffic_ws(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        sniffer_service.stop_sniffing()
+        # Only stop sniffing if NOT in persistent capture mode
+        if not sniffer_service.persistent_capture:
+            sniffer_service.stop_sniffing()
+        else:
+            # Just clear the callback so we don't try to push packets
+            sniffer_service.callback = None
         try:
             await websocket.close()
         except:
@@ -136,6 +141,59 @@ async def burst_capture(request: BurstCaptureRequest):
         except:
             pass
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class StartSniffingRequest(BaseModel):
+    interface: str = "eth0"
+    filter: str = ""
+
+
+@router.post("/start-capture")
+async def start_capture(request: StartSniffingRequest):
+    """
+    Start persistent packet capture that continues even when leaving the page.
+    Unlike WebSocket capture, this runs in background and doesn't stream packets.
+    Use /stats to get capture status and connection data.
+    """
+    try:
+        sniffer_service.start_sniffing(request.interface, None, request.filter, persistent=True)
+        return {
+            "success": True,
+            "is_sniffing": True,
+            "interface": request.interface,
+            "filter": request.filter or None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/stop-capture")
+async def stop_capture():
+    """
+    Stop the persistent packet capture.
+    """
+    try:
+        was_sniffing = sniffer_service.is_sniffing
+        sniffer_service.stop_sniffing()
+        return {
+            "success": True,
+            "was_sniffing": was_sniffing,
+            "is_sniffing": False
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/capture-status")
+async def capture_status():
+    """
+    Get current capture status without full stats.
+    """
+    return {
+        "is_sniffing": sniffer_service.is_sniffing,
+        "interface": sniffer_service.interface,
+        "filter": sniffer_service.filter
+    }
 
 
 @router.post("/export")

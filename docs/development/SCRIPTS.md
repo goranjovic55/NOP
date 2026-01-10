@@ -206,3 +206,56 @@ This document catalogs automation scripts used in the project.
 | `generate_all_types` | Generate all traffic types for comprehensive testi |
 | `main` | Implementation |
 
+
+## AKIS Scripts
+
+Scripts for AKIS framework session management. Located in `.github/scripts/`.
+
+### knowledge
+**File**: `.github/scripts/knowledge.py` | **Updated**: 2026-01-09
+
+| Function | Description |
+|----------|-------------|
+| `run_analyze` | Safe default - reports session entities without modifying files |
+| `run_update` | Actually updates project_knowledge.json with session entities |
+| `run_generate` | Full regeneration with 100k session simulation |
+| `CodeAnalyzer` | Extracts entities from Python/TypeScript files |
+
+### skills
+**File**: `.github/scripts/skills.py` | **Updated**: 2026-01-09
+
+| Function | Description |
+|----------|-------------|
+| `run_analyze` | Safe default - reports skill usage and candidates |
+| `run_update` | Creates stub files for new skill candidates |
+| `detect_existing_skills` | Detects which skills were used in session |
+| `detect_new_skill_candidates` | Suggests new skills based on patterns |
+
+### instructions
+**File**: `.github/scripts/instructions.py` | **Updated**: 2026-01-09
+
+| Function | Description |
+|----------|-------------|
+| `run_analyze` | Safe default - reports instruction coverage gaps |
+| `run_update` | Creates instruction files for gaps |
+| `analyze_instruction_files` | Checks existing instruction coverage |
+
+### docs
+**File**: `.github/scripts/docs.py` | **Updated**: 2026-01-09
+
+| Function | Description |
+|----------|-------------|
+| `run_analyze` | Safe default - reports documentation updates needed |
+| `run_update` | Applies documentation updates |
+| `run_index` | Regenerates docs/INDEX.md |
+
+### agents
+**File**: `.github/scripts/agents.py` | **Updated**: 2026-01-09
+
+| Function | Description |
+|----------|-------------|
+| `run_report` | Safe default - reports agent status |
+| `run_update` | Updates existing agent files |
+| `run_generate` | Creates agent files with 100k simulation |
+| `run_audit` | Audits AKIS orchestration patterns |
+

@@ -5,11 +5,18 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 
 # Frontend React
 
+## ⚠️ Critical Gotchas
+- **401 errors:** Call `logout()` from authStore, don't show page-level error UI
+- **JSX comments:** Must use `{/* comment */}` not `//`
+- **Stale closures:** Add all deps to useEffect dependency array
+- **State persistence:** Use localStorage for settings that survive page refresh
+- **Zustand subscriptions:** Clean up selectors to avoid memory leaks
+
 ## Rules
-- **JSX comments:** Must use `{/* comment */}`
 - **Keys in lists:** Always `key={item.id}`
 - **Dependency arrays:** Include all deps
 - **Async in effects:** Never async callback directly
+- **State management:** Zustand for global, useState for local
 
 ## Avoid
 
@@ -18,6 +25,7 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 | Prop drilling | Context/Zustand |
 | `useEffect(async)` | Wrapper function |
 | Missing keys | `key={id}` |
+| Page-level 401 UI | `logout()` redirect |
 
 ## Patterns
 

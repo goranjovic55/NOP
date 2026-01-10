@@ -242,6 +242,66 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
     return candidates
 
 
+# Token targets (balanced for effectiveness)
+SKILL_TOKEN_TARGETS = {
+    'target': 250,  # Increased from 200 for effectiveness
+    'max': 350,
+    'min': 100,  # Skills below this are too terse
+}
+
+
+def validate_skill_quality(skills_dir: Path) -> List[Dict[str, Any]]:
+    """Validate skill quality - check for Critical Gotchas and token balance."""
+    issues = []
+    
+    for skill_path in skills_dir.glob("*/SKILL.md"):
+        skill_name = skill_path.parent.name
+        try:
+            content = skill_path.read_text(encoding='utf-8')
+            word_count = len(content.split())
+            
+            # Check for Critical Gotchas section
+            has_gotchas = '## ⚠️ Critical Gotchas' in content or '## Critical Gotchas' in content
+            
+            # Check token balance
+            is_too_terse = word_count < SKILL_TOKEN_TARGETS['min']
+            is_too_verbose = word_count > SKILL_TOKEN_TARGETS['max']
+            
+            if not has_gotchas:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'missing_gotchas',
+                    'message': f"Missing ⚠️ Critical Gotchas section",
+                    'severity': 'warning'
+                })
+            
+            if is_too_terse:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'too_terse',
+                    'message': f"Too terse ({word_count} words, min {SKILL_TOKEN_TARGETS['min']})",
+                    'severity': 'warning'
+                })
+            
+            if is_too_verbose:
+                issues.append({
+                    'skill': skill_name,
+                    'issue': 'too_verbose',
+                    'message': f"Too verbose ({word_count} words, max {SKILL_TOKEN_TARGETS['max']})",
+                    'severity': 'warning'
+                })
+                
+        except (IOError, UnicodeDecodeError):
+            issues.append({
+                'skill': skill_name,
+                'issue': 'read_error',
+                'message': f"Could not read skill file",
+                'severity': 'error'
+            })
+    
+    return issues
+
+
 def read_workflow_logs(workflow_dir: Path) -> List[Dict[str, Any]]:
     """Read workflow log files."""
     logs = []
@@ -321,17 +381,99 @@ def simulate_sessions(n: int, detection_accuracy: float = 0.96) -> Dict[str, Any
 # Main Functions
 # ============================================================================
 
-def run_update(dry_run: bool = False) -> Dict[str, Any]:
-    """Update skills based on current session."""
+def run_analyze() -> Dict[str, Any]:
+    """Analyze skills without modifying any files (safe default)."""
     print("=" * 60)
-    print("AKIS Skills Update (Session Mode)")
+    print("AKIS Skills Analysis (Report Only)")
     print("=" * 60)
+    
+    root = Path.cwd()
+    skills_dir = root / '.github' / 'skills'
     
     # Get session context
     session_files = get_session_files()
     diff = get_git_diff()
     
     print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Validate skill quality
+    quality_issues = validate_skill_quality(skills_dir)
+    if quality_issues:
+        print(f"\n⚠️  Skill quality issues: {len(quality_issues)}")
+        for issue in quality_issues[:5]:
+            print(f"  - {issue['skill']}: {issue['message']}")
+    else:
+        print(f"\n✅ All skills pass quality checks")
+    
+    # Detect existing skills
+    existing = detect_existing_skills(session_files, diff)
+    print(f"✅ Existing skills used: {len(existing)}")
+    for s in existing[:3]:
+        print(f"  - {s.skill_name} ({100*s.confidence:.0f}%)")
+    
+    # Detect new skill candidates
+    new_candidates = detect_new_skill_candidates(session_files, diff)
+    print(f"🆕 New skill candidates: {len(new_candidates)}")
+    
+    # Output implementation-ready suggestions
+    if new_candidates:
+        print(f"\n📋 SUGGESTED NEW SKILLS (create files):")
+        print("-" * 60)
+        for s in new_candidates:
+            skill_path = f".github/skills/{s.skill_name}/SKILL.md"
+            evidence_str = ', '.join(s.evidence[:3]) if s.evidence else 'session patterns'
+            print(f"CREATE: {skill_path}")
+            print(f"```markdown")
+            print(f"---")
+            print(f"name: {s.skill_name}")
+            print(f"description: Detected from: {evidence_str}")
+            print(f"---")
+            print(f"")
+            print(f"# {s.skill_name.replace('-', ' ').title()}")
+            print(f"")
+            print(f"## Triggers")
+            print(f"- File patterns: [TODO]")
+            print(f"- Keywords: [TODO]")
+            print(f"")
+            print(f"## Rules")
+            print(f"- [TODO: Add domain-specific rules]")
+            print(f"```")
+            print()
+        print("-" * 60)
+        print(f"\n💡 Agent: Create the skill files above")
+    
+    return {
+        'mode': 'analyze',
+        'session_files': len(session_files),
+        'quality_issues': len(quality_issues),
+        'existing_skills': [{'name': s.skill_name, 'confidence': s.confidence} for s in existing],
+        'new_candidates': [{'name': s.skill_name, 'confidence': s.confidence, 'evidence': s.evidence} for s in new_candidates],
+    }
+
+
+def run_update(dry_run: bool = False) -> Dict[str, Any]:
+    """Update skills based on current session."""
+    print("=" * 60)
+    print("AKIS Skills Update (Session Mode)")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    skills_dir = root / '.github' / 'skills'
+    
+    # Get session context
+    session_files = get_session_files()
+    diff = get_git_diff()
+    
+    print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Validate skill quality
+    quality_issues = validate_skill_quality(skills_dir)
+    if quality_issues:
+        print(f"\n⚠️  Skill quality issues: {len(quality_issues)}")
+        for issue in quality_issues[:5]:
+            print(f"  - {issue['skill']}: {issue['message']}")
+    else:
+        print(f"\n✅ All skills pass quality checks")
     
     # Detect existing skills
     existing = detect_existing_skills(session_files, diff)
@@ -353,6 +495,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     return {
         'mode': 'update',
         'session_files': len(session_files),
+        'quality_issues': quality_issues,
         'existing_skills': [{'name': s.skill_name, 'confidence': s.confidence} for s in existing],
         'new_candidates': [{'name': s.skill_name, 'confidence': s.confidence} for s in new_candidates],
     }
@@ -472,8 +615,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python skills.py                    # Update (default)
-  python skills.py --update           # Update based on session
+  python skills.py                    # Analyze only (safe default)
+  python skills.py --update           # Update/create skill stubs
   python skills.py --generate         # Full generation with metrics
   python skills.py --suggest          # Suggest without applying
   python skills.py --dry-run          # Preview changes
@@ -481,8 +624,8 @@ Examples:
     )
     
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--update', action='store_true', default=True,
-                           help='Update based on current session (default)')
+    mode_group.add_argument('--update', action='store_true',
+                           help='Actually update/create skill files')
     mode_group.add_argument('--generate', action='store_true',
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
@@ -502,8 +645,11 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
-    else:
+    elif args.update:
         result = run_update(args.dry_run)
+    else:
+        # Default: safe analyze-only mode
+        result = run_analyze()
     
     # Save output if requested
     if args.output:

@@ -9,7 +9,7 @@ import ProtocolConnection from '../components/ProtocolConnection';
 import { useAccessStore, Protocol } from '../store/accessStore';
 
 const Host: React.FC = () => {
-  const { token, logout } = useAuthStore();
+  const { token, logout, _hasHydrated } = useAuthStore();
   const { activeAgent } = usePOV();
   const { addTab } = useAccessStore();
   const [activeTab, setActiveTab] = useState<'metrics' | 'terminal' | 'filesystem' | 'desktop'>('metrics');
@@ -47,14 +47,14 @@ const Host: React.FC = () => {
 
   // Fetch system info on mount
   useEffect(() => {
-    if (token) {
+    if (_hasHydrated && token) {
       fetchSystemInfo();
     }
-  }, [token, activeAgent]);
+  }, [token, activeAgent, _hasHydrated]);
 
   // Fetch metrics periodically
   useEffect(() => {
-    if (token && activeTab === 'metrics') {
+    if (_hasHydrated && token && activeTab === 'metrics') {
       fetchMetrics();
       fetchProcesses();
       fetchConnections();
@@ -188,8 +188,7 @@ const Host: React.FC = () => {
 
   const fetchSystemInfo = async () => {
     if (!token) {
-      // No token - let the app redirect to login
-      logout();
+      // No token - wait for hydration, don't force logout
       return;
     }
     setLoading(true);
@@ -233,8 +232,12 @@ const Host: React.FC = () => {
     try {
       const data = await hostService.getProcesses(token, 15, activeAgent?.id);
       setProcesses(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch processes:', error);
+      if (error?.response?.status === 401) {
+        logout();
+        return;
+      }
     }
   };
 
@@ -243,8 +246,12 @@ const Host: React.FC = () => {
     try {
       const data = await hostService.getNetworkConnections(token, 20, activeAgent?.id);
       setConnections(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch connections:', error);
+      if (error?.response?.status === 401) {
+        logout();
+        return;
+      }
     }
   };
 
@@ -253,8 +260,12 @@ const Host: React.FC = () => {
     try {
       const data = await hostService.getDiskIO(token, activeAgent?.id);
       setDiskIO(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch disk I/O:', error);
+      if (error?.response?.status === 401) {
+        logout();
+        return;
+      }
     }
   };
 
@@ -264,8 +275,12 @@ const Host: React.FC = () => {
       const data = await hostService.browseFileSystem(token, path, activeAgent?.id);
       setCurrentPath(data.current_path);
       setFileItems(data.items);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to browse directory:', error);
+      if (error?.response?.status === 401) {
+        logout();
+        return;
+      }
     }
   };
 

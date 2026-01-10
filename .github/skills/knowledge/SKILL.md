@@ -5,27 +5,19 @@ description: Load when working with project_knowledge.json, context files, or ma
 
 # Knowledge v3.0
 
-## Schema (90% token reduction)
+## ⚠️ Critical Gotchas
+- **JSON Lines format:** Each line is separate JSON, not one object
+- **Hot cache first:** Always check line 1 before file reads
+- **Gotchas populated:** Debug issues go to gotchas, not entities
+
+## Schema
 ```
 Line 1: HOT_CACHE (top 20 entities + answers)
 Line 2: DOMAIN_INDEX (per-domain lookup)
 Line 3: CHANGE_TRACKING (file hashes)
 Line 4: GOTCHAS (issues + solutions)
-Line 5: SESSION_PATTERNS (predictive)
-Line 6: INTERCONNECTIONS (dependencies)
-Lines 8+: ENTITIES
+Lines 5+: ENTITIES
 ```
-
-## Cache Hit Rates
-
-| Layer | Hit | Use |
-|-------|-----|-----|
-| hot_cache | 31% | Entity lookup |
-| gotchas | 11% | Debug |
-| predictive | 7% | Preload |
-| interconnections | 14% | Dependencies |
-| domain_index | 22% | By domain |
-| **file reads** | **15%** | Complex only |
 
 ## Rules
 - **Read hot_cache first** (line 1)
@@ -40,6 +32,18 @@ head -1 project_knowledge.json | jq '.'
 # Domain lookup
 sed -n '2p' project_knowledge.json | jq '.backend'
 
+# Gotchas (debug patterns)
+sed -n '4p' project_knowledge.json | jq '.items'
+
 # Regenerate
 python .github/scripts/knowledge.py
 ```
+
+## Cache Hit Rates
+
+| Layer | Hit | Use |
+|-------|-----|-----|
+| hot_cache | 31% | Entity lookup |
+| gotchas | 11% | Debug |
+| domain_index | 22% | By domain |
+| **file reads** | **15%** | Complex only |

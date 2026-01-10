@@ -364,13 +364,88 @@ def simulate_sessions(n: int, knowledge: Dict[str, Any]) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def run_analyze() -> Dict[str, Any]:
+    """Analyze session without modifying any files (safe default)."""
+    print("=" * 60)
+    print("AKIS Knowledge Analysis (Report Only)")
+    print("=" * 60)
+    
+    root = Path.cwd()
+    knowledge_path = root / 'project_knowledge.json'
+    
+    # Get session files
+    session_files = get_session_files()
+    print(f"\n📁 Session files detected: {len(session_files)}")
+    
+    # Load current knowledge
+    current = load_current_knowledge(root)
+    current_count = len(current) if current else 0
+    print(f"📚 Current knowledge entries: {current_count}")
+    
+    # Analyze session files
+    analyzer = CodeAnalyzer(root)
+    
+    session_entities = []
+    for sf in session_files:
+        file_path = root / sf
+        if file_path.exists() and file_path.suffix == '.py':
+            entity = analyzer.analyze_python(file_path)
+            if entity:
+                session_entities.append(entity)
+        elif file_path.exists() and file_path.suffix in ('.ts', '.tsx'):
+            entity = analyzer.analyze_typescript(file_path)
+            if entity:
+                session_entities.append(entity)
+    
+    print(f"🔍 Session entities analyzed: {len(session_entities)}")
+    
+    # Output JSONL-ready suggestions for agent to implement
+    if session_entities:
+        print(f"\n📋 SUGGESTED JSONL LINES (append to project_knowledge.json):")
+        print("-" * 60)
+        for entity in session_entities[:10]:
+            jsonl_line = json.dumps({
+                "type": "entity",
+                "name": entity.name,
+                "entityType": entity.entity_type,
+                "path": entity.path,
+                "exports": entity.exports[:5] if entity.exports else [],
+                "updated": datetime.now().strftime("%Y-%m-%d")
+            })
+            print(jsonl_line)
+        if len(session_entities) > 10:
+            print(f"# ... and {len(session_entities) - 10} more entities")
+        print("-" * 60)
+    
+    # Check knowledge health
+    if knowledge_path.exists():
+        print(f"\n✅ Knowledge file exists: {knowledge_path}")
+    else:
+        print(f"\n⚠️ Knowledge file missing. Agent should create with header lines first.")
+    
+    print("\n💡 Agent: Append the JSONL lines above to project_knowledge.json")
+    
+    return {
+        'mode': 'analyze',
+        'session_files': len(session_files),
+        'entities_found': len(session_entities),
+        'knowledge_exists': knowledge_path.exists(),
+        'current_entries': current_count,
+        'suggested_entities': [
+            {'name': e.name, 'type': e.entity_type, 'path': e.path}
+            for e in session_entities
+        ],
+    }
+
+
 def run_update(dry_run: bool = False) -> Dict[str, Any]:
-    """Update knowledge based on current session."""
+    """Actually update knowledge based on current session."""
     print("=" * 60)
     print("AKIS Knowledge Update (Session Mode)")
     print("=" * 60)
     
     root = Path.cwd()
+    knowledge_path = root / 'project_knowledge.json'
     
     # Get session files
     session_files = get_session_files()
@@ -397,19 +472,48 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     
     print(f"🔍 Session entities analyzed: {len(session_entities)}")
     
-    # Update frecency for session entities
+    # Build updates
     updates = []
     for entity in session_entities:
         updates.append({
             'name': entity.name,
             'path': entity.path,
             'type': entity.entity_type,
-            'action': 'boost_frecency'
+            'exports': entity.exports[:5],
+            'updated_at': datetime.now().isoformat()
         })
     
     if not dry_run and updates:
-        # Would update project_knowledge.json here
-        print(f"\n✅ Knowledge updated with {len(updates)} session entities")
+        # Actually update project_knowledge.json
+        knowledge = current if current else {
+            'version': '3.2',
+            'generated_at': datetime.now().isoformat(),
+            'hot_cache': {'top_entities': [], 'common_answers': [], 'quick_facts': []},
+            'domain_index': {'backend': [], 'frontend': []},
+            'gotchas': [],
+            'entities': []
+        }
+        
+        # Merge session entities into existing
+        existing_paths = {e.get('path') for e in knowledge.get('entities', [])}
+        for update in updates:
+            if update['path'] not in existing_paths:
+                knowledge.setdefault('entities', []).append(update)
+            else:
+                # Update existing entity
+                for i, e in enumerate(knowledge.get('entities', [])):
+                    if e.get('path') == update['path']:
+                        knowledge['entities'][i] = {**e, **update}
+                        break
+        
+        # Update hot_cache with recent entities
+        knowledge['hot_cache']['top_entities'] = [u['name'] for u in updates[:20]]
+        knowledge['last_updated'] = datetime.now().isoformat()
+        
+        with open(knowledge_path, 'w') as f:
+            json.dump(knowledge, f, indent=2)
+        print(f"\n✅ Knowledge updated: {knowledge_path}")
+        print(f"   {len(updates)} entities merged")
     elif dry_run:
         print(f"\n🔍 Dry run - would update {len(updates)} entities")
     
@@ -574,8 +678,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python knowledge.py                    # Update (default)
-  python knowledge.py --update           # Update based on session
+  python knowledge.py                    # Analyze only (safe default)
+  python knowledge.py --update           # Update knowledge with session data
   python knowledge.py --generate         # Full generation with metrics
   python knowledge.py --suggest          # Suggest without applying
   python knowledge.py --dry-run          # Preview changes
@@ -583,8 +687,8 @@ Examples:
     )
     
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--update', action='store_true', default=True,
-                           help='Update based on current session (default)')
+    mode_group.add_argument('--update', action='store_true',
+                           help='Actually update knowledge with session data')
     mode_group.add_argument('--generate', action='store_true',
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
@@ -604,8 +708,11 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
-    else:
+    elif args.update:
         result = run_update(args.dry_run)
+    else:
+        # Default: safe analyze-only mode
+        result = run_analyze()
     
     # Save output if requested
     if args.output:

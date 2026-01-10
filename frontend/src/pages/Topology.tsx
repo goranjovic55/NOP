@@ -83,37 +83,52 @@ const calculateLinkWidth = (totalTraffic: number): number => {
 
 // Calculate link opacity/brightness based on recency
 // Uses packet_count and last_seen to determine brightness
-// Connections with traffic stay bright; old connections fade
+// 3 distinct intensity levels: ACTIVE (1.0), RECENT (0.5), STALE (0.15)
 const calculateLinkOpacity = (
   lastSeen: number | string | undefined, 
   serverCurrentTime: number,
-  _refreshRateMs: number = 5000, // Kept for API compatibility
+  refreshRateMs: number = 5000,
   packetCount?: number
 ): number => {
-  // If we have packet count > 0, this is an active connection - full brightness
-  if (packetCount && packetCount > 0) {
-    return 1.0;
+  // No timestamp = STALE (very dim)
+  if (!lastSeen) return 0.15;
+  
+  // Parse timestamp - handle both ISO strings and Unix timestamps (seconds)
+  let lastSeenTime: number;
+  if (typeof lastSeen === 'string') {
+    lastSeenTime = new Date(lastSeen).getTime() / 1000; // Convert to seconds
+  } else {
+    // If it's a large number (> 1 trillion), it's milliseconds; otherwise seconds
+    lastSeenTime = lastSeen > 1000000000000 ? lastSeen / 1000 : lastSeen;
   }
   
-  // No timestamp = dim
-  if (!lastSeen) return 0.4;
-  
-  const lastSeenTime = typeof lastSeen === 'string' 
-    ? new Date(lastSeen).getTime() / 1000 
-    : lastSeen;
   const secondsAgo = serverCurrentTime - lastSeenTime;
   
-  // Lenient thresholds - connections stay visible for a while
-  // < 60s = full brightness (actively monitored)
-  // 60-300s = gradual fade
-  // > 300s = dim
-  if (secondsAgo < 60) return 1.0;
-  if (secondsAgo < 300) {
-    // Fade from 1.0 to 0.4 over 4 minutes
-    const fadeProgress = (secondsAgo - 60) / 240;
-    return 1.0 - fadeProgress * 0.6;
+  // Debug: log for troubleshooting (remove after fix confirmed)
+  // console.log('Link opacity calc:', { lastSeen, lastSeenTime, serverCurrentTime, secondsAgo, packetCount });
+  
+  // Thresholds based on refresh rate for 3 clear levels
+  const refreshSec = refreshRateMs / 1000;
+  
+  // Level 1: ACTIVE - within 2x refresh interval (bright)
+  const activeThreshold = refreshSec * 2;
+  // Level 2: RECENT - within 6x refresh interval (medium)  
+  const recentThreshold = refreshSec * 6;
+  // Level 3: STALE - older than 6x refresh interval (dim)
+  
+  // ACTIVE: Very recent traffic with packets = full brightness
+  if (secondsAgo < activeThreshold) {
+    // Extra bright if we have recent packet count
+    return packetCount && packetCount > 0 ? 1.0 : 0.9;
   }
-  return 0.4; // Old traffic - dim but visible
+  
+  // RECENT: Somewhat recent - medium brightness
+  if (secondsAgo < recentThreshold) {
+    return 0.5;
+  }
+  
+  // STALE: Old traffic - dim but visible
+  return 0.15;
 };
 
 // Calculate node size based on connection count
@@ -131,18 +146,88 @@ const applyOpacity = (hexColor: string, opacity: number): string => {
   return hexColor + alpha;
 };
 
+// Calculate curve offset for a link to avoid overlapping
+// Uses the node IDs to create consistent curvature
+const calculateLinkCurvature = (sourceId: string, targetId: string, linkIndex: number = 0): number => {
+  // Create a deterministic but varied curvature based on IPs
+  // This ensures same link always has same curve, but different links curve differently
+  const hash = (sourceId + targetId).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Base curvature varies from -0.3 to 0.3 based on hash
+  const baseCurve = ((hash % 60) - 30) / 100;
+  
+  // Additional offset for multiple links between same pair (if any)
+  const indexOffset = linkIndex * 0.15;
+  
+  return baseCurve + indexOffset;
+};
+
+// Draw a curved line between two points using quadratic bezier
+const drawCurvedLine = (
+  ctx: CanvasRenderingContext2D,
+  startX: number, startY: number,
+  endX: number, endY: number,
+  curvature: number
+): { midX: number; midY: number } => {
+  // Calculate the midpoint
+  const midX = (startX + endX) / 2;
+  const midY = (startY + endY) / 2;
+  
+  // Calculate perpendicular offset for the control point
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  
+  // Perpendicular vector (normalized and scaled by curvature and distance)
+  const perpX = -dy / length * length * curvature;
+  const perpY = dx / length * length * curvature;
+  
+  // Control point is offset from midpoint perpendicular to the line
+  const ctrlX = midX + perpX;
+  const ctrlY = midY + perpY;
+  
+  // Draw quadratic bezier curve
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+  ctx.stroke();
+  
+  // Return the actual midpoint of the curve (on the curve, not the control point)
+  // For quadratic bezier at t=0.5: P = (1-t)^2*P0 + 2*(1-t)*t*P1 + t^2*P2
+  const curveMidX = 0.25 * startX + 0.5 * ctrlX + 0.25 * endX;
+  const curveMidY = 0.25 * startY + 0.5 * ctrlY + 0.25 * endY;
+  
+  return { midX: curveMidX, midY: curveMidY };
+};
+
 const Topology: React.FC = () => {
   const { token } = useAuthStore();
   const { activeAgent, isAgentPOV } = usePOV();
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
-  const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>('force');
-  const [trafficThreshold, setTrafficThreshold] = useState<number>(0); // Minimum bytes to show connection
-  const [isPlaying, setIsPlaying] = useState(false); // Controls particle animation
-  const [autoRefresh, setAutoRefresh] = useState(false); // Controls auto-refresh
-  const [refreshRate, setRefreshRate] = useState<number>(5000); // Refresh rate in ms (default 5s)
+  
+  // Persisted settings - restore from localStorage
+  const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>(() => {
+    const saved = localStorage.getItem('nop_topology_layout');
+    return (saved as 'force' | 'circular' | 'hierarchical') || 'force';
+  });
+  const [trafficThreshold, setTrafficThreshold] = useState<number>(() => {
+    const saved = localStorage.getItem('nop_topology_threshold');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [isPlaying, setIsPlaying] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_playing');
+    return saved === 'true';
+  });
+  const [autoRefresh, setAutoRefresh] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_autorefresh');
+    return saved === 'true';
+  });
+  const [refreshRate, setRefreshRate] = useState<number>(() => {
+    const saved = localStorage.getItem('nop_topology_refreshrate');
+    return saved ? parseInt(saved, 10) : 5000;
+  });
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -151,6 +236,46 @@ const Topology: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<number>(Date.now() / 1000);
   const [isLiveCapturing, setIsLiveCapturing] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<string>('');
+  
+  // Fullscreen and resize state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [graphHeight, setGraphHeight] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_height');
+    return saved ? parseInt(saved, 10) : 600;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Use browser Fullscreen API for true fullscreen
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+    
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  };
+
+  // Listen for fullscreen changes (user presses Escape, etc.)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Resize handlers for manual height adjustment
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
   
   // Store node positions to preserve them between updates
   const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx?: number; fy?: number }>>(new Map());
@@ -246,6 +371,31 @@ const Topology: React.FC = () => {
     localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
   }, [discoverySubnet]);
 
+  // Persist layout mode changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_layout', layoutMode);
+  }, [layoutMode]);
+
+  // Persist traffic threshold changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_threshold', trafficThreshold.toString());
+  }, [trafficThreshold]);
+
+  // Persist play state changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_playing', isPlaying.toString());
+  }, [isPlaying]);
+
+  // Persist auto-refresh changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_autorefresh', autoRefresh.toString());
+  }, [autoRefresh]);
+
+  // Persist refresh rate changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_refreshrate', refreshRate.toString());
+  }, [refreshRate]);
+
   // Resize observer
   useEffect(() => {
     if (!containerRef.current) return;
@@ -261,6 +411,36 @@ const Topology: React.FC = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Manual resize handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing && containerRef.current) {
+        const containerTop = containerRef.current.getBoundingClientRect().top;
+        const newHeight = e.clientY - containerTop;
+        if (newHeight >= 300 && newHeight <= window.innerHeight - 100) {
+          setGraphHeight(newHeight);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setIsResizing(false);
+        // Persist height to localStorage
+        localStorage.setItem('nop_topology_height', graphHeight.toString());
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, graphHeight]);
+
   const fetchData = useCallback(async (useBurstCapture: boolean = false, runSimulation: boolean = false) => {
     if (!token) return;
     try {
@@ -271,17 +451,18 @@ const Topology: React.FC = () => {
         simulationCompleteRef.current = false;
       }
       
-      // Always do burst capture when playing to get fresh timestamps
-      // This ensures connections get updated last_seen values
-      const shouldBurstCapture = useBurstCapture && isPlaying;
+      // Capture strategy:
+      // - Auto-refresh enabled: Short 1s capture to detect new traffic and update colors
+      // - Play mode enabled: Slightly longer capture for better animation data
+      // - Both disabled: Just read from database (lightweight)
+      const shouldCapture = useBurstCapture;
+      const captureDuration = isPlaying ? 2 : 1; // Longer capture when animating
       
       let trafficStats;
       
-      if (shouldBurstCapture) {
-        // Do burst capture - duration scales with refresh rate
-        // Faster refresh = shorter capture (but at least 2s to catch traffic)
-        const captureDuration = Math.max(2, Math.min(5, Math.ceil(refreshRate / 1000)));
-        setCaptureStatus(`Capturing ${captureDuration}s...`);
+      if (shouldCapture) {
+        // Live/auto capture mode
+        setCaptureStatus(isPlaying ? 'Live...' : 'Polling...');
         setIsLiveCapturing(true);
         try {
           const burstResult = await trafficService.burstCapture(token, captureDuration, activeAgent?.id);
@@ -293,15 +474,17 @@ const Topology: React.FC = () => {
             connections: mergeConnections(existingStats.connections, burstResult.connections),
             current_time: burstResult.current_time
           };
-          setCaptureStatus(`Captured ${burstResult.connection_count} flows`);
+          setCaptureStatus(`${burstResult.connection_count}c`);
         } catch (burstError) {
           console.warn('Burst capture failed, using stats:', burstError);
           trafficStats = await dashboardService.getTrafficStats(token, activeAgent?.id);
+          setCaptureStatus('');
         }
         setIsLiveCapturing(false);
       } else {
-        // Direct stats fetch for live mode or initial load
+        // Lightweight stats polling - just reads from database
         trafficStats = await dashboardService.getTrafficStats(token, activeAgent?.id);
+        setCaptureStatus('');
       }
       
       // Update current time for recency calculations
@@ -455,10 +638,17 @@ const Topology: React.FC = () => {
             existing.protocols = Array.from(new Set([...(existing.protocols || []), ...conn.protocols]));
           }
           // Update timestamps (keep most recent)
+          // Note: backend returns Unix timestamps in seconds, JS Date expects milliseconds
           if (conn.last_seen) {
-            const existingTime = existing.last_seen ? 
-              (typeof existing.last_seen === 'string' ? new Date(existing.last_seen).getTime() : existing.last_seen) : 0;
-            const newTime = typeof conn.last_seen === 'string' ? new Date(conn.last_seen).getTime() : conn.last_seen;
+            const parseTimestamp = (ts: number | string | undefined): number => {
+              if (!ts) return 0;
+              if (typeof ts === 'string') return new Date(ts).getTime();
+              // Unix timestamp in seconds - convert to ms for comparison
+              // If already in ms (> year 2001 in seconds), it's actually ms
+              return ts > 1000000000000 ? ts : ts * 1000;
+            };
+            const existingTime = parseTimestamp(existing.last_seen);
+            const newTime = parseTimestamp(conn.last_seen);
             if (newTime > existingTime) {
               existing.last_seen = conn.last_seen;
             }
@@ -554,14 +744,16 @@ const Topology: React.FC = () => {
     // Auto-refresh interval - separate from initial load
     let interval: NodeJS.Timeout;
     if (autoRefresh) {
-      // Auto-refresh: burst capture, NO simulation (just update data/colors)
+      // Auto-refresh: poll for updates, NO simulation (just update data/colors)
+      // When isPlaying is on, this will trigger burst capture for live traffic
+      // When isPlaying is off, this will do lightweight DB polling
       interval = setInterval(() => fetchData(true, false), refreshRate);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, refreshRate]); // Only depend on autoRefresh and refresh rate
+  }, [autoRefresh, refreshRate, isPlaying]); // Re-create interval when play mode changes
 
   // Apply force settings when graph is ready - runs once after first data load
   useEffect(() => {
@@ -773,6 +965,23 @@ const Topology: React.FC = () => {
 
         <button onClick={() => fetchData(false, true)} className="btn-cyber px-2 py-1 text-xs">↻</button>
         
+        {/* Fullscreen toggle */}
+        <button 
+          onClick={toggleFullscreen}
+          className="px-2 py-1 border text-xs rounded border-cyber-gray text-cyber-gray-light hover:border-cyber-blue hover:text-cyber-blue transition-colors"
+          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          )}
+        </button>
+        
         {/* Live capture status indicator */}
         {isLiveCapturing && (
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
@@ -785,7 +994,20 @@ const Topology: React.FC = () => {
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 bg-cyber-darker border border-cyber-gray relative overflow-hidden min-h-[600px]">
+      <div 
+        ref={containerRef} 
+        className="bg-cyber-darker border border-cyber-gray relative overflow-hidden"
+        style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
+      >
+        {/* Fullscreen close button - shown when in browser fullscreen */}
+        {isFullscreen && (
+          <button
+            onClick={toggleFullscreen}
+            className="absolute top-4 right-4 z-50 px-4 py-2 bg-cyber-dark border-2 border-cyber-red text-cyber-red hover:bg-cyber-red hover:text-black transition-colors text-sm font-bold uppercase shadow-lg"
+          >
+            ✕ ESC to Exit
+          </button>
+        )}
         {loading && graphData.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
             <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
@@ -867,19 +1089,46 @@ const Topology: React.FC = () => {
             return calculateLinkWidth(totalTraffic);
           }}
           linkDirectionalParticles={isPlaying ? (link: any) => {
+            // Particle count based on recent packet activity, not historical total
+            const packetCount = link.packet_count || 0;
             const totalTraffic = link.value + (link.reverseValue || 0);
-            if (!totalTraffic) return 0;
-            // More particles for higher traffic
-            return Math.max(2, Math.min(8, Math.log10(totalTraffic + 1)));
+            
+            // If no packets captured recently, show minimal or no particles
+            if (packetCount === 0) {
+              // Historical connection with no recent activity - very few particles
+              return totalTraffic > 0 ? 1 : 0;
+            }
+            
+            // Scale particles by recent packet count (more packets = more particles)
+            // Log scale: 1-10 packets = 2-3, 10-100 = 3-5, 100+ = 5-8
+            return Math.max(2, Math.min(8, 2 + Math.log10(packetCount + 1) * 3));
           } : 0}
           linkDirectionalParticleSpeed={(link: any) => {
+            // Speed based on recent packet activity - active connections = faster particles
+            const packetCount = link.packet_count || 0;
             const totalTraffic = link.value + (link.reverseValue || 0);
-            // Speed proportional to traffic volume
-            return Math.max(0.001, Math.min(0.01, totalTraffic * 0.000001 + 0.002));
+            
+            // Base speed for historical connections
+            if (packetCount === 0) {
+              return 0.002; // Slow for inactive connections
+            }
+            
+            // Faster for active connections (scaled by traffic volume)
+            const baseSpeed = 0.003;
+            const speedBonus = Math.min(0.007, totalTraffic * 0.0000001 + packetCount * 0.0001);
+            return baseSpeed + speedBonus;
           }}
           linkDirectionalParticleWidth={(link: any) => {
+            // Particle size based on recent activity
+            const packetCount = link.packet_count || 0;
             const totalTraffic = link.value + (link.reverseValue || 0);
-            return Math.max(1, Math.min(4, Math.log10(totalTraffic + 1)));
+            
+            // Larger particles for more active connections
+            if (packetCount === 0) {
+              return 1; // Small for inactive
+            }
+            
+            return Math.max(1.5, Math.min(5, 1.5 + Math.log10(packetCount + 1) * 1.5));
           }}
           linkDirectionalParticleColor={(link: any) => {
             // Particle color based on link type
@@ -887,7 +1136,7 @@ const Topology: React.FC = () => {
             return '#ffffff'; // White particles
           }}
           linkCanvasObject={(link: any, ctx, globalScale) => {
-            // Custom link rendering with bidirectional arrows
+            // Custom link rendering with curved lines to reduce overlapping
             const start = link.source;
             const end = link.target;
             
@@ -901,33 +1150,53 @@ const Topology: React.FC = () => {
               ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
               ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
             
-            // Calculate link color and width using new scaling functions
+            // Calculate curvature based on node IDs for consistent curves
+            const curvature = calculateLinkCurvature(start.id, end.id);
+            
+            // Calculate link color and width using scaling functions
             const baseWidth = calculateLinkWidth(totalTraffic);
             // Scale with zoom - thinner when zoomed out, thicker when zoomed in
             const zoomScale = Math.max(0.3, Math.min(1.5, globalScale));
             const width = (isSelected ? baseWidth * 2 : baseWidth) * zoomScale;
             const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
-            // Apply opacity based on recency and traffic activity
+            // Apply opacity based on recency and traffic activity - more visible fading
             const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
             const color = applyOpacity(baseColor, opacity);
             
-            // Draw selection glow first (behind the line)
+            // Calculate control point for curve - match library's internal calculation
+            // The library uses: ctrl = midpoint + perpendicular * curvature * linkLength
+            // Library perpendicular convention: (dy, -dx) not (-dy, dx)
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const linkLength = Math.sqrt(dx * dx + dy * dy);
+            if (linkLength === 0) return;
+            
+            // Perpendicular unit vector - match library's convention (dy, -dx)
+            const perpX = dy / linkLength;
+            const perpY = -dx / linkLength;
+            
+            // Control point offset: curvature * linkLength along perpendicular
+            const offset = curvature * linkLength;
+            const ctrlX = (start.x + end.x) / 2 + perpX * offset;
+            const ctrlY = (start.y + end.y) / 2 + perpY * offset;
+            
+            // Draw selection glow first (behind the curve) - green glow to match asset highlighting
             if (isSelected) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
-              ctx.lineTo(end.x, end.y);
-              ctx.strokeStyle = '#ffffff';
-              ctx.lineWidth = width + 2;
-              ctx.shadowBlur = 15;
-              ctx.shadowColor = '#ffffff';
+              ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
+              ctx.strokeStyle = '#00ff41';
+              ctx.lineWidth = width + 4;
+              ctx.shadowBlur = 20;
+              ctx.shadowColor = '#00ff41';
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
             
-            // Draw the link line
+            // Draw the curved link line
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
+            ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
             ctx.lineWidth = width;
             if (isSelected) {
@@ -937,30 +1206,61 @@ const Topology: React.FC = () => {
             ctx.stroke();
             ctx.shadowBlur = 0;
             
-            // Draw directional indicators for bidirectional links
+            // Draw directional indicators for bidirectional links at curve midpoint
             if (link.bidirectional && globalScale > 1.5) {
-              const dx = end.x - start.x;
-              const dy = end.y - start.y;
-              const length = Math.sqrt(dx * dx + dy * dy);
-              
-              if (length > 0) {
+              if (linkLength > 0) {
                 const arrowSize = 8 / globalScale;
-                const midX = (start.x + end.x) / 2;
-                const midY = (start.y + end.y) / 2;
+                // Midpoint of quadratic bezier at t=0.5
+                const curveMidX = 0.25 * start.x + 0.5 * ctrlX + 0.25 * end.x;
+                const curveMidY = 0.25 * start.y + 0.5 * ctrlY + 0.25 * end.y;
                 
-                // Normalize direction
-                const ux = dx / length;
-                const uy = dy / length;
-                
-                // Draw small double-headed arrow indicator
+                // Draw small double-headed arrow indicator at curve midpoint
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(midX, midY, arrowSize / 2, 0, 2 * Math.PI);
+                ctx.arc(curveMidX, curveMidY, arrowSize / 2, 0, 2 * Math.PI);
                 ctx.fill();
               }
             }
           }}
           backgroundColor="#050505"
+          linkCurvature={(link: any) => {
+            // Add curvature to links to reduce overlapping
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            return calculateLinkCurvature(sourceId, targetId);
+          }}
+          linkPointerAreaPaint={(link: any, color, ctx) => {
+            // Custom hit area for curved links - draw a thick invisible curve for click detection
+            const start = link.source;
+            const end = link.target;
+            
+            if (typeof start !== 'object' || typeof end !== 'object') return;
+            
+            const sourceId = start.id;
+            const targetId = end.id;
+            const curvature = calculateLinkCurvature(sourceId, targetId);
+            
+            // Calculate control point matching our curve drawing
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const linkLength = Math.sqrt(dx * dx + dy * dy);
+            if (linkLength === 0) return;
+            
+            // Perpendicular unit vector - match library's convention (dy, -dx)
+            const perpX = dy / linkLength;
+            const perpY = -dx / linkLength;
+            const offset = curvature * linkLength;
+            const ctrlX = (start.x + end.x) / 2 + perpX * offset;
+            const ctrlY = (start.y + end.y) / 2 + perpY * offset;
+            
+            // Draw thick curved hit area
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 10; // Wide hit area for easier clicking
+            ctx.stroke();
+          }}
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
           dagLevelDistance={100}
           d3VelocityDecay={0.3}
@@ -979,11 +1279,11 @@ const Topology: React.FC = () => {
           onNodeHover={(node: any) => {
             document.body.style.cursor = node ? 'pointer' : 'default';
             setHoveredNode(node || null);
-            if (node) setHoveredLink(null); // Clear link hover when hovering node
           }}
           onLinkHover={(link: any) => {
-            setHoveredLink(link || null);
-            if (link) setHoveredNode(null); // Clear node hover when hovering link
+            // Only change cursor on link hover - no visual highlighting
+            // Details box shows on click via ConnectionContextMenu
+            document.body.style.cursor = link ? 'pointer' : 'default';
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;
@@ -1103,60 +1403,6 @@ const Topology: React.FC = () => {
             </div>
           </div>
         )}
-        
-        {/* Link Hover Tooltip */}
-        {hoveredLink && (
-          <div 
-            className="absolute z-20 bg-cyber-darker border border-cyber-green p-4 shadow-lg pointer-events-none"
-            style={{ 
-              top: 20, 
-              right: 20,
-              minWidth: '260px'
-            }}
-          >
-            <h3 className="text-cyber-green font-bold text-sm mb-3 uppercase tracking-widest">Connection</h3>
-            <div className="space-y-1 text-sm text-cyber-gray-light">
-              <div className="flex justify-between">
-                <span className="font-semibold">Source:</span>
-                <span className="text-cyber-blue">{typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Target:</span>
-                <span className="text-cyber-blue">{typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Direction:</span>
-                <span className={hoveredLink.bidirectional ? 'text-cyber-green' : 'text-cyber-blue'}>
-                  {hoveredLink.bidirectional ? '↔ Bidirectional' : '→ Unidirectional'}
-                </span>
-              </div>
-              {hoveredLink.protocols && hoveredLink.protocols.length > 0 && (
-                <div className="flex justify-between">
-                  <span className="font-semibold">Protocols:</span>
-                  <span className="text-cyber-purple">{hoveredLink.protocols.join(', ')}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="font-semibold">Traffic:</span>
-                <span>
-                  {formatTrafficMB(hoveredLink.value + (hoveredLink.reverseValue || 0))} MB
-                </span>
-              </div>
-              {hoveredLink.bidirectional && (
-                <>
-                  <div className="flex justify-between text-xs mt-2 pt-2 border-t border-cyber-gray">
-                    <span>→ Forward:</span>
-                    <span>{formatTrafficMB(hoveredLink.value)} MB</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span>← Reverse:</span>
-                    <span>{formatTrafficMB(hoveredLink.reverseValue || 0)} MB</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Legend */}
         <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg">
@@ -1191,63 +1437,89 @@ const Topology: React.FC = () => {
             <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.OTHER_IP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.OTHER_IP}`}}></span>
             <span className="uppercase tracking-wide">Other IP</span>
           </div>
+          
+          <div className="font-bold text-cyber-red mb-2 mt-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Intensity</div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5 bg-cyber-green opacity-100 shadow-[0_0_5px_#00ff41]"></span>
+            <span className="uppercase tracking-wide text-cyber-green">Active</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5 bg-cyber-green opacity-50"></span>
+            <span className="uppercase tracking-wide text-cyber-gray-light">Recent</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5 bg-cyber-green opacity-[0.15]"></span>
+            <span className="uppercase tracking-wide text-cyber-gray">Stale</span>
+          </div>
+          
           <div className="text-[10px] mt-3 pt-3 border-t border-cyber-gray text-cyber-gray uppercase tracking-wide">
             <div>Line width = traffic volume</div>
-            <div>Line brightness = recency</div>
+            <div>Curved lines = reduce overlapping</div>
             <div>Node size = connections</div>
             <div>Particles = active flow</div>
             <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
         </div>
+
+        {/* Context menus inside container for fullscreen support */}
+        {/* Host Context Menu */}
+        {selectedNode && contextMenuPosition && (
+          <HostContextMenu
+            host={{
+              id: selectedNode.id,
+              ip: selectedNode.ip,
+              name: selectedNode.name,
+              status: selectedNode.status,
+              details: selectedNode.details
+            }}
+            position={contextMenuPosition}
+            onClose={() => {
+              setSelectedNode(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Connection Context Menu */}
+        {selectedLink && contextMenuPosition && (
+          <ConnectionContextMenu
+            connection={{
+              source: typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source,
+              target: typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target,
+              protocols: selectedLink.protocols,
+              value: selectedLink.value,
+              reverseValue: selectedLink.reverseValue,
+              bidirectional: selectedLink.bidirectional
+            }}
+            position={contextMenuPosition}
+            onClose={() => {
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Click backdrop to close context menus */}
+        {(selectedNode || selectedLink) && (
+          <div 
+            className="absolute inset-0 z-40" 
+            onClick={() => {
+              setSelectedNode(null);
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
       </div>
 
-      {/* Host Context Menu */}
-      {selectedNode && contextMenuPosition && (
-        <HostContextMenu
-          host={{
-            id: selectedNode.id,
-            ip: selectedNode.ip,
-            name: selectedNode.name,
-            status: selectedNode.status,
-            details: selectedNode.details
-          }}
-          position={contextMenuPosition}
-          onClose={() => {
-            setSelectedNode(null);
-            setContextMenuPosition(null);
-          }}
-        />
-      )}
-
-      {/* Connection Context Menu */}
-      {selectedLink && contextMenuPosition && (
-        <ConnectionContextMenu
-          connection={{
-            source: typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source,
-            target: typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target,
-            protocols: selectedLink.protocols,
-            value: selectedLink.value,
-            reverseValue: selectedLink.reverseValue,
-            bidirectional: selectedLink.bidirectional
-          }}
-          position={contextMenuPosition}
-          onClose={() => {
-            setSelectedLink(null);
-            setContextMenuPosition(null);
-          }}
-        />
-      )}
-
-      {/* Click backdrop to close context menus */}
-      {(selectedNode || selectedLink) && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => {
-            setSelectedNode(null);
-            setSelectedLink(null);
-            setContextMenuPosition(null);
-          }}
-        />
+      {/* Resize Handle - drag to resize graph height */}
+      {!isFullscreen && (
+        <div
+          className="h-2 bg-cyber-gray hover:bg-cyber-blue cursor-ns-resize transition-colors flex items-center justify-center group"
+          onMouseDown={handleResizeMouseDown}
+        >
+          <div className="w-12 h-1 bg-cyber-blue rounded-full group-hover:bg-cyber-green transition-colors"></div>
+        </div>
       )}
     </div>
   );
