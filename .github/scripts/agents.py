@@ -71,42 +71,80 @@ DOCS_LOW_THRESHOLD = 10
 ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation']
 
 # Agent types that can be optimized
+# Updated based on 100k simulation analysis for GitHub Copilot VS Code Insiders
 AGENT_TYPES = {
-    'code-editor': {
-        'description': 'Specialized for code editing tasks',
-        'triggers': ['edit', 'refactor', 'fix', 'implement', 'add feature'],
+    # Core Agents (4 Essential - User's workflow)
+    'architect': {
+        'description': 'Deep design, blueprints, brainstorming before projects',
+        'triggers': ['design', 'architecture', 'blueprint', 'plan', 'brainstorm', 'structure'],
+        'skills': ['backend-api', 'frontend-react', 'docker'],
+        'optimization_targets': ['completeness', 'consistency', 'knowledge_usage'],
+        'tier': 'core',
+    },
+    'research': {
+        'description': 'Gather info from local docs + external sources',
+        'triggers': ['research', 'investigate', 'compare', 'evaluate', 'best practices'],
+        'skills': ['documentation'],
+        'optimization_targets': ['accuracy', 'comprehensiveness', 'source_quality'],
+        'tier': 'core',
+    },
+    'code': {
+        'description': 'Write code following best practices and standards',
+        'triggers': ['implement', 'create', 'write', 'build', 'add', 'code'],
         'skills': ['backend-api', 'frontend-react', 'testing'],
         'optimization_targets': ['token_usage', 'api_calls', 'accuracy'],
+        'tier': 'core',
     },
     'debugger': {
-        'description': 'Specialized for debugging and error resolution',
-        'triggers': ['error', 'bug', 'fix', 'debug', 'traceback', 'exception'],
+        'description': 'Trace logs, execute, find bugs and culprits',
+        'triggers': ['error', 'bug', 'debug', 'traceback', 'exception', 'diagnose'],
         'skills': ['debugging', 'testing'],
         'optimization_targets': ['resolution_time', 'accuracy', 'root_cause_detection'],
+        'tier': 'core',
+    },
+    # Supporting Agents (Use when needed)
+    'reviewer': {
+        'description': 'Independent pass/fail audit for quality gates',
+        'triggers': ['review', 'check', 'audit', 'quality', 'verify'],
+        'skills': ['testing', 'debugging'],
+        'optimization_targets': ['coverage', 'accuracy', 'thoroughness'],
+        'tier': 'supporting',
     },
     'documentation': {
-        'description': 'Specialized for documentation tasks',
+        'description': 'Update docs, READMEs, comments',
         'triggers': ['doc', 'readme', 'comment', 'explain', 'document'],
         'skills': ['documentation'],
         'optimization_targets': ['coverage', 'accuracy', 'token_usage'],
+        'tier': 'supporting',
     },
-    'architect': {
-        'description': 'Specialized for system design and architecture',
-        'triggers': ['design', 'architecture', 'system', 'structure', 'pattern'],
-        'skills': ['backend-api', 'frontend-react', 'docker'],
-        'optimization_targets': ['completeness', 'consistency', 'knowledge_usage'],
-    },
+    # Specialized Agents (Narrow use cases - can be merged into core)
     'devops': {
-        'description': 'Specialized for CI/CD and infrastructure',
+        'description': 'CI/CD and infrastructure',
         'triggers': ['deploy', 'docker', 'ci', 'cd', 'pipeline', 'workflow'],
         'skills': ['docker', 'ci-cd'],
         'optimization_targets': ['reliability', 'security', 'efficiency'],
+        'tier': 'specialized',
     },
-    'reviewer': {
-        'description': 'Specialized for code review',
-        'triggers': ['review', 'check', 'audit', 'quality', 'security'],
+    'tester': {
+        'description': 'Test writing and TDD (can merge into code)',
+        'triggers': ['test', 'spec', 'coverage', 'mock', 'fixture', 'TDD'],
         'skills': ['testing', 'debugging'],
-        'optimization_targets': ['coverage', 'accuracy', 'thoroughness'],
+        'optimization_targets': ['coverage', 'accuracy', 'edge_case_detection'],
+        'tier': 'specialized',
+    },
+    'security': {
+        'description': 'Security auditing (can merge into reviewer)',
+        'triggers': ['security', 'vulnerability', 'injection', 'CVE', 'XSS', 'CSRF'],
+        'skills': ['testing', 'debugging'],
+        'optimization_targets': ['detection_rate', 'false_positive_reduction', 'severity_accuracy'],
+        'tier': 'specialized',
+    },
+    'refactorer': {
+        'description': 'Code refactoring (can merge into code)',
+        'triggers': ['refactor', 'cleanup', 'simplify', 'extract', 'DRY', 'SOLID'],
+        'skills': ['backend-api', 'frontend-react'],
+        'optimization_targets': ['code_quality', 'maintainability', 'test_preservation'],
+        'tier': 'specialized',
     },
 }
 
@@ -290,7 +328,7 @@ def extract_baseline(root: Path) -> Dict[str, Any]:
     optimal_agents = []
     
     if session_patterns.get('fullstack', 0) > 5 or codebase['backend_files'] > 10:
-        optimal_agents.append('code-editor')
+        optimal_agents.append('code')
     
     if any('error' in log['content'].lower() or 'fix' in log['content'].lower() for log in logs):
         optimal_agents.append('debugger')
@@ -366,7 +404,7 @@ def optimize_agent(agent: AgentConfig, baseline: Dict[str, Any]) -> Tuple[AgentC
         optimizations.append("Reduced token limit for focused debugging")
     
     # Optimization 2: Adjust temperature
-    if agent.agent_type == 'code-editor':
+    if agent.agent_type == 'code':
         agent.temperature = 0.1  # More deterministic for code
         optimizations.append("Lowered temperature for deterministic code generation")
     elif agent.agent_type == 'architect':
@@ -502,48 +540,66 @@ def calculate_improvements(before: Dict[str, Any], after: Dict[str, Any]) -> Dic
 # ============================================================================
 
 # Sub-agent registry - agents that can call each other via runsubagent
+# Updated for GitHub Copilot VS Code Insiders compatibility
+# Based on 100k session simulation analysis
 SUBAGENT_REGISTRY = {
     'akis': {
         'description': 'Main AKIS orchestrator agent',
-        'can_call': ['code-editor', 'debugger', 'documentation', 'architect', 'devops', 'reviewer'],
+        'can_call': ['architect', 'research', 'code', 'debugger', 'reviewer', 'documentation', 'devops'],
         'called_by': [],
         'orchestration_role': 'primary',
+        'parallel_capable': True,  # Can fan-out to multiple agents
     },
-    'code-editor': {
-        'description': 'Specialized code editing',
-        'can_call': ['debugger', 'reviewer'],
+    # Core Agents (4 Essential)
+    'architect': {
+        'description': 'Deep design, blueprints, brainstorming',
+        'can_call': ['code', 'documentation', 'devops', 'research'],
+        'called_by': ['akis'],
+        'orchestration_role': 'planner',
+        'parallel_capable': False,  # Planning is sequential
+    },
+    'research': {
+        'description': 'Gather info from docs + external sources',
+        'can_call': [],
         'called_by': ['akis', 'architect'],
+        'orchestration_role': 'investigator',
+        'parallel_capable': True,  # Can research multiple topics
+    },
+    'code': {
+        'description': 'Write code following best practices',
+        'can_call': ['debugger'],
+        'called_by': ['akis', 'architect', 'debugger'],
         'orchestration_role': 'worker',
+        'parallel_capable': True,  # Can work on different files
     },
     'debugger': {
-        'description': 'Error resolution specialist',
-        'can_call': ['code-editor'],
-        'called_by': ['akis', 'code-editor'],
+        'description': 'Trace logs, execute, find bugs',
+        'can_call': ['code'],
+        'called_by': ['akis', 'code', 'reviewer'],
         'orchestration_role': 'specialist',
+        'parallel_capable': False,  # Debug is sequential analysis
+    },
+    # Supporting Agents
+    'reviewer': {
+        'description': 'Independent pass/fail audit',
+        'can_call': ['debugger'],
+        'called_by': ['akis'],
+        'orchestration_role': 'auditor',
+        'parallel_capable': True,  # Can review different modules
     },
     'documentation': {
-        'description': 'Documentation writer',
+        'description': 'Update docs, READMEs',
         'can_call': [],
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
-    },
-    'architect': {
-        'description': 'System design and planning',
-        'can_call': ['code-editor', 'documentation', 'devops'],
-        'called_by': ['akis'],
-        'orchestration_role': 'planner',
+        'parallel_capable': True,  # Independent of code
     },
     'devops': {
         'description': 'CI/CD and infrastructure',
-        'can_call': ['code-editor'],
+        'can_call': ['code'],
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
-    },
-    'reviewer': {
-        'description': 'Code review and quality',
-        'can_call': ['debugger'],
-        'called_by': ['akis', 'code-editor'],
-        'orchestration_role': 'auditor',
+        'parallel_capable': False,  # Infrastructure is sequential
     },
 }
 
@@ -570,12 +626,12 @@ def generate_subagent_orchestration_map() -> Dict[str, Any]:
     orchestration_map['call_chains'] = [
         {
             'name': 'complex_feature',
-            'chain': ['akis', 'architect', 'code-editor', 'reviewer', 'akis'],
+            'chain': ['akis', 'architect', 'code', 'reviewer', 'akis'],
             'description': 'Complex feature development with planning and review',
         },
         {
             'name': 'debugging_flow',
-            'chain': ['akis', 'debugger', 'code-editor', 'akis'],
+            'chain': ['akis', 'debugger', 'code', 'akis'],
             'description': 'Error resolution and fix implementation',
         },
         {
@@ -585,7 +641,7 @@ def generate_subagent_orchestration_map() -> Dict[str, Any]:
         },
         {
             'name': 'infrastructure_change',
-            'chain': ['akis', 'architect', 'devops', 'code-editor', 'akis'],
+            'chain': ['akis', 'architect', 'devops', 'code', 'akis'],
             'description': 'Infrastructure and CI/CD changes',
         },
     ]
@@ -595,12 +651,12 @@ def generate_subagent_orchestration_map() -> Dict[str, Any]:
         {
             'pattern': 'delegate_specialized_task',
             'description': 'AKIS delegates to specialized agent for specific task',
-            'syntax': 'runsubagent(agent="code-editor", task="implement feature X")',
+            'syntax': 'runsubagent(agent="code", task="implement feature X")',
         },
         {
             'pattern': 'chain_tasks',
             'description': 'Agent chains to another agent after completing its part',
-            'syntax': 'runsubagent(agent="reviewer", task="review changes from code-editor")',
+            'syntax': 'runsubagent(agent="reviewer", task="review changes from code")',
         },
         {
             'pattern': 'parallel_delegation',
@@ -892,7 +948,7 @@ def simulate_session_with_specialists(
     
     # Calculate improvements based on specialist match
     task_specialist_match = {
-        'code_editing': 'code-editor',
+        'code_editing': 'code',
         'debugging': 'debugger',
         'documentation': 'documentation',
         'infrastructure': 'devops',
@@ -916,7 +972,7 @@ def simulate_session_with_specialists(
         time_reduction = 0.30
         compliance_boost = 0.10
         success_boost = 0.08
-    elif any(s in specialists for s in ['code-editor', 'debugger']):
+    elif any(s in specialists for s in ['code', 'debugger']):
         # Partial match - moderate improvement
         api_reduction = 0.20
         token_reduction = 0.25
@@ -1021,11 +1077,11 @@ def simulate_100k_akis_vs_specialists(
     
     # Common call chains from orchestration
     call_chains = {
-        'code_editing': ['akis', 'code-editor', 'akis'],
-        'debugging': ['akis', 'debugger', 'code-editor', 'akis'],
+        'code_editing': ['akis', 'code', 'akis'],
+        'debugging': ['akis', 'debugger', 'code', 'akis'],
         'documentation': ['akis', 'documentation', 'akis'],
-        'infrastructure': ['akis', 'architect', 'devops', 'code-editor', 'akis'],
-        'architecture': ['akis', 'architect', 'code-editor', 'reviewer', 'akis'],
+        'infrastructure': ['akis', 'architect', 'devops', 'code', 'akis'],
+        'architecture': ['akis', 'architect', 'code', 'reviewer', 'akis'],
         'review': ['akis', 'reviewer', 'akis'],
     }
     
@@ -1366,7 +1422,7 @@ AKIS can delegate tasks to specialist agents via `runsubagent`.
 
 ```python
 # Simple delegation
-runsubagent(agent="code-editor", task="implement feature X")
+runsubagent(agent="code", task="implement feature X")
 
 # With context
 runsubagent(
@@ -1376,17 +1432,17 @@ runsubagent(
 )
 
 # Chain delegation (specialist can call another)
-# code-editor → debugger → code-editor
+# code → debugger → code
 ```
 
 ### Common Call Chains
 
 | Task Type | Chain |
 |-----------|-------|
-| Feature Development | akis → architect → code-editor → reviewer → akis |
-| Bug Fix | akis → debugger → code-editor → akis |
+| Feature Development | akis → architect → code → reviewer → akis |
+| Bug Fix | akis → debugger → code → akis |
 | Documentation | akis → documentation → akis |
-| Infrastructure | akis → architect → devops → code-editor → akis |
+| Infrastructure | akis → architect → devops → code → akis |
 
 ### When to Delegate
 
@@ -1457,7 +1513,7 @@ def simulate_individual_agent(
     
     # Agent-specific modifiers based on type
     type_modifiers = {
-        'code-editor': {
+        'code': {
             'api_reduction': 0.40,  # 40% fewer API calls
             'token_reduction': 0.45,  # 45% fewer tokens
             'time_reduction': 0.35,  # 35% faster
