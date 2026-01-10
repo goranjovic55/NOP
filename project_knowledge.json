@@ -1,139 +1,202 @@
-{"type": "map", "version": "2.0-hierarchical", "purpose": "Read lines 1-3 for overview, then load specific domain details on-demand", "structure": {"line_1": "This navigation map", "lines_2_to_3": "Domain summaries (tech, entities, line pointers)", "lines_4_onwards": "Detailed entities (load on-demand)"}, "domains": {"Infrastructure": {"summary_line": 2, "details_lines": "4-8", "count": 5}, "backend": {"summary_line": 3, "details_lines": "9-127", "count": 119}}, "hot_cache": {"top_entities": ["SnifferService", "Topology", "authStore", "Host", "Agents"], "recent_session": "2026-01-10", "gotchas": ["Zustand hydration: Check _hasHydrated before accessing persisted state to avoid race conditions", "Fullscreen API: Context menus must be inside the fullscreen container element", "401 handling: All API fetch functions need logout() on 401 to prevent stuck sessions"]}, "updated": "2026-01-10"}
-{"type": "domain", "name": "Infrastructure", "summary": "5 entities: 5 Containers", "tech": ["guacd", "postgres", "redis"], "entities": 5, "entity_types": {"Container": 5}}
-{"type": "domain", "name": "backend", "summary": "119 entities: 106 Classs, 13 Services", "tech": ["app", "asyncio", "base64", "collections", "datetime", "enum", "fastapi", "fcntl", "ftplib", "functools"], "entities": 119, "entity_types": {"Class": 106, "Service": 13}}
-{"type": "entity", "name": "Infrastructure.Service.frontend", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": [], "updated": "2026-01-10"}
-{"type": "entity", "name": "Infrastructure.Service.backend", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": [], "updated": "2026-01-10"}
-{"type": "entity", "name": "Infrastructure.Service.postgres", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": ["postgres"], "updated": "2026-01-10"}
-{"type": "entity", "name": "Infrastructure.Service.guacd", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": ["guacd"], "updated": "2026-01-10"}
-{"type": "entity", "name": "Infrastructure.Service.redis", "entityType": "Container", "observations": ["Defined in docker-compose.yml"], "tech": ["redis"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.cve_cache.CVECache", "entityType": "Class", "observations": ["Defined in backend/app/models/cve_cache.py"], "tech": ["sqlalchemy", "datetime", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.event.EventType", "entityType": "Class", "observations": ["Defined in backend/app/models/event.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.event.EventSeverity", "entityType": "Class", "observations": ["Defined in backend/app/models/event.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.event.Event", "entityType": "Class", "observations": ["Defined in backend/app/models/event.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.vulnerability.VulnerabilitySeverity", "entityType": "Class", "observations": ["Defined in backend/app/models/vulnerability.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.vulnerability.VulnerabilityStatus", "entityType": "Class", "observations": ["Defined in backend/app/models/vulnerability.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.vulnerability.Vulnerability", "entityType": "Class", "observations": ["Defined in backend/app/models/vulnerability.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.flow.Flow", "entityType": "Class", "observations": ["Defined in backend/app/models/flow.py"], "tech": ["sqlalchemy", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.credential.CredentialType", "entityType": "Class", "observations": ["Defined in backend/app/models/credential.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.credential.Credential", "entityType": "Class", "observations": ["Defined in backend/app/models/credential.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.scan.ScanType", "entityType": "Class", "observations": ["Defined in backend/app/models/scan.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.scan.ScanStatus", "entityType": "Class", "observations": ["Defined in backend/app/models/scan.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.scan.Scan", "entityType": "Class", "observations": ["Defined in backend/app/models/scan.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.scan.ScanResult", "entityType": "Class", "observations": ["Defined in backend/app/models/scan.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.topology.EdgeType", "entityType": "Class", "observations": ["Defined in backend/app/models/topology.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.topology.TopologyEdge", "entityType": "Class", "observations": ["Defined in backend/app/models/topology.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.user.UserRole", "entityType": "Class", "observations": ["Defined in backend/app/models/user.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.user.User", "entityType": "Class", "observations": ["Defined in backend/app/models/user.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.exploit_module.ExploitType", "entityType": "Class", "observations": ["Defined in backend/app/models/exploit_module.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.exploit_module.ExploitRank", "entityType": "Class", "observations": ["Defined in backend/app/models/exploit_module.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.exploit_module.ExploitModule", "entityType": "Class", "observations": ["Defined in backend/app/models/exploit_module.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.agent.AgentType", "entityType": "Class", "observations": ["Defined in backend/app/models/agent.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.agent.AgentStatus", "entityType": "Class", "observations": ["Defined in backend/app/models/agent.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.agent.StartupMode", "entityType": "Class", "observations": ["Defined in backend/app/models/agent.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.agent.PersistenceLevel", "entityType": "Class", "observations": ["Defined in backend/app/models/agent.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.agent.Agent", "entityType": "Class", "observations": ["Defined in backend/app/models/agent.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.asset.AssetType", "entityType": "Class", "observations": ["Defined in backend/app/models/asset.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.asset.AssetStatus", "entityType": "Class", "observations": ["Defined in backend/app/models/asset.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.asset.Asset", "entityType": "Class", "observations": ["Defined in backend/app/models/asset.py"], "tech": ["sqlalchemy", "enum", "uuid", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.models.settings.Settings", "entityType": "Class", "observations": ["Defined in backend/app/models/settings.py"], "tech": ["sqlalchemy", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.dashboard.DashboardMetrics", "entityType": "Class", "observations": ["Defined in backend/app/schemas/dashboard.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.dashboard.RecentHost", "entityType": "Class", "observations": ["Defined in backend/app/schemas/dashboard.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.dashboard.RecentScan", "entityType": "Class", "observations": ["Defined in backend/app/schemas/dashboard.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.dashboard.RecentExploit", "entityType": "Class", "observations": ["Defined in backend/app/schemas/dashboard.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.dashboard.RecentActivityResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/dashboard.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.auth.UserLogin", "entityType": "Class", "observations": ["Defined in backend/app/schemas/auth.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.auth.UserCreate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/auth.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.auth.UserResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/auth.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.auth.Token", "entityType": "Class", "observations": ["Defined in backend/app/schemas/auth.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.auth.TokenData", "entityType": "Class", "observations": ["Defined in backend/app/schemas/auth.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.credential.CredentialCreate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/credential.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.credential.CredentialResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/credential.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.credential.Config", "entityType": "Class", "observations": ["Defined in backend/app/schemas/credential.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.scan.ScanCreate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/scan.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.scan.ScanResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/scan.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.scan.ScanResultResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/scan.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.scan.Config", "entityType": "Class", "observations": ["Defined in backend/app/schemas/scan.py"], "tech": ["typing", "datetime", "pydantic", "app"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.FlowResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.TrafficStats", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.PingRequest", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.PingResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.StormConfig", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.StormMetrics", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.traffic.Config", "entityType": "Class", "observations": ["Defined in backend/app/schemas/traffic.py"], "tech": ["typing", "datetime", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentCreate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentUpdate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentListResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentGenerateRequest", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentGenerateResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.agent.AgentSourceResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/agent.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.asset.AssetCreate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/asset.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.asset.AssetUpdate", "entityType": "Class", "observations": ["Defined in backend/app/schemas/asset.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.asset.AssetResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/asset.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.asset.AssetList", "entityType": "Class", "observations": ["Defined in backend/app/schemas/asset.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.asset.AssetStats", "entityType": "Class", "observations": ["Defined in backend/app/schemas/asset.py"], "tech": ["pydantic", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.ScanSettingsConfig", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.DiscoverySettingsConfig", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.AccessSettingsConfig", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.SystemSettingsConfig", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.SettingsCategory", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.SettingsResponse", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.schemas.settings.SettingsUpdateRequest", "entityType": "Class", "observations": ["Defined in backend/app/schemas/settings.py"], "tech": ["typing", "pydantic"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.core.config.Settings", "entityType": "Class", "observations": ["Defined in backend/app/core/config.py"], "tech": ["typing", "pydantic_settings", "os"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.core.config.Config", "entityType": "Class", "observations": ["Defined in backend/app/core/config.py"], "tech": ["typing", "pydantic_settings", "os"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.core.pov_middleware.POVMiddleware", "entityType": "Class", "observations": ["Defined in backend/app/core/pov_middleware.py"], "tech": ["typing", "fastapi", "uuid", "starlette"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.SnifferService.SnifferService", "entityType": "Service", "observations": ["Defined in backend/app/services/SnifferService.py"], "tech": ["threading", "socket", "scapy", "time", "json", "logging", "os", "typing", "multiprocessing", "asyncio", "psutil", "struct"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.discovery_service.DiscoveryService", "entityType": "Service", "observations": ["Defined in backend/app/services/discovery_service.py"], "tech": ["sqlalchemy", "ipaddress", "app", "datetime", "logging", "typing", "re", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.cve_lookup.ProductQueryInput", "entityType": "Class", "observations": ["Defined in backend/app/services/cve_lookup.py"], "tech": ["sqlalchemy", "time", "pydantic", "app", "httpx", "datetime", "logging", "os", "typing", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.cve_lookup.RateLimitExceeded", "entityType": "Class", "observations": ["Defined in backend/app/services/cve_lookup.py"], "tech": ["sqlalchemy", "time", "pydantic", "app", "httpx", "datetime", "logging", "os", "typing", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.cve_lookup.CVELookupService", "entityType": "Service", "observations": ["Defined in backend/app/services/cve_lookup.py"], "tech": ["sqlalchemy", "time", "pydantic", "app", "httpx", "datetime", "logging", "os", "typing", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.PingService.PingService", "entityType": "Service", "observations": ["Defined in backend/app/services/PingService.py"], "tech": ["subprocess", "ipaddress", "time", "datetime", "typing", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.dashboard_service.DashboardService", "entityType": "Service", "observations": ["Defined in backend/app/services/dashboard_service.py"], "tech": ["sqlalchemy", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.agent_socks_proxy.AgentSOCKSProxy", "entityType": "Class", "observations": ["Defined in backend/app/services/agent_socks_proxy.py"], "tech": ["socket", "base64", "logging", "typing", "asyncio", "uuid", "struct"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.asset_service.AssetService", "entityType": "Service", "observations": ["Defined in backend/app/services/asset_service.py"], "tech": ["sqlalchemy", "app", "math", "datetime", "logging", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.exploit_match.ExploitMatchService", "entityType": "Service", "observations": ["Defined in backend/app/services/exploit_match.py"], "tech": ["sqlalchemy", "app", "json", "logging", "typing", "pathlib"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.user_service.UserService", "entityType": "Service", "observations": ["Defined in backend/app/services/user_service.py"], "tech": ["sqlalchemy", "app", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.agent_service.AgentService", "entityType": "Service", "observations": ["Defined in backend/app/services/agent_service.py"], "tech": ["sqlalchemy", "subprocess", "base64", "app", "json", "datetime", "logging", "os", "typing", "secrets", "tempfile", "hashlib", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.scanner.NetworkScanner", "entityType": "Class", "observations": ["Defined in backend/app/services/scanner.py"], "tech": ["socket", "subprocess", "ipaddress", "json", "datetime", "logging", "os", "typing", "xml", "asyncio", "re", "tempfile"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.version_detection.ServiceInfo", "entityType": "Service", "observations": ["Defined in backend/app/services/version_detection.py"], "tech": ["sqlalchemy", "ipaddress", "app", "pydantic", "logging", "typing", "xml", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.version_detection.VersionDetectionService", "entityType": "Service", "observations": ["Defined in backend/app/services/version_detection.py"], "tech": ["sqlalchemy", "ipaddress", "app", "pydantic", "logging", "typing", "xml", "asyncio", "re"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.access_hub.AccessHub", "entityType": "Class", "observations": ["Defined in backend/app/services/access_hub.py"], "tech": ["sqlalchemy", "socket", "base64", "ipaddress", "io", "json", "app", "datetime", "logging", "ftplib", "typing", "asyncio", "paramiko", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.guacamole.GuacamoleTunnel", "entityType": "Class", "observations": ["Defined in backend/app/services/guacamole.py"], "tech": ["threading", "socket", "fastapi", "time", "logging", "traceback", "asyncio"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.exploitdb_service.ExploitDBService", "entityType": "Service", "observations": ["Defined in backend/app/services/exploitdb_service.py"], "tech": ["subprocess", "functools", "json", "logging", "typing", "asyncio"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.services.agent_data_service.AgentDataService", "entityType": "Service", "observations": ["Defined in backend/app/services/agent_data_service.py"], "tech": ["sqlalchemy", "ipaddress", "app", "datetime", "traceback", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.vulnerabilities.CVELookupRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/vulnerabilities.py"], "tech": ["sqlalchemy", "socket", "fastapi", "time", "app", "pydantic", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.vulnerabilities.CVELookupResponse", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/vulnerabilities.py"], "tech": ["sqlalchemy", "socket", "fastapi", "time", "app", "pydantic", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.vulnerabilities.ExploitModuleResponse", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/vulnerabilities.py"], "tech": ["sqlalchemy", "socket", "fastapi", "time", "app", "pydantic", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.vulnerabilities.ExploitExecuteRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/vulnerabilities.py"], "tech": ["sqlalchemy", "socket", "fastapi", "time", "app", "pydantic", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.vulnerabilities.ExploitExecuteResponse", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/vulnerabilities.py"], "tech": ["sqlalchemy", "socket", "fastapi", "time", "app", "pydantic", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.discovery.DiscoveryRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/discovery.py"], "tech": ["sqlalchemy", "fastapi", "time", "app", "pydantic", "datetime", "logging", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.discovery.HostScanRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/discovery.py"], "tech": ["sqlalchemy", "fastapi", "time", "app", "pydantic", "datetime", "logging", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.scans.VersionDetectionRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/scans.py"], "tech": ["sqlalchemy", "fastapi", "pydantic", "app", "typing"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.scans.VersionDetectionResponse", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/scans.py"], "tech": ["sqlalchemy", "fastapi", "pydantic", "app", "typing"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.agent_settings.AgentSettingsUpdate", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/agent_settings.py"], "tech": ["sqlalchemy", "fastapi", "pydantic", "app", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.events.EventResponse", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/events.py"], "tech": ["sqlalchemy", "fastapi", "app", "pydantic", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.events.Config", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/events.py"], "tech": ["sqlalchemy", "fastapi", "app", "pydantic", "datetime", "typing", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.traffic.PingRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/traffic.py"], "tech": ["sqlalchemy", "fastapi", "subprocess", "time", "app", "pydantic", "json", "datetime", "logging", "traceback", "os", "typing", "asyncio", "collections", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.traffic.BurstCaptureRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/traffic.py"], "tech": ["sqlalchemy", "fastapi", "subprocess", "time", "app", "pydantic", "json", "datetime", "logging", "traceback", "os", "typing", "asyncio", "collections", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.traffic.StartSniffingRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/traffic.py"], "tech": ["sqlalchemy", "fastapi", "subprocess", "time", "app", "pydantic", "json", "datetime", "logging", "traceback", "os", "typing", "asyncio", "collections", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.SSHConnectionTest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.SSHCommandRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.TCPConnectionTest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.RDPConnectionRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.FTPListRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.FTPDownloadRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.FTPUploadRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.access.HTTPTunnelSession", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/access.py"], "tech": ["sqlalchemy", "fastapi", "time", "pydantic", "json", "app", "logging", "os", "typing", "asyncio", "uuid"], "updated": "2026-01-10"}
-{"type": "entity", "name": "backend.app.api.v1.endpoints.host.WriteFileRequest", "entityType": "Class", "observations": ["Defined in backend/app/api/v1/endpoints/host.py"], "tech": ["sqlalchemy", "json", "datetime", "typing", "select", "uuid", "struct", "app", "pty", "asyncio", "fastapi", "os", "shutil", "platform", "psutil", "base64", "pydantic", "fcntl", "pathlib", "termios"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.agents", "entityType": "module", "path": ".github/scripts/agents.py", "exports": ["simulate_akis_current", "simulate_orchestration_chain", "extract_baseline"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.audit", "entityType": "module", "path": ".github/scripts/audit.py", "exports": ["analyze_instruction", "ComponentAnalyzer", "OptimizationEngine"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.docs", "entityType": "module", "path": ".github/scripts/docs.py", "exports": ["run_generate", "run_analyze", "run_update"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.instructions", "entityType": "module", "path": ".github/scripts/instructions.py", "exports": ["SimulatedSession", "analyze_instruction_files", "run_analyze"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.knowledge", "entityType": "module", "path": ".github/scripts/knowledge.py", "exports": ["analyze_python", "run_generate", "run_analyze"], "updated": "2026-01-10"}
-{"type": "entity", "name": "akis.skills", "entityType": "module", "path": ".github/scripts/skills.py", "exports": ["run_generate", "run_analyze", "run_update"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.components.ConnectionContextMenu", "entityType": "component", "path": "frontend/src/components/ConnectionContextMenu.tsx", "observations": ["Context menu for topology connections", "Shows traffic stats and sniff options", "Must be inside fullscreen container"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.components.HostContextMenu", "entityType": "component", "path": "frontend/src/components/HostContextMenu.tsx", "observations": ["Context menu for topology nodes", "Shows host details and connection options", "Must be inside fullscreen container"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.pages.Topology", "entityType": "page", "path": "frontend/src/pages/Topology.tsx", "observations": ["Network topology visualization with ForceGraph2D", "Uses browser Fullscreen API for true fullscreen", "Context menus inside container for fullscreen support"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.pages.Host", "entityType": "page", "path": "frontend/src/pages/Host.tsx", "observations": ["System metrics, terminal, filesystem tabs", "All API fetches have 401 logout handling", "Waits for _hasHydrated before accessing token"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.pages.Agents", "entityType": "page", "path": "frontend/src/pages/Agents.tsx", "observations": ["Agent management and POV switching", "Uses _hasHydrated for Zustand hydration", "401 handling triggers logout"], "updated": "2026-01-10"}
-{"type": "entity", "name": "frontend.store.authStore", "entityType": "store", "path": "frontend/src/store/authStore.ts", "observations": ["Zustand persist store for auth", "_hasHydrated flag tracks localStorage hydration", "onRehydrateStorage callback sets hydration flag"], "updated": "2026-01-10"}
+{
+  "version": "3.2",
+  "generated_at": "2026-01-10T03:11:39.033229",
+  "hot_cache": {
+    "top_entities": [
+      "agents",
+      "audit",
+      "docs",
+      "instructions",
+      "knowledge",
+      "skills",
+      "traffic",
+      "SnifferService",
+      "ConnectionContextMenu",
+      "HostContextMenu",
+      "Agents",
+      "Host",
+      "Topology",
+      "Traffic",
+      "trafficService",
+      "authStore"
+    ],
+    "common_answers": [],
+    "quick_facts": []
+  },
+  "domain_index": {
+    "backend": [],
+    "frontend": []
+  },
+  "gotchas": [],
+  "entities": [
+    {
+      "name": "agents",
+      "path": ".github/scripts/agents.py",
+      "type": "module",
+      "exports": [
+        "generate_agent_file",
+        "simulate_session_with_agent",
+        "count_documentation",
+        "generate_subagent_orchestration_map",
+        "optimize_agent"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033197"
+    },
+    {
+      "name": "audit",
+      "path": ".github/scripts/audit.py",
+      "type": "module",
+      "exports": [
+        "SessionSimulator",
+        "get_patterns",
+        "WorkflowParser",
+        "ComponentAnalyzer",
+        "analyze_instruction"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033207"
+    },
+    {
+      "name": "docs",
+      "path": ".github/scripts/docs.py",
+      "type": "module",
+      "exports": [
+        "run_index",
+        "get_existing_docs",
+        "GroundTruthExtractor",
+        "extract_all",
+        "run_analyze"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033210"
+    },
+    {
+      "name": "instructions",
+      "path": ".github/scripts/instructions.py",
+      "type": "module",
+      "exports": [
+        "generate_suggestions",
+        "extract_patterns_from_logs",
+        "read_workflow_logs",
+        "SimulatedSession",
+        "InstructionPattern"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033211"
+    },
+    {
+      "name": "knowledge",
+      "path": ".github/scripts/knowledge.py",
+      "type": "module",
+      "exports": [
+        "CodeAnalyzer",
+        "read_workflow_logs",
+        "CodeEntity",
+        "run_analyze",
+        "main"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033213"
+    },
+    {
+      "name": "skills",
+      "path": ".github/scripts/skills.py",
+      "type": "module",
+      "exports": [
+        "SkillSuggestion",
+        "validate_skill_quality",
+        "get_git_diff",
+        "read_workflow_logs",
+        "run_analyze"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033214"
+    },
+    {
+      "name": "traffic",
+      "path": "backend/app/api/v1/endpoints/traffic.py",
+      "type": "endpoint",
+      "exports": [
+        "get_interfaces",
+        "advanced_ping",
+        "packet_callback",
+        "start_storm",
+        "export_traffic"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033216"
+    },
+    {
+      "name": "SnifferService",
+      "path": "backend/app/services/SnifferService.py",
+      "type": "service",
+      "exports": [
+        "get_interfaces",
+        "set_filter_unicast",
+        "set_filter_multicast",
+        "start_storm",
+        "start_burst_capture"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033217"
+    },
+    {
+      "name": "ConnectionContextMenu",
+      "path": "frontend/src/components/ConnectionContextMenu.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033218"
+    },
+    {
+      "name": "HostContextMenu",
+      "path": "frontend/src/components/HostContextMenu.tsx",
+      "type": "component",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033219"
+    },
+    {
+      "name": "Agents",
+      "path": "frontend/src/pages/Agents.tsx",
+      "type": "page",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033221"
+    },
+    {
+      "name": "Host",
+      "path": "frontend/src/pages/Host.tsx",
+      "type": "page",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033222"
+    },
+    {
+      "name": "Topology",
+      "path": "frontend/src/pages/Topology.tsx",
+      "type": "page",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033223"
+    },
+    {
+      "name": "Traffic",
+      "path": "frontend/src/pages/Traffic.tsx",
+      "type": "page",
+      "exports": [],
+      "updated_at": "2026-01-10T03:11:39.033225"
+    },
+    {
+      "name": "trafficService",
+      "path": "frontend/src/services/trafficService.ts",
+      "type": "module",
+      "exports": [
+        "BurstCaptureResult",
+        "CaptureStatus",
+        "TrafficConnection",
+        "BurstCaptureConnection",
+        "trafficService"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033226"
+    },
+    {
+      "name": "authStore",
+      "path": "frontend/src/store/authStore.ts",
+      "type": "store",
+      "exports": [
+        "useAuthStore"
+      ],
+      "updated_at": "2026-01-10T03:11:39.033227"
+    }
+  ],
+  "last_updated": "2026-01-10T03:11:39.033236"
+}

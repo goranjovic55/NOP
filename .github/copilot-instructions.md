@@ -12,8 +12,9 @@
 ```
 1. Read project_knowledge.json lines 1-4 (hot_cache, domain_index, gotchas)
 2. Read .github/skills/INDEX.md (skill catalog)
-3. Create todos: <MAIN> → <WORK>... → <END>
-4. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
+3. Read docs/INDEX.md (documentation map)
+4. Create todos: <MAIN> → <WORK>... → <END>
+5. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
 ```
 
 **Session skills cache:** [track loaded skills here - don't reload!]
@@ -40,30 +41,15 @@
 
 ## END (⛔ G4 - MANDATORY before session close)
 ```
-1. Check ⊘ orphans → close ALL
-2. Run scripts (suggest mode - safe analysis):
-   python knowledge.py   # Suggests entity updates
-   python skills.py      # Suggests skill additions
-   python instructions.py # Suggests instruction gaps
-   python docs.py         # Suggests doc updates
-   python agents.py       # Suggests agent updates
-3. SHOW suggestions to user and ASK:
-   "Scripts suggest these updates. Implement? [y/n/select]"
-4. IF approved, IMPLEMENT suggestions:
-   - knowledge: Append JSONL lines to project_knowledge.json
-   - skills: Create .github/skills/{name}/SKILL.md stubs
-   - instructions: Create .github/instructions/{name}.instructions.md
-   - docs: Update docs/ files as suggested
-   - agents: Update .github/agents/*.agent.md
-5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md with:
-   - Summary of changes
-   - Worktree (todos with status symbols)
-   - Files modified
-   - Script suggestions implemented
-6. Show END summary → Wait approval → commit
+1. Close ⊘ orphans
+2. Run scripts WITHOUT flag: knowledge.py, skills.py, instructions.py, docs.py, agents.py
+3. Ask: "Implement? [y/n/select]"
+4. y → Run with --update → VERIFY files → Report ✓
+5. select → Agent implements manually
+6. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md → commit
 ```
 
-**Scripts = analysis only | Agent = asks user, then implements**
+**Flow:** Analyze → Ask → (y? --update → Verify) or (select? Agent writes)
 
 **Trigger:** User says "wrap up", "done", "end session", "commit"
 

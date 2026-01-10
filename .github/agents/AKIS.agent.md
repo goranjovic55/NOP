@@ -21,8 +21,9 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 1. Read `project_knowledge.json` lines 1-4
 2. Read `.github/skills/INDEX.md`
-3. Detect: Simple (<3 files) | Medium (3-5) | Complex (6+)
-4. Say: "AKIS loaded. [complexity]. Ready."
+3. Read `docs/INDEX.md`
+4. Detect: Simple (<3 files) | Medium (3-5) | Complex (6+)
+5. Say: "AKIS loaded. [complexity]. Ready."
 
 ## WORK
 
@@ -32,19 +33,14 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 
 **Complex (6+ files):** Delegate to specialists
 
-## END (Scripts Suggest → User Approves → Agent Implements)
+## END (Analyze → Ask → Update → Verify)
 
-1. Close orphan ⊘
-2. Run scripts (suggest mode):
-   - `python knowledge.py`
-   - `python skills.py`
-   - `python instructions.py`
-   - `python docs.py`
-   - `python agents.py`
-3. Show suggestions → Ask user: "Implement these? [y/n/select]"
-4. IF approved → Implement changes
-5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
-6. Commit
+1. Close ⊘ orphans
+2. Run scripts WITHOUT flag: knowledge.py, skills.py, instructions.py, docs.py, agents.py
+3. Ask: "Implement? [y/n/select]"
+4. y → `--update` → VERIFY → Report ✓
+5. select → Agent implements manually
+6. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md → Commit
 
 ## Delegation
 

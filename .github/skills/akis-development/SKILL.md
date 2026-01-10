@@ -9,40 +9,28 @@ description: Load when editing AKIS framework files including .github/copilot-in
 - **Skills too terse:** Balance tokens with effectiveness (include Critical Gotchas)
 - **Pre-loaded assumption:** Context is NOT pre-attached, require explicit reads
 - **Missing enforcement:** Add HARD GATES for discipline
-- **Agent verbosity:** Remove ASCII art, use template references
-- **Duplicate content:** Skills table in agent → reference INDEX.md
+- **Script output ignored:** Agent MUST interpret script suggestions and implement approved ones
 
-## Token Targets (Balanced)
+## Token Targets
 
-| Component | Target | Max | Notes |
-|-----------|--------|-----|-------|
-| Skills | <250 | 350 | Include gotchas! |
-| Instructions | <150 | 200 | Complementary |
-| Agents | <300 | 500 | Essential only |
-| INDEX.md | <100 | 150 | Quick reference |
+| Component | Target | Max |
+|-----------|--------|-----|
+| Skills | <250 | 350 |
+| Instructions | <150 | 200 |
+| Agents | <300 | 500 |
+| INDEX.md | <100 | 150 |
 
-## Agent Optimization Pattern
+## END Phase Scripts
 
-1. **Audit first:** `python .github/scripts/audit.py --target agents`
-2. **Remove duplicates:** Skills table → reference INDEX.md
-3. **Compress sections:** ASCII art → single line
-4. **Use references:** Templates → `.github/templates/`
-5. **Measure:** 100k simulation before/after
+1. Run WITHOUT flag → Show suggestions → Ask user
+2. IF agreed → Run with `--update` → Verify files written correctly
+
+**Flow:** Analyze → Ask → (Agree? `--update` → Verify) or (Deviate? Agent writes)
 
 ## Rules
 - **Tables > prose** for mappings
 - **Symbols:** ✓ ◆ ○ ⊘ ⧖ ⚠️ ⭐
 - **Always include:** Critical Gotchas section
-- **Reference templates:** Don't embed verbose examples
-
-## Avoid
-
-| ❌ Bad | ✅ Good |
-|--------|---------|
-| Verbose paragraphs | Numbered steps |
-| Token-only focus | Balance effectiveness |
-| Embedded templates | Reference .github/templates/ |
-| ASCII art summaries | Single-line format |
 
 ## Validation
 ```bash

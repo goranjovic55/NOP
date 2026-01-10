@@ -6,6 +6,7 @@ applyTo: "**"
 
 ## Enforcement
 - **HARD GATES** in copilot-instructions.md → STOP if violated
+- **Workflow discipline** in workflow.instructions.md → TODO, symbols, logs
 - **START** required before any work
 - **Skills** load once, announce, cache
 
