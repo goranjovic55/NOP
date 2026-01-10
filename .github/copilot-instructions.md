@@ -1,4 +1,4 @@
-# AKIS v6.5 (Scripts Suggest, Agent Implements)
+# AKIS v6.3 (Enforced Discipline + Knowledge Cache v3.0)
 
 ## ⛔ HARD GATES (STOP if violated)
 | Gate | Violation | Action |
@@ -6,15 +6,13 @@
 | G1 | No ◆ task active | Create TODO with ◆ first |
 | G2 | Editing without skill | Load skill, announce it |
 | G3 | START not done | Do START steps 1-4 first |
-| G4 | Session ending without END | Do END steps 1-5 before closing |
 
 ## START (Do ALL steps)
 ```
 1. Read project_knowledge.json lines 1-4 (hot_cache, domain_index, gotchas)
 2. Read .github/skills/INDEX.md (skill catalog)
-3. Read docs/INDEX.md (documentation map)
-4. Create todos: <MAIN> → <WORK>... → <END>
-5. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
+3. Create todos: <MAIN> → <WORK>... → <END>
+4. Say: "AKIS ready. [Simple/Medium/Complex]. Plan: [N tasks]"
 ```
 
 **Session skills cache:** [track loaded skills here - don't reload!]
@@ -39,19 +37,13 @@
 
 **Interrupt:** ⊘ current → <SUB:N> → handle → ⊘→◆ resume (no orphans!)
 
-## END (⛔ G4 - MANDATORY before session close)
+## END
 ```
-1. Close ⊘ orphans
-2. Run scripts WITHOUT flag: knowledge.py, skills.py, instructions.py, docs.py, agents.py
-3. Ask: "Implement? [y/n/select]"
-4. y → Run with --update → VERIFY files → Report ✓
-5. select → Agent implements manually
-6. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md → commit
+1. Check ⊘ orphans → close ALL
+2. Run scripts: knowledge.py && skills.py && instructions.py && docs.py && session_cleanup.py
+3. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
+4. Show END summary (all script outputs) → Wait approval → commit
 ```
-
-**Flow:** Analyze → Ask → (y? --update → Verify) or (select? Agent writes)
-
-**Trigger:** User says "wrap up", "done", "end session", "commit"
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
@@ -62,19 +54,6 @@
 | Simple (<3 files) | Handle directly |
 | Medium (3-5 files) | Consider delegation |
 | Complex (6+ files) | **Delegate** to specialist |
-
-| Agent | Triggers |
-|-------|----------|
-| architect | design, blueprint, plan |
-| research | research, compare, evaluate |
-| code | implement, create, write |
-| debugger | error, bug, traceback |
-| reviewer | review, audit, check |
-| documentation | doc, readme, explain |
-| devops | deploy, docker, ci |
-
-**Parallel OK:** code(A)+code(B), code+docs, reviewer+docs
-**Sequential:** architect→code→debugger→reviewer
 
 **Mark in TODO:** `<DELEGATE> → agent-name ⧖`
 

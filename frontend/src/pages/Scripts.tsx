@@ -36,6 +36,11 @@ const Scripts: React.FC = () => {
   const [editingStep, setEditingStep] = useState<ScriptStep | null>(null);
   const [showStepEditor, setShowStepEditor] = useState(false);
   
+  // Step editor form state
+  const [stepType, setStepType] = useState<ScriptStepType>('command');
+  const [stepName, setStepName] = useState('');
+  const [stepParams, setStepParams] = useState<Record<string, any>>({});
+  
   const outputEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,6 +160,176 @@ const Scripts: React.FC = () => {
       automation: 'border-cyber-purple text-cyber-purple'
     };
     return colors[category as keyof typeof colors] || 'border-cyber-gray text-cyber-gray';
+  };
+
+  // Step type definitions for the editor
+  const stepTypeOptions: { type: ScriptStepType; label: string; category: string; paramDefs: { key: string; label: string; type: 'text' | 'number' | 'password' | 'textarea'; placeholder?: string; required?: boolean }[] }[] = [
+    {
+      type: 'command',
+      label: 'Execute Command',
+      category: 'Automation',
+      paramDefs: [
+        { key: 'command', label: 'Command', type: 'textarea', placeholder: 'Enter shell command...', required: true }
+      ]
+    },
+    {
+      type: 'login_ssh',
+      label: 'SSH Login',
+      category: 'Connection',
+      paramDefs: [
+        { key: 'target', label: 'Target Host', type: 'text', placeholder: '192.168.1.1', required: true },
+        { key: 'username', label: 'Username', type: 'text', placeholder: 'admin', required: true },
+        { key: 'password', label: 'Password', type: 'password', placeholder: 'Password' }
+      ]
+    },
+    {
+      type: 'login_rdp',
+      label: 'RDP Login',
+      category: 'Connection',
+      paramDefs: [
+        { key: 'target', label: 'Target Host', type: 'text', placeholder: '192.168.1.1', required: true },
+        { key: 'username', label: 'Username', type: 'text', placeholder: 'admin', required: true },
+        { key: 'password', label: 'Password', type: 'password', placeholder: 'Password' },
+        { key: 'domain', label: 'Domain', type: 'text', placeholder: 'DOMAIN' }
+      ]
+    },
+    {
+      type: 'login_vnc',
+      label: 'VNC Login',
+      category: 'Connection',
+      paramDefs: [
+        { key: 'target', label: 'Target Host', type: 'text', placeholder: '192.168.1.1', required: true },
+        { key: 'password', label: 'Password', type: 'password', placeholder: 'Password' }
+      ]
+    },
+    {
+      type: 'port_scan',
+      label: 'Port Scan',
+      category: 'Network',
+      paramDefs: [
+        { key: 'target', label: 'Target', type: 'text', placeholder: '192.168.1.1 or CIDR', required: true },
+        { key: 'ports', label: 'Ports', type: 'text', placeholder: '1-1000 or 22,80,443' }
+      ]
+    },
+    {
+      type: 'vuln_scan',
+      label: 'Vulnerability Scan',
+      category: 'Security',
+      paramDefs: [
+        { key: 'target', label: 'Target', type: 'text', placeholder: '192.168.1.1', required: true },
+        { key: 'scan_type', label: 'Scan Type', type: 'text', placeholder: 'full, quick, or custom' }
+      ]
+    },
+    {
+      type: 'exploit',
+      label: 'Exploit',
+      category: 'Security',
+      paramDefs: [
+        { key: 'target', label: 'Target', type: 'text', placeholder: '192.168.1.1', required: true },
+        { key: 'exploit_type', label: 'Exploit Type', type: 'text', placeholder: 'auto or specific' },
+        { key: 'payload', label: 'Payload', type: 'text', placeholder: 'reverse_shell' }
+      ]
+    },
+    {
+      type: 'ping_test',
+      label: 'Ping Test',
+      category: 'Network',
+      paramDefs: [
+        { key: 'targets', label: 'Targets (comma-separated)', type: 'text', placeholder: '192.168.1.1,192.168.1.2', required: true },
+        { key: 'count', label: 'Ping Count', type: 'number', placeholder: '5' }
+      ]
+    },
+    {
+      type: 'port_disable',
+      label: 'Disable Port',
+      category: 'Network',
+      paramDefs: [
+        { key: 'port', label: 'Interface/Port', type: 'text', placeholder: 'Gi0/1', required: true }
+      ]
+    },
+    {
+      type: 'port_enable',
+      label: 'Enable Port',
+      category: 'Network',
+      paramDefs: [
+        { key: 'port', label: 'Interface/Port', type: 'text', placeholder: 'Gi0/1', required: true }
+      ]
+    },
+    {
+      type: 'delay',
+      label: 'Delay/Wait',
+      category: 'Automation',
+      paramDefs: [
+        { key: 'seconds', label: 'Seconds', type: 'number', placeholder: '10', required: true }
+      ]
+    },
+    {
+      type: 'agent_download',
+      label: 'Download Agent',
+      category: 'Agent',
+      paramDefs: [
+        { key: 'url', label: 'Download URL', type: 'text', placeholder: 'http://server/agent', required: true }
+      ]
+    },
+    {
+      type: 'agent_execute',
+      label: 'Execute Agent',
+      category: 'Agent',
+      paramDefs: [
+        { key: 'args', label: 'Arguments', type: 'text', placeholder: '--connect-back' }
+      ]
+    }
+  ];
+
+  const getStepTypeDef = (type: ScriptStepType) => stepTypeOptions.find(s => s.type === type);
+
+  const resetStepForm = () => {
+    setStepType('command');
+    setStepName('');
+    setStepParams({});
+    setEditingStep(null);
+  };
+
+  const openStepEditor = (step?: ScriptStep) => {
+    if (step) {
+      setEditingStep(step);
+      setStepType(step.type);
+      setStepName(step.name);
+      setStepParams({ ...step.params });
+    } else {
+      resetStepForm();
+    }
+    setShowStepEditor(true);
+  };
+
+  const handleSaveStep = () => {
+    if (!activeScript) return;
+    
+    const typeDef = getStepTypeDef(stepType);
+    const finalName = stepName || typeDef?.label || stepType;
+    
+    if (editingStep) {
+      // Update existing step
+      _updateStep(activeScript.id, editingStep.id, {
+        type: stepType,
+        name: finalName,
+        params: stepParams
+      });
+    } else {
+      // Add new step
+      _addStep(activeScript.id, {
+        type: stepType,
+        name: finalName,
+        params: stepParams
+      });
+    }
+    
+    setShowStepEditor(false);
+    resetStepForm();
+  };
+
+  const handleParamChange = (key: string, value: any) => {
+    setStepParams(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -315,7 +490,7 @@ const Scripts: React.FC = () => {
                   <p className="text-cyber-gray-light text-xs mt-1">{activeScript.description}</p>
                 </div>
                 <button
-                  onClick={() => setShowStepEditor(true)}
+                  onClick={() => openStepEditor()}
                   className="btn-cyber border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-black px-3 py-1 text-sm font-bold"
                 >
                   <span className="mr-1">⊞</span> Add Step
@@ -366,10 +541,7 @@ const Scripts: React.FC = () => {
                           ▼
                         </button>
                         <button
-                          onClick={() => {
-                            setEditingStep(step);
-                            setShowStepEditor(true);
-                          }}
+                          onClick={() => openStepEditor(step)}
                           className="btn-cyber border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black px-2 py-1 text-xs"
                         >
                           ✎
@@ -557,12 +729,12 @@ const Scripts: React.FC = () => {
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
             onClick={() => {
               setShowStepEditor(false);
-              setEditingStep(null);
+              resetStepForm();
             }}
           />
           
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-cyber-darker border border-cyber-blue rounded-lg w-full max-w-2xl">
+            <div className="bg-cyber-darker border border-cyber-blue rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
               <div className="p-4 border-b border-cyber-blue bg-cyber-dark">
                 <h3 className="text-cyber-blue font-bold uppercase text-sm flex items-center">
                   <span className="mr-2">◈</span>
@@ -570,21 +742,106 @@ const Scripts: React.FC = () => {
                 </h3>
               </div>
               
-              <div className="p-6">
-                <p className="text-cyber-gray-light text-sm mb-4">
-                  Step editor coming soon. For now, use the predefined templates.
-                </p>
+              <div className="p-6 overflow-auto max-h-[calc(90vh-10rem)] space-y-4">
+                {/* Step Type Selection */}
+                <div>
+                  <label className="block text-cyber-blue text-sm mb-2">Step Type</label>
+                  <select
+                    value={stepType}
+                    onChange={(e) => {
+                      const newType = e.target.value as ScriptStepType;
+                      setStepType(newType);
+                      const typeDef = getStepTypeDef(newType);
+                      if (!stepName || stepName === getStepTypeDef(stepType)?.label) {
+                        setStepName(typeDef?.label || '');
+                      }
+                      setStepParams({});
+                    }}
+                    className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none"
+                  >
+                    {Object.entries(
+                      stepTypeOptions.reduce((acc, opt) => {
+                        if (!acc[opt.category]) acc[opt.category] = [];
+                        acc[opt.category].push(opt);
+                        return acc;
+                      }, {} as Record<string, typeof stepTypeOptions>)
+                    ).map(([category, options]) => (
+                      <optgroup key={category} label={category}>
+                        {options.map(opt => (
+                          <option key={opt.type} value={opt.type}>{opt.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Step Name */}
+                <div>
+                  <label className="block text-cyber-blue text-sm mb-2">Step Name</label>
+                  <input
+                    type="text"
+                    value={stepName}
+                    onChange={(e) => setStepName(e.target.value)}
+                    className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none"
+                    placeholder={getStepTypeDef(stepType)?.label || 'Step name...'}
+                  />
+                </div>
+
+                {/* Dynamic Parameters */}
+                {getStepTypeDef(stepType)?.paramDefs.map(param => (
+                  <div key={param.key}>
+                    <label className="block text-cyber-blue text-sm mb-2">
+                      {param.label}
+                      {param.required && <span className="text-cyber-red ml-1">*</span>}
+                    </label>
+                    {param.type === 'textarea' ? (
+                      <textarea
+                        value={stepParams[param.key] || ''}
+                        onChange={(e) => handleParamChange(param.key, e.target.value)}
+                        className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none font-mono text-sm"
+                        placeholder={param.placeholder}
+                        rows={3}
+                      />
+                    ) : (
+                      <input
+                        type={param.type}
+                        value={stepParams[param.key] || ''}
+                        onChange={(e) => handleParamChange(param.key, param.type === 'number' ? parseInt(e.target.value) || 0 : e.target.value)}
+                        className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white focus:border-cyber-blue outline-none"
+                        placeholder={param.placeholder}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Step Preview */}
+                <div className="mt-4 p-3 bg-cyber-dark border border-cyber-gray rounded">
+                  <div className="text-cyber-gray-light text-xs mb-2 uppercase">Preview</div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl text-cyber-purple">{getStepIcon(stepType)}</span>
+                    <div>
+                      <div className="text-white font-semibold text-sm">{stepName || getStepTypeDef(stepType)?.label}</div>
+                      <div className="text-cyber-gray-light text-xs font-mono">{stepType}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              <div className="p-4 border-t border-cyber-gray bg-cyber-dark flex justify-end">
+              <div className="p-4 border-t border-cyber-gray bg-cyber-dark flex justify-end space-x-2">
                 <button
                   onClick={() => {
                     setShowStepEditor(false);
-                    setEditingStep(null);
+                    resetStepForm();
                   }}
                   className="btn-cyber border-cyber-gray text-cyber-gray hover:border-cyber-red hover:text-cyber-red px-4 py-2"
                 >
-                  Close
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStep}
+                  className="btn-cyber border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black px-4 py-2 font-bold"
+                >
+                  {editingStep ? 'Update Step' : 'Add Step'}
                 </button>
               </div>
             </div>
