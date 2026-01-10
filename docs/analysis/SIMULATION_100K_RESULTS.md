@@ -327,10 +327,79 @@ Based on 100k simulation analysis:
 
 ---
 
+## Per-Agent Optimization Analysis (100k Sessions Each)
+
+### Agent Performance Summary
+
+| Agent | Discipline | Tokens | Speed | Success | Efficiency |
+|-------|------------|--------|-------|---------|------------|
+| **debugger** | 88.7%→91.3% | 3121→2871 | 15→14 min | 89.7%→90.8% | **90.8%** |
+| **code** | 86.5%→91.0% | 3621→3258 | 18→17 min | 86.9%→88.8% | 89.9% |
+| **documentation** | 76.6%→88.4% | 3321→2988 | 12→12 min | 81.3%→86.0% | 89.9% |
+| **devops** | 84.9%→91.3% | 4321→3888 | 22→20 min | 86.5%→89.0% | 89.9% |
+| **reviewer** | 83.7%→91.1% | 4121→3626 | 20→19 min | 88.2%→91.2% | 89.9% |
+| **architect** | 80.6%→90.1% | 4621→3927 | 25→23 min | 85.8%→89.5% | 86.0% |
+| **research** | 73.3%→88.1% | 5621→4946 | 30→28 min | 79.9%→85.7% | 84.0% |
+
+### Overall Improvements (After Optimization)
+
+| Metric | Average Improvement |
+|--------|---------------------|
+| **Discipline** | +10.3% |
+| **Token Reduction** | +11.0% |
+| **Speed** | +7.0% |
+| **Success Rate** | +3.9% |
+| **Traceability** | +12.8% |
+
+### Top Deviations Per Agent
+
+| Agent | Top Deviation | Rate |
+|-------|---------------|------|
+| architect | skip_blueprint_validation | 15.0% |
+| research | insufficient_sources | 17.8% |
+| code | missing_tests | 14.9% |
+| debugger | insufficient_tracing | 10.0% |
+| reviewer | incomplete_review | 12.0% |
+| documentation | missing_examples | 15.0% |
+| devops | missing_env_validation | 10.0% |
+
+### Suggested Instruction Changes Per Agent
+
+**architect:**
+- Add `## Validation` section requiring design verification
+- Make `[RETURN]` trace REQUIRED with checklist
+
+**research:**
+- Require minimum 3 sources with citation
+- Add comparison matrix template
+
+**code:**
+- Add type hint requirement with examples
+- Add explicit error handling patterns
+
+**debugger:**
+- Add `REPRODUCE` step as mandatory first step
+- Add trace log template
+
+**reviewer:**
+- Add security review checklist (OWASP top 10)
+- Require test coverage check
+
+**documentation:**
+- Add REQUIRED examples section
+- Add last-updated date requirement
+
+**devops:**
+- Add security scan step to methodology
+- Add env validation checklist
+
+---
+
 ## Files Changed
 
 - `.github/copilot-instructions.md` → AKIS v7.0 with 7 gates
 - `.github/instructions/workflow.instructions.md` → Updated discipline rules
-- `.github/scripts/simulation.py` → 100k simulation engine with delegation optimization
+- `.github/scripts/simulation.py` → 100k simulation engine with all modes
 - `log/simulation_100k_results.json` → Full results data
 - `log/delegation_optimization_100k.json` → Delegation analysis data
+- `log/agent_optimization_100k.json` → Per-agent analysis data

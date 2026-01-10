@@ -459,6 +459,275 @@ class AgentSpecializationMetrics:
     optimal_file_count_max: int = 0
 
 
+@dataclass
+class AgentSimulationResult:
+    """Comprehensive simulation results for a single agent."""
+    agent_name: str
+    sessions_simulated: int = 0
+    
+    # Core metrics - current performance
+    current_discipline: float = 0.0
+    current_token_usage: float = 0.0
+    current_cognitive_load: float = 0.0
+    current_efficiency: float = 0.0
+    current_speed: float = 0.0  # Resolution time in minutes
+    current_traceability: float = 0.0
+    current_success_rate: float = 0.0
+    current_quality: float = 0.0
+    
+    # Optimized metrics - after adjustments
+    optimized_discipline: float = 0.0
+    optimized_token_usage: float = 0.0
+    optimized_cognitive_load: float = 0.0
+    optimized_efficiency: float = 0.0
+    optimized_speed: float = 0.0
+    optimized_traceability: float = 0.0
+    optimized_success_rate: float = 0.0
+    optimized_quality: float = 0.0
+    
+    # Improvement percentages
+    discipline_improvement: float = 0.0
+    token_improvement: float = 0.0
+    cognitive_load_improvement: float = 0.0
+    efficiency_improvement: float = 0.0
+    speed_improvement: float = 0.0
+    traceability_improvement: float = 0.0
+    success_improvement: float = 0.0
+    
+    # Deviations tracked
+    deviations: Dict[str, int] = field(default_factory=dict)
+    
+    # Suggested adjustments
+    suggested_adjustments: List[str] = field(default_factory=list)
+    instruction_changes: Dict[str, str] = field(default_factory=dict)
+
+
+# Agent baseline profiles - what we expect from each agent
+AGENT_BASELINE_PROFILES = {
+    'architect': {
+        'discipline_baseline': 0.82,
+        'token_baseline': 4500,
+        'cognitive_load_baseline': 0.45,
+        'efficiency_baseline': 0.78,
+        'speed_baseline': 25.0,  # minutes
+        'traceability_baseline': 0.80,
+        'success_baseline': 0.88,
+        'quality_baseline': 0.90,
+        'common_deviations': [
+            ('skip_blueprint_validation', 0.15),
+            ('incomplete_design_trace', 0.12),
+            ('missing_constraint_analysis', 0.10),
+            ('overly_complex_design', 0.08),
+            ('no_alternative_evaluation', 0.07),
+        ],
+    },
+    'research': {
+        'discipline_baseline': 0.75,
+        'token_baseline': 5500,
+        'cognitive_load_baseline': 0.50,
+        'efficiency_baseline': 0.72,
+        'speed_baseline': 30.0,
+        'traceability_baseline': 0.70,
+        'success_baseline': 0.82,
+        'quality_baseline': 0.85,
+        'common_deviations': [
+            ('insufficient_sources', 0.18),
+            ('missing_comparison_matrix', 0.14),
+            ('incomplete_analysis', 0.12),
+            ('no_recommendation', 0.10),
+            ('outdated_sources', 0.08),
+        ],
+    },
+    'code': {
+        'discipline_baseline': 0.88,
+        'token_baseline': 3500,
+        'cognitive_load_baseline': 0.40,
+        'efficiency_baseline': 0.85,
+        'speed_baseline': 18.0,
+        'traceability_baseline': 0.85,
+        'success_baseline': 0.92,
+        'quality_baseline': 0.88,
+        'common_deviations': [
+            ('missing_type_hints', 0.12),
+            ('no_error_handling', 0.10),
+            ('function_too_large', 0.08),
+            ('missing_tests', 0.15),
+            ('code_duplication', 0.06),
+        ],
+    },
+    'debugger': {
+        'discipline_baseline': 0.90,
+        'token_baseline': 3000,
+        'cognitive_load_baseline': 0.35,
+        'efficiency_baseline': 0.88,
+        'speed_baseline': 15.0,
+        'traceability_baseline': 0.92,
+        'success_baseline': 0.94,
+        'quality_baseline': 0.91,
+        'common_deviations': [
+            ('skip_reproduction', 0.08),
+            ('insufficient_tracing', 0.10),
+            ('fix_without_root_cause', 0.07),
+            ('leftover_debug_code', 0.05),
+            ('no_regression_check', 0.09),
+        ],
+    },
+    'reviewer': {
+        'discipline_baseline': 0.85,
+        'token_baseline': 4000,
+        'cognitive_load_baseline': 0.42,
+        'efficiency_baseline': 0.80,
+        'speed_baseline': 20.0,
+        'traceability_baseline': 0.88,
+        'success_baseline': 0.90,
+        'quality_baseline': 0.92,
+        'common_deviations': [
+            ('missed_security_issue', 0.10),
+            ('incomplete_review', 0.12),
+            ('no_actionable_feedback', 0.08),
+            ('style_only_review', 0.06),
+            ('missing_test_coverage_check', 0.11),
+        ],
+    },
+    'documentation': {
+        'discipline_baseline': 0.78,
+        'token_baseline': 3200,
+        'cognitive_load_baseline': 0.30,
+        'efficiency_baseline': 0.82,
+        'speed_baseline': 12.0,
+        'traceability_baseline': 0.75,
+        'success_baseline': 0.88,
+        'quality_baseline': 0.85,
+        'common_deviations': [
+            ('missing_examples', 0.15),
+            ('outdated_docs', 0.12),
+            ('incomplete_api_docs', 0.10),
+            ('no_usage_guide', 0.08),
+            ('broken_links', 0.06),
+        ],
+    },
+    'devops': {
+        'discipline_baseline': 0.86,
+        'token_baseline': 4200,
+        'cognitive_load_baseline': 0.48,
+        'efficiency_baseline': 0.84,
+        'speed_baseline': 22.0,
+        'traceability_baseline': 0.82,
+        'success_baseline': 0.90,
+        'quality_baseline': 0.88,
+        'common_deviations': [
+            ('insecure_config', 0.08),
+            ('missing_env_validation', 0.10),
+            ('hardcoded_secrets', 0.05),
+            ('no_rollback_plan', 0.09),
+            ('incomplete_logging', 0.07),
+        ],
+    },
+}
+
+# Agent optimization adjustments - what we can improve
+AGENT_OPTIMIZATION_ADJUSTMENTS = {
+    'architect': {
+        'discipline_boost': 0.10,
+        'token_reduction': 0.15,
+        'cognitive_reduction': 0.12,
+        'efficiency_boost': 0.08,
+        'speed_boost': 0.10,
+        'traceability_boost': 0.12,
+        'instruction_changes': {
+            'add_blueprint_validation': 'Add ## Validation section requiring design verification',
+            'enforce_trace': 'Make [RETURN] trace REQUIRED with checklist',
+            'add_constraints_analysis': 'Add constraints analysis step to methodology',
+            'simplify_output': 'Reduce output format to essential sections only',
+        },
+    },
+    'research': {
+        'discipline_boost': 0.15,
+        'token_reduction': 0.12,
+        'cognitive_reduction': 0.10,
+        'efficiency_boost': 0.12,
+        'speed_boost': 0.08,
+        'traceability_boost': 0.18,
+        'instruction_changes': {
+            'enforce_source_count': 'Require minimum 3 sources with citation',
+            'add_comparison_template': 'Add comparison matrix template to output format',
+            'require_recommendation': 'Add REQUIRED recommendation section',
+            'add_freshness_check': 'Add source date validation (<1 year)',
+        },
+    },
+    'code': {
+        'discipline_boost': 0.05,
+        'token_reduction': 0.10,
+        'cognitive_reduction': 0.08,
+        'efficiency_boost': 0.05,
+        'speed_boost': 0.05,
+        'traceability_boost': 0.08,
+        'instruction_changes': {
+            'enforce_types': 'Add type hint requirement to Standards with examples',
+            'enforce_error_handling': 'Add explicit error handling patterns',
+            'add_size_limits': 'Add function size limits with line count checks',
+            'require_test_mention': 'Add test requirement to output format',
+        },
+    },
+    'debugger': {
+        'discipline_boost': 0.03,
+        'token_reduction': 0.08,
+        'cognitive_reduction': 0.05,
+        'efficiency_boost': 0.03,
+        'speed_boost': 0.05,
+        'traceability_boost': 0.03,
+        'instruction_changes': {
+            'enforce_reproduction': 'Add REPRODUCE step as mandatory first step',
+            'improve_tracing': 'Add trace log template with entry/exit markers',
+            'require_root_cause': 'Require root cause identification before fix',
+            'cleanup_reminder': 'Add debug code cleanup checklist',
+        },
+    },
+    'reviewer': {
+        'discipline_boost': 0.08,
+        'token_reduction': 0.12,
+        'cognitive_reduction': 0.10,
+        'efficiency_boost': 0.08,
+        'speed_boost': 0.08,
+        'traceability_boost': 0.06,
+        'instruction_changes': {
+            'add_security_checklist': 'Add security review checklist (OWASP top 10)',
+            'enforce_complete_review': 'Add completeness checklist for review',
+            'require_actionable': 'All feedback must have suggested fix',
+            'add_test_coverage': 'Require test coverage check in review',
+        },
+    },
+    'documentation': {
+        'discipline_boost': 0.12,
+        'token_reduction': 0.10,
+        'cognitive_reduction': 0.05,
+        'efficiency_boost': 0.08,
+        'speed_boost': 0.05,
+        'traceability_boost': 0.15,
+        'instruction_changes': {
+            'require_examples': 'Add REQUIRED examples section in output',
+            'add_freshness_check': 'Add last-updated date requirement',
+            'complete_api_template': 'Add complete API doc template',
+            'add_usage_section': 'Require usage/quickstart section',
+        },
+    },
+    'devops': {
+        'discipline_boost': 0.07,
+        'token_reduction': 0.10,
+        'cognitive_reduction': 0.08,
+        'efficiency_boost': 0.06,
+        'speed_boost': 0.08,
+        'traceability_boost': 0.10,
+        'instruction_changes': {
+            'add_security_scan': 'Add security scan step to methodology',
+            'enforce_env_validation': 'Add env validation checklist',
+            'no_hardcoded_secrets': 'Add secrets detection check',
+            'require_rollback': 'Add rollback plan to output format',
+        },
+    },
+}
+
+
 # ============================================================================
 # Pattern Extraction
 # ============================================================================
@@ -2126,6 +2395,341 @@ def print_delegation_optimization_report(report: Dict[str, Any], session_count: 
 
 
 # ============================================================================
+# Per-Agent Simulation and Optimization
+# ============================================================================
+
+def simulate_agent_session(
+    session_id: int,
+    agent_name: str,
+    patterns: Dict[str, Any],
+    optimized: bool = False,
+    config: SimulationConfig = None
+) -> Dict[str, Any]:
+    """Simulate a single session for a specific agent."""
+    
+    profile = AGENT_BASELINE_PROFILES[agent_name]
+    optimization = AGENT_OPTIMIZATION_ADJUSTMENTS.get(agent_name, {})
+    
+    # Determine session complexity
+    complexity = random.choices(
+        ['simple', 'medium', 'complex'],
+        weights=[0.35, 0.45, 0.20]
+    )[0]
+    
+    # Base metrics from profile
+    discipline = profile['discipline_baseline']
+    token_usage = profile['token_baseline']
+    cognitive_load = profile['cognitive_load_baseline']
+    efficiency = profile['efficiency_baseline']
+    speed = profile['speed_baseline']
+    traceability = profile['traceability_baseline']
+    success_rate = profile['success_baseline']
+    quality = profile['quality_baseline']
+    
+    # Apply complexity modifiers
+    complexity_mods = {
+        'simple': {'discipline': 0.05, 'token': -500, 'cognitive': -0.10, 'speed': -5, 'quality': -0.02},
+        'medium': {'discipline': 0.0, 'token': 0, 'cognitive': 0.0, 'speed': 0, 'quality': 0.0},
+        'complex': {'discipline': -0.08, 'token': 1500, 'cognitive': 0.15, 'speed': 10, 'quality': 0.05},
+    }
+    mods = complexity_mods[complexity]
+    
+    discipline += mods['discipline']
+    token_usage += mods['token']
+    cognitive_load += mods['cognitive']
+    speed += mods['speed']
+    quality += mods['quality']
+    
+    # Track deviations
+    deviations = []
+    for deviation, probability in profile['common_deviations']:
+        if random.random() < probability:
+            deviations.append(deviation)
+            discipline -= 0.03  # Each deviation reduces discipline
+            quality -= 0.02  # And quality
+    
+    # Apply optimization adjustments if optimized
+    if optimized:
+        discipline += optimization.get('discipline_boost', 0)
+        token_usage = int(token_usage * (1 - optimization.get('token_reduction', 0)))
+        cognitive_load = max(0.1, cognitive_load - optimization.get('cognitive_reduction', 0))
+        efficiency += optimization.get('efficiency_boost', 0)
+        speed = max(3, speed * (1 - optimization.get('speed_boost', 0)))
+        traceability += optimization.get('traceability_boost', 0)
+        
+        # Some deviations are prevented by optimization
+        prevented_count = int(len(deviations) * 0.4)
+        deviations = deviations[prevented_count:]
+        
+        # Better discipline with fewer deviations
+        discipline += 0.02 * prevented_count
+        quality += 0.01 * prevented_count
+    
+    # Add randomness
+    discipline = max(0.5, min(0.98, discipline + random.gauss(0, 0.05)))
+    token_usage = max(1000, int(token_usage + random.gauss(0, 500)))
+    cognitive_load = max(0.1, min(0.9, cognitive_load + random.gauss(0, 0.05)))
+    efficiency = max(0.5, min(0.98, efficiency + random.gauss(0, 0.05)))
+    speed = max(3, speed + random.gauss(0, 3))
+    traceability = max(0.5, min(0.98, traceability + random.gauss(0, 0.05)))
+    quality = max(0.5, min(0.98, quality + random.gauss(0, 0.03)))
+    
+    # Determine success based on quality and discipline
+    success = random.random() < (quality * 0.6 + discipline * 0.4)
+    
+    return {
+        'session_id': session_id,
+        'agent': agent_name,
+        'complexity': complexity,
+        'optimized': optimized,
+        'discipline': discipline,
+        'token_usage': token_usage,
+        'cognitive_load': cognitive_load,
+        'efficiency': efficiency,
+        'speed': speed,
+        'traceability': traceability,
+        'quality': quality,
+        'success': success,
+        'deviations': deviations,
+    }
+
+
+def run_agent_simulation(
+    agent_name: str,
+    patterns: Dict[str, Any],
+    config: SimulationConfig,
+    optimized: bool = False
+) -> Tuple[AgentSimulationResult, List[Dict[str, Any]]]:
+    """Run simulation for a specific agent."""
+    
+    sessions = []
+    for i in range(config.session_count):
+        session = simulate_agent_session(i, agent_name, patterns, optimized, config)
+        sessions.append(session)
+    
+    n = len(sessions)
+    
+    # Aggregate results
+    result = AgentSimulationResult(
+        agent_name=agent_name,
+        sessions_simulated=n,
+    )
+    
+    # Calculate averages
+    if optimized:
+        result.optimized_discipline = sum(s['discipline'] for s in sessions) / n
+        result.optimized_token_usage = sum(s['token_usage'] for s in sessions) / n
+        result.optimized_cognitive_load = sum(s['cognitive_load'] for s in sessions) / n
+        result.optimized_efficiency = sum(s['efficiency'] for s in sessions) / n
+        result.optimized_speed = sum(s['speed'] for s in sessions) / n
+        result.optimized_traceability = sum(s['traceability'] for s in sessions) / n
+        result.optimized_success_rate = sum(1 for s in sessions if s['success']) / n
+        result.optimized_quality = sum(s['quality'] for s in sessions) / n
+    else:
+        result.current_discipline = sum(s['discipline'] for s in sessions) / n
+        result.current_token_usage = sum(s['token_usage'] for s in sessions) / n
+        result.current_cognitive_load = sum(s['cognitive_load'] for s in sessions) / n
+        result.current_efficiency = sum(s['efficiency'] for s in sessions) / n
+        result.current_speed = sum(s['speed'] for s in sessions) / n
+        result.current_traceability = sum(s['traceability'] for s in sessions) / n
+        result.current_success_rate = sum(1 for s in sessions if s['success']) / n
+        result.current_quality = sum(s['quality'] for s in sessions) / n
+    
+    # Count deviations
+    deviation_counts = defaultdict(int)
+    for s in sessions:
+        for d in s['deviations']:
+            deviation_counts[d] += 1
+    result.deviations = dict(deviation_counts)
+    
+    return result, sessions
+
+
+def run_all_agents_simulation(
+    patterns: Dict[str, Any],
+    config: SimulationConfig
+) -> Dict[str, Any]:
+    """Run simulation for all agents with before/after optimization."""
+    
+    results = {}
+    
+    for agent_name in AGENT_BASELINE_PROFILES.keys():
+        # Run current (baseline) simulation
+        random.seed(config.seed)
+        current_result, current_sessions = run_agent_simulation(
+            agent_name, patterns, config, optimized=False
+        )
+        
+        # Run optimized simulation
+        random.seed(config.seed)
+        optimized_result, optimized_sessions = run_agent_simulation(
+            agent_name, patterns, config, optimized=True
+        )
+        
+        # Merge results
+        final_result = AgentSimulationResult(
+            agent_name=agent_name,
+            sessions_simulated=config.session_count,
+            
+            # Current metrics
+            current_discipline=current_result.current_discipline,
+            current_token_usage=current_result.current_token_usage,
+            current_cognitive_load=current_result.current_cognitive_load,
+            current_efficiency=current_result.current_efficiency,
+            current_speed=current_result.current_speed,
+            current_traceability=current_result.current_traceability,
+            current_success_rate=current_result.current_success_rate,
+            current_quality=current_result.current_quality,
+            
+            # Optimized metrics
+            optimized_discipline=optimized_result.optimized_discipline,
+            optimized_token_usage=optimized_result.optimized_token_usage,
+            optimized_cognitive_load=optimized_result.optimized_cognitive_load,
+            optimized_efficiency=optimized_result.optimized_efficiency,
+            optimized_speed=optimized_result.optimized_speed,
+            optimized_traceability=optimized_result.optimized_traceability,
+            optimized_success_rate=optimized_result.optimized_success_rate,
+            optimized_quality=optimized_result.optimized_quality,
+            
+            # Deviations from current
+            deviations=current_result.deviations,
+        )
+        
+        # Calculate improvements
+        final_result.discipline_improvement = (
+            (final_result.optimized_discipline - final_result.current_discipline) / 
+            final_result.current_discipline if final_result.current_discipline > 0 else 0
+        )
+        final_result.token_improvement = (
+            (final_result.current_token_usage - final_result.optimized_token_usage) / 
+            final_result.current_token_usage if final_result.current_token_usage > 0 else 0
+        )
+        final_result.cognitive_load_improvement = (
+            (final_result.current_cognitive_load - final_result.optimized_cognitive_load) / 
+            final_result.current_cognitive_load if final_result.current_cognitive_load > 0 else 0
+        )
+        final_result.efficiency_improvement = (
+            (final_result.optimized_efficiency - final_result.current_efficiency) / 
+            final_result.current_efficiency if final_result.current_efficiency > 0 else 0
+        )
+        final_result.speed_improvement = (
+            (final_result.current_speed - final_result.optimized_speed) / 
+            final_result.current_speed if final_result.current_speed > 0 else 0
+        )
+        final_result.traceability_improvement = (
+            (final_result.optimized_traceability - final_result.current_traceability) / 
+            final_result.current_traceability if final_result.current_traceability > 0 else 0
+        )
+        final_result.success_improvement = (
+            (final_result.optimized_success_rate - final_result.current_success_rate) / 
+            final_result.current_success_rate if final_result.current_success_rate > 0 else 0
+        )
+        
+        # Get suggested adjustments from optimization config
+        optimization = AGENT_OPTIMIZATION_ADJUSTMENTS.get(agent_name, {})
+        final_result.instruction_changes = optimization.get('instruction_changes', {})
+        final_result.suggested_adjustments = list(final_result.instruction_changes.keys())
+        
+        results[agent_name] = final_result
+    
+    return results
+
+
+def print_agent_simulation_report(results: Dict[str, AgentSimulationResult], session_count: int):
+    """Print comprehensive per-agent simulation report."""
+    
+    print("\n" + "=" * 80)
+    print("PER-AGENT SIMULATION AND OPTIMIZATION ANALYSIS")
+    print("=" * 80)
+    
+    print(f"\nSimulated {session_count:,} sessions per agent ({len(results)} agents total)")
+    
+    # Summary table
+    print("\n" + "-" * 80)
+    print("AGENT PERFORMANCE SUMMARY (Current → Optimized)")
+    print("-" * 80)
+    
+    print(f"\n{'Agent':<14} {'Discipline':>12} {'Tokens':>12} {'Speed':>12} {'Success':>12} {'Quality':>12}")
+    print("-" * 80)
+    
+    for agent, result in sorted(results.items(), key=lambda x: -x[1].optimized_efficiency):
+        disc = f"{result.current_discipline:.1%}→{result.optimized_discipline:.1%}"
+        tokens = f"{result.current_token_usage:.0f}→{result.optimized_token_usage:.0f}"
+        speed = f"{result.current_speed:.1f}→{result.optimized_speed:.1f}"
+        success = f"{result.current_success_rate:.1%}→{result.optimized_success_rate:.1%}"
+        quality = f"{result.current_quality:.1%}→{result.optimized_quality:.1%}"
+        print(f"{agent:<14} {disc:>12} {tokens:>12} {speed:>12} {success:>12} {quality:>12}")
+    
+    # Detailed per-agent analysis
+    for agent, result in results.items():
+        print("\n" + "=" * 80)
+        print(f"🤖 {agent.upper()} AGENT - DETAILED ANALYSIS")
+        print("=" * 80)
+        
+        # Current vs Optimized
+        print("\n📊 METRICS COMPARISON")
+        print("-" * 40)
+        print(f"   {'Metric':<20} {'Current':>12} {'Optimized':>12} {'Change':>12}")
+        print("-" * 60)
+        
+        metrics = [
+            ('Discipline', result.current_discipline, result.optimized_discipline, result.discipline_improvement),
+            ('Tokens', result.current_token_usage, result.optimized_token_usage, result.token_improvement),
+            ('Cognitive Load', result.current_cognitive_load, result.optimized_cognitive_load, result.cognitive_load_improvement),
+            ('Efficiency', result.current_efficiency, result.optimized_efficiency, result.efficiency_improvement),
+            ('Speed (min)', result.current_speed, result.optimized_speed, result.speed_improvement),
+            ('Traceability', result.current_traceability, result.optimized_traceability, result.traceability_improvement),
+            ('Success Rate', result.current_success_rate, result.optimized_success_rate, result.success_improvement),
+            ('Quality', result.current_quality, result.optimized_quality, 0),
+        ]
+        
+        for name, current, optimized, improvement in metrics:
+            if 'Token' in name or 'Speed' in name:
+                print(f"   {name:<20} {current:>12.0f} {optimized:>12.0f} {improvement:>+12.1%}")
+            else:
+                print(f"   {name:<20} {current:>12.1%} {optimized:>12.1%} {improvement:>+12.1%}")
+        
+        # Top deviations
+        print("\n📋 TOP DEVIATIONS (Current)")
+        print("-" * 40)
+        for deviation, count in sorted(result.deviations.items(), key=lambda x: -x[1])[:5]:
+            rate = count / result.sessions_simulated
+            print(f"   {deviation}: {count:,} ({rate:.1%})")
+        
+        # Suggested instruction changes
+        print("\n✏️ SUGGESTED INSTRUCTION CHANGES")
+        print("-" * 40)
+        for change_key, change_desc in result.instruction_changes.items():
+            print(f"   • {change_key}: {change_desc}")
+    
+    # Overall improvement summary
+    print("\n" + "=" * 80)
+    print("OVERALL IMPROVEMENT SUMMARY")
+    print("=" * 80)
+    
+    avg_discipline_imp = sum(r.discipline_improvement for r in results.values()) / len(results)
+    avg_token_imp = sum(r.token_improvement for r in results.values()) / len(results)
+    avg_speed_imp = sum(r.speed_improvement for r in results.values()) / len(results)
+    avg_success_imp = sum(r.success_improvement for r in results.values()) / len(results)
+    avg_trace_imp = sum(r.traceability_improvement for r in results.values()) / len(results)
+    
+    print(f"\n   Average Discipline Improvement: {avg_discipline_imp:+.1%}")
+    print(f"   Average Token Reduction: {avg_token_imp:+.1%}")
+    print(f"   Average Speed Improvement: {avg_speed_imp:+.1%}")
+    print(f"   Average Success Rate Improvement: {avg_success_imp:+.1%}")
+    print(f"   Average Traceability Improvement: {avg_trace_imp:+.1%}")
+    
+    # Best and worst performing
+    best_agent = max(results.items(), key=lambda x: x[1].optimized_efficiency)
+    worst_agent = min(results.items(), key=lambda x: x[1].optimized_efficiency)
+    
+    print(f"\n   🏆 Best Performer: {best_agent[0]} (efficiency: {best_agent[1].optimized_efficiency:.1%})")
+    print(f"   ⚠️ Needs Improvement: {worst_agent[0]} (efficiency: {worst_agent[1].optimized_efficiency:.1%})")
+    
+    print("\n" + "=" * 80)
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -2143,6 +2747,10 @@ def main():
                        help='Run simulation comparing sequential vs parallel execution')
     parser.add_argument('--delegation-optimization', action='store_true',
                        help='Run delegation optimization analysis comparing specialist vs AKIS')
+    parser.add_argument('--agent-optimization', action='store_true',
+                       help='Run per-agent simulation and optimization analysis')
+    parser.add_argument('--agent', type=str,
+                       help='Specific agent to analyze (default: all agents)')
     parser.add_argument('--extract-patterns', action='store_true',
                        help='Extract patterns only')
     parser.add_argument('--edge-cases', action='store_true',
@@ -2197,6 +2805,94 @@ def main():
             for scenario in issue['scenarios'][:3]:
                 print(f"     • {scenario}")
         
+        return
+    
+    # Handle per-agent optimization mode
+    if args.agent_optimization:
+        config = SimulationConfig(
+            session_count=args.sessions,
+            seed=args.seed,
+        )
+        
+        print("\n" + "=" * 80)
+        print("PER-AGENT SIMULATION AND OPTIMIZATION")
+        print("=" * 80)
+        
+        if args.agent:
+            # Single agent simulation
+            if args.agent not in AGENT_BASELINE_PROFILES:
+                print(f"\n❌ Unknown agent: {args.agent}")
+                print(f"   Available agents: {', '.join(AGENT_BASELINE_PROFILES.keys())}")
+                return
+            
+            print(f"\n🔄 Running simulation for {args.agent} ({args.sessions:,} sessions)...")
+            
+            random.seed(config.seed)
+            current_result, _ = run_agent_simulation(args.agent, merged_patterns, config, optimized=False)
+            
+            random.seed(config.seed)
+            optimized_result, _ = run_agent_simulation(args.agent, merged_patterns, config, optimized=True)
+            
+            # Combine into single result
+            results = {args.agent: AgentSimulationResult(
+                agent_name=args.agent,
+                sessions_simulated=config.session_count,
+                current_discipline=current_result.current_discipline,
+                current_token_usage=current_result.current_token_usage,
+                current_cognitive_load=current_result.current_cognitive_load,
+                current_efficiency=current_result.current_efficiency,
+                current_speed=current_result.current_speed,
+                current_traceability=current_result.current_traceability,
+                current_success_rate=current_result.current_success_rate,
+                current_quality=current_result.current_quality,
+                optimized_discipline=optimized_result.optimized_discipline,
+                optimized_token_usage=optimized_result.optimized_token_usage,
+                optimized_cognitive_load=optimized_result.optimized_cognitive_load,
+                optimized_efficiency=optimized_result.optimized_efficiency,
+                optimized_speed=optimized_result.optimized_speed,
+                optimized_traceability=optimized_result.optimized_traceability,
+                optimized_success_rate=optimized_result.optimized_success_rate,
+                optimized_quality=optimized_result.optimized_quality,
+                deviations=current_result.deviations,
+                instruction_changes=AGENT_OPTIMIZATION_ADJUSTMENTS.get(args.agent, {}).get('instruction_changes', {}),
+            )}
+        else:
+            # All agents simulation
+            print(f"\n🔄 Running simulation for all {len(AGENT_BASELINE_PROFILES)} agents ({args.sessions:,} sessions each)...")
+            results = run_all_agents_simulation(merged_patterns, config)
+        
+        # Print report
+        print_agent_simulation_report(results, args.sessions)
+        
+        # Save results if requested
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            def convert_to_serializable(obj):
+                if isinstance(obj, dict):
+                    return {str(k): convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [convert_to_serializable(item) for item in obj]
+                elif hasattr(obj, '__dict__'):
+                    return convert_to_serializable(obj.__dict__)
+                else:
+                    return obj
+            
+            report_data = {
+                "comparison_type": "agent_optimization",
+                "timestamp": datetime.now().isoformat(),
+                "sessions_per_agent": args.sessions,
+                "agents": {name: convert_to_serializable(asdict(result)) 
+                          for name, result in results.items()},
+            }
+            
+            with open(output_path, 'w') as f:
+                json.dump(report_data, f, indent=2, default=str)
+            
+            print(f"\n📄 Results saved to: {output_path}")
+        
+        print("\n✅ Per-agent optimization analysis complete!")
         return
     
     # Handle delegation optimization mode
