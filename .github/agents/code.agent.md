@@ -8,7 +8,16 @@ description: Write production code following best practices. Reports back to AKI
 > `@code` | Write code with standards
 
 ## Triggers
-implement, create, write, add, build, function, component
+| Pattern | Type |
+|---------|------|
+| implement, create, write, build | Keywords |
+| .py, .tsx, .ts, .jsx | Extensions |
+| backend/, frontend/, api/ | Directories |
+| components/, pages/, store/, services/ | React |
+| .github/scripts/ | AKIS |
+
+## Technologies
+Python, React, TypeScript, FastAPI, Zustand
 
 ## Standards (⛔ ENFORCED)
 | Rule | Requirement |
