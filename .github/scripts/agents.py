@@ -633,6 +633,7 @@ def audit_akis_agent(root: Path) -> AKISAuditResult:
     agents_dir = root / '.github' / 'agents'
     akis_file = agents_dir / 'AKIS.agent.md'
     copilot_instructions = root / '.github' / 'copilot-instructions.md'
+    root_agents_md = root / 'AGENTS.md'
     
     # Read current configurations
     akis_content = ""
@@ -643,6 +644,14 @@ def audit_akis_agent(root: Path) -> AKISAuditResult:
     if copilot_instructions.exists():
         copilot_content = copilot_instructions.read_text(encoding='utf-8')
     
+    # Read root AGENTS.md if exists
+    agents_md_content = ""
+    if root_agents_md.exists():
+        agents_md_content = root_agents_md.read_text(encoding='utf-8')
+    
+    # Combined content for checks
+    all_content = akis_content + copilot_content + agents_md_content
+    
     # Audit protocol compliance
     protocol_checks = [
         ('START Protocol', 'START' in akis_content or 'START' in copilot_content),
@@ -650,8 +659,9 @@ def audit_akis_agent(root: Path) -> AKISAuditResult:
         ('END Protocol', 'END' in akis_content or 'END' in copilot_content),
         ('TODO Format', 'TODO' in akis_content or '◆' in copilot_content),
         ('Interrupt Handling', 'interrupt' in akis_content.lower() or '⊘' in copilot_content),
-        ('Skill Loading', 'skill' in akis_content.lower() or 'skill' in copilot_content.lower()),
-        ('Knowledge Usage', 'knowledge' in akis_content.lower() or 'knowledge' in copilot_content.lower()),
+        ('Skill Loading', 'skill' in all_content.lower()),
+        ('Knowledge Usage', 'knowledge' in all_content.lower()),
+        ('AGENTS.md Standard', root_agents_md.exists()),
     ]
     protocol_compliance = sum(1 for _, passed in protocol_checks if passed) / len(protocol_checks)
     
@@ -1662,6 +1672,13 @@ def run_report() -> Dict[str, Any]:
     # Get session context
     session_files = get_session_files()
     print(f"\n📁 Session files: {len(session_files)}")
+    
+    # Check for root AGENTS.md (agents.md standard)
+    root_agents = root / 'AGENTS.md'
+    if root_agents.exists():
+        print(f"✅ AGENTS.md found (agents.md standard)")
+    else:
+        print(f"⚠️  AGENTS.md missing (recommended by agents.md standard)")
     
     # Check existing agents
     agents_dir = root / '.github' / 'agents'
