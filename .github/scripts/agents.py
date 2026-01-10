@@ -1717,6 +1717,124 @@ def run_analyze(sessions: int = 100000) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def analyze_agent_instruction_updates(
+    root: Path,
+    session_files: List[str],
+    session_analysis: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Analyze and suggest modifications to individual agent instruction files."""
+    suggestions = []
+    agents_dir = root / '.github' / 'agents'
+    
+    if not agents_dir.exists():
+        return suggestions
+    
+    # Patterns learned from session
+    session_patterns = {
+        'file_extensions': set(),
+        'directories': set(),
+        'technologies': set(),
+        'error_patterns': set(),
+    }
+    
+    for file_path in session_files:
+        # Extract extensions
+        if '.' in file_path:
+            ext = '.' + file_path.split('.')[-1]
+            session_patterns['file_extensions'].add(ext)
+        
+        # Extract directories
+        parts = file_path.split('/')
+        if len(parts) > 1:
+            session_patterns['directories'].add(parts[0])
+        
+        # Detect technologies
+        if '.tsx' in file_path or '.jsx' in file_path:
+            session_patterns['technologies'].add('React')
+        if '.py' in file_path:
+            session_patterns['technologies'].add('Python')
+        if 'docker' in file_path.lower():
+            session_patterns['technologies'].add('Docker')
+        if 'workflow' in file_path.lower():
+            session_patterns['technologies'].add('Workflows')
+    
+    # Check each agent used in session for potential updates
+    for agent_name, data in session_analysis.get('agents_used', {}).items():
+        agent_file = agents_dir / f"{agent_name}.agent.md"
+        
+        if not agent_file.exists():
+            # Suggest creating the agent
+            suggestions.append({
+                'agent': agent_name,
+                'type': 'CREATE',
+                'file': str(agent_file),
+                'reason': f"Agent used in session but file missing",
+                'suggestion': f"Create {agent_name}.agent.md with triggers: {', '.join(data.get('triggers', [])[:3])}",
+            })
+            continue
+        
+        # Read existing agent content
+        try:
+            content = agent_file.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        
+        agent_suggestions = []
+        
+        # Check if triggers match session patterns
+        session_triggers = data.get('triggers', [])
+        for trigger in session_triggers:
+            if trigger not in content.lower():
+                agent_suggestions.append({
+                    'section': 'Triggers',
+                    'action': 'ADD',
+                    'value': trigger,
+                    'reason': f"Pattern '{trigger}' used in session but not in agent triggers",
+                })
+        
+        # Check if technologies are mentioned
+        for tech in session_patterns['technologies']:
+            if tech.lower() not in content.lower() and agent_name == 'code':
+                agent_suggestions.append({
+                    'section': 'Technologies',
+                    'action': 'ADD',
+                    'value': tech,
+                    'reason': f"Technology '{tech}' used in session",
+                })
+        
+        # Check file count - high activity suggests adding gotchas
+        file_count = len(data.get('files', []))
+        if file_count > 10 and 'gotcha' not in content.lower():
+            agent_suggestions.append({
+                'section': 'Gotchas',
+                'action': 'ADD',
+                'value': 'Session-specific gotchas section',
+                'reason': f"High activity ({file_count} files) - consider adding gotchas",
+            })
+        
+        # Check for directory-specific patterns
+        for directory in session_patterns['directories']:
+            if directory in ['frontend', 'backend', 'scripts', 'docs']:
+                if directory not in content.lower() and agent_name == 'code':
+                    agent_suggestions.append({
+                        'section': 'Scope',
+                        'action': 'ADD',
+                        'value': f"{directory}/ directory",
+                        'reason': f"Agent worked on {directory}/ this session",
+                    })
+        
+        if agent_suggestions:
+            suggestions.append({
+                'agent': agent_name,
+                'type': 'UPDATE',
+                'file': str(agent_file),
+                'reason': f"{len(agent_suggestions)} potential improvements",
+                'modifications': agent_suggestions,
+            })
+    
+    return suggestions
+
+
 def analyze_session_agents(session_files: List[str]) -> Dict[str, Any]:
     """Analyze session files to determine which agents were used/should be used."""
     agents_used = {}
@@ -1887,6 +2005,59 @@ def run_report() -> Dict[str, Any]:
             print(f"  • {agent_type}: {config.get('description', 'Specialist agent')}")
         print("-" * 60)
     
+    # =========================================================================
+    # Agent Instruction Modifications
+    # =========================================================================
+    instruction_suggestions = analyze_agent_instruction_updates(
+        root, session_files, session_analysis
+    )
+    
+    if instruction_suggestions:
+        print(f"\n" + "=" * 60)
+        print("📝 AGENT INSTRUCTION MODIFICATIONS")
+        print("=" * 60)
+        
+        for suggestion in instruction_suggestions:
+            agent = suggestion['agent']
+            stype = suggestion['type']
+            
+            if stype == 'CREATE':
+                print(f"\n  🆕 CREATE: {agent}.agent.md")
+                print(f"     Reason: {suggestion['reason']}")
+                print(f"     Action: {suggestion['suggestion']}")
+            
+            elif stype == 'UPDATE':
+                print(f"\n  ✏️  UPDATE: {agent}.agent.md")
+                print(f"     File: {suggestion['file']}")
+                
+                for mod in suggestion.get('modifications', []):
+                    section = mod['section']
+                    action = mod['action']
+                    value = mod['value']
+                    reason = mod['reason']
+                    print(f"     • [{section}] {action}: {value}")
+                    print(f"       Reason: {reason}")
+        
+        # Generate copy-paste ready modifications
+        print(f"\n" + "-" * 60)
+        print("📋 COPY-PASTE MODIFICATIONS:")
+        print("-" * 60)
+        
+        for suggestion in instruction_suggestions:
+            if suggestion['type'] == 'UPDATE':
+                agent = suggestion['agent']
+                print(f"\n# {agent}.agent.md additions:")
+                for mod in suggestion.get('modifications', []):
+                    if mod['section'] == 'Triggers':
+                        print(f"# Add to Triggers: {mod['value']}")
+                    elif mod['section'] == 'Gotchas':
+                        print(f"## ⚠️ Session Gotchas")
+                        print(f"# - Add patterns from high-activity session")
+                    elif mod['section'] == 'Technologies':
+                        print(f"# Add to supported: {mod['value']}")
+                    elif mod['section'] == 'Scope':
+                        print(f"# Add to scope: {mod['value']}")
+    
     return {
         'mode': 'report',
         'session_files': len(session_files),
@@ -1894,6 +2065,7 @@ def run_report() -> Dict[str, Any]:
         'updates_needed': len(updates_needed),
         'missing_agents': missing_agents,
         'session_agents': session_analysis,
+        'instruction_suggestions': instruction_suggestions,
     }
 
 
