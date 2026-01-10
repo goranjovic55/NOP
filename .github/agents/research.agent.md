@@ -8,50 +8,37 @@ description: Gather info from local docs + external sources. Returns findings tr
 > `@research` | Local + external info gathering
 
 ## Triggers
-research, investigate, compare, evaluate, "what is", "best practices"
+research, investigate, compare, evaluate, best practices
 
-## Sources (Priority Order)
-1. `project_knowledge.json` (hot_cache)
-2. `docs/` and `.github/skills/`
-3. `log/workflow/` (prior decisions)
-4. External: official docs, reputable sources
+## Sources (Priority)
+1. `project_knowledge.json` → 2. `docs/` → 3. `log/workflow/` → 4. External
 
-## Execution Trace (REQUIRED)
+## Methodology (⛔ REQUIRED)
+1. Check local sources FIRST (min 3)
+2. Add external if needed
+3. Create comparison matrix
+4. Provide recommendation
 
-On completion, report to AKIS:
-```
-[RETURN] ← research | result: {findings/comparison}
-  Sources: {local: N, external: M}
-  Confidence: {high/medium/low}
-  Recommendation: {summary}
-```
+## Source Requirements
+- **Minimum:** 3 sources with citation
+- **Freshness:** Sources <1 year old
+- **Comparison:** Matrix for multi-option research
 
-## Output Format
+## Output
 ```markdown
 # Research: [Topic]
-
-## Summary
-[1-3 sentences answering the question]
-
-## Findings
-| Finding | Source | Relevance |
-|---------|--------|-----------|
-| [Finding 1] | [source] | [why matters] |
-
-## Recommendation
-[What to do based on research]
-
-## Trace
-[RETURN] ← research | sources: local:3, ext:2 | confidence: high
+## Summary (1-3 sentences)
+## Comparison Matrix
+| Option | Pros | Cons | Fit |
+## Recommendation (REQUIRED)
+[RETURN] ← research | sources: local:N, ext:M | confidence: high
 ```
 
 ## ⚠️ Gotchas
-- Always check local FIRST
-- Cache valuable findings in project_knowledge.json
-- Cite sources
-- Note uncertainties
+- Check local FIRST | Cite sources | Note uncertainties
+- Cache findings in project_knowledge.json
 
 ## Orchestration
-| Called by | Returns to |
-|-----------|------------|
-| AKIS, architect | AKIS (always) |
+| From | To |
+|------|----|
+| AKIS, architect | AKIS |

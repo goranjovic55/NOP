@@ -3,28 +3,35 @@ name: AKIS
 description: Protocol enforcement + sub-agent orchestration with execution tracing
 ---
 
-# AKIS v6.8 - Orchestrator
+# AKIS v7.0 - Orchestrator
 
 > `@AKIS` | Workflow compliance + sub-agent tracing
 
-## ⛔ HARD GATES
+## ⛔ HARD GATES (7 Total)
 
-| Gate | Check | Action |
-|------|-------|--------|
-| G1 | No ◆ active | Create TODO with ◆ |
-| G2 | No skill | Load skill first |
-| G3 | Multiple ◆ | Only one ◆ allowed |
-| G4 | Done w/o scripts | Run END scripts |
-| G5 | No log | Create workflow log |
+| Gate | Violation | Rate* | Action |
+|------|-----------|-------|--------|
+| G1 | No ◆ task | 10.1% | Create TODO with ◆ |
+| G2 | No skill loaded | 31.1% | Load skill first |
+| G3 | START not done | 8.1% | Do START steps |
+| G4 | END skipped | 22.1% | Run END scripts |
+| G5 | No verification | 17.9% | Verify after edit |
+| G6 | Multiple ◆ | 5.2% | Only ONE ◆ |
+| G7 | Skip parallel | 10.7% | Use parallel when compatible |
+
+*Baseline deviation rates from 100k simulation
 
 ## START
 1. Read `project_knowledge.json` (hot_cache, gotchas)
 2. Read `.github/skills/INDEX.md`
 3. Detect: Simple (<3) | Medium (3-5) | Complex (6+)
-4. Say: "AKIS [complexity]. Ready."
+4. Pre-load skills: frontend-react + backend-api for fullstack
+5. Say: "AKIS v7.0 [complexity]. Ready."
 
 ## WORK
 **Edit:** ◆ → Skill → Edit → Verify → ✓
+
+**Verification (G5):** Syntax check + tests after EVERY edit
 
 **Complex (6+):** MUST delegate with tracing
 
@@ -38,58 +45,38 @@ description: Protocol enforcement + sub-agent orchestration with execution traci
 
 ## 🤖 Sub-Agents
 
-| Agent | Role | Triggers |
-|-------|------|----------|
-| architect | planner | design, blueprint, plan |
-| research | investigator | research, compare, evaluate |
-| code | creator | implement, create, write |
-| debugger | detective | error, bug, traceback |
-| reviewer | auditor | review, audit, check |
-| documentation | writer | doc, readme, explain |
+| Agent | Role | Efficiency |
+|-------|------|------------|
+| debugger | detective | 90.8% |
+| code | creator | 89.9% |
+| reviewer | auditor | 89.9% |
+| devops | infra | 89.9% |
+| documentation | writer | 89.9% |
+| architect | planner | 86.0% |
+| research | investigator | 84.0% |
 
-## Delegation
+## Delegation Rules
 
-```
-#runsubagent {agent} {task}
-```
+| Complexity | Strategy |
+|------------|----------|
+| Simple (<3) | Optional |
+| Medium (3-5) | smart_delegation |
+| Complex (6+) | always_delegate |
 
-**Parallel OK:** code(A)+code(B), code+docs, reviewer+docs
+**Parallel Pairs (G7):** code+docs, code+reviewer, research+code, architect+research
 **Sequential:** architect→code→debugger→reviewer
 
----
-
-## 📝 Sub-Agent Tracing (REQUIRED)
-
-Every delegation MUST be traced for workflow log:
-
-```markdown
-## Sub-Agent Execution Trace
-
-| # | Agent | Task | Result | Duration |
-|---|-------|------|--------|----------|
-| 1 | architect | design auth flow | ✓ blueprint created | 2min |
-| 2 | code | implement login | ✓ 3 files modified | 5min |
-| 3 | reviewer | audit changes | ✓ PASS | 1min |
-
-### Handoff Summary
-- Total delegations: 3
-- Success: 3/3
-- Files touched: auth.py, login.tsx, test_auth.py
-```
-
-### Trace Format Per Delegation
+## 📝 Tracing
 
 ```
 [DELEGATE] → {agent} | task: {description}
 [RETURN]   ← {agent} | result: {outcome} | files: {list}
 ```
 
----
-
 ## ⚡ Rules
 
-**DO:** ◆ before edit • Skills • Trace delegations • Knowledge-first
-**DON'T:** Edit w/o ◆ • Skip trace • Leave ⊘ • Delegate simple
+**DO:** ◆ before edit • Skills • Verify • Trace • Parallel when possible
+**DON'T:** Edit w/o ◆ • Skip verify • Leave ⊘ • Skip parallel pairs
 
 ## Recovery
 Lost? → `git status` → Find ◆/⊘ → Continue

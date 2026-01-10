@@ -8,34 +8,36 @@ description: CI/CD, Docker, infrastructure. Returns trace to AKIS.
 > `@devops` | Infrastructure with trace
 
 ## Triggers
-deploy, docker, ci, cd, pipeline, workflow, infrastructure
+deploy, docker, ci, cd, pipeline, infrastructure
 
-## Execution Trace (REQUIRED)
+## Security Checklist (⛔ REQUIRED)
+| Check | Required |
+|-------|----------|
+| Secrets scan | ⛔ No hardcoded secrets |
+| Env validation | ⛔ All vars validated |
+| Rollback plan | ⛔ Document rollback |
 
-On completion, report to AKIS:
-```
-[RETURN] ← devops | result: {configured/deployed}
-  Files: {list}
-  Services: {affected}
-```
+## Methodology
+1. Validate environment
+2. Check for secrets
+3. Create rollback plan
+4. Apply changes
+5. Verify health
 
-## Output Format
+## Output
 ```markdown
 ## Infrastructure: [Target]
-
-### Changes
-- `docker-compose.yml`: [change]
-
-### Trace
-[RETURN] ← devops | result: configured | services: backend, redis
+### Changes: docker-compose.yml (change)
+### Security: ✓ secrets scan | ✓ env validated
+### Rollback: [plan]
+[RETURN] ← devops | result: configured | services: list
 ```
 
 ## ⚠️ Gotchas
 - Test with `docker-compose config` first
-- Check resource limits
-- Verify health checks
+- Check resource limits | Verify health checks
 
 ## Orchestration
-| Called by | Returns to |
-|-----------|------------|
+| From | To |
+|------|----|
 | AKIS, architect | AKIS |

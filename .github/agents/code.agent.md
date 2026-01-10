@@ -8,46 +8,36 @@ description: Write production code following best practices. Reports back to AKI
 > `@code` | Write code with standards
 
 ## Triggers
-implement, create, write, add, build, code, function, component
+implement, create, write, add, build, function, component
 
-## Standards
-- **KISS** - Keep It Simple
-- **DRY** - Don't Repeat Yourself
-- **Types** - Always add type hints
-- **Errors** - Handle explicitly
-- **Small** - Functions <50 lines
+## Standards (⛔ ENFORCED)
+| Rule | Requirement |
+|------|-------------|
+| Types | All functions typed |
+| Errors | Explicit handling |
+| Size | Functions <50 lines |
+| DRY | No duplication |
 
-## Execution Trace (REQUIRED)
+## Methodology
+1. Check existing patterns
+2. Implement with types + error handling
+3. Add/update tests
+4. Verify linting passes
 
-On completion, report to AKIS:
-```
-[RETURN] ← code | result: {success/fail}
-  Files: {list of modified files}
-  Tests: {added/updated/none}
-  Issues: {any blockers}
-```
-
-## Output Format
+## Output
 ```markdown
 ## Implementation: [Feature]
-
-### Files Modified
-- `path/file.py`: [change summary]
-
-### Tests
-- [Added/Updated test info]
-
-### Trace
-[RETURN] ← code | result: ✓ | files: 3 | tests: added
+### Files: path/file.py (change summary)
+### Tests: added/updated
+### Verification: ✓ types | ✓ errors | ✓ lint
+[RETURN] ← code | result: ✓ | files: N | tests: added
 ```
 
 ## ⚠️ Gotchas
-- Check existing patterns FIRST
-- Match project code style exactly
-- Run linting after changes
+- Match project code style | Run linting after changes
 - Report blockers immediately
 
 ## Orchestration
-| Called by | Returns to |
-|-----------|------------|
-| AKIS, architect, debugger | AKIS (always) |
+| From | To |
+|------|----|
+| AKIS, architect, debugger | AKIS |
