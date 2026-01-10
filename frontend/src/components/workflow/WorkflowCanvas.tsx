@@ -16,6 +16,7 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   BackgroundVariant,
+  Node,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -78,12 +79,13 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
       const updatedNodes = applyNodeChanges(changes, flowNodes);
       setNodes(updatedNodes as WorkflowNode[]);
       
-      // Handle selection
-      const selectChange = changes.find(c => c.type === 'select');
-      if (selectChange && selectChange.type === 'select') {
-        onNodeSelect(selectChange.selected ? selectChange.id : null);
-        selectNode(selectChange.selected ? selectChange.id : null);
-      }
+      // Handle selection - single click should open config panel
+      changes.forEach(change => {
+        if (change.type === 'select' && change.selected) {
+          selectNode(change.id);
+          onNodeSelect(change.id);
+        }
+      });
     },
     [flowNodes, setNodes, onNodeSelect, selectNode]
   );
@@ -162,6 +164,15 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
     onNodeSelect(null);
   }, [selectNode, onNodeSelect]);
 
+  // Handle node double-click (open config panel)
+  const onNodeDoubleClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      selectNode(node.id);
+      onNodeSelect(node.id);
+    },
+    [selectNode, onNodeSelect]
+  );
+
   return (
     <div ref={reactFlowWrapper} className="w-full h-full">
       <ReactFlow
@@ -173,6 +184,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         nodeTypes={nodeTypes}
         fitView
         snapToGrid

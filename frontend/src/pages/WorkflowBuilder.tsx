@@ -3,16 +3,19 @@
  * Visual canvas for building and executing automation workflows
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWorkflowStore } from '../store/workflowStore';
 import { WorkflowCanvas, BlockPalette, ConfigPanel } from '../components/workflow';
-import { WorkflowCreate } from '../types/workflow';
+import ExecutionOverlay from '../components/workflow/ExecutionOverlay';
+import { WorkflowCreate, NodeExecutionStatus } from '../types/workflow';
 import { CyberCard, CyberButton, CyberInput, CyberPageTitle } from '../components/CyberUI';
+import { useWorkflowExecution } from '../hooks/useWorkflowExecution';
 
 const WorkflowBuilder: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
+  const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
   
   const {
     workflows,
@@ -20,18 +23,47 @@ const WorkflowBuilder: React.FC = () => {
     nodes,
     edges,
     isPaletteOpen,
-    isExecuting,
-    execution,
     loadWorkflows,
     createWorkflow,
     setCurrentWorkflow,
     deleteWorkflow,
     saveCurrentWorkflow,
     compileWorkflow,
-    executeWorkflow,
     togglePalette,
     getCurrentWorkflow,
+    updateNode,
   } = useWorkflowStore();
+
+  // Execution hook with node status callbacks
+  const onNodeStatusChange = useCallback((nodeId: string, status: NodeExecutionStatus) => {
+    updateNode(nodeId, { 
+      data: { 
+        ...nodes.find(n => n.id === nodeId)?.data,
+        executionStatus: status 
+      } as any
+    });
+  }, [nodes, updateNode]);
+
+  const {
+    execution,
+    isExecuting,
+    start: startExecution,
+    pause: pauseExecution,
+    resume: resumeExecution,
+    cancel: cancelExecution,
+  } = useWorkflowExecution({
+    onNodeStatusChange,
+    onComplete: () => {
+      // Clear node execution statuses after completion
+      setTimeout(() => {
+        nodes.forEach(node => {
+          updateNode(node.id, {
+            data: { ...node.data, executionStatus: undefined } as any
+          });
+        });
+      }, 3000);
+    },
+  });
 
   // Load workflows on mount
   useEffect(() => {
@@ -90,10 +122,38 @@ const WorkflowBuilder: React.FC = () => {
     if (!currentWorkflowId) return;
     
     try {
-      await executeWorkflow(currentWorkflowId);
+      // Save first
+      await saveCurrentWorkflow();
+      // Compile and validate
+      const compileResult = await compileWorkflow(currentWorkflowId);
+      if (!compileResult.valid) {
+        window.alert(`Cannot execute - compilation errors:\n${compileResult.errors.map(e => e.message).join('\n')}`);
+        return;
+      }
+      // Start execution
+      await startExecution(currentWorkflowId);
+      setShowExecutionOverlay(true);
     } catch (error) {
       console.error('Execution failed:', error);
     }
+  };
+
+  // Handle pause
+  const handlePause = () => {
+    if (!currentWorkflowId || !execution) return;
+    pauseExecution(currentWorkflowId, execution.id);
+  };
+
+  // Handle resume
+  const handleResume = () => {
+    if (!currentWorkflowId || !execution) return;
+    resumeExecution(currentWorkflowId, execution.id);
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    if (!currentWorkflowId || !execution) return;
+    cancelExecution(currentWorkflowId, execution.id);
   };
 
   // Handle delete
@@ -196,24 +256,17 @@ const WorkflowBuilder: React.FC = () => {
             </div>
           )}
 
-          {/* Execution Progress Overlay */}
-          {execution && isExecuting && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-              <CyberCard className="px-6 py-3 border-cyber-purple">
-                <div className="flex items-center gap-4">
-                  <span className="text-cyber-purple animate-pulse">◎</span>
-                  <span className="text-cyber-gray-light text-sm font-mono">
-                    EXECUTING... {execution.progress.completed}/{execution.progress.total}
-                  </span>
-                  <div className="w-32 h-2 bg-cyber-dark border border-cyber-gray overflow-hidden">
-                    <div 
-                      className="h-full bg-cyber-purple transition-all"
-                      style={{ width: `${execution.progress.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              </CyberCard>
-            </div>
+          {/* Execution Overlay */}
+          {showExecutionOverlay && (
+            <ExecutionOverlay
+              execution={execution}
+              isExecuting={isExecuting}
+              onStart={handleExecute}
+              onPause={handlePause}
+              onResume={handleResume}
+              onCancel={handleCancel}
+              onClose={() => setShowExecutionOverlay(false)}
+            />
           )}
         </div>
 
