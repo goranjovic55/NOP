@@ -278,6 +278,13 @@ class SessionMetrics:
     skills_loaded: int = 0
     knowledge_hits: int = 0
     
+    # Delegation metrics (multi-agent)
+    delegation_used: bool = False
+    delegations_made: int = 0
+    delegation_success_rate: float = 0.0
+    agents_delegated_to: List[str] = field(default_factory=list)
+    delegation_discipline_score: float = 0.0
+    
     # Issues
     deviations: List[str] = field(default_factory=list)
     edge_cases_hit: List[str] = field(default_factory=list)
@@ -318,6 +325,14 @@ class AKISConfiguration:
     # Quality settings
     require_verification: bool = True
     require_syntax_check: bool = True
+    
+    # Delegation settings (multi-agent)
+    enable_delegation: bool = True
+    delegation_threshold: int = 6  # Files count to trigger delegation
+    require_delegation_tracing: bool = True
+    available_agents: List[str] = field(default_factory=lambda: [
+        'architect', 'research', 'code', 'debugger', 'reviewer', 'documentation', 'devops'
+    ])
 
 
 @dataclass
@@ -357,6 +372,14 @@ class SimulationResults:
     domain_distribution: Dict[str, int] = field(default_factory=dict)
     deviation_counts: Dict[str, int] = field(default_factory=dict)
     edge_case_counts: Dict[str, int] = field(default_factory=dict)
+    
+    # Delegation metrics (multi-agent)
+    delegation_rate: float = 0.0
+    avg_delegation_discipline: float = 0.0
+    avg_delegations_per_session: float = 0.0
+    delegation_success_rate: float = 0.0
+    sessions_with_delegation: int = 0
+    agents_usage: Dict[str, int] = field(default_factory=dict)
 
 
 # ============================================================================
@@ -619,8 +642,90 @@ def simulate_session(
             discipline_components.append(0.0)
             metrics.deviations.append("skip_workflow_log")
     
+    # =========================================================================
+    # Delegation Simulation (Multi-Agent)
+    # =========================================================================
+    delegation_discipline_components = []
+    
+    # Determine if delegation should be used based on complexity
+    should_delegate = (
+        akis_config.enable_delegation and 
+        (complexity == "complex" or metrics.tasks_total >= akis_config.delegation_threshold)
+    )
+    
+    if should_delegate:
+        # Check if agent properly delegated
+        delegation_probability = 0.70 if complexity == "complex" else 0.55
+        
+        if random.random() < delegation_probability:
+            metrics.delegation_used = True
+            
+            # Determine how many delegations were made
+            if complexity == "complex":
+                metrics.delegations_made = random.randint(2, 4)
+            else:
+                metrics.delegations_made = random.randint(1, 2)
+            
+            # Select agents delegated to
+            available = akis_config.available_agents
+            num_agents = min(metrics.delegations_made, len(available))
+            metrics.agents_delegated_to = random.sample(available, num_agents)
+            
+            # Check delegation discipline
+            delegation_discipline = []
+            
+            # 1. Proper agent selection (right agent for task)
+            if random.random() < 0.85:
+                delegation_discipline.append(1.0)
+            else:
+                delegation_discipline.append(0.3)
+                metrics.deviations.append("wrong_agent_selected")
+            
+            # 2. Proper context passing
+            if random.random() < 0.78:
+                delegation_discipline.append(1.0)
+            else:
+                delegation_discipline.append(0.4)
+                metrics.deviations.append("incomplete_delegation_context")
+            
+            # 3. Proper tracing (⧖ symbol, TODO marking)
+            if akis_config.require_delegation_tracing:
+                if random.random() < 0.72:
+                    delegation_discipline.append(1.0)
+                else:
+                    delegation_discipline.append(0.2)
+                    metrics.deviations.append("skip_delegation_tracing")
+            
+            # 4. Proper result verification after delegation
+            if random.random() < 0.80:
+                delegation_discipline.append(1.0)
+            else:
+                delegation_discipline.append(0.3)
+                metrics.deviations.append("skip_delegation_verification")
+            
+            metrics.delegation_discipline_score = sum(delegation_discipline) / len(delegation_discipline) if delegation_discipline else 0.5
+            delegation_discipline_components.extend(delegation_discipline)
+            
+            # Calculate delegation success rate
+            successes = sum(1 for _ in range(metrics.delegations_made) if random.random() < (0.85 + metrics.delegation_discipline_score * 0.1))
+            metrics.delegation_success_rate = successes / metrics.delegations_made if metrics.delegations_made > 0 else 0.0
+            
+            # Delegation benefits: reduces cognitive load, saves time
+            # Good delegation improves outcomes
+            if metrics.delegation_discipline_score > 0.7:
+                # Benefits from good delegation
+                pass  # Applied below in token/time calculations
+        else:
+            # Should have delegated but didn't
+            metrics.deviations.append("skip_delegation_for_complex")
+            delegation_discipline_components.append(0.0)
+    else:
+        # Simple task - no delegation needed
+        metrics.delegation_discipline_score = 1.0  # N/A counts as compliant
+    
     # Calculate discipline score
-    metrics.discipline_score = sum(discipline_components) / len(discipline_components) if discipline_components else 0.5
+    all_discipline = discipline_components + delegation_discipline_components
+    metrics.discipline_score = sum(all_discipline) / len(all_discipline) if all_discipline else 0.5
     
     # Simulate cognitive load
     base_cognitive = {"simple": 0.3, "medium": 0.5, "complex": 0.7}.get(complexity, 0.5)
@@ -696,6 +801,10 @@ def simulate_session(
     if metrics.discipline_score > 0.85:
         complexity_multiplier -= 0.1
     
+    # Good delegation reduces time for complex tasks
+    if metrics.delegation_used and metrics.delegation_discipline_score > 0.7:
+        complexity_multiplier -= 0.25  # Specialists are faster
+    
     metrics.resolution_time_minutes = max(5, random.gauss(
         base_time * complexity_multiplier,
         time_std * 0.5
@@ -714,6 +823,10 @@ def simulate_session(
     # Skill loading slightly increases tokens but improves quality
     token_multiplier += 0.02 * metrics.skills_loaded
     
+    # Good delegation reduces token usage (specialists use focused prompts)
+    if metrics.delegation_used and metrics.delegation_discipline_score > 0.7:
+        token_multiplier -= 0.20
+    
     metrics.token_usage = int(max(5000, random.gauss(
         base_tokens * token_multiplier,
         3000
@@ -728,6 +841,12 @@ def simulate_session(
     # Operation batching reduces API calls
     if akis_config.enable_operation_batching:
         api_multiplier -= 0.2
+    
+    # Good delegation can increase API calls slightly (handoffs) but improve quality
+    if metrics.delegation_used:
+        api_multiplier += 0.05 * metrics.delegations_made  # Handoff overhead
+        if metrics.delegation_discipline_score > 0.7:
+            api_multiplier -= 0.10  # But specialists are more efficient
     
     metrics.api_calls = int(max(5, random.gauss(
         base_api_calls * api_multiplier,
@@ -747,6 +866,16 @@ def simulate_session(
     # Edge cases and errors reduce success
     success_prob -= 0.05 * len(metrics.edge_cases_hit)
     success_prob -= 0.03 * len(metrics.errors_encountered)
+    
+    # Good delegation improves success for complex tasks
+    if metrics.delegation_used and metrics.delegation_discipline_score > 0.7:
+        success_prob += 0.08  # Specialists improve outcomes
+    elif metrics.delegation_used and metrics.delegation_discipline_score < 0.5:
+        success_prob -= 0.05  # Poor delegation hurts
+    
+    # Skipping delegation for complex tasks hurts success
+    if "skip_delegation_for_complex" in metrics.deviations:
+        success_prob -= 0.10
     
     success_prob = min(0.98, max(0.5, success_prob))
     
@@ -877,6 +1006,23 @@ def aggregate_results(
         for ec in s.edge_cases_hit:
             edge_case_counts[ec] += 1
     results.edge_case_counts = dict(edge_case_counts)
+    
+    # Calculate delegation metrics
+    sessions_with_delegation = [s for s in sessions if s.delegation_used]
+    results.sessions_with_delegation = len(sessions_with_delegation)
+    results.delegation_rate = results.sessions_with_delegation / n
+    
+    if sessions_with_delegation:
+        results.avg_delegation_discipline = sum(s.delegation_discipline_score for s in sessions_with_delegation) / len(sessions_with_delegation)
+        results.avg_delegations_per_session = sum(s.delegations_made for s in sessions_with_delegation) / len(sessions_with_delegation)
+        results.delegation_success_rate = sum(s.delegation_success_rate for s in sessions_with_delegation) / len(sessions_with_delegation)
+    
+    # Count agent usage
+    agents_usage = defaultdict(int)
+    for s in sessions:
+        for agent in s.agents_delegated_to:
+            agents_usage[agent] += 1
+    results.agents_usage = dict(agents_usage)
     
     return results
 
@@ -1072,6 +1218,24 @@ def generate_comparison_report(
                 baseline.edge_case_counts.items(), key=lambda x: -x[1]
             )[:10]),
         },
+        "delegation_analysis": {
+            "baseline": {
+                "delegation_rate": baseline.delegation_rate,
+                "sessions_with_delegation": baseline.sessions_with_delegation,
+                "avg_delegation_discipline": baseline.avg_delegation_discipline,
+                "avg_delegations_per_session": baseline.avg_delegations_per_session,
+                "delegation_success_rate": baseline.delegation_success_rate,
+                "agents_usage": baseline.agents_usage,
+            },
+            "optimized": {
+                "delegation_rate": optimized.delegation_rate,
+                "sessions_with_delegation": optimized.sessions_with_delegation,
+                "avg_delegation_discipline": optimized.avg_delegation_discipline,
+                "avg_delegations_per_session": optimized.avg_delegations_per_session,
+                "delegation_success_rate": optimized.delegation_success_rate,
+                "agents_usage": optimized.agents_usage,
+            },
+        },
     }
     
     return report
@@ -1162,6 +1326,35 @@ def print_report(report: Dict[str, Any]):
         print(f"   {edge_case}: {count:,}")
     
     print("\n" + "=" * 70)
+    print("DELEGATION ANALYSIS (Multi-Agent)")
+    print("=" * 70)
+    
+    delegation = report.get("delegation_analysis", {})
+    baseline_del = delegation.get("baseline", {})
+    optimized_del = delegation.get("optimized", {})
+    
+    print(f"\n🤖 DELEGATION METRICS")
+    print(f"   Delegation Rate:")
+    print(f"     Baseline:  {baseline_del.get('delegation_rate', 0):.1%}")
+    print(f"     Optimized: {optimized_del.get('delegation_rate', 0):.1%}")
+    
+    print(f"\n   Delegation Discipline:")
+    print(f"     Baseline:  {baseline_del.get('avg_delegation_discipline', 0):.1%}")
+    print(f"     Optimized: {optimized_del.get('avg_delegation_discipline', 0):.1%}")
+    
+    print(f"\n   Delegation Success Rate:")
+    print(f"     Baseline:  {baseline_del.get('delegation_success_rate', 0):.1%}")
+    print(f"     Optimized: {optimized_del.get('delegation_success_rate', 0):.1%}")
+    
+    print(f"\n   Sessions with Delegation:")
+    print(f"     Baseline:  {baseline_del.get('sessions_with_delegation', 0):,}")
+    print(f"     Optimized: {optimized_del.get('sessions_with_delegation', 0):,}")
+    
+    print(f"\n   Agent Usage (Baseline):")
+    for agent, count in sorted(baseline_del.get('agents_usage', {}).items(), key=lambda x: -x[1])[:5]:
+        print(f"     {agent}: {count:,}")
+    
+    print("\n" + "=" * 70)
 
 
 # ============================================================================
@@ -1176,6 +1369,8 @@ def main():
     
     parser.add_argument('--full', action='store_true',
                        help='Run full simulation with before/after comparison')
+    parser.add_argument('--delegation-comparison', action='store_true',
+                       help='Run simulation comparing with vs without delegation')
     parser.add_argument('--extract-patterns', action='store_true',
                        help='Extract patterns only')
     parser.add_argument('--edge-cases', action='store_true',
@@ -1230,6 +1425,123 @@ def main():
             for scenario in issue['scenarios'][:3]:
                 print(f"     • {scenario}")
         
+        return
+    
+    # Handle delegation comparison mode
+    if args.delegation_comparison:
+        config = SimulationConfig(
+            session_count=args.sessions,
+            seed=args.seed,
+        )
+        
+        print("\n" + "=" * 70)
+        print("DELEGATION COMPARISON: WITH vs WITHOUT MULTI-AGENT DELEGATION")
+        print("=" * 70)
+        
+        # Run WITHOUT delegation
+        print(f"\n🔄 Running simulation WITHOUT delegation ({args.sessions:,} sessions)...")
+        no_delegation_config = AKISConfiguration(
+            version="no_delegation",
+            enable_delegation=False,
+        )
+        no_del_results, no_del_sessions = run_simulation(merged_patterns, no_delegation_config, config)
+        
+        print(f"   Success rate: {no_del_results.success_rate:.1%}")
+        print(f"   Avg discipline: {no_del_results.avg_discipline:.1%}")
+        print(f"   Delegation rate: {no_del_results.delegation_rate:.1%}")
+        
+        # Run WITH delegation
+        print(f"\n🚀 Running simulation WITH delegation ({args.sessions:,} sessions)...")
+        random.seed(config.seed)  # Reset seed for fair comparison
+        with_delegation_config = AKISConfiguration(
+            version="with_delegation",
+            enable_delegation=True,
+        )
+        with_del_results, with_del_sessions = run_simulation(merged_patterns, with_delegation_config, config)
+        
+        print(f"   Success rate: {with_del_results.success_rate:.1%}")
+        print(f"   Avg discipline: {with_del_results.avg_discipline:.1%}")
+        print(f"   Delegation rate: {with_del_results.delegation_rate:.1%}")
+        
+        # Print delegation comparison
+        print("\n" + "=" * 70)
+        print("DELEGATION IMPACT COMPARISON")
+        print("=" * 70)
+        
+        print(f"\n📊 SUCCESS RATE")
+        print(f"   Without Delegation: {no_del_results.success_rate:.1%}")
+        print(f"   With Delegation:    {with_del_results.success_rate:.1%}")
+        delta_success = with_del_results.success_rate - no_del_results.success_rate
+        print(f"   Impact:             {delta_success:+.1%}")
+        
+        print(f"\n⚡ RESOLUTION TIME (P50)")
+        print(f"   Without Delegation: {no_del_results.p50_resolution_time:.1f} min")
+        print(f"   With Delegation:    {with_del_results.p50_resolution_time:.1f} min")
+        delta_time = (no_del_results.p50_resolution_time - with_del_results.p50_resolution_time) / no_del_results.p50_resolution_time
+        print(f"   Impact:             {delta_time:+.1%} faster")
+        
+        print(f"\n💰 TOKEN USAGE")
+        print(f"   Without Delegation: {no_del_results.avg_token_usage:,.0f} tokens/session")
+        print(f"   With Delegation:    {with_del_results.avg_token_usage:,.0f} tokens/session")
+        delta_tokens = (no_del_results.avg_token_usage - with_del_results.avg_token_usage) / no_del_results.avg_token_usage
+        print(f"   Impact:             {delta_tokens:+.1%} reduction")
+        
+        print(f"\n📊 DISCIPLINE SCORE")
+        print(f"   Without Delegation: {no_del_results.avg_discipline:.1%}")
+        print(f"   With Delegation:    {with_del_results.avg_discipline:.1%}")
+        
+        print(f"\n🤖 DELEGATION DISCIPLINE (for sessions with delegation)")
+        print(f"   Delegation Discipline: {with_del_results.avg_delegation_discipline:.1%}")
+        print(f"   Sessions with Delegation: {with_del_results.sessions_with_delegation:,}")
+        print(f"   Avg Delegations/Session: {with_del_results.avg_delegations_per_session:.1f}")
+        print(f"   Delegation Success Rate: {with_del_results.delegation_success_rate:.1%}")
+        
+        print(f"\n📋 DELEGATION DEVIATIONS")
+        del_deviations = {k: v for k, v in with_del_results.deviation_counts.items() 
+                        if 'delegation' in k.lower() or 'agent' in k.lower()}
+        for dev, count in sorted(del_deviations.items(), key=lambda x: -x[1]):
+            print(f"   {dev}: {count:,} ({100*count/args.sessions:.1f}%)")
+        
+        print(f"\n🔧 AGENT USAGE")
+        for agent, count in sorted(with_del_results.agents_usage.items(), key=lambda x: -x[1]):
+            print(f"   {agent}: {count:,}")
+        
+        print("\n" + "=" * 70)
+        
+        # Save results if requested
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            def convert_to_serializable(obj):
+                if isinstance(obj, dict):
+                    return {str(k): convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [convert_to_serializable(item) for item in obj]
+                elif hasattr(obj, '__dict__'):
+                    return convert_to_serializable(obj.__dict__)
+                else:
+                    return obj
+            
+            delegation_report = {
+                "comparison_type": "delegation",
+                "timestamp": datetime.now().isoformat(),
+                "sessions": args.sessions,
+                "without_delegation": convert_to_serializable(asdict(no_del_results)),
+                "with_delegation": convert_to_serializable(asdict(with_del_results)),
+                "impact": {
+                    "success_rate_delta": delta_success,
+                    "time_reduction": delta_time,
+                    "token_reduction": delta_tokens,
+                },
+            }
+            
+            with open(output_path, 'w') as f:
+                json.dump(delegation_report, f, indent=2, default=str)
+            
+            print(f"\n📄 Results saved to: {output_path}")
+        
+        print("\n✅ Delegation comparison complete!")
         return
     
     # Run simulations

@@ -40,8 +40,10 @@ The simulation analyzed 100,000 development sessions by:
 | Deviation | Count | Rate | AKIS Gate |
 |-----------|-------|------|-----------|
 | Skip skill loading | 31,080 | 31.1% | G2 |
+| Skip delegation for complex | 23,263 | 23.3% | New |
 | Skip workflow log | 22,093 | 22.1% | G4 |
 | Skip verification | 17,850 | 17.9% | G5 (new) |
+| Skip delegation tracing | 15,130 | 15.1% | New |
 | Incomplete TODO tracking | 10,123 | 10.1% | G1 |
 | Skip knowledge loading | 8,077 | 8.1% | G3 |
 
@@ -51,6 +53,50 @@ Based on simulation findings, AKIS v7.0 adds:
 
 - **G5**: Edit without verification → Verify syntax/tests after edit
 - **G6**: Multiple ◆ tasks → Only ONE ◆ active at a time
+
+---
+
+## Delegation Analysis (Multi-Agent)
+
+### Delegation Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Delegation Rate** | 54.3% of sessions |
+| **Sessions with Delegation** | 54,329 |
+| **Avg Delegations/Session** | 3.0 |
+| **Delegation Success Rate** | 93.4% |
+| **Delegation Discipline** | 85.0% |
+
+### Delegation Deviations
+
+| Deviation | Count | Rate |
+|-----------|-------|------|
+| skip_delegation_for_complex | 23,263 | 23.3% |
+| skip_delegation_tracing | 15,130 | 15.1% |
+| incomplete_delegation_context | 11,957 | 12.0% |
+| skip_delegation_verification | 10,819 | 10.8% |
+| wrong_agent_selected | 8,344 | 8.3% |
+
+### Agent Usage Distribution
+
+| Agent | Times Used |
+|-------|------------|
+| code | 23,398 |
+| reviewer | 23,365 |
+| research | 23,294 |
+| devops | 23,271 |
+| architect | 23,261 |
+| documentation | 23,253 |
+| debugger | 23,176 |
+
+### Impact of Delegation
+
+| Metric | Without Delegation | With Delegation | Impact |
+|--------|-------------------|-----------------|--------|
+| Resolution Time (P50) | 56.0 min | 51.3 min | **+8.3% faster** |
+| Token Usage | 21,751 | 20,451 | **+6.0% reduction** |
+| Success Rate | 86.8% | 86.9% | +0.1% |
 
 ---
 
@@ -139,6 +185,9 @@ Based on simulation findings, AKIS v7.0 adds:
 # Full 100k simulation with before/after comparison
 python .github/scripts/simulation.py --full --sessions 100000
 
+# Delegation comparison (with vs without multi-agent)
+python .github/scripts/simulation.py --delegation-comparison --sessions 100000
+
 # Extract patterns only
 python .github/scripts/simulation.py --extract-patterns
 
@@ -147,6 +196,7 @@ python .github/scripts/simulation.py --edge-cases
 
 # Save results to file
 python .github/scripts/simulation.py --full --output log/simulation_results.json
+python .github/scripts/simulation.py --delegation-comparison --output log/delegation_comparison.json
 ```
 
 ---
@@ -167,10 +217,12 @@ python .github/scripts/simulation.py --full --output log/simulation_results.json
 Based on 100k simulation analysis:
 
 1. **Always load skills at domain entry** (addresses 31.1% deviation rate)
-2. **Never skip workflow log** (addresses 22.1% deviation rate)
-3. **Always verify after edit** (addresses 17.9% deviation rate)
-4. **Maintain TODO discipline** (addresses 10.1% deviation rate)
-5. **Load knowledge at START** (addresses 8.1% deviation rate)
+2. **Delegate complex tasks (6+ files)** (addresses 23.3% skip rate)
+3. **Never skip workflow log** (addresses 22.1% deviation rate)
+4. **Always verify after edit** (addresses 17.9% deviation rate)
+5. **Trace all delegations with ⧖** (addresses 15.1% skip rate)
+6. **Maintain TODO discipline** (addresses 10.1% deviation rate)
+7. **Load knowledge at START** (addresses 8.1% deviation rate)
 
 ---
 
