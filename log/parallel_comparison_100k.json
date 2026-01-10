@@ -1,0 +1,324 @@
+{
+  "comparison_type": "parallel_execution",
+  "timestamp": "2026-01-10T19:06:39.343719",
+  "sessions": 100000,
+  "sequential": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "sequential",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 4000,
+      "skill_token_target": 250,
+      "require_verification": true,
+      "require_syntax_check": true,
+      "enable_delegation": true,
+      "delegation_threshold": 6,
+      "require_delegation_tracing": true,
+      "available_agents": [
+        "architect",
+        "research",
+        "code",
+        "debugger",
+        "reviewer",
+        "documentation",
+        "devops"
+      ],
+      "enable_parallel_execution": false,
+      "max_parallel_agents": 3,
+      "parallel_compatible_pairs": [
+        [
+          "code",
+          "documentation"
+        ],
+        [
+          "code",
+          "reviewer"
+        ],
+        [
+          "research",
+          "code"
+        ],
+        [
+          "architect",
+          "research"
+        ],
+        [
+          "debugger",
+          "documentation"
+        ]
+      ],
+      "require_parallel_coordination": true
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 86872,
+    "avg_token_usage": 20450.94012,
+    "avg_api_calls": 38.06147,
+    "avg_resolution_time": 49.79936733434298,
+    "avg_discipline": 0.806855611111111,
+    "avg_cognitive_load": 0.7904781,
+    "avg_traceability": 0.8339173333333332,
+    "p50_resolution_time": 51.34914507573161,
+    "p95_resolution_time": 82.44113961774963,
+    "success_rate": 0.86872,
+    "perfect_session_rate": 0.15787,
+    "edge_case_hit_rate": 0.13387,
+    "total_tokens": 2045094012,
+    "total_api_calls": 3806147,
+    "total_deviations": 168492,
+    "complexity_distribution": {
+      "('complex', 77592)": 1,
+      "('simple', 15929)": 1,
+      "('medium', 6479)": 1
+    },
+    "domain_distribution": {
+      "('frontend', 18227)": 1,
+      "('fullstack', 45339)": 1,
+      "('backend', 14654)": 1,
+      "('documentation', 10024)": 1,
+      "('debugging', 9981)": 1,
+      "('devops', 1775)": 1
+    },
+    "deviation_counts": {
+      "skip_verification": 18098,
+      "skip_delegation_tracing": 15130,
+      "atypical:cognitive_overload": 1946,
+      "skip_skill_loading": 30962,
+      "skip_delegation_for_complex": 23263,
+      "atypical:workflow_deviation": 2026,
+      "incomplete_todo_tracking": 10059,
+      "skip_workflow_log": 21800,
+      "wrong_agent_selected": 8344,
+      "incomplete_delegation_context": 11957,
+      "skip_knowledge_loading": 7979,
+      "skip_delegation_verification": 10819,
+      "atypical:context_loss": 1971,
+      "atypical:tool_misuse": 2036,
+      "atypical:error_cascades": 2102
+    },
+    "edge_case_counts": {
+      "Cascading failure from upstream": 641,
+      "Orphaned resources cleanup": 367,
+      "Stack overflow from deep recursion": 591,
+      "Race condition in database writes": 703,
+      "Race condition in async operations": 868,
+      "Multi-stage build cache invalidation": 357,
+      "Connection pool exhaustion": 649,
+      "Heisenbug - disappears when debugging": 611,
+      "DNS resolution failure": 364,
+      "Infinite render loop": 826,
+      "Database migration rollback": 688,
+      "Container startup race condition": 373,
+      "Stale closure in useEffect": 869,
+      "Timezone handling errors": 663,
+      "SSR hydration mismatch": 895,
+      "Concurrent state updates": 928,
+      "Race condition only in production": 618,
+      "Circular dependency in imports": 696,
+      "Disk space exhaustion": 374,
+      "Data corruption from concurrent access": 614,
+      "Unicode encoding issues": 692
+    },
+    "delegation_rate": 0.54329,
+    "avg_delegation_discipline": 0.8495633087301442,
+    "avg_delegations_per_session": 3.000570597655028,
+    "delegation_success_rate": 0.9344763692809855,
+    "sessions_with_delegation": 54329,
+    "agents_usage": {
+      "architect": 23261,
+      "research": 23294,
+      "reviewer": 23365,
+      "code": 23398,
+      "debugger": 23176,
+      "devops": 23271,
+      "documentation": 23253
+    },
+    "parallel_execution_rate": 0.0,
+    "avg_parallel_agents": 0.0,
+    "avg_parallel_time_saved": 0.0,
+    "total_parallel_time_saved": 0.0,
+    "parallel_execution_success_rate": 0.0,
+    "parallel_strategy_distribution": {
+      "sequential": 100000
+    },
+    "sessions_with_parallel": 0
+  },
+  "parallel": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "parallel",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 4000,
+      "skill_token_target": 250,
+      "require_verification": true,
+      "require_syntax_check": true,
+      "enable_delegation": true,
+      "delegation_threshold": 6,
+      "require_delegation_tracing": true,
+      "available_agents": [
+        "architect",
+        "research",
+        "code",
+        "debugger",
+        "reviewer",
+        "documentation",
+        "devops"
+      ],
+      "enable_parallel_execution": true,
+      "max_parallel_agents": 3,
+      "parallel_compatible_pairs": [
+        [
+          "code",
+          "documentation"
+        ],
+        [
+          "code",
+          "reviewer"
+        ],
+        [
+          "research",
+          "code"
+        ],
+        [
+          "architect",
+          "research"
+        ],
+        [
+          "debugger",
+          "documentation"
+        ]
+      ],
+      "require_parallel_coordination": true
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 86458,
+    "avg_token_usage": 20442.47053,
+    "avg_api_calls": 38.00106,
+    "avg_resolution_time": 49.162907173579065,
+    "avg_discipline": 0.8068547307692308,
+    "avg_cognitive_load": 0.8010681,
+    "avg_traceability": 0.8336866666666666,
+    "p50_resolution_time": 50.41311410172206,
+    "p95_resolution_time": 82.02270242121521,
+    "success_rate": 0.86458,
+    "perfect_session_rate": 0.13051,
+    "edge_case_hit_rate": 0.13525,
+    "total_tokens": 2044247053,
+    "total_api_calls": 3800106,
+    "total_deviations": 197367,
+    "complexity_distribution": {
+      "('complex', 77475)": 1,
+      "('simple', 16056)": 1,
+      "('medium', 6469)": 1
+    },
+    "domain_distribution": {
+      "('frontend', 18232)": 1,
+      "('fullstack', 45537)": 1,
+      "('backend', 14641)": 1,
+      "('documentation', 9856)": 1,
+      "('debugging', 9959)": 1,
+      "('devops', 1775)": 1
+    },
+    "deviation_counts": {
+      "skip_verification": 17942,
+      "missing_dependency_analysis": 4880,
+      "skip_knowledge_loading": 7938,
+      "skip_workflow_log": 21886,
+      "skip_delegation_for_complex": 23384,
+      "skip_skill_loading": 30963,
+      "incomplete_delegation_context": 11911,
+      "skip_delegation_tracing": 15206,
+      "skip_parallel_for_complex": 10710,
+      "incomplete_todo_tracking": 9966,
+      "atypical:cognitive_overload": 2015,
+      "wrong_agent_selected": 8107,
+      "atypical:tool_misuse": 1955,
+      "skip_delegation_verification": 10858,
+      "poor_result_synchronization": 5382,
+      "atypical:workflow_deviation": 2045,
+      "parallel_conflict_detected": 3869,
+      "poor_parallel_merge": 4215,
+      "atypical:context_loss": 2071,
+      "atypical:error_cascades": 2064
+    },
+    "edge_case_counts": {
+      "Orphaned resources cleanup": 372,
+      "SSR hydration mismatch": 848,
+      "Infinite render loop": 904,
+      "Unicode encoding issues": 719,
+      "Stack overflow from deep recursion": 643,
+      "Stale closure in useEffect": 815,
+      "Container startup race condition": 408,
+      "Multi-stage build cache invalidation": 370,
+      "Race condition in database writes": 718,
+      "Cascading failure from upstream": 618,
+      "DNS resolution failure": 410,
+      "Race condition in async operations": 918,
+      "Race condition only in production": 661,
+      "Timezone handling errors": 665,
+      "Concurrent state updates": 862,
+      "Connection pool exhaustion": 648,
+      "Circular dependency in imports": 702,
+      "Disk space exhaustion": 394,
+      "Data corruption from concurrent access": 594,
+      "Database migration rollback": 678,
+      "Heisenbug - disappears when debugging": 578
+    },
+    "delegation_rate": 0.54091,
+    "avg_delegation_discipline": 0.8493885304394446,
+    "avg_delegations_per_session": 2.9999630252722262,
+    "delegation_success_rate": 0.9354205567161512,
+    "sessions_with_delegation": 54091,
+    "agents_usage": {
+      "architect": 23259,
+      "research": 23009,
+      "documentation": 23228,
+      "devops": 23215,
+      "code": 23342,
+      "reviewer": 23281,
+      "debugger": 22937
+    },
+    "parallel_execution_rate": 0.19381,
+    "avg_parallel_agents": 2.341210463856354,
+    "avg_parallel_time_saved": 13.626286813607239,
+    "total_parallel_time_saved": 264091.0647345219,
+    "parallel_execution_success_rate": 0.8003714978587276,
+    "parallel_strategy_distribution": {
+      "parallel": 19381,
+      "sequential": 80619
+    },
+    "sessions_with_parallel": 19381
+  },
+  "impact": {
+    "success_rate_delta": -0.0041400000000000325,
+    "time_reduction": 0.018228754785090607,
+    "token_reduction": 0.00041414184141675575,
+    "total_time_saved_minutes": 264091.0647345219,
+    "total_time_saved_hours": 4401.517745575365
+  }
+}
