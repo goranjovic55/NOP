@@ -63,24 +63,29 @@
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## Delegation (use ⧖)
-| Complexity | Action |
-|------------|--------|
-| Simple (<3 files) | Handle directly |
-| Medium (3-5 files) | Consider delegation |
-| Complex (6+ files) | **Delegate** to specialist |
+## Delegation (use ⧖) - Optimized from 100k simulation
 
-| Agent | Triggers |
-|-------|----------|
-| architect | design, blueprint, plan |
-| research | research, compare, evaluate |
-| code | implement, create, write |
-| debugger | error, bug, traceback |
-| reviewer | review, audit, check |
-| documentation | doc, readme, explain |
-| devops | deploy, docker, ci |
+| Complexity | Action | Efficiency* |
+|------------|--------|-------------|
+| Simple (<3 files) | Handle directly or smart delegate | 72% vs 94% |
+| Medium (3-5 files) | **Smart delegation** (task-match) | 93.5% |
+| Complex (6+ files) | **Always delegate** to specialist | 93.8% |
 
-## Parallel Execution (⛔ G7 enforcement - saves 4,402 hrs/100k sessions)
+*No delegation: 72% success, 27 min. With delegation: 94% success, 16 min.
+
+| Agent | Triggers | Success Rate* |
+|-------|----------|---------------|
+| architect | design, blueprint, plan | 97.7% |
+| debugger | error, bug, traceback | 97.3% |
+| documentation | doc, readme, explain | 88.5% |
+| code | implement, create, write | ~95% |
+| reviewer | review, audit, check | ~90% |
+| research | research, compare, evaluate | 76.2% |
+| devops | deploy, docker, ci | ~90% |
+
+*From 100k delegation optimization simulation
+
+## Parallel Execution (⛔ G7 enforcement - saves 9,395 hrs/100k sessions)
 
 **Compatible pairs - RUN IN PARALLEL when possible:**
 | Pair 1 | Pair 2 | Use Case |

@@ -1,0 +1,215 @@
+{
+  "comparison_type": "delegation_optimization",
+  "timestamp": "2026-01-10T19:25:39.584598",
+  "sessions_per_strategy": 100000,
+  "strategies": {
+    "no_delegation": {
+      "strategy_name": "no_delegation",
+      "description": "AKIS handles all tasks directly without sub-agents",
+      "avg_token_usage": 20312.50716,
+      "avg_api_calls": 32.97544,
+      "avg_resolution_time": 27.0925859912234,
+      "avg_discipline": 0.7225970000000002,
+      "avg_cognitive_load": 0.622494,
+      "avg_traceability": 0.75,
+      "success_rate": 0.72211,
+      "delegation_rate": 0.0,
+      "delegation_success_rate": 0.0,
+      "avg_quality_score": 0.7225970000000002,
+      "efficiency_score": 0.5907569993775533,
+      "optimal_for_complexity": "simple"
+    },
+    "complex_only": {
+      "strategy_name": "complex_only",
+      "description": "Only delegate complex tasks (6+ files)",
+      "avg_token_usage": 12777.93364,
+      "avg_api_calls": 23.68763,
+      "avg_resolution_time": 16.12452770121776,
+      "avg_discipline": 0.838538,
+      "avg_cognitive_load": 0.506018,
+      "avg_traceability": 0.8270759999999999,
+      "success_rate": 0.93266,
+      "delegation_rate": 0.77076,
+      "delegation_success_rate": 0.9288364730914941,
+      "avg_quality_score": 0.9310778,
+      "efficiency_score": 0.7824516600375645,
+      "optimal_for_complexity": "complex"
+    },
+    "medium_and_complex": {
+      "strategy_name": "medium_and_complex",
+      "description": "Delegate medium (3-5 files) and complex (6+) tasks",
+      "avg_token_usage": 12622.93317,
+      "avg_api_calls": 23.70634,
+      "avg_resolution_time": 15.999315548841214,
+      "avg_discipline": 0.8420044999999999,
+      "avg_cognitive_load": 0.49716449999999995,
+      "avg_traceability": 0.8340089999999999,
+      "success_rate": 0.93837,
+      "delegation_rate": 0.84009,
+      "delegation_success_rate": 0.9299955957099835,
+      "avg_quality_score": 0.9379258,
+      "efficiency_score": 0.7883095862223176,
+      "optimal_for_complexity": "complex"
+    },
+    "always_delegate": {
+      "strategy_name": "always_delegate",
+      "description": "Always delegate to specialists for any task",
+      "avg_token_usage": 13113.01298,
+      "avg_api_calls": 24.49525,
+      "avg_resolution_time": 17.010042063298886,
+      "avg_discipline": 0.85,
+      "avg_cognitive_load": 0.47312799999999994,
+      "avg_traceability": 0.85,
+      "success_rate": 0.93681,
+      "delegation_rate": 1.0,
+      "delegation_success_rate": 0.92938,
+      "avg_quality_score": 0.935457,
+      "efficiency_score": 0.7881254139534021,
+      "optimal_for_complexity": "complex"
+    },
+    "smart_delegation": {
+      "strategy_name": "smart_delegation",
+      "description": "Delegate based on task type matching agent specialty",
+      "avg_token_usage": 12736.93656,
+      "avg_api_calls": 23.68928,
+      "avg_resolution_time": 16.0558133530918,
+      "avg_discipline": 0.8393125,
+      "avg_cognitive_load": 0.5042764999999999,
+      "avg_traceability": 0.828625,
+      "success_rate": 0.93489,
+      "delegation_rate": 0.78625,
+      "delegation_success_rate": 0.9296279809220985,
+      "avg_quality_score": 0.9334608,
+      "efficiency_score": 0.7842837270538164,
+      "optimal_for_complexity": "complex"
+    }
+  },
+  "agent_specialization": [
+    {
+      "agent_name": "architect",
+      "times_delegated": 257576,
+      "delegation_success_rate": 0.9766166102431904,
+      "avg_task_time": 16.117323201158097,
+      "avg_quality": 0.975998850824611,
+      "time_vs_akis": 10.975262790065305,
+      "quality_vs_akis": 0.25340185082461086,
+      "token_vs_akis": 7565.731816023854,
+      "optimal_task_types": [
+        "design",
+        "blueprint",
+        "plan",
+        "architecture",
+        "structure"
+      ],
+      "optimal_complexity": "complex",
+      "optimal_file_count_min": 3,
+      "optimal_file_count_max": 15
+    },
+    {
+      "agent_name": "research",
+      "times_delegated": 12713,
+      "delegation_success_rate": 0.7620545897899788,
+      "avg_task_time": 23.506579252708956,
+      "avg_quality": 0.7600000000000001,
+      "time_vs_akis": 3.5860067385144454,
+      "quality_vs_akis": 0.037402999999999964,
+      "token_vs_akis": 5296.73928459687,
+      "optimal_task_types": [
+        "research",
+        "compare",
+        "evaluate",
+        "analyze",
+        "investigate"
+      ],
+      "optimal_complexity": "complex",
+      "optimal_file_count_min": 1,
+      "optimal_file_count_max": 10
+    },
+    {
+      "agent_name": "debugger",
+      "times_delegated": 34712,
+      "delegation_success_rate": 0.9728624106937083,
+      "avg_task_time": 12.011301671275982,
+      "avg_quality": 0.9721185757086886,
+      "time_vs_akis": 15.08128431994742,
+      "quality_vs_akis": 0.2495215757086885,
+      "token_vs_akis": 7468.179089015903,
+      "optimal_task_types": [
+        "error",
+        "bug",
+        "traceback",
+        "fix",
+        "debug",
+        "exception"
+      ],
+      "optimal_complexity": "complex",
+      "optimal_file_count_min": 1,
+      "optimal_file_count_max": 8
+    },
+    {
+      "agent_name": "documentation",
+      "times_delegated": 34709,
+      "delegation_success_rate": 0.8852170906681264,
+      "avg_task_time": 18.348423725478384,
+      "avg_quality": 0.8862312368549945,
+      "time_vs_akis": 8.744162265745018,
+      "quality_vs_akis": 0.16363423685499434,
+      "token_vs_akis": 7466.050938270766,
+      "optimal_task_types": [
+        "doc",
+        "readme",
+        "explain",
+        "document",
+        "describe"
+      ],
+      "optimal_complexity": "medium",
+      "optimal_file_count_min": 1,
+      "optimal_file_count_max": 10
+    }
+  ],
+  "recommendation": {
+    "best_overall_strategy": "medium_and_complex",
+    "best_overall_efficiency": 0.7883095862223176,
+    "best_per_complexity": {
+      "simple": "no_delegation",
+      "medium": "no_delegation",
+      "complex": "medium_and_complex"
+    },
+    "agent_rankings": [
+      [
+        "architect",
+        0.9766166102431904,
+        0.975998850824611
+      ],
+      [
+        "debugger",
+        0.9728624106937083,
+        0.9721185757086886
+      ],
+      [
+        "documentation",
+        0.8852170906681264,
+        0.8862312368549945
+      ],
+      [
+        "research",
+        0.7620545897899788,
+        0.7600000000000001
+      ]
+    ],
+    "delegation_thresholds": {
+      "simple": "optional",
+      "medium": "smart_delegation",
+      "complex": "always_delegate"
+    },
+    "optimal_agents_per_task": {
+      "code_change": "code",
+      "bug_fix": "debugger",
+      "documentation": "documentation",
+      "review": "reviewer",
+      "design": "architect",
+      "research": "research",
+      "deployment": "devops"
+    }
+  }
+}

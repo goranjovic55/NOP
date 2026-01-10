@@ -411,6 +411,54 @@ class SimulationResults:
     sessions_with_parallel: int = 0
 
 
+@dataclass
+class DelegationOptimizationResult:
+    """Results from delegation optimization analysis."""
+    strategy_name: str
+    description: str
+    
+    # Core metrics per strategy
+    avg_token_usage: float = 0.0
+    avg_api_calls: float = 0.0
+    avg_resolution_time: float = 0.0
+    avg_discipline: float = 0.0
+    avg_cognitive_load: float = 0.0
+    avg_traceability: float = 0.0
+    success_rate: float = 0.0
+    
+    # Delegation specifics
+    delegation_rate: float = 0.0
+    delegation_success_rate: float = 0.0
+    avg_quality_score: float = 0.0  # Quality of results
+    
+    # Efficiency metrics
+    efficiency_score: float = 0.0  # Composite score
+    optimal_for_complexity: str = ""  # simple, medium, complex
+
+
+@dataclass
+class AgentSpecializationMetrics:
+    """Metrics for a specific agent's performance."""
+    agent_name: str
+    
+    # When agent is delegated to
+    times_delegated: int = 0
+    delegation_success_rate: float = 0.0
+    avg_task_time: float = 0.0
+    avg_quality: float = 0.0
+    
+    # Comparison vs AKIS doing it directly
+    time_vs_akis: float = 0.0  # Positive = specialist faster
+    quality_vs_akis: float = 0.0  # Positive = specialist better
+    token_vs_akis: float = 0.0  # Positive = specialist uses less
+    
+    # Optimal delegation scenarios
+    optimal_task_types: List[str] = field(default_factory=list)
+    optimal_complexity: str = ""
+    optimal_file_count_min: int = 0
+    optimal_file_count_max: int = 0
+
+
 # ============================================================================
 # Pattern Extraction
 # ============================================================================
@@ -1602,6 +1650,482 @@ def print_report(report: Dict[str, Any]):
 
 
 # ============================================================================
+# Delegation Optimization Analysis
+# ============================================================================
+
+# Agent specialization profiles - what each agent is optimal for
+AGENT_SPECIALIZATION = {
+    'architect': {
+        'optimal_tasks': ['design', 'blueprint', 'plan', 'architecture', 'structure'],
+        'complexity_multiplier': {'simple': 1.2, 'medium': 0.85, 'complex': 0.70},
+        'quality_multiplier': {'simple': 0.9, 'medium': 1.1, 'complex': 1.25},
+        'optimal_file_range': (3, 15),
+        'time_overhead': 2.0,  # Minutes for context handoff
+    },
+    'research': {
+        'optimal_tasks': ['research', 'compare', 'evaluate', 'analyze', 'investigate'],
+        'complexity_multiplier': {'simple': 1.1, 'medium': 0.80, 'complex': 0.65},
+        'quality_multiplier': {'simple': 0.95, 'medium': 1.15, 'complex': 1.3},
+        'optimal_file_range': (1, 10),
+        'time_overhead': 1.5,
+    },
+    'code': {
+        'optimal_tasks': ['implement', 'create', 'write', 'code', 'develop', 'build'],
+        'complexity_multiplier': {'simple': 0.95, 'medium': 0.75, 'complex': 0.60},
+        'quality_multiplier': {'simple': 1.0, 'medium': 1.15, 'complex': 1.25},
+        'optimal_file_range': (1, 20),
+        'time_overhead': 1.0,
+    },
+    'debugger': {
+        'optimal_tasks': ['error', 'bug', 'traceback', 'fix', 'debug', 'exception'],
+        'complexity_multiplier': {'simple': 0.90, 'medium': 0.70, 'complex': 0.55},
+        'quality_multiplier': {'simple': 1.05, 'medium': 1.2, 'complex': 1.35},
+        'optimal_file_range': (1, 8),
+        'time_overhead': 0.5,
+    },
+    'reviewer': {
+        'optimal_tasks': ['review', 'audit', 'check', 'verify', 'inspect'],
+        'complexity_multiplier': {'simple': 1.0, 'medium': 0.85, 'complex': 0.75},
+        'quality_multiplier': {'simple': 1.1, 'medium': 1.2, 'complex': 1.3},
+        'optimal_file_range': (1, 25),
+        'time_overhead': 1.0,
+    },
+    'documentation': {
+        'optimal_tasks': ['doc', 'readme', 'explain', 'document', 'describe'],
+        'complexity_multiplier': {'simple': 0.85, 'medium': 0.80, 'complex': 0.90},
+        'quality_multiplier': {'simple': 1.15, 'medium': 1.2, 'complex': 1.1},
+        'optimal_file_range': (1, 10),
+        'time_overhead': 0.5,
+    },
+    'devops': {
+        'optimal_tasks': ['deploy', 'docker', 'ci', 'pipeline', 'infrastructure'],
+        'complexity_multiplier': {'simple': 0.90, 'medium': 0.75, 'complex': 0.65},
+        'quality_multiplier': {'simple': 1.1, 'medium': 1.2, 'complex': 1.25},
+        'optimal_file_range': (1, 15),
+        'time_overhead': 1.5,
+    },
+}
+
+# Delegation strategies to test
+DELEGATION_STRATEGIES = [
+    {
+        'name': 'no_delegation',
+        'description': 'AKIS handles all tasks directly without sub-agents',
+        'delegation_threshold': float('inf'),  # Never delegate
+        'delegate_simple': False,
+        'delegate_medium': False,
+        'delegate_complex': False,
+    },
+    {
+        'name': 'complex_only',
+        'description': 'Only delegate complex tasks (6+ files)',
+        'delegation_threshold': 6,
+        'delegate_simple': False,
+        'delegate_medium': False,
+        'delegate_complex': True,
+    },
+    {
+        'name': 'medium_and_complex',
+        'description': 'Delegate medium (3-5 files) and complex (6+) tasks',
+        'delegation_threshold': 3,
+        'delegate_simple': False,
+        'delegate_medium': True,
+        'delegate_complex': True,
+    },
+    {
+        'name': 'always_delegate',
+        'description': 'Always delegate to specialists for any task',
+        'delegation_threshold': 1,
+        'delegate_simple': True,
+        'delegate_medium': True,
+        'delegate_complex': True,
+    },
+    {
+        'name': 'smart_delegation',
+        'description': 'Delegate based on task type matching agent specialty',
+        'delegation_threshold': 2,
+        'delegate_simple': False,  # Delegate simple only if strong task match
+        'delegate_medium': True,
+        'delegate_complex': True,
+        'require_task_match': True,
+    },
+]
+
+
+def simulate_delegation_strategy(
+    session_id: int,
+    patterns: Dict[str, Any],
+    strategy: Dict[str, Any],
+    config: SimulationConfig
+) -> Dict[str, Any]:
+    """Simulate a single session with a specific delegation strategy."""
+    
+    # Determine session characteristics
+    session_type = _pick_weighted(patterns.get("session_types", {"code_change": 0.5}))
+    complexity = _pick_weighted(patterns.get("complexity_distribution", {"medium": 0.5}))
+    domain = _map_session_to_domain(session_type)
+    
+    # Determine task count based on complexity
+    if complexity == "simple":
+        tasks_total = random.randint(1, 2)
+        file_count = random.randint(1, 2)
+    elif complexity == "medium":
+        tasks_total = random.randint(3, 5)
+        file_count = random.randint(3, 5)
+    else:  # complex
+        tasks_total = random.randint(6, 10)
+        file_count = random.randint(6, 15)
+    
+    # Determine if delegation should happen based on strategy
+    should_delegate = False
+    selected_agent = None
+    
+    if file_count >= strategy['delegation_threshold']:
+        if complexity == 'simple' and strategy.get('delegate_simple', False):
+            should_delegate = True
+        elif complexity == 'medium' and strategy.get('delegate_medium', False):
+            should_delegate = True
+        elif complexity == 'complex' and strategy.get('delegate_complex', False):
+            should_delegate = True
+    
+    # Smart delegation: check task-agent match
+    if strategy.get('require_task_match') and should_delegate:
+        best_match_score = 0
+        for agent, spec in AGENT_SPECIALIZATION.items():
+            match_score = sum(1 for task in spec['optimal_tasks'] if task in session_type.lower())
+            if match_score > best_match_score:
+                best_match_score = match_score
+                selected_agent = agent
+        
+        # Only delegate if we have a good task match
+        if best_match_score == 0:
+            # Check file count - still delegate for complex if no match
+            if complexity != 'complex':
+                should_delegate = False
+    
+    if should_delegate and not selected_agent:
+        # Select best agent based on session type
+        best_agent = 'code'  # Default
+        best_score = 0
+        for agent, spec in AGENT_SPECIALIZATION.items():
+            score = sum(1 for task in spec['optimal_tasks'] if task in session_type.lower())
+            min_files, max_files = spec['optimal_file_range']
+            if min_files <= file_count <= max_files:
+                score += 0.5
+            if score > best_score:
+                best_score = score
+                best_agent = agent
+        selected_agent = best_agent
+    
+    # Calculate metrics based on delegation decision
+    base_time = 20.0
+    base_tokens = 15000
+    base_quality = 0.80
+    base_api_calls = 25
+    
+    if should_delegate and selected_agent:
+        # Delegated to specialist
+        spec = AGENT_SPECIALIZATION[selected_agent]
+        
+        # Time: specialist modifier + overhead
+        time_mult = spec['complexity_multiplier'].get(complexity, 1.0)
+        resolution_time = base_time * time_mult + spec['time_overhead']
+        
+        # Quality: specialist is better at their domain
+        quality_mult = spec['quality_multiplier'].get(complexity, 1.0)
+        quality_score = min(0.98, base_quality * quality_mult)
+        
+        # Tokens: specialists use focused prompts
+        token_mult = 0.85 if complexity in ['medium', 'complex'] else 1.0
+        token_usage = int(base_tokens * token_mult)
+        
+        # API calls: handoff overhead but focused work
+        api_calls = int(base_api_calls * 0.9) + 3  # +3 for delegation overhead
+        
+        # Success based on quality
+        success = random.random() < quality_score
+        
+        delegation_overhead = spec['time_overhead']
+        delegation_success = random.random() < 0.93  # 93% delegation success
+        
+    else:
+        # AKIS handles directly
+        complexity_mult = {'simple': 0.8, 'medium': 1.0, 'complex': 1.5}.get(complexity, 1.0)
+        
+        resolution_time = base_time * complexity_mult
+        quality_score = base_quality - (0.1 if complexity == 'complex' else 0)
+        token_usage = int(base_tokens * complexity_mult)
+        api_calls = int(base_api_calls * complexity_mult)
+        
+        success = random.random() < quality_score
+        delegation_overhead = 0
+        delegation_success = True  # N/A
+    
+    # Add some randomness
+    resolution_time = max(3, resolution_time + random.gauss(0, 3))
+    token_usage = max(5000, int(token_usage + random.gauss(0, 2000)))
+    api_calls = max(5, int(api_calls + random.gauss(0, 3)))
+    
+    # Discipline score
+    discipline = 0.85 if should_delegate else 0.80
+    if complexity == 'complex' and not should_delegate:
+        discipline -= 0.10  # Penalty for not delegating complex
+    
+    # Cognitive load
+    cognitive_load = {'simple': 0.3, 'medium': 0.5, 'complex': 0.7}.get(complexity, 0.5)
+    if should_delegate:
+        cognitive_load -= 0.15  # Delegation reduces load
+    
+    # Traceability
+    traceability = 0.85 if should_delegate else 0.75
+    
+    return {
+        'session_id': session_id,
+        'complexity': complexity,
+        'file_count': file_count,
+        'delegated': should_delegate,
+        'agent': selected_agent,
+        'resolution_time': resolution_time,
+        'token_usage': token_usage,
+        'api_calls': api_calls,
+        'quality_score': quality_score,
+        'success': success,
+        'discipline': discipline,
+        'cognitive_load': cognitive_load,
+        'traceability': traceability,
+        'delegation_overhead': delegation_overhead,
+        'delegation_success': delegation_success if should_delegate else None,
+    }
+
+
+def run_delegation_optimization(
+    patterns: Dict[str, Any],
+    config: SimulationConfig
+) -> Dict[str, Any]:
+    """Run simulation comparing different delegation strategies."""
+    
+    results = {}
+    agent_metrics = {agent: {'delegated': 0, 'success': 0, 'time': [], 'quality': [], 'tokens': []} 
+                    for agent in AGENT_SPECIALIZATION.keys()}
+    
+    for strategy in DELEGATION_STRATEGIES:
+        random.seed(config.seed)  # Reset seed for fair comparison
+        
+        sessions = []
+        for i in range(config.session_count):
+            session = simulate_delegation_strategy(i, patterns, strategy, config)
+            sessions.append(session)
+            
+            # Track agent metrics
+            if session['delegated'] and session['agent']:
+                agent = session['agent']
+                agent_metrics[agent]['delegated'] += 1
+                if session['success']:
+                    agent_metrics[agent]['success'] += 1
+                agent_metrics[agent]['time'].append(session['resolution_time'])
+                agent_metrics[agent]['quality'].append(session['quality_score'])
+                agent_metrics[agent]['tokens'].append(session['token_usage'])
+        
+        # Aggregate results for this strategy
+        n = len(sessions)
+        strategy_result = DelegationOptimizationResult(
+            strategy_name=strategy['name'],
+            description=strategy['description'],
+            avg_token_usage=sum(s['token_usage'] for s in sessions) / n,
+            avg_api_calls=sum(s['api_calls'] for s in sessions) / n,
+            avg_resolution_time=sum(s['resolution_time'] for s in sessions) / n,
+            avg_discipline=sum(s['discipline'] for s in sessions) / n,
+            avg_cognitive_load=sum(s['cognitive_load'] for s in sessions) / n,
+            avg_traceability=sum(s['traceability'] for s in sessions) / n,
+            success_rate=sum(1 for s in sessions if s['success']) / n,
+            delegation_rate=sum(1 for s in sessions if s['delegated']) / n,
+            delegation_success_rate=sum(1 for s in sessions if s['delegated'] and s.get('delegation_success', False)) / 
+                                    max(1, sum(1 for s in sessions if s['delegated'])),
+            avg_quality_score=sum(s['quality_score'] for s in sessions) / n,
+        )
+        
+        # Calculate efficiency score (weighted composite)
+        strategy_result.efficiency_score = (
+            strategy_result.success_rate * 0.25 +
+            strategy_result.avg_quality_score * 0.25 +
+            (1 - strategy_result.avg_cognitive_load) * 0.15 +
+            strategy_result.avg_discipline * 0.15 +
+            (1 - strategy_result.avg_resolution_time / 50) * 0.10 +  # Normalize time
+            (1 - strategy_result.avg_token_usage / 25000) * 0.10  # Normalize tokens
+        )
+        
+        # Determine optimal complexity for this strategy
+        complexity_scores = {'simple': [], 'medium': [], 'complex': []}
+        for s in sessions:
+            complexity_scores[s['complexity']].append(s['success'])
+        
+        best_complexity = max(complexity_scores.keys(), 
+                             key=lambda c: sum(complexity_scores[c]) / max(1, len(complexity_scores[c])))
+        strategy_result.optimal_for_complexity = best_complexity
+        
+        results[strategy['name']] = strategy_result
+    
+    # Calculate agent specialization metrics
+    agent_specialization_results = []
+    for agent, metrics in agent_metrics.items():
+        if metrics['delegated'] > 0:
+            spec_result = AgentSpecializationMetrics(
+                agent_name=agent,
+                times_delegated=metrics['delegated'],
+                delegation_success_rate=metrics['success'] / metrics['delegated'],
+                avg_task_time=sum(metrics['time']) / len(metrics['time']) if metrics['time'] else 0,
+                avg_quality=sum(metrics['quality']) / len(metrics['quality']) if metrics['quality'] else 0,
+            )
+            
+            # Compare vs AKIS baseline (no_delegation strategy)
+            if 'no_delegation' in results:
+                baseline = results['no_delegation']
+                spec_result.time_vs_akis = baseline.avg_resolution_time - spec_result.avg_task_time
+                spec_result.quality_vs_akis = spec_result.avg_quality - baseline.avg_quality_score
+                spec_result.token_vs_akis = baseline.avg_token_usage - (sum(metrics['tokens']) / len(metrics['tokens']) if metrics['tokens'] else 0)
+            
+            # Set optimal scenarios from AGENT_SPECIALIZATION
+            spec = AGENT_SPECIALIZATION[agent]
+            spec_result.optimal_task_types = spec['optimal_tasks']
+            spec_result.optimal_file_count_min, spec_result.optimal_file_count_max = spec['optimal_file_range']
+            
+            # Determine optimal complexity
+            best_mult = min(spec['complexity_multiplier'].items(), key=lambda x: x[1])
+            spec_result.optimal_complexity = best_mult[0]
+            
+            agent_specialization_results.append(spec_result)
+    
+    return {
+        'strategies': results,
+        'agent_specialization': agent_specialization_results,
+        'recommendation': generate_delegation_recommendation(results, agent_specialization_results),
+    }
+
+
+def generate_delegation_recommendation(
+    strategies: Dict[str, DelegationOptimizationResult],
+    agent_specs: List[AgentSpecializationMetrics]
+) -> Dict[str, Any]:
+    """Generate delegation recommendations based on simulation results."""
+    
+    # Find best overall strategy
+    best_strategy = max(strategies.values(), key=lambda s: s.efficiency_score)
+    
+    # Find best strategy per complexity
+    best_per_complexity = {}
+    for complexity in ['simple', 'medium', 'complex']:
+        best = max(strategies.values(), 
+                  key=lambda s: s.success_rate if s.optimal_for_complexity == complexity else 0)
+        best_per_complexity[complexity] = best.strategy_name
+    
+    # Find most effective agents
+    agent_rankings = sorted(agent_specs, key=lambda a: a.delegation_success_rate * a.avg_quality, reverse=True)
+    
+    # Generate threshold recommendations
+    recommendations = {
+        'best_overall_strategy': best_strategy.strategy_name,
+        'best_overall_efficiency': best_strategy.efficiency_score,
+        'best_per_complexity': best_per_complexity,
+        'agent_rankings': [(a.agent_name, a.delegation_success_rate, a.avg_quality) for a in agent_rankings[:5]],
+        'delegation_thresholds': {
+            'simple': 'no_delegation' if strategies['no_delegation'].success_rate > strategies['always_delegate'].success_rate else 'optional',
+            'medium': 'smart_delegation' if 'smart_delegation' in strategies else 'medium_and_complex',
+            'complex': 'always_delegate',
+        },
+        'optimal_agents_per_task': {
+            'code_change': 'code',
+            'bug_fix': 'debugger',
+            'documentation': 'documentation',
+            'review': 'reviewer',
+            'design': 'architect',
+            'research': 'research',
+            'deployment': 'devops',
+        },
+    }
+    
+    return recommendations
+
+
+def print_delegation_optimization_report(report: Dict[str, Any], session_count: int):
+    """Print delegation optimization report."""
+    
+    print("\n" + "=" * 70)
+    print("DELEGATION OPTIMIZATION ANALYSIS")
+    print("=" * 70)
+    
+    print(f"\nAnalyzed {session_count:,} sessions across {len(DELEGATION_STRATEGIES)} delegation strategies")
+    
+    # Strategy comparison
+    print("\n" + "-" * 70)
+    print("STRATEGY COMPARISON")
+    print("-" * 70)
+    
+    strategies = report['strategies']
+    
+    # Header
+    print(f"\n{'Strategy':<20} {'Efficiency':>10} {'Success':>10} {'Quality':>10} {'Time':>10} {'Tokens':>10}")
+    print("-" * 70)
+    
+    for name, result in sorted(strategies.items(), key=lambda x: -x[1].efficiency_score):
+        print(f"{name:<20} {result.efficiency_score:>10.3f} {result.success_rate:>10.1%} "
+              f"{result.avg_quality_score:>10.1%} {result.avg_resolution_time:>10.1f} "
+              f"{result.avg_token_usage:>10,.0f}")
+    
+    # Best strategy
+    rec = report['recommendation']
+    print(f"\n🏆 BEST OVERALL: {rec['best_overall_strategy']} (efficiency: {rec['best_overall_efficiency']:.3f})")
+    
+    # Per complexity recommendations
+    print("\n" + "-" * 70)
+    print("OPTIMAL STRATEGY BY COMPLEXITY")
+    print("-" * 70)
+    
+    for complexity, strategy in rec['best_per_complexity'].items():
+        strat = strategies.get(strategy)
+        if strat:
+            print(f"\n   {complexity.upper()}: {strategy}")
+            print(f"      Success Rate: {strat.success_rate:.1%}")
+            print(f"      Quality: {strat.avg_quality_score:.1%}")
+            print(f"      Time: {strat.avg_resolution_time:.1f} min")
+    
+    # Agent specialization
+    print("\n" + "-" * 70)
+    print("AGENT SPECIALIZATION ANALYSIS")
+    print("-" * 70)
+    
+    for agent_spec in report['agent_specialization']:
+        print(f"\n   🤖 {agent_spec.agent_name.upper()}")
+        print(f"      Times Delegated: {agent_spec.times_delegated:,}")
+        print(f"      Success Rate: {agent_spec.delegation_success_rate:.1%}")
+        print(f"      Avg Quality: {agent_spec.avg_quality:.1%}")
+        print(f"      Time vs AKIS: {agent_spec.time_vs_akis:+.1f} min (positive = faster)")
+        print(f"      Quality vs AKIS: {agent_spec.quality_vs_akis:+.1%} (positive = better)")
+        print(f"      Optimal Complexity: {agent_spec.optimal_complexity}")
+        print(f"      Optimal Files: {agent_spec.optimal_file_count_min}-{agent_spec.optimal_file_count_max}")
+        print(f"      Best Tasks: {', '.join(agent_spec.optimal_task_types[:3])}")
+    
+    # Delegation thresholds
+    print("\n" + "-" * 70)
+    print("RECOMMENDED DELEGATION THRESHOLDS")
+    print("-" * 70)
+    
+    thresholds = rec['delegation_thresholds']
+    print(f"\n   Simple tasks (<3 files): {thresholds['simple']}")
+    print(f"   Medium tasks (3-5 files): {thresholds['medium']}")
+    print(f"   Complex tasks (6+ files): {thresholds['complex']}")
+    
+    # Optimal agent mapping
+    print("\n" + "-" * 70)
+    print("OPTIMAL AGENT BY TASK TYPE")
+    print("-" * 70)
+    
+    for task, agent in rec['optimal_agents_per_task'].items():
+        print(f"   {task}: → {agent}")
+    
+    print("\n" + "=" * 70)
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -1617,6 +2141,8 @@ def main():
                        help='Run simulation comparing with vs without delegation')
     parser.add_argument('--parallel-comparison', action='store_true',
                        help='Run simulation comparing sequential vs parallel execution')
+    parser.add_argument('--delegation-optimization', action='store_true',
+                       help='Run delegation optimization analysis comparing specialist vs AKIS')
     parser.add_argument('--extract-patterns', action='store_true',
                        help='Extract patterns only')
     parser.add_argument('--edge-cases', action='store_true',
@@ -1671,6 +2197,58 @@ def main():
             for scenario in issue['scenarios'][:3]:
                 print(f"     • {scenario}")
         
+        return
+    
+    # Handle delegation optimization mode
+    if args.delegation_optimization:
+        config = SimulationConfig(
+            session_count=args.sessions,
+            seed=args.seed,
+        )
+        
+        print("\n" + "=" * 70)
+        print("DELEGATION OPTIMIZATION: SPECIALIST vs AKIS ANALYSIS")
+        print("=" * 70)
+        
+        print(f"\n🔄 Running {len(DELEGATION_STRATEGIES)} delegation strategies ({args.sessions:,} sessions each)...")
+        
+        optimization_report = run_delegation_optimization(merged_patterns, config)
+        
+        # Print report
+        print_delegation_optimization_report(optimization_report, args.sessions)
+        
+        # Save results if requested
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            def convert_to_serializable(obj):
+                if isinstance(obj, dict):
+                    return {str(k): convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [convert_to_serializable(item) for item in obj]
+                elif hasattr(obj, '__dict__'):
+                    return convert_to_serializable(obj.__dict__)
+                else:
+                    return obj
+            
+            report_data = {
+                "comparison_type": "delegation_optimization",
+                "timestamp": datetime.now().isoformat(),
+                "sessions_per_strategy": args.sessions,
+                "strategies": {name: convert_to_serializable(asdict(result)) 
+                              for name, result in optimization_report['strategies'].items()},
+                "agent_specialization": [convert_to_serializable(asdict(a)) 
+                                        for a in optimization_report['agent_specialization']],
+                "recommendation": optimization_report['recommendation'],
+            }
+            
+            with open(output_path, 'w') as f:
+                json.dump(report_data, f, indent=2, default=str)
+            
+            print(f"\n📄 Results saved to: {output_path}")
+        
+        print("\n✅ Delegation optimization analysis complete!")
         return
     
     # Handle delegation comparison mode

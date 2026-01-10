@@ -284,9 +284,53 @@ Based on 100k simulation analysis:
 
 ---
 
+## Delegation Optimization Analysis
+
+### Strategy Comparison (100k sessions each)
+
+| Strategy | Efficiency | Success | Quality | Time | Tokens |
+|----------|------------|---------|---------|------|--------|
+| **medium_and_complex** | **0.788** | **93.8%** | **93.8%** | **16.0 min** | **12,623** |
+| always_delegate | 0.788 | 93.7% | 93.5% | 17.0 min | 13,113 |
+| smart_delegation | 0.784 | 93.5% | 93.3% | 16.1 min | 12,737 |
+| complex_only | 0.782 | 93.3% | 93.1% | 16.1 min | 12,778 |
+| no_delegation | 0.591 | 72.2% | 72.3% | 27.1 min | 20,313 |
+
+### Optimal Delegation Thresholds
+
+| Complexity | Files | Recommendation |
+|------------|-------|----------------|
+| Simple | <3 | Optional delegation (task-dependent) |
+| Medium | 3-5 | **smart_delegation** (delegate if task matches agent) |
+| Complex | 6+ | **always_delegate** to specialist |
+
+### Agent Specialization Performance
+
+| Agent | Success Rate | Quality | Time vs AKIS | Optimal Tasks |
+|-------|--------------|---------|--------------|---------------|
+| **architect** | 97.7% | 97.6% | +11.0 min faster | design, blueprint, plan |
+| **debugger** | 97.3% | 97.2% | +15.1 min faster | error, bug, traceback |
+| **documentation** | 88.5% | 88.6% | +8.7 min faster | doc, readme, explain |
+| **research** | 76.2% | 76.0% | +3.6 min faster | research, compare |
+
+### Optimal Agent by Task Type
+
+| Task Type | Delegate To | Optimal Complexity |
+|-----------|-------------|-------------------|
+| code_change | code | medium, complex |
+| bug_fix | debugger | all |
+| documentation | documentation | all |
+| review | reviewer | medium, complex |
+| design | architect | complex |
+| research | research | complex |
+| deployment | devops | medium, complex |
+
+---
+
 ## Files Changed
 
-- `.github/copilot-instructions.md` → AKIS v7.0 with 6 gates
+- `.github/copilot-instructions.md` → AKIS v7.0 with 7 gates
 - `.github/instructions/workflow.instructions.md` → Updated discipline rules
-- `.github/scripts/simulation.py` → 100k simulation engine (NEW)
+- `.github/scripts/simulation.py` → 100k simulation engine with delegation optimization
 - `log/simulation_100k_results.json` → Full results data
+- `log/delegation_optimization_100k.json` → Delegation analysis data
