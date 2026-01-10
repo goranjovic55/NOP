@@ -1,11 +1,12 @@
 /**
- * ConfigPanel - Right sidebar for node configuration
+ * ConfigPanel - Cyberpunk-styled right sidebar for node configuration
  */
 
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { getBlockDefinition } from '../../types/blocks';
+import { getBlockDefinition, CATEGORY_COLORS } from '../../types/blocks';
 import { ParameterDefinition } from '../../types/workflow';
+import { CyberButton } from '../CyberUI';
 
 interface ConfigPanelProps {
   nodeId: string | null;
@@ -19,6 +20,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
 
   const node = nodes.find(n => n.id === nodeId);
   const definition = node ? getBlockDefinition(node.data.type) : null;
+  const categoryColor = node ? CATEGORY_COLORS[node.data.category] : '#8b5cf6';
 
   // Sync local state when node changes
   useEffect(() => {
@@ -30,8 +32,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
 
   if (!nodeId || !node || !definition) {
     return (
-      <div className="w-80 h-full bg-gray-900 border-l border-gray-700 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Select a node to configure</p>
+      <div className="w-80 h-full bg-cyber-darker border-l border-cyber-gray flex items-center justify-center">
+        <p className="text-cyber-gray-light text-sm font-mono">◇ SELECT NODE</p>
       </div>
     );
   }
@@ -56,46 +58,53 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
   };
 
   return (
-    <div className="w-80 h-full bg-gray-900 border-l border-gray-700 flex flex-col overflow-hidden">
+    <div className="w-80 h-full bg-cyber-darker border-l border-cyber-gray flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div 
+        className="p-4 border-b flex items-center justify-between"
+        style={{ borderColor: categoryColor }}
+      >
         <div className="flex items-center gap-2">
           <span className="text-lg">{definition.icon}</span>
-          <h3 className="text-white font-semibold">{definition.label}</h3>
+          <h3 className="font-mono text-sm" style={{ color: categoryColor }}>
+            {definition.label.toUpperCase()}
+          </h3>
         </div>
         <button 
           onClick={onClose}
-          className="text-gray-400 hover:text-white text-xl"
+          className="text-cyber-gray-light hover:text-cyber-red text-xl transition-colors"
         >
-          ×
+          ✕
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 cyber-scrollbar">
         {/* Block Info */}
-        <div className="text-xs text-gray-500 mb-4">
-          <p>{definition.description}</p>
-          <p className="mt-1">Type: {node.data.type}</p>
+        <div className="text-xs text-cyber-gray-light font-mono mb-4 p-2 bg-cyber-dark border border-cyber-gray rounded">
+          <p className="mb-1">{definition.description}</p>
+          <p className="text-cyber-purple">TYPE: {node.data.type}</p>
         </div>
 
         {/* Label field */}
         <div>
-          <label className="block text-sm text-gray-400 mb-1">
-            Label
+          <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
+            ◇ LABEL
           </label>
           <input
             type="text"
             value={localLabel}
             onChange={(e) => handleLabelChange(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
+            className="cyber-input w-full"
           />
         </div>
 
         {/* Parameters */}
         {definition.parameters.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Parameters</h4>
+            <h4 className="text-sm font-mono text-cyber-blue flex items-center gap-2">
+              <span>◈</span> PARAMETERS
+            </h4>
             {definition.parameters.map(param => (
               <ParameterField
                 key={param.name}
@@ -108,17 +117,19 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         )}
 
         {/* Handles info */}
-        <div className="pt-4 border-t border-gray-700">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">Connections</h4>
-          <div className="space-y-1 text-xs">
+        <div className="pt-4 border-t border-cyber-gray">
+          <h4 className="text-sm font-mono text-cyber-green mb-2 flex items-center gap-2">
+            <span>◎</span> CONNECTIONS
+          </h4>
+          <div className="space-y-1 text-xs font-mono">
             {definition.inputs.length > 0 && (
-              <div className="text-gray-500">
-                Inputs: {definition.inputs.map(i => i.label).join(', ')}
+              <div className="text-cyber-gray-light">
+                <span className="text-cyber-blue">IN:</span> {definition.inputs.map(i => i.label).join(', ')}
               </div>
             )}
             {definition.outputs.length > 0 && (
-              <div className="text-gray-500">
-                Outputs: {definition.outputs.map(o => o.label).join(', ')}
+              <div className="text-cyber-gray-light">
+                <span className="text-cyber-green">OUT:</span> {definition.outputs.map(o => o.label).join(', ')}
               </div>
             )}
           </div>
@@ -126,23 +137,27 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
 
         {/* API Info */}
         {definition.api && (
-          <div className="pt-4 border-t border-gray-700">
-            <h4 className="text-sm font-medium text-gray-300 mb-2">API</h4>
-            <div className="text-xs text-gray-500 font-mono bg-gray-800 p-2 rounded">
-              {definition.api.method} {definition.api.endpoint}
+          <div className="pt-4 border-t border-cyber-gray">
+            <h4 className="text-sm font-mono text-cyber-purple mb-2 flex items-center gap-2">
+              <span>⚡</span> API
+            </h4>
+            <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-gray">
+              <span className="text-cyber-green">{definition.api.method}</span>{' '}
+              <span className="text-cyber-gray-light">{definition.api.endpoint}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Footer with Save */}
-      <div className="p-4 border-t border-gray-700">
-        <button
+      <div className="p-4 border-t border-cyber-gray">
+        <CyberButton
+          variant="purple"
+          className="w-full"
           onClick={handleSave}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors"
         >
-          Save Changes
-        </button>
+          ◇ SAVE CHANGES
+        </CyberButton>
       </div>
     </div>
   );
@@ -155,24 +170,24 @@ interface ParameterFieldProps {
 }
 
 const ParameterField: React.FC<ParameterFieldProps> = ({ definition, value, onChange }) => {
-  const { name, label, type, required, placeholder, options, description } = definition;
+  const { label, type, required, placeholder, options, description } = definition;
 
-  const inputClasses = "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500";
+  const inputClasses = "cyber-input w-full";
 
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">
+      <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
         {label}
-        {required && <span className="text-red-400 ml-1">*</span>}
+        {required && <span className="text-cyber-red ml-1">*</span>}
       </label>
 
       {type === 'select' && options ? (
         <select
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
-          className={inputClasses}
+          className="cyber-select w-full"
         >
-          <option value="">Select...</option>
+          <option value="">[ SELECT ]</option>
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -188,14 +203,16 @@ const ParameterField: React.FC<ParameterFieldProps> = ({ definition, value, onCh
           className={inputClasses + ' resize-none'}
         />
       ) : type === 'boolean' ? (
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer group">
           <input
             type="checkbox"
             checked={value ?? false}
             onChange={(e) => onChange(e.target.checked)}
-            className="w-4 h-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500"
+            className="w-4 h-4 rounded bg-cyber-dark border-cyber-gray text-cyber-purple focus:ring-cyber-purple"
           />
-          <span className="text-sm text-gray-400">Enabled</span>
+          <span className="text-sm text-cyber-gray-light group-hover:text-white font-mono">
+            {value ? 'ENABLED' : 'DISABLED'}
+          </span>
         </label>
       ) : type === 'number' ? (
         <input
@@ -224,7 +241,7 @@ const ParameterField: React.FC<ParameterFieldProps> = ({ definition, value, onCh
       )}
 
       {description && (
-        <p className="text-xs text-gray-500 mt-1">{description}</p>
+        <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
       )}
     </div>
   );

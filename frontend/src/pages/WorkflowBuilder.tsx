@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/workflowStore';
 import { WorkflowCanvas, BlockPalette, ConfigPanel } from '../components/workflow';
-import { Workflow, WorkflowCreate } from '../types/workflow';
+import { WorkflowCreate } from '../types/workflow';
+import { CyberCard, CyberButton, CyberInput, CyberPageTitle } from '../components/CyberUI';
 
 const WorkflowBuilder: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -63,7 +64,6 @@ const WorkflowBuilder: React.FC = () => {
   const handleSave = async () => {
     try {
       await saveCurrentWorkflow();
-      // Show success toast (would need toast system)
     } catch (error) {
       console.error('Failed to save workflow:', error);
     }
@@ -76,9 +76,9 @@ const WorkflowBuilder: React.FC = () => {
     try {
       const result = await compileWorkflow(currentWorkflowId);
       if (result.valid) {
-        alert(`Workflow is valid! ${result.totalLevels} execution levels.`);
+        window.alert(`Workflow is valid! ${result.totalLevels} execution levels.`);
       } else {
-        alert(`Compilation errors:\n${result.errors.map(e => e.message).join('\n')}`);
+        window.alert(`Compilation errors:\n${result.errors.map(e => e.message).join('\n')}`);
       }
     } catch (error) {
       console.error('Compile failed:', error);
@@ -109,32 +109,36 @@ const WorkflowBuilder: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-950">
-      {/* Toolbar */}
-      <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4">
-        {/* Left: Workflow selector */}
+    <div className="h-full flex flex-col bg-cyber-black">
+      {/* Header */}
+      <div className="p-4 border-b border-cyber-gray flex items-center justify-between">
+        {/* Left: Title and Workflow selector */}
         <div className="flex items-center gap-4">
+          <CyberPageTitle color="purple">◇ WORKFLOWS</CyberPageTitle>
+          
           <select
             value={currentWorkflowId || ''}
             onChange={(e) => setCurrentWorkflow(e.target.value || null)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-blue-500"
+            className="cyber-select min-w-[200px]"
           >
-            <option value="">Select workflow...</option>
+            <option value="">[ SELECT WORKFLOW ]</option>
             {workflows.map(w => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
           
-          <button
+          <CyberButton
+            variant="green"
+            size="sm"
             onClick={() => setShowNewWorkflowModal(true)}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors"
           >
-            + New
-          </button>
+            + NEW
+          </CyberButton>
           
           {currentWorkflow && (
-            <span className="text-gray-400 text-sm">
-              {nodes.length} nodes, {edges.length} edges
+            <span className="text-cyber-gray-light text-sm font-mono">
+              <span className="text-cyber-purple">{nodes.length}</span> nodes · 
+              <span className="text-cyber-blue ml-1">{edges.length}</span> edges
             </span>
           )}
         </div>
@@ -143,38 +147,26 @@ const WorkflowBuilder: React.FC = () => {
         <div className="flex items-center gap-2">
           {currentWorkflow && (
             <>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
-              >
-                💾 Save
-              </button>
+              <CyberButton variant="gray" size="sm" onClick={handleSave}>
+                ◇ SAVE
+              </CyberButton>
               
-              <button
-                onClick={handleCompile}
-                className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded transition-colors"
-              >
-                ✓ Validate
-              </button>
+              <CyberButton variant="purple" size="sm" onClick={handleCompile}>
+                ◈ VALIDATE
+              </CyberButton>
               
-              <button
+              <CyberButton 
+                variant="blue" 
+                size="sm" 
                 onClick={handleExecute}
                 disabled={isExecuting}
-                className={`px-3 py-1.5 text-white text-sm rounded transition-colors ${
-                  isExecuting 
-                    ? 'bg-gray-600 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
               >
-                {isExecuting ? '⏳ Running...' : '▶ Execute'}
-              </button>
+                {isExecuting ? '◎ RUNNING...' : '▶ EXECUTE'}
+              </CyberButton>
               
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
-              >
-                🗑
-              </button>
+              <CyberButton variant="red" size="sm" onClick={handleDelete}>
+                ✕
+              </CyberButton>
             </>
           )}
         </div>
@@ -186,38 +178,41 @@ const WorkflowBuilder: React.FC = () => {
         <BlockPalette isOpen={isPaletteOpen} onToggle={togglePalette} />
 
         {/* Canvas */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative bg-cyber-darker">
           {currentWorkflow ? (
             <WorkflowCanvas onNodeSelect={setSelectedNodeId} />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <h2 className="text-xl text-gray-400 mb-4">No workflow selected</h2>
-                <button
+              <CyberCard className="p-8 text-center">
+                <div className="text-cyber-purple text-4xl mb-4">◇</div>
+                <h2 className="text-xl text-cyber-gray-light mb-4 font-mono">NO WORKFLOW SELECTED</h2>
+                <CyberButton
+                  variant="purple"
                   onClick={() => setShowNewWorkflowModal(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
                 >
-                  Create New Workflow
-                </button>
-              </div>
+                  + CREATE NEW WORKFLOW
+                </CyberButton>
+              </CyberCard>
             </div>
           )}
 
           {/* Execution Progress Overlay */}
           {execution && isExecuting && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 shadow-lg">
-              <div className="flex items-center gap-3">
-                <span className="animate-spin">⏳</span>
-                <span className="text-white text-sm">
-                  Executing... {execution.progress.completed}/{execution.progress.total}
-                </span>
-                <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 transition-all"
-                    style={{ width: `${execution.progress.percentage}%` }}
-                  />
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <CyberCard className="px-6 py-3 border-cyber-purple">
+                <div className="flex items-center gap-4">
+                  <span className="text-cyber-purple animate-pulse">◎</span>
+                  <span className="text-cyber-gray-light text-sm font-mono">
+                    EXECUTING... {execution.progress.completed}/{execution.progress.total}
+                  </span>
+                  <div className="w-32 h-2 bg-cyber-dark border border-cyber-gray overflow-hidden">
+                    <div 
+                      className="h-full bg-cyber-purple transition-all"
+                      style={{ width: `${execution.progress.percentage}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
+              </CyberCard>
             </div>
           )}
         </div>
@@ -233,39 +228,43 @@ const WorkflowBuilder: React.FC = () => {
 
       {/* New Workflow Modal */}
       {showNewWorkflowModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">New Workflow</h3>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <CyberCard className="p-6 w-96 border-cyber-purple">
+            <h3 className="text-lg font-mono text-cyber-purple mb-4 flex items-center gap-2">
+              <span>◇</span> NEW WORKFLOW
+            </h3>
             
-            <input
+            <CyberInput
               type="text"
               value={newWorkflowName}
               onChange={(e) => setNewWorkflowName(e.target.value)}
               placeholder="Workflow name..."
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 mb-4"
+              className="w-full mb-4"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleCreateWorkflow()}
             />
             
             <div className="flex justify-end gap-2">
-              <button
+              <CyberButton
+                variant="gray"
+                size="sm"
                 onClick={() => {
                   setShowNewWorkflowModal(false);
                   setNewWorkflowName('');
                 }}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
               >
-                Cancel
-              </button>
-              <button
+                CANCEL
+              </CyberButton>
+              <CyberButton
+                variant="purple"
+                size="sm"
                 onClick={handleCreateWorkflow}
                 disabled={!newWorkflowName.trim()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50"
               >
-                Create
-              </button>
+                CREATE
+              </CyberButton>
             </div>
-          </div>
+          </CyberCard>
         </div>
       )}
     </div>

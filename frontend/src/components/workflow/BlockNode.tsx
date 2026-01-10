@@ -1,5 +1,5 @@
 /**
- * BlockNode - Custom React Flow node for workflow blocks
+ * BlockNode - Cyberpunk-styled custom React Flow node for workflow blocks
  */
 
 import React, { memo } from 'react';
@@ -9,18 +9,19 @@ import { getBlockDefinition, CATEGORY_COLORS } from '../../types/blocks';
 
 interface BlockNodeProps extends NodeProps<NodeData> {}
 
+// Cyberpunk status colors
 const statusColors: Record<NodeExecutionStatus, string> = {
-  pending: '#6B7280',
-  waiting: '#F59E0B',
-  running: '#3B82F6',
-  completed: '#22C55E',
-  failed: '#EF4444',
-  skipped: '#9CA3AF',
+  pending: '#4a5568',     // cyber-gray
+  waiting: '#f59e0b',     // amber
+  running: '#00d4ff',     // cyber-blue
+  completed: '#00ff88',   // cyber-green
+  failed: '#ff0040',      // cyber-red
+  skipped: '#6b7280',     // gray
 };
 
-const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
+const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
   const definition = getBlockDefinition(data.type);
-  const categoryColor = data.color || CATEGORY_COLORS[data.category] || '#6B7280';
+  const categoryColor = data.color || CATEGORY_COLORS[data.category] || '#8b5cf6';
   
   // Get execution status from node data if available
   const executionStatus = (data as any).executionStatus as NodeExecutionStatus | undefined;
@@ -29,70 +30,82 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
   return (
     <div
       className={`
-        relative bg-gray-800 rounded-lg border-2 min-w-[180px] max-w-[220px]
-        transition-all duration-200 shadow-lg
-        ${selected ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-900' : ''}
+        relative bg-cyber-darker rounded min-w-[180px] max-w-[220px]
+        transition-all duration-200
+        ${selected ? 'ring-2 ring-cyber-purple ring-offset-1 ring-offset-cyber-black' : ''}
       `}
       style={{ 
+        borderWidth: '1px',
+        borderStyle: 'solid',
         borderColor: statusColor || categoryColor,
         boxShadow: executionStatus === 'running' 
-          ? `0 0 20px ${statusColor}40` 
-          : undefined
+          ? `0 0 20px ${statusColor}60, inset 0 0 20px ${statusColor}10` 
+          : `0 0 10px ${categoryColor}20`
       }}
     >
-      {/* Header */}
+      {/* Header with glowing effect */}
       <div 
-        className="px-3 py-2 rounded-t-md flex items-center gap-2"
-        style={{ backgroundColor: `${categoryColor}20` }}
+        className="px-3 py-2 rounded-t flex items-center gap-2 border-b"
+        style={{ 
+          backgroundColor: `${categoryColor}15`,
+          borderColor: `${categoryColor}30`
+        }}
       >
-        <span className="text-lg">{data.icon || definition?.icon || '📦'}</span>
-        <span className="text-sm font-medium text-white truncate">
+        <span className="text-base">{data.icon || definition?.icon || '◈'}</span>
+        <span className="text-xs font-mono text-white truncate uppercase tracking-wide">
           {data.label}
         </span>
         {executionStatus && (
           <span 
-            className="ml-auto w-2 h-2 rounded-full animate-pulse"
-            style={{ backgroundColor: statusColor || undefined }}
+            className="ml-auto w-2 h-2 rounded-full"
+            style={{ 
+              backgroundColor: statusColor || undefined,
+              boxShadow: `0 0 6px ${statusColor}`
+            }}
           />
         )}
       </div>
 
       {/* Body */}
-      <div className="px-3 py-2 text-xs text-gray-400">
-        <div className="truncate">
-          {data.category.charAt(0).toUpperCase() + data.category.slice(1)}
+      <div className="px-3 py-2 text-xs font-mono">
+        <div className="text-cyber-gray-light truncate uppercase">
+          {data.category}
         </div>
         {Object.keys(data.parameters).length > 0 && (
-          <div className="mt-1 text-gray-500">
-            {Object.keys(data.parameters).length} params
+          <div className="mt-1" style={{ color: categoryColor }}>
+            [{Object.keys(data.parameters).length}] PARAMS
           </div>
         )}
       </div>
 
-      {/* Input Handles */}
+      {/* Input Handles - Cyberpunk styled */}
       {definition?.inputs.map((input, idx) => (
         <Handle
           key={`input-${input.id}`}
           type="target"
           position={Position.Left}
           id={input.id}
-          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-gray-400 hover:!bg-blue-500 hover:!border-blue-400"
+          className="!w-2.5 !h-2.5 !border !rounded-sm transition-all"
           style={{ 
-            top: `${30 + (idx * 20)}px`,
+            top: `${28 + (idx * 20)}px`,
+            backgroundColor: '#0a0a0a',
+            borderColor: '#00d4ff',
           }}
         />
       ))}
 
-      {/* Output Handles */}
+      {/* Output Handles - Cyberpunk styled */}
       {definition?.outputs.map((output, idx) => (
         <Handle
           key={`output-${output.id}`}
           type="source"
           position={Position.Right}
           id={output.id}
-          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-gray-400 hover:!bg-green-500 hover:!border-green-400"
+          className="!w-2.5 !h-2.5 !border !rounded-sm transition-all"
           style={{ 
-            top: `${30 + (idx * 20)}px`,
+            top: `${28 + (idx * 20)}px`,
+            backgroundColor: '#0a0a0a',
+            borderColor: '#00ff88',
           }}
         />
       ))}
@@ -101,23 +114,47 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
       {executionStatus === 'running' && (
         <div className="absolute -top-1 -right-1">
           <span className="flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            <span 
+              className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+              style={{ backgroundColor: '#00d4ff' }}
+            />
+            <span 
+              className="relative inline-flex rounded-full h-3 w-3"
+              style={{ backgroundColor: '#00d4ff' }}
+            />
           </span>
         </div>
       )}
       
       {executionStatus === 'completed' && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-xs">✓</span>
+        <div 
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{ 
+            backgroundColor: '#00ff88',
+            boxShadow: '0 0 8px #00ff88'
+          }}
+        >
+          <span className="text-cyber-black text-xs font-bold">✓</span>
         </div>
       )}
       
       {executionStatus === 'failed' && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-xs">✗</span>
+        <div 
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{ 
+            backgroundColor: '#ff0040',
+            boxShadow: '0 0 8px #ff0040'
+          }}
+        >
+          <span className="text-white text-xs font-bold">✗</span>
         </div>
       )}
+
+      {/* Corner accent */}
+      <div 
+        className="absolute bottom-0 right-0 w-2 h-2 border-r border-b"
+        style={{ borderColor: categoryColor }}
+      />
     </div>
   );
 };

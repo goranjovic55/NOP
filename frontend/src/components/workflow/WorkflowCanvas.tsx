@@ -1,5 +1,5 @@
 /**
- * WorkflowCanvas - Main React Flow canvas component
+ * WorkflowCanvas - Cyberpunk-styled React Flow canvas component
  */
 
 import React, { useCallback, useRef, useMemo } from 'react';
@@ -10,14 +10,11 @@ import ReactFlow, {
   ReactFlowProvider,
   useReactFlow,
   Connection,
-  Edge,
-  Node,
   OnNodesChange,
   OnEdgesChange,
   OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
-  addEdge,
   BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -29,6 +26,12 @@ import { WorkflowNode, WorkflowEdge, NodeData } from '../../types/workflow';
 // Define custom node types
 const nodeTypes = {
   block: BlockNode,
+};
+
+// Cyberpunk edge styling
+const cyberEdgeStyle = { 
+  stroke: '#8b5cf6', 
+  strokeWidth: 2,
 };
 
 interface WorkflowCanvasProps {
@@ -64,7 +67,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
     edges.map(edge => ({
       ...edge,
       animated: false,
-      style: { stroke: '#6B7280', strokeWidth: 2 },
+      style: cyberEdgeStyle,
     })),
     [edges]
   );
@@ -175,30 +178,30 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
         snapToGrid
         snapGrid={[15, 15]}
         defaultEdgeOptions={{
-          style: { stroke: '#6B7280', strokeWidth: 2 },
+          style: cyberEdgeStyle,
           type: 'smoothstep',
         }}
-        className="bg-gray-950"
+        className="bg-cyber-black"
       >
         <Background 
           variant={BackgroundVariant.Dots} 
           gap={20} 
           size={1}
-          color="#374151"
+          color="#2a2a3a"
         />
         <Controls 
-          className="!bg-gray-800 !border-gray-700 !rounded-lg"
+          className="!bg-cyber-darker !border !border-cyber-gray !rounded"
           showZoom
           showFitView
           showInteractive={false}
         />
         <MiniMap 
-          className="!bg-gray-800 !border-gray-700 !rounded-lg"
+          className="!bg-cyber-darker !border !border-cyber-gray !rounded"
           nodeColor={(node) => {
             const data = node.data as NodeData;
-            return data?.color || '#6B7280';
+            return data?.color || '#8b5cf6';
           }}
-          maskColor="rgba(0, 0, 0, 0.8)"
+          maskColor="rgba(10, 10, 10, 0.9)"
         />
       </ReactFlow>
     </div>

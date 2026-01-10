@@ -5,35 +5,35 @@
 
 import { BlockDefinition, BlockCategory } from './workflow';
 
-// Category colors
+// Cyberpunk category colors
 export const CATEGORY_COLORS: Record<BlockCategory, string> = {
-  connection: '#3B82F6',  // Blue
-  command: '#10B981',     // Green
-  traffic: '#8B5CF6',     // Purple
-  scanning: '#F59E0B',    // Amber
-  agent: '#EF4444',       // Red
-  control: '#6B7280',     // Gray
+  connection: '#00d4ff',  // cyber-blue
+  command: '#00ff88',     // cyber-green
+  traffic: '#8b5cf6',     // cyber-purple
+  scanning: '#f59e0b',    // amber
+  agent: '#ff0040',       // cyber-red
+  control: '#6b7280',     // gray
 };
 
-// Category icons
+// Cyberpunk category icons (Unicode symbols)
 export const CATEGORY_ICONS: Record<BlockCategory, string> = {
-  connection: '🔌',
+  connection: '◎',
   command: '⚡',
-  traffic: '📡',
-  scanning: '🔍',
-  agent: '🤖',
-  control: '⚙️',
+  traffic: '≋',
+  scanning: '◈',
+  agent: '◆',
+  control: '⚙',
 };
 
-// Block definitions
+// Block definitions with cyberpunk icons
 export const BLOCK_DEFINITIONS: BlockDefinition[] = [
   // === Control Blocks ===
   {
     type: 'control.start',
     label: 'Start',
     category: 'control',
-    icon: '▶️',
-    color: '#22C55E',
+    icon: '▶',
+    color: '#00ff88',
     description: 'Workflow entry point',
     inputs: [],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
@@ -43,8 +43,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.end',
     label: 'End',
     category: 'control',
-    icon: '⏹️',
-    color: '#EF4444',
+    icon: '■',
+    color: '#ff0040',
     description: 'Workflow exit point',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [],
@@ -59,8 +59,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.delay',
     label: 'Delay',
     category: 'control',
-    icon: '⏱️',
-    color: '#6B7280',
+    icon: '◷',
+    color: '#6b7280',
     description: 'Pause execution for specified duration',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
@@ -72,8 +72,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.condition',
     label: 'Condition',
     category: 'control',
-    icon: '❓',
-    color: '#6B7280',
+    icon: '◇',
+    color: '#6b7280',
     description: 'Branch based on condition',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -88,8 +88,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.loop',
     label: 'Loop',
     category: 'control',
-    icon: '🔄',
-    color: '#6B7280',
+    icon: '⟳',
+    color: '#6b7280',
     description: 'Iterate over items or count',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -110,8 +110,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.variable_set',
     label: 'Set Variable',
     category: 'control',
-    icon: '📝',
-    color: '#6B7280',
+    icon: '◁',
+    color: '#6b7280',
     description: 'Set a workflow variable',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
@@ -124,8 +124,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'control.variable_get',
     label: 'Get Variable',
     category: 'control',
-    icon: '📖',
-    color: '#6B7280',
+    icon: '▷',
+    color: '#6b7280',
     description: 'Get a workflow variable',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
@@ -139,8 +139,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'connection.ssh_test',
     label: 'SSH Test',
     category: 'connection',
-    icon: '🔐',
-    color: '#3B82F6',
+    icon: '⬡',
+    color: '#00d4ff',
     description: 'Test SSH connectivity',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -159,8 +159,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'connection.tcp_test',
     label: 'TCP Test',
     category: 'connection',
-    icon: '🔗',
-    color: '#3B82F6',
+    icon: '◎',
+    color: '#00d4ff',
     description: 'Test TCP port connectivity',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -181,7 +181,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     label: 'SSH Execute',
     category: 'command',
     icon: '⚡',
-    color: '#10B981',
+    color: '#00ff88',
     description: 'Execute command via SSH',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -203,8 +203,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'traffic.ping',
     label: 'Ping',
     category: 'traffic',
-    icon: '📶',
-    color: '#8B5CF6',
+    icon: '≋',
+    color: '#8b5cf6',
     description: 'Ping a host',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -220,8 +220,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'traffic.burst_capture',
     label: 'Burst Capture',
     category: 'traffic',
-    icon: '📸',
-    color: '#8B5CF6',
+    icon: '◉',
+    color: '#8b5cf6',
     description: 'Capture traffic for short duration',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
@@ -236,8 +236,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'scanning.version_detect',
     label: 'Version Detection',
     category: 'scanning',
-    icon: '🔍',
-    color: '#F59E0B',
+    icon: '◈',
+    color: '#f59e0b',
     description: 'Detect service versions (nmap)',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -254,8 +254,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'scanning.port_scan',
     label: 'Port Scan',
     category: 'scanning',
-    icon: '🎯',
-    color: '#F59E0B',
+    icon: '⬢',
+    color: '#f59e0b',
     description: 'Scan common ports',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -273,8 +273,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'agent.generate',
     label: 'Generate Agent',
     category: 'agent',
-    icon: '🏭',
-    color: '#EF4444',
+    icon: '◆',
+    color: '#ff0040',
     description: 'Generate agent binary',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
@@ -296,8 +296,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'agent.terminate',
     label: 'Terminate Agent',
     category: 'agent',
-    icon: '⛔',
-    color: '#EF4444',
+    icon: '⊘',
+    color: '#ff0040',
     description: 'Terminate running agent',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],

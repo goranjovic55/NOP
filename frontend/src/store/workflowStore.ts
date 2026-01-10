@@ -70,7 +70,21 @@ interface WorkflowState {
   saveCurrentWorkflow: () => Promise<void>;
 }
 
-const API_BASE = '/api/v1/workflows';
+const API_BASE = '/api/v1/workflows/';
+
+// Helper to get auth token from persisted auth store
+const getAuthToken = (): string | null => {
+  try {
+    const authData = localStorage.getItem('nop-auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.token || null;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+};
 
 export const useWorkflowStore = create<WorkflowState>()(
   persist(
@@ -90,7 +104,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       // Load workflows from API
       loadWorkflows: async () => {
         try {
-          const token = localStorage.getItem('auth_token');
+          const token = getAuthToken();
           const response = await fetch(API_BASE, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
@@ -105,7 +119,7 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Create new workflow
       createWorkflow: async (data) => {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         const response = await fetch(API_BASE, {
           method: 'POST',
           headers: {
@@ -132,8 +146,8 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Update workflow
       updateWorkflow: async (id, data) => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE}/${id}`, {
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE}${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -154,8 +168,8 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Delete workflow
       deleteWorkflow: async (id) => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE}/${id}`, {
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE}${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -241,8 +255,8 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Compile workflow
       compileWorkflow: async (id) => {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE}/${id}/compile`, {
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE}${id}/compile`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -256,12 +270,12 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Execute workflow
       executeWorkflow: async (id) => {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         
         set({ isExecuting: true });
         
         try {
-          const response = await fetch(`${API_BASE}/${id}/execute`, {
+          const response = await fetch(`${API_BASE}${id}/execute`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
