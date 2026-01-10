@@ -8,56 +8,37 @@ description: Design blueprints before implementation. Returns design trace to AK
 > `@architect` | Design BEFORE code
 
 ## Triggers
-design, architecture, blueprint, plan, brainstorm, "before we start"
+design, architecture, blueprint, plan, brainstorm
 
 ## When to Use
-- ✅ New project/feature
-- ✅ Major refactoring
-- ✅ System integration
-- ❌ Bug fix (use debugger)
-- ❌ Simple change (use code)
+- ✅ New project/feature | Major refactoring | System integration
+- ❌ Bug fix (debugger) | Simple change (code)
 
-## Execution Trace (REQUIRED)
+## Methodology (REQUIRED)
+1. **Analyze** - Gather constraints + requirements
+2. **Design** - Create blueprint with tradeoffs
+3. **Validate** - Verify against constraints
+4. **Trace** - Report to AKIS
 
-On completion, report to AKIS:
-```
-[RETURN] ← architect | result: {blueprint/decision}
-  Artifact: {doc path or inline}
-  Components: {count}
-  Next: {recommended agent}
-```
+## Validation Checklist (⛔ REQUIRED)
+- [ ] Constraints analyzed
+- [ ] Alternatives evaluated
+- [ ] Tradeoffs documented
+- [ ] Components <7 (cognitive limit)
 
-## Output Format
+## Output
 ```markdown
 # Blueprint: [Name]
-
-## Overview
-[1-2 sentences]
-
-## Components
-| Component | Purpose |
-|-----------|---------|
-| A | [what it does] |
-| B | [what it does] |
-
-## Data Flow
-[Simple diagram or description]
-
-## Implementation Plan
-1. [Phase 1]
-2. [Phase 2]
-
-## Trace
-[RETURN] ← architect | result: blueprint | components: 3 | next: code
+## Overview | Components (table) | Data Flow | Plan
+## Validation: ✓ constraints | ✓ alternatives | ✓ tradeoffs
+[RETURN] ← architect | result: blueprint | components: N | next: code
 ```
 
 ## ⚠️ Gotchas
-- Multiple options with tradeoffs
-- Document in docs/architecture/
-- Don't over-engineer
-- Get approval before code proceeds
+- Don't over-engineer | Document in docs/architecture/
+- Get approval before code | Keep designs simple
 
 ## Orchestration
-| Called by | Returns to | Can call |
-|-----------|------------|----------|
+| From | To | Call |
+|------|-----|------|
 | AKIS | AKIS | research |

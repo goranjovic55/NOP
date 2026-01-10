@@ -1,12 +1,12 @@
 # Documentation Index
 
-**Last Updated**: 2026-01-09 | **Total Active Documents**: 45
+**Last Updated**: 2026-01-10 | **Total Active Documents**: 50
 
 ## Quick Links
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| [Analysis](#analysis) | 14 | Analysis documents and reports |
+| [Analysis](#analysis) | 19 | Analysis documents and reports |
 | [Architecture](#architecture) | 3 | System design and architecture decisions |
 | [Design](#design) | 3 | UI/UX specifications and component library |
 | [Development](#development) | 5 | Contributing, testing, and development guides |
@@ -22,6 +22,11 @@
 
 Implementation analysis and status reports.
 
+- [**AKIS Comprehensive Analysis (100k)**](analysis/AKIS_COMPREHENSIVE_ANALYSIS_100K.md) ⭐ *New - Full framework metrics analysis*
+- [**AKIS v7 Framework Audit**](analysis/AKIS_V7_FRAMEWORK_AUDIT.md) ⭐ *100k before/after + microadjustments*
+- [**100k Session Simulation Results**](analysis/SIMULATION_100K_RESULTS.md) ⭐ *Comprehensive simulation metrics*
+- [AKIS Compliance Audit 100k](analysis/AKIS_COMPLIANCE_AUDIT_100K.md)
+- [Custom Agent 100k Simulation](analysis/CUSTOM_AGENT_100K_SIMULATION_REPORT.md)
 - [Agent Architecture Gap Analysis](analysis/AGENT_ARCHITECTURE_GAP_ANALYSIS.md)
 - [Agent Ecosystem Analysis Report](analysis/AGENT_ECOSYSTEM_ANALYSIS.md)
 - [Agent POV Mode Implementation](analysis/AGENT_POV_IMPLEMENTATION.md)

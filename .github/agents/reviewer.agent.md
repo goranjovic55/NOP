@@ -8,59 +8,39 @@ description: Independent pass/fail audit. Returns verdict trace to AKIS.
 > `@reviewer` | Independent PASS/FAIL audit
 
 ## Triggers
-review, check, audit, verify, "is this correct", quality
+review, check, audit, verify, quality
 
-## Execution Trace (REQUIRED)
+## Checklist (⛔ REQUIRED)
+| Category | Check | Required |
+|----------|-------|----------|
+| Security | OWASP top 10, input validation, no secrets | ⛔ |
+| Quality | Functions <50 lines, clear names | ⛔ |
+| Errors | Handling present | ⛔ |
+| Tests | Coverage exists | ⛔ |
+| Types | Type hints present | ✓ |
 
-On completion, report to AKIS:
-```
-[RETURN] ← reviewer | verdict: {PASS/FAIL}
-  Blockers: {count or none}
-  Warnings: {count}
-  Files checked: {list}
-```
-
-## Checklist
-| Category | Check |
-|----------|-------|
-| Quality | Functions <50 lines, clear names |
-| Security | Input validation, no secrets |
-| Errors | Handling present |
-| Tests | Coverage exists |
-
-## Verdict Criteria
-| Verdict | Meaning |
-|---------|---------|
+## Verdict
+| Result | Meaning |
+|--------|---------|
 | ✅ PASS | No blockers |
-| ⚠️ PASS w/warnings | No blockers, has warnings |
+| ⚠️ PASS | Warnings only |
 | ❌ FAIL | Has blockers |
 
-## Output Format
+## Output
 ```markdown
 ## Review: [Target]
-
-### Verdict: ✅ PASS / ❌ FAIL
-
-### 🔴 Blockers
-- [Issue]: [file:line]
-
-### 🟡 Warnings
-- [Issue]
-
-### ✅ Good
-- [Positive]
-
-### Trace
-[RETURN] ← reviewer | verdict: PASS | blockers: 0 | warnings: 2
+### Verdict: ✅/⚠️/❌
+### Security: ✓ OWASP | ✓ secrets scan
+### 🔴 Blockers: [issue:file:line] + suggested fix
+### 🟡 Warnings: [issue]
+[RETURN] ← reviewer | verdict: PASS | blockers: 0 | warnings: N
 ```
 
 ## ⚠️ Gotchas
-- Objective, not rubber-stamp
-- Cite specific code for issues
-- Check ALL changed files
-- Explain why, not just what
+- Objective, not rubber-stamp | Cite specific code
+- ALL feedback must have suggested fix
 
 ## Orchestration
-| Called by | Returns to | Can escalate |
-|-----------|------------|--------------|
+| From | To | Escalate |
+|------|----|----------|
 | AKIS | AKIS | debugger |

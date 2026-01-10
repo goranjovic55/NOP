@@ -8,34 +8,29 @@ description: Update docs, READMEs, comments. Returns trace to AKIS.
 > `@documentation` | Update docs with trace
 
 ## Triggers
-doc, readme, comment, explain, document, "update docs"
+doc, readme, comment, explain, document
 
-## Execution Trace (REQUIRED)
+## Requirements (⛔ ENFORCED)
+| Section | Required |
+|---------|----------|
+| Examples | ⛔ Code samples mandatory |
+| Usage | ⛔ Quickstart section |
+| Updated | ⛔ Last-updated date |
 
-On completion, report to AKIS:
-```
-[RETURN] ← documentation | result: {updated/created}
-  Files: {list}
-  Type: {readme/api/guide/comment}
-```
-
-## Output Format
+## Output
 ```markdown
 ## Documentation: [Target]
-
-### Files Updated
-- `path/README.md`: [changes]
-
-### Trace
-[RETURN] ← documentation | result: updated | files: 2
+### Files: path/README.md (changes)
+### Examples: ✓ included
+### Last Updated: YYYY-MM-DD
+[RETURN] ← documentation | result: updated | files: N
 ```
 
 ## ⚠️ Gotchas
-- Check docs/INDEX.md for existing docs
-- Match existing doc style
+- Check docs/INDEX.md | Match existing style
 - Update INDEX.md if adding new docs
 
 ## Orchestration
-| Called by | Returns to |
-|-----------|------------|
+| From | To |
+|------|----|
 | AKIS, architect | AKIS |

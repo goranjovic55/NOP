@@ -1,0 +1,377 @@
+{
+  "report": {
+    "simulation_summary": {
+      "total_sessions": 100000,
+      "baseline_version": "current",
+      "optimized_version": "optimized",
+      "timestamp": "2026-01-10T18:57:42.044680"
+    },
+    "metrics_comparison": {
+      "discipline": {
+        "baseline": 0.806855611111111,
+        "optimized": 0.8669727777777778,
+        "improvement": 0.07450796132393522
+      },
+      "cognitive_load": {
+        "baseline": 0.7904781,
+        "optimized": 0.6713537999999999,
+        "improvement": 0.15069905162458022
+      },
+      "resolve_rate": {
+        "baseline": 0.86872,
+        "optimized": 0.88921,
+        "improvement": 0.023586426006077788
+      },
+      "speed": {
+        "baseline_p50": 51.34914507573161,
+        "optimized_p50": 43.69224444894204,
+        "improvement": 0.14911447143855835
+      },
+      "traceability": {
+        "baseline": 0.8339173333333332,
+        "optimized": 0.8882881666666667,
+        "improvement": 0.06519930832472622
+      },
+      "token_consumption": {
+        "baseline": 20450.94012,
+        "optimized": 15343.26474,
+        "improvement": 0.24975259572565797
+      },
+      "api_calls": {
+        "baseline": 38.06147,
+        "optimized": 26.183,
+        "improvement": 0.3120864748523901
+      }
+    },
+    "totals_comparison": {
+      "tokens_saved": 510767538,
+      "api_calls_saved": 1187847,
+      "deviations_prevented": 33489,
+      "additional_successes": 2049
+    },
+    "rates_comparison": {
+      "success_rate": {
+        "baseline": 0.86872,
+        "optimized": 0.88921
+      },
+      "perfect_session_rate": {
+        "baseline": 0.15787,
+        "optimized": 0.28294
+      }
+    },
+    "deviation_analysis": {
+      "baseline_top_deviations": {
+        "skip_skill_loading": 30962,
+        "skip_delegation_for_complex": 23263,
+        "skip_workflow_log": 21800,
+        "skip_verification": 18098,
+        "skip_delegation_tracing": 15130,
+        "incomplete_delegation_context": 11957,
+        "skip_delegation_verification": 10819,
+        "incomplete_todo_tracking": 10059,
+        "wrong_agent_selected": 8344,
+        "skip_knowledge_loading": 7979
+      },
+      "optimized_top_deviations": {
+        "skip_skill_loading": 28730,
+        "skip_workflow_log": 18715,
+        "skip_verification": 15651,
+        "skip_delegation_for_complex": 14981,
+        "skip_delegation_tracing": 10798,
+        "incomplete_delegation_context": 9425,
+        "incomplete_todo_tracking": 9383,
+        "skip_knowledge_loading": 7584,
+        "skip_delegation_verification": 7013,
+        "wrong_agent_selected": 6748
+      }
+    },
+    "edge_case_analysis": {
+      "baseline_hit_rate": 0.13387,
+      "optimized_hit_rate": 0.13687,
+      "top_edge_cases": {
+        "Concurrent state updates": 928,
+        "SSR hydration mismatch": 895,
+        "Stale closure in useEffect": 869,
+        "Race condition in async operations": 868,
+        "Infinite render loop": 826,
+        "Race condition in database writes": 703,
+        "Circular dependency in imports": 696,
+        "Unicode encoding issues": 692,
+        "Database migration rollback": 688,
+        "Timezone handling errors": 663
+      }
+    },
+    "delegation_analysis": {
+      "baseline": {
+        "delegation_rate": 0.54329,
+        "sessions_with_delegation": 54329,
+        "avg_delegation_discipline": 0.8495633087301442,
+        "avg_delegations_per_session": 3.000570597655028,
+        "delegation_success_rate": 0.9344763692809855,
+        "agents_usage": {
+          "architect": 23261,
+          "research": 23294,
+          "reviewer": 23365,
+          "code": 23398,
+          "debugger": 23176,
+          "devops": 23271,
+          "documentation": 23253
+        }
+      },
+      "optimized": {
+        "delegation_rate": 0.54346,
+        "sessions_with_delegation": 54346,
+        "avg_delegation_discipline": 0.850034501159239,
+        "avg_delegations_per_session": 3.0007912265852132,
+        "delegation_success_rate": 0.9350458175394694,
+        "agents_usage": {
+          "reviewer": 23201,
+          "code": 23426,
+          "devops": 23262,
+          "documentation": 23301,
+          "architect": 23225,
+          "debugger": 23393,
+          "research": 23273
+        }
+      }
+    }
+  },
+  "baseline_summary": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "current",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 4000,
+      "skill_token_target": 250,
+      "require_verification": true,
+      "require_syntax_check": true,
+      "enable_delegation": true,
+      "delegation_threshold": 6,
+      "require_delegation_tracing": true,
+      "available_agents": [
+        "architect",
+        "research",
+        "code",
+        "debugger",
+        "reviewer",
+        "documentation",
+        "devops"
+      ]
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 86872,
+    "avg_token_usage": 20450.94012,
+    "avg_api_calls": 38.06147,
+    "avg_resolution_time": 49.79936733434298,
+    "avg_discipline": 0.806855611111111,
+    "avg_cognitive_load": 0.7904781,
+    "avg_traceability": 0.8339173333333332,
+    "p50_resolution_time": 51.34914507573161,
+    "p95_resolution_time": 82.44113961774963,
+    "success_rate": 0.86872,
+    "perfect_session_rate": 0.15787,
+    "edge_case_hit_rate": 0.13387,
+    "total_tokens": 2045094012,
+    "total_api_calls": 3806147,
+    "total_deviations": 168492,
+    "complexity_distribution": {
+      "('complex', 77592)": 1,
+      "('simple', 15929)": 1,
+      "('medium', 6479)": 1
+    },
+    "domain_distribution": {
+      "('frontend', 18227)": 1,
+      "('fullstack', 45339)": 1,
+      "('backend', 14654)": 1,
+      "('documentation', 10024)": 1,
+      "('debugging', 9981)": 1,
+      "('devops', 1775)": 1
+    },
+    "deviation_counts": {
+      "skip_verification": 18098,
+      "skip_delegation_tracing": 15130,
+      "atypical:cognitive_overload": 1946,
+      "skip_skill_loading": 30962,
+      "skip_delegation_for_complex": 23263,
+      "atypical:workflow_deviation": 2026,
+      "incomplete_todo_tracking": 10059,
+      "skip_workflow_log": 21800,
+      "wrong_agent_selected": 8344,
+      "incomplete_delegation_context": 11957,
+      "skip_knowledge_loading": 7979,
+      "skip_delegation_verification": 10819,
+      "atypical:context_loss": 1971,
+      "atypical:tool_misuse": 2036,
+      "atypical:error_cascades": 2102
+    },
+    "edge_case_counts": {
+      "Cascading failure from upstream": 641,
+      "Orphaned resources cleanup": 367,
+      "Stack overflow from deep recursion": 591,
+      "Race condition in database writes": 703,
+      "Race condition in async operations": 868,
+      "Multi-stage build cache invalidation": 357,
+      "Connection pool exhaustion": 649,
+      "Heisenbug - disappears when debugging": 611,
+      "DNS resolution failure": 364,
+      "Infinite render loop": 826,
+      "Database migration rollback": 688,
+      "Container startup race condition": 373,
+      "Stale closure in useEffect": 869,
+      "Timezone handling errors": 663,
+      "SSR hydration mismatch": 895,
+      "Concurrent state updates": 928,
+      "Race condition only in production": 618,
+      "Circular dependency in imports": 696,
+      "Disk space exhaustion": 374,
+      "Data corruption from concurrent access": 614,
+      "Unicode encoding issues": 692
+    },
+    "delegation_rate": 0.54329,
+    "avg_delegation_discipline": 0.8495633087301442,
+    "avg_delegations_per_session": 3.000570597655028,
+    "delegation_success_rate": 0.9344763692809855,
+    "sessions_with_delegation": 54329,
+    "agents_usage": {
+      "architect": 23261,
+      "research": 23294,
+      "reviewer": 23365,
+      "code": 23398,
+      "debugger": 23176,
+      "devops": 23271,
+      "documentation": 23253
+    }
+  },
+  "optimized_summary": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "optimized",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 3500,
+      "skill_token_target": 200,
+      "require_verification": true,
+      "require_syntax_check": true,
+      "enable_delegation": true,
+      "delegation_threshold": 6,
+      "require_delegation_tracing": true,
+      "available_agents": [
+        "architect",
+        "research",
+        "code",
+        "debugger",
+        "reviewer",
+        "documentation",
+        "devops"
+      ]
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 88921,
+    "avg_token_usage": 15343.26474,
+    "avg_api_calls": 26.183,
+    "avg_resolution_time": 42.4128070600202,
+    "avg_discipline": 0.8669727777777778,
+    "avg_cognitive_load": 0.6713537999999999,
+    "avg_traceability": 0.8882881666666667,
+    "p50_resolution_time": 43.69224444894204,
+    "p95_resolution_time": 70.22700545437624,
+    "success_rate": 0.88921,
+    "perfect_session_rate": 0.28294,
+    "edge_case_hit_rate": 0.13687,
+    "total_tokens": 1534326474,
+    "total_api_calls": 2618300,
+    "total_deviations": 135003,
+    "complexity_distribution": {
+      "('complex', 77623)": 1,
+      "('simple', 15895)": 1,
+      "('medium', 6482)": 1
+    },
+    "domain_distribution": {
+      "('fullstack', 45508)": 1,
+      "('frontend', 18184)": 1,
+      "('documentation', 9953)": 1,
+      "('debugging', 10038)": 1,
+      "('backend', 14471)": 1,
+      "('devops', 1846)": 1
+    },
+    "deviation_counts": {
+      "skip_knowledge_loading": 7584,
+      "wrong_agent_selected": 6748,
+      "skip_delegation_tracing": 10798,
+      "skip_workflow_log": 18715,
+      "incomplete_delegation_context": 9425,
+      "skip_skill_loading": 28730,
+      "atypical:cognitive_overload": 1146,
+      "incomplete_todo_tracking": 9383,
+      "skip_verification": 15651,
+      "skip_delegation_for_complex": 14981,
+      "atypical:workflow_deviation": 1162,
+      "skip_delegation_verification": 7013,
+      "atypical:tool_misuse": 1152,
+      "atypical:context_loss": 1267,
+      "atypical:error_cascades": 1248
+    },
+    "edge_case_counts": {
+      "Race condition in async operations": 912,
+      "Circular dependency in imports": 671,
+      "Disk space exhaustion": 390,
+      "Heisenbug - disappears when debugging": 636,
+      "Container startup race condition": 407,
+      "Concurrent state updates": 888,
+      "Connection pool exhaustion": 667,
+      "Timezone handling errors": 714,
+      "Orphaned resources cleanup": 394,
+      "Multi-stage build cache invalidation": 377,
+      "Race condition only in production": 624,
+      "Database migration rollback": 730,
+      "Infinite render loop": 847,
+      "SSR hydration mismatch": 871,
+      "Cascading failure from upstream": 632,
+      "Race condition in database writes": 679,
+      "DNS resolution failure": 416,
+      "Stale closure in useEffect": 851,
+      "Data corruption from concurrent access": 630,
+      "Unicode encoding issues": 713,
+      "Stack overflow from deep recursion": 638
+    },
+    "delegation_rate": 0.54346,
+    "avg_delegation_discipline": 0.850034501159239,
+    "avg_delegations_per_session": 3.0007912265852132,
+    "delegation_success_rate": 0.9350458175394694,
+    "sessions_with_delegation": 54346,
+    "agents_usage": {
+      "reviewer": 23201,
+      "code": 23426,
+      "devops": 23262,
+      "documentation": 23301,
+      "architect": 23225,
+      "debugger": 23393,
+      "research": 23273
+    }
+  }
+}

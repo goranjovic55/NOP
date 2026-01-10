@@ -1,0 +1,281 @@
+{
+  "report": {
+    "simulation_summary": {
+      "total_sessions": 100000,
+      "baseline_version": "current",
+      "optimized_version": "optimized",
+      "timestamp": "2026-01-10T18:27:56.967141"
+    },
+    "metrics_comparison": {
+      "discipline": {
+        "baseline": 0.831677,
+        "optimized": 0.87538,
+        "improvement": 0.05254804449323481
+      },
+      "cognitive_load": {
+        "baseline": 0.7599889,
+        "optimized": 0.6399275999999999,
+        "improvement": 0.15797770204275358
+      },
+      "resolve_rate": {
+        "baseline": 0.8683,
+        "optimized": 0.88772,
+        "improvement": 0.022365541863411255
+      },
+      "speed": {
+        "baseline_p50": 56.01648779564178,
+        "optimized_p50": 47.34503338130423,
+        "improvement": 0.1548018227414145
+      },
+      "traceability": {
+        "baseline": 0.8329786666666665,
+        "optimized": 0.8887634999999999,
+        "improvement": 0.06697030256076995
+      },
+      "token_consumption": {
+        "baseline": 21751.21055,
+        "optimized": 16301.37294,
+        "improvement": 0.2505533012736158
+      },
+      "api_calls": {
+        "baseline": 37.05074,
+        "optimized": 25.4789,
+        "improvement": 0.3123241263197442
+      }
+    },
+    "totals_comparison": {
+      "tokens_saved": 544983761,
+      "api_calls_saved": 1157184,
+      "deviations_prevented": 27112,
+      "additional_successes": 1942
+    },
+    "rates_comparison": {
+      "success_rate": {
+        "baseline": 0.8683,
+        "optimized": 0.88772
+      },
+      "perfect_session_rate": {
+        "baseline": 0.33106,
+        "optimized": 0.49527
+      }
+    },
+    "deviation_analysis": {
+      "baseline_top_deviations": {
+        "skip_skill_loading": 31080,
+        "skip_workflow_log": 22093,
+        "skip_verification": 17850,
+        "incomplete_todo_tracking": 10123,
+        "skip_knowledge_loading": 8077,
+        "atypical:workflow_deviation": 2050,
+        "atypical:context_loss": 2021,
+        "atypical:error_cascades": 2013,
+        "atypical:cognitive_overload": 1975,
+        "atypical:tool_misuse": 1948
+      },
+      "optimized_top_deviations": {
+        "skip_skill_loading": 24837,
+        "skip_workflow_log": 13980,
+        "skip_verification": 13000,
+        "incomplete_todo_tracking": 7662,
+        "skip_knowledge_loading": 6683,
+        "atypical:context_loss": 1272,
+        "atypical:workflow_deviation": 1205,
+        "atypical:error_cascades": 1171,
+        "atypical:tool_misuse": 1156,
+        "atypical:cognitive_overload": 1152
+      }
+    },
+    "edge_case_analysis": {
+      "baseline_hit_rate": 0.1368,
+      "optimized_hit_rate": 0.13402,
+      "top_edge_cases": {
+        "Race condition in async operations": 912,
+        "Infinite render loop": 902,
+        "Concurrent state updates": 882,
+        "Stale closure in useEffect": 861,
+        "SSR hydration mismatch": 850,
+        "Timezone handling errors": 780,
+        "Circular dependency in imports": 705,
+        "Connection pool exhaustion": 701,
+        "Race condition in database writes": 689,
+        "Unicode encoding issues": 682
+      }
+    }
+  },
+  "baseline_summary": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "current",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 4000,
+      "skill_token_target": 250,
+      "require_verification": true,
+      "require_syntax_check": true
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 86830,
+    "avg_token_usage": 21751.21055,
+    "avg_api_calls": 37.05074,
+    "avg_resolution_time": 53.50327960017321,
+    "avg_discipline": 0.831677,
+    "avg_cognitive_load": 0.7599889,
+    "avg_traceability": 0.8329786666666665,
+    "p50_resolution_time": 56.01648779564178,
+    "p95_resolution_time": 85.94837077192125,
+    "success_rate": 0.8683,
+    "perfect_session_rate": 0.33106,
+    "edge_case_hit_rate": 0.1368,
+    "total_tokens": 2175121055,
+    "total_api_calls": 3705074,
+    "total_deviations": 99230,
+    "complexity_distribution": {
+      "('complex', 77511)": 1,
+      "('simple', 16044)": 1,
+      "('medium', 6445)": 1
+    },
+    "domain_distribution": {
+      "('frontend', 18146)": 1,
+      "('fullstack', 45351)": 1,
+      "('backend', 14671)": 1,
+      "('documentation', 10105)": 1,
+      "('debugging', 9933)": 1,
+      "('devops', 1794)": 1
+    },
+    "deviation_counts": {
+      "skip_verification": 17850,
+      "atypical:cognitive_overload": 1975,
+      "skip_workflow_log": 22093,
+      "atypical:workflow_deviation": 2050,
+      "skip_knowledge_loading": 8077,
+      "skip_skill_loading": 31080,
+      "incomplete_todo_tracking": 10123,
+      "atypical:context_loss": 2021,
+      "atypical:error_cascades": 2013,
+      "atypical:tool_misuse": 1948
+    },
+    "edge_case_counts": {
+      "Stack overflow from deep recursion": 642,
+      "Concurrent state updates": 882,
+      "Data corruption from concurrent access": 618,
+      "Heisenbug - disappears when debugging": 631,
+      "Disk space exhaustion": 382,
+      "Stale closure in useEffect": 861,
+      "Orphaned resources cleanup": 406,
+      "Timezone handling errors": 780,
+      "Multi-stage build cache invalidation": 366,
+      "Database migration rollback": 675,
+      "Race condition in async operations": 912,
+      "Infinite render loop": 902,
+      "Unicode encoding issues": 682,
+      "Race condition in database writes": 689,
+      "Race condition only in production": 619,
+      "SSR hydration mismatch": 850,
+      "Container startup race condition": 349,
+      "Circular dependency in imports": 705,
+      "Connection pool exhaustion": 701,
+      "DNS resolution failure": 400,
+      "Cascading failure from upstream": 628
+    }
+  },
+  "optimized_summary": {
+    "config": {
+      "session_count": 100000,
+      "include_edge_cases": true,
+      "edge_case_probability": 0.15,
+      "atypical_issue_probability": 0.1,
+      "seed": 42
+    },
+    "akis_config": {
+      "version": "optimized",
+      "enforce_gates": true,
+      "require_todo_tracking": true,
+      "require_skill_loading": true,
+      "require_knowledge_loading": true,
+      "require_workflow_log": true,
+      "enable_knowledge_cache": true,
+      "enable_operation_batching": true,
+      "enable_proactive_skill_loading": true,
+      "max_context_tokens": 3500,
+      "skill_token_target": 200,
+      "require_verification": true,
+      "require_syntax_check": true
+    },
+    "total_sessions": 100000,
+    "successful_sessions": 88772,
+    "avg_token_usage": 16301.37294,
+    "avg_api_calls": 25.4789,
+    "avg_resolution_time": 45.32568747557589,
+    "avg_discipline": 0.87538,
+    "avg_cognitive_load": 0.6399275999999999,
+    "avg_traceability": 0.8887634999999999,
+    "p50_resolution_time": 47.34503338130423,
+    "p95_resolution_time": 72.94771680889417,
+    "success_rate": 0.88772,
+    "perfect_session_rate": 0.49527,
+    "edge_case_hit_rate": 0.13402,
+    "total_tokens": 1630137294,
+    "total_api_calls": 2547890,
+    "total_deviations": 72118,
+    "complexity_distribution": {
+      "('complex', 77501)": 1,
+      "('medium', 6480)": 1,
+      "('simple', 16019)": 1
+    },
+    "domain_distribution": {
+      "('fullstack', 45519)": 1,
+      "('backend', 14600)": 1,
+      "('debugging', 10082)": 1,
+      "('documentation', 9936)": 1,
+      "('frontend', 18049)": 1,
+      "('devops', 1814)": 1
+    },
+    "deviation_counts": {
+      "skip_knowledge_loading": 6683,
+      "skip_skill_loading": 24837,
+      "incomplete_todo_tracking": 7662,
+      "skip_verification": 13000,
+      "skip_workflow_log": 13980,
+      "atypical:workflow_deviation": 1205,
+      "atypical:error_cascades": 1171,
+      "atypical:context_loss": 1272,
+      "atypical:cognitive_overload": 1152,
+      "atypical:tool_misuse": 1156
+    },
+    "edge_case_counts": {
+      "Disk space exhaustion": 348,
+      "Database migration rollback": 741,
+      "Race condition only in production": 625,
+      "Stale closure in useEffect": 874,
+      "Circular dependency in imports": 663,
+      "Infinite render loop": 851,
+      "Data corruption from concurrent access": 616,
+      "Race condition in async operations": 893,
+      "Heisenbug - disappears when debugging": 615,
+      "Multi-stage build cache invalidation": 368,
+      "Connection pool exhaustion": 635,
+      "Timezone handling errors": 674,
+      "DNS resolution failure": 387,
+      "Unicode encoding issues": 653,
+      "Stack overflow from deep recursion": 635,
+      "SSR hydration mismatch": 873,
+      "Orphaned resources cleanup": 386,
+      "Concurrent state updates": 846,
+      "Cascading failure from upstream": 650,
+      "Race condition in database writes": 714,
+      "Container startup race condition": 355
+    }
+  }
+}
