@@ -8,6 +8,7 @@ import { assetService, Asset } from '../services/assetService';
 import { Vulnerability } from '../store/scanStore';
 import ProtocolConnection from '../components/ProtocolConnection';
 import { CyberPageTitle } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 type AccessMode = 'login' | 'exploit';
 
@@ -328,7 +329,7 @@ const Access: React.FC = () => {
       try {
         setVaultCredentialsRaw(JSON.parse(stored));
       } catch (e) {
-        console.error('Failed to load vault credentials', e);
+        logger.error('Failed to load vault credentials', e);
       }
     }
   }, []);
@@ -345,15 +346,15 @@ const Access: React.FC = () => {
     try {
       const authToken = token || localStorage.getItem('token') || '';
       if (!authToken) {
-        console.warn('No auth token available');
+        logger.warn('No auth token available');
         setLoading(false);
         return;
       }
       const allAssets = await assetService.getAssets(authToken, undefined, activeAgent?.id);
-      console.log('Fetched assets:', allAssets.length, 'POV agent:', activeAgent?.id || 'none');
+      logger.debug('Fetched assets:', allAssets.length, 'POV agent:', activeAgent?.id || 'none');
       setAssets(allAssets);
     } catch (error) {
-      console.error('Failed to fetch assets:', error);
+      logger.error('Failed to fetch assets:', error);
     } finally {
       setLoading(false);
     }

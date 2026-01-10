@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { agentService, Agent, AgentCreate } from '../services/agentService';
 import { CyberPageTitle } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 const Agents: React.FC = () => {
   const { token, logout, _hasHydrated } = useAuthStore();
@@ -100,7 +101,7 @@ const Agents: React.FC = () => {
           setPublicIP(data.ip);
         }
       } catch (error) {
-        console.error('Failed to detect public IP:', error);
+        logger.error('Failed to detect public IP:', error);
       }
     }
   };
@@ -119,17 +120,17 @@ const Agents: React.FC = () => {
 
   const loadAgents = async () => {
     if (!token) {
-      console.warn('[Agents] No token available, skipping agent load');
+      logger.warn('[Agents] No token available, skipping agent load');
       return;
     }
     try {
       const data = await agentService.getAgents(token);
       setAgents(data);
     } catch (error: any) {
-      console.error('Failed to load agents:', error);
+      logger.error('Failed to load agents:', error);
       // If 401, session expired - logout to trigger redirect to login
       if (error?.response?.status === 401 || (error instanceof Error && error.message.includes('401'))) {
-        console.error('[Agents] Authentication failed - session expired, logging out');
+        logger.error('[Agents] Authentication failed - session expired, logging out');
         logout();
         return;
       }
@@ -137,7 +138,7 @@ const Agents: React.FC = () => {
   };
 
   const handleCreateAgent = async () => {
-    console.log('handleCreateAgent called, token:', token ? 'exists' : 'MISSING', 'name:', newAgent.name);
+    logger.debug('handleCreateAgent called, token:', token ? 'exists' : 'MISSING', 'name:', newAgent.name);
     if (!token) {
       alert('Not authenticated! Please log in first.');
       return;
@@ -150,14 +151,14 @@ const Agents: React.FC = () => {
     let createdAgent: Agent | null = null;
     
     try {
-      console.log('Creating agent...', newAgent);
+      logger.debug('Creating agent...', newAgent);
       createdAgent = await agentService.createAgent(token, newAgent);
-      console.log('Agent created:', createdAgent);
+      logger.debug('Agent created:', createdAgent);
       
       // Auto-download agent file with platform for Go
       try {
         const platform = newAgent.agent_type === 'go' ? selectedPlatform : undefined;
-        console.log('Generating agent file...');
+        logger.debug('Generating agent file...');
         const { content, filename, is_binary } = await agentService.generateAgent(token, createdAgent.id, platform);
         
         let blob: Blob;
@@ -182,14 +183,14 @@ const Agents: React.FC = () => {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         
-        console.log('Agent file downloaded successfully');
+        logger.debug('Agent file downloaded successfully');
       } catch (generateError) {
-        console.error('Failed to generate/download agent file:', generateError);
+        logger.error('Failed to generate/download agent file:', generateError);
         // Agent was created successfully, but file generation failed
         alert(`Agent created successfully, but failed to generate file: ${generateError instanceof Error ? generateError.message : 'Unknown error'}\n\nYou can download the agent file from the agent template card.`);
       }
       
-      console.log('Reloading agents...');
+      logger.debug('Reloading agents...');
       // Reload agents to get the fresh agent with download token
       await loadAgents();
       
@@ -219,9 +220,9 @@ const Agents: React.FC = () => {
       });
       setUsePublicIP(false);
       setSelectedPlatform('linux-amd64');
-      console.log('Agent creation flow complete!');
+      logger.debug('Agent creation flow complete!');
     } catch (error) {
-      console.error('Failed to create agent:', error);
+      logger.error('Failed to create agent:', error);
       // Only show this error if agent creation actually failed (not file generation)
       if (!createdAgent) {
         alert(`Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -240,7 +241,7 @@ const Agents: React.FC = () => {
         setActiveAgent(null);
       }
     } catch (error) {
-      console.error('Failed to delete agent:', error);
+      logger.error('Failed to delete agent:', error);
     }
   };
 
@@ -256,7 +257,7 @@ const Agents: React.FC = () => {
       }
       alert(`Agent killed and deleted: ${result.status}`);
     } catch (error) {
-      console.error('Failed to kill agent:', error);
+      logger.error('Failed to kill agent:', error);
       alert('Failed to kill agent');
     }
   };
@@ -288,7 +289,7 @@ const Agents: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to generate agent:', error);
+      logger.error('Failed to generate agent:', error);
     }
   };
 
@@ -299,7 +300,7 @@ const Agents: React.FC = () => {
       setSourceCode({ code: source_code, filename, language });
       setShowSourceModal(true);
     } catch (error) {
-      console.error('Failed to get agent source:', error);
+      logger.error('Failed to get agent source:', error);
       alert('Failed to load agent source code');
     }
   };

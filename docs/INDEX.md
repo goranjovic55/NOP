@@ -63,6 +63,7 @@ UI/UX specifications and component library.
 Contributing, testing, and development workflow.
 
 - [Contributing to NOP](development/CONTRIBUTING.md)
+- [Refactoring Standards](development/REFACTORING_STANDARDS.md) ⭐ *Code quality and best practices*
 - [Development Roadmap](development/ROADMAP.md)
 - [Automation Scripts Reference](development/SCRIPTS.md)
 - [Testing Guide](development/TESTING.md)

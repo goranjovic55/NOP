@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { CyberSectionHeader, CyberPageTitle } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 interface StormMetrics {
   packets_sent: number;
@@ -89,7 +90,7 @@ const Storm: React.FC = () => {
       const data = await response.json();
       setInterfaces(data);
     } catch (err) {
-      console.error('Failed to fetch interfaces:', err);
+      logger.error('Failed to fetch interfaces:', err);
     }
   };
 
@@ -101,7 +102,7 @@ const Storm: React.FC = () => {
       const data = await response.json();
       setAssets(data);
     } catch (err) {
-      console.error('Failed to fetch assets:', err);
+      logger.error('Failed to fetch assets:', err);
     }
   };
 
@@ -119,7 +120,7 @@ const Storm: React.FC = () => {
       setPingStatus(data);
       return data.reachable;
     } catch (err) {
-      console.error('Failed to ping host:', err);
+      logger.error('Failed to ping host:', err);
       return false;
     }
   };
@@ -146,7 +147,7 @@ const Storm: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to fetch metrics:', err);
+      logger.error('Failed to fetch metrics:', err);
     }
   };
 
@@ -223,7 +224,7 @@ const Storm: React.FC = () => {
         alert(`Failed to start storm: ${error.detail || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('Failed to start storm:', err);
+      logger.error('Failed to start storm:', err);
       alert('Failed to start storm: Network error');
     }
   };
@@ -254,7 +255,7 @@ const Storm: React.FC = () => {
         await fetchMetrics();
       }
     } catch (err) {
-      console.error('Failed to stop storm:', err);
+      logger.error('Failed to stop storm:', err);
     }
   };
 

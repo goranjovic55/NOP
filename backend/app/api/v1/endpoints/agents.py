@@ -325,7 +325,7 @@ async def generate_agent(
             
         except Exception as e:
             # Fallback to source code if compilation fails
-            print(f"Compilation failed: {e}, falling back to source")
+            logger.warning("Compilation failed: %s, falling back to source", e)
             content = source_code
             filename = f"nop_agent_{agent.name.replace(' ', '_')}.go"
             is_binary = False
@@ -465,7 +465,7 @@ async def agent_websocket(
                         working_agent.name = f"{template_name}@{hostname}"
                         await db.commit()
                     
-                    print(f"Agent {working_agent.name} registered: {message}")
+                    logger.info("Agent %s registered: %s", working_agent.name, message)
                     
                     # Extract agent IP and auto-generate /24 network for discovery
                     # Prefer internal network IPs (10.x, 192.168.x) over Docker bridge IPs (172.x)
@@ -523,7 +523,7 @@ async def agent_websocket(
                     # Handle discovered assets
                     assets = message.get('assets', [])
                     count = await AgentDataService.ingest_asset_data(db, working_agent.id, assets)
-                    print(f"Agent {working_agent.name} discovered {count} assets")
+                    logger.debug("Agent %s discovered %d assets", working_agent.name, count)
                     await websocket.send_json({
                         "type": "asset_ack",
                         "count": count,
@@ -537,13 +537,13 @@ async def agent_websocket(
                     if 'flows' in message:
                         traffic['flows'] = message.get('flows', [])
                     success = await AgentDataService.ingest_traffic_data(db, working_agent.id, traffic)
-                    print(f"Agent {working_agent.name} traffic data: {success}")
+                    logger.debug("Agent %s traffic data: %s", working_agent.name, success)
                     
                 elif msg_type == "host_data":
                     # Handle host information
                     host_info = message.get('host', {})
                     success = await AgentDataService.ingest_host_data(db, working_agent.id, host_info)
-                    print(f"Agent {working_agent.name} host data: {success}")
+                    logger.debug("Agent %s host data: %s", working_agent.name, success)
                     
                     # Store host_info in agent_metadata for POV interface access
                     if host_info and working_agent:
@@ -592,12 +592,12 @@ async def agent_websocket(
                             }))
                     
             except json.JSONDecodeError:
-                print(f"Invalid JSON from agent {working_agent.name}")
+                logger.warning("Invalid JSON from agent %s", working_agent.name)
                 
     except WebSocketDisconnect:
-        print(f"Agent {working_agent.name if working_agent else agent.name} disconnected")
+        logger.info("Agent %s disconnected", working_agent.name if working_agent else agent.name)
     except Exception as e:
-        print(f"WebSocket error for agent {working_agent.name if working_agent else agent.name}: {e}")
+        logger.error("WebSocket error for agent %s: %s", working_agent.name if working_agent else agent.name, e)
     finally:
         # Cleanup - use working_agent.id if available
         cleanup_agent_id = str(working_agent.id) if working_agent else str(agent_id)

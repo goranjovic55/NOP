@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 // Use relative path so Nginx proxy handles it
 const API_URL = '/api/v1';
@@ -41,7 +42,7 @@ export const assetService = {
       });
       return response.data.assets || [];
     } catch (error) {
-      console.error('Asset fetch error:', error);
+      logger.error('Asset fetch error:', error);
       throw error;
     }
   },

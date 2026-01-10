@@ -90,3 +90,23 @@ class AssetStats(BaseModel):
     by_type: Dict[str, int]
     by_vendor: Dict[str, int]
     recently_discovered: int
+
+
+class OnlineAssetResponse(BaseModel):
+    """Simple asset response for dropdowns"""
+    ip_address: str
+    hostname: str
+    status: str
+
+
+class AssetClassificationCategory(BaseModel):
+    """Classification category"""
+    category: str
+    count: int
+    percentage: float
+
+
+class AssetClassificationResponse(BaseModel):
+    """Asset classification response"""
+    total: int
+    categories: List[AssetClassificationCategory]

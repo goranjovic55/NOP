@@ -9,6 +9,7 @@ import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
 import ConnectionContextMenu from '../components/ConnectionContextMenu';
+import { logger } from '../utils/logger';
 
 interface GraphNode {
   id: string;
@@ -105,7 +106,7 @@ const calculateLinkOpacity = (
   const secondsAgo = serverCurrentTime - lastSeenTime;
   
   // Debug: log for troubleshooting (remove after fix confirmed)
-  // console.log('Link opacity calc:', { lastSeen, lastSeenTime, serverCurrentTime, secondsAgo, packetCount });
+  // logger.debug('Link opacity calc:', { lastSeen, lastSeenTime, serverCurrentTime, secondsAgo, packetCount });
   
   // Thresholds based on refresh rate for 3 clear levels
   const refreshSec = refreshRateMs / 1000;
@@ -258,7 +259,7 @@ const Topology: React.FC = () => {
         setIsFullscreen(false);
       }
     } catch (err) {
-      console.error('Fullscreen error:', err);
+      logger.error('Fullscreen error:', err);
     }
   };
 
@@ -476,7 +477,7 @@ const Topology: React.FC = () => {
           };
           setCaptureStatus(`${burstResult.connection_count}c`);
         } catch (burstError) {
-          console.warn('Burst capture failed, using stats:', burstError);
+          logger.warn('Burst capture failed, using stats:', burstError);
           trafficStats = await dashboardService.getTrafficStats(token, activeAgent?.id);
           setCaptureStatus('');
         }
@@ -715,7 +716,7 @@ const Topology: React.FC = () => {
         links: links
       });
     } catch (err) {
-      console.error("Failed to fetch topology data", err);
+      logger.error("Failed to fetch topology data", err);
     } finally {
       setLoading(false);
     }
