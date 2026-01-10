@@ -15,6 +15,12 @@ import uuid
 import traceback
 
 from .workflow_compiler import CompiledDAG, CompiledNode, NodeType
+from .control_flow import (
+    ControlFlowExecutor,
+    ExpressionEvaluator,
+    ExecutionContext as ControlFlowContext,
+    LoopContext,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -60,9 +66,12 @@ class ExecutionContext:
     workflow_id: str
     variables: Dict[str, Any] = field(default_factory=dict)
     node_results: Dict[str, NodeResult] = field(default_factory=dict)
+    node_outputs: Dict[str, Any] = field(default_factory=dict)  # For expression evaluation
     current_node_id: Optional[str] = None
     previous_output: Any = None
-    loop_context: Optional[Dict[str, Any]] = None
+    loop_stack: List[LoopContext] = field(default_factory=list)
+    credentials: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    environment: Dict[str, str] = field(default_factory=dict)
     
     def get_var(self, name: str, default: Any = None) -> Any:
         return self.variables.get(name, default)
@@ -73,6 +82,21 @@ class ExecutionContext:
     def get_node_output(self, node_id: str) -> Any:
         result = self.node_results.get(node_id)
         return result.output if result else None
+    
+    @property
+    def current_loop(self) -> Optional[LoopContext]:
+        return self.loop_stack[-1] if self.loop_stack else None
+    
+    def push_loop(self, loop: LoopContext) -> None:
+        self.loop_stack.append(loop)
+    
+    def pop_loop(self) -> Optional[LoopContext]:
+        return self.loop_stack.pop() if self.loop_stack else None
+    
+    def get_previous_output(self, node_id: Optional[str] = None) -> Any:
+        if node_id:
+            return self.node_outputs.get(node_id)
+        return self.previous_output
 
 
 @dataclass
@@ -321,6 +345,24 @@ class WorkflowExecutor:
         started_at = datetime.utcnow()
         
         try:
+            # Create expression evaluator for this context
+            cf_context = ControlFlowContext(
+                variables=context.variables,
+                node_outputs=context.node_outputs,
+                loop_stack=context.loop_stack,
+                credentials=context.credentials,
+                environment=context.environment,
+            )
+            evaluator = ExpressionEvaluator(cf_context)
+            
+            # Evaluate parameters with expressions
+            evaluated_params = {}
+            for key, value in node.parameters.items():
+                if isinstance(value, str) and '{{' in value:
+                    evaluated_params[key] = evaluator.evaluate(value)
+                else:
+                    evaluated_params[key] = value
+            
             # Handle control flow nodes specially
             if node.type == NodeType.START:
                 result = NodeResult(
@@ -339,7 +381,7 @@ class WorkflowExecutor:
                     output={"message": "Workflow completed"},
                 )
             elif node.type == NodeType.DELAY:
-                delay_ms = node.parameters.get("delay", 1000)
+                delay_ms = evaluated_params.get("delay", 1000)
                 await asyncio.sleep(delay_ms / 1000.0)
                 result = NodeResult(
                     node_id=node.id,
@@ -348,10 +390,58 @@ class WorkflowExecutor:
                     completed_at=datetime.utcnow(),
                     output={"delayed": delay_ms},
                 )
+            elif node.type == NodeType.CONDITION:
+                # Evaluate condition expression
+                expression = evaluated_params.get("expression", "true")
+                condition_result = evaluator.evaluate_condition(expression)
+                output_handle = "true" if condition_result else "false"
+                result = NodeResult(
+                    node_id=node.id,
+                    status=ExecutionStatus.SUCCESS,
+                    started_at=started_at,
+                    completed_at=datetime.utcnow(),
+                    output={
+                        "expression": expression,
+                        "result": condition_result,
+                        "route": output_handle,
+                    },
+                )
+            elif node.type == NodeType.LOOP:
+                # Handle loop - returns iteration info
+                mode = evaluated_params.get("mode", "count")
+                if mode == "count":
+                    count = int(evaluated_params.get("count", 5))
+                    items = list(range(count))
+                else:
+                    array_expr = evaluated_params.get("array", "[]")
+                    items = evaluator.evaluate(array_expr)
+                    if not isinstance(items, list):
+                        items = [items] if items else []
+                
+                result = NodeResult(
+                    node_id=node.id,
+                    status=ExecutionStatus.SUCCESS,
+                    started_at=started_at,
+                    completed_at=datetime.utcnow(),
+                    output={
+                        "mode": mode,
+                        "iterations": len(items),
+                        "items": items,
+                        "route": "iteration" if items else "complete",
+                    },
+                )
+            elif node.type == NodeType.PARALLEL:
+                # Parallel block just signals parallel execution
+                result = NodeResult(
+                    node_id=node.id,
+                    status=ExecutionStatus.SUCCESS,
+                    started_at=started_at,
+                    completed_at=datetime.utcnow(),
+                    output={"parallel": True, "branches": 3},
+                )
             elif node.type == NodeType.VARIABLE_SET:
-                var_name = node.parameters.get("name", "")
-                var_value = node.parameters.get("value", "")
-                # TODO: Evaluate expressions in var_value
+                var_name = evaluated_params.get("name", "")
+                var_value = evaluated_params.get("value", "")
                 context.set_var(var_name, var_value)
                 result = NodeResult(
                     node_id=node.id,
@@ -361,7 +451,7 @@ class WorkflowExecutor:
                     output={"variable": var_name, "value": var_value},
                 )
             elif node.type == NodeType.VARIABLE_GET:
-                var_name = node.parameters.get("name", "")
+                var_name = evaluated_params.get("name", "")
                 var_value = context.get_var(var_name)
                 result = NodeResult(
                     node_id=node.id,
@@ -371,8 +461,19 @@ class WorkflowExecutor:
                     output={"variable": var_name, "value": var_value},
                 )
             else:
-                # Execute block via block executor
-                result = await self.block_executor(node, context)
+                # Execute block via block executor with evaluated params
+                node_with_evaluated = CompiledNode(
+                    id=node.id,
+                    type=node.type,
+                    category=node.category,
+                    label=node.label,
+                    parameters=evaluated_params,
+                    level=node.level,
+                    dependencies=node.dependencies,
+                    dependents=node.dependents,
+                    output_handles=node.output_handles,
+                )
+                result = await self.block_executor(node_with_evaluated, context)
                 result.started_at = started_at
                 result.completed_at = datetime.utcnow()
             
@@ -396,6 +497,7 @@ class WorkflowExecutor:
         # Update state
         state.node_states[node.id] = result.status
         context.node_results[node.id] = result
+        context.node_outputs[node.id] = result.output  # Store for expression evaluation
         context.previous_output = result.output
         
         await self._emit_event(on_event, "node_completed", {
