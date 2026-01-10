@@ -1717,6 +1717,81 @@ def run_analyze(sessions: int = 100000) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def analyze_session_agents(session_files: List[str]) -> Dict[str, Any]:
+    """Analyze session files to determine which agents were used/should be used."""
+    agents_used = {}
+    
+    # File pattern to agent mapping
+    file_agent_mapping = {
+        # Frontend patterns
+        '.tsx': 'code',
+        '.jsx': 'code', 
+        '.ts': 'code',
+        'frontend/': 'code',
+        'components/': 'code',
+        'pages/': 'code',
+        'store/': 'code',
+        'hooks/': 'code',
+        # Backend patterns
+        '.py': 'code',
+        'backend/': 'code',
+        'api/': 'code',
+        'routes/': 'code',
+        'services/': 'code',
+        'models/': 'code',
+        # DevOps patterns
+        'Dockerfile': 'devops',
+        'docker-compose': 'devops',
+        '.yml': 'devops',
+        'deploy': 'devops',
+        '.github/workflows/': 'devops',
+        # Documentation patterns
+        '.md': 'documentation',
+        'docs/': 'documentation',
+        'README': 'documentation',
+        # Testing patterns
+        'test_': 'debugger',
+        '_test.': 'debugger',
+        '.test.': 'debugger',
+        'tests/': 'debugger',
+        # Architecture patterns
+        '.project/': 'architect',
+        'blueprint': 'architect',
+        'design/': 'architect',
+        # AKIS patterns
+        '.github/skills/': 'documentation',
+        '.github/instructions/': 'documentation',
+        '.github/agents/': 'documentation',
+        '.github/scripts/': 'code',
+        'project_knowledge': 'documentation',
+    }
+    
+    for file_path in session_files:
+        file_lower = file_path.lower()
+        for pattern, agent in file_agent_mapping.items():
+            if pattern in file_lower:
+                if agent not in agents_used:
+                    agents_used[agent] = {'files': [], 'triggers': []}
+                if file_path not in agents_used[agent]['files']:
+                    agents_used[agent]['files'].append(file_path)
+                if pattern not in agents_used[agent]['triggers']:
+                    agents_used[agent]['triggers'].append(pattern)
+    
+    # Determine primary agents (most files)
+    sorted_agents = sorted(
+        agents_used.items(), 
+        key=lambda x: len(x[1]['files']), 
+        reverse=True
+    )
+    
+    return {
+        'agents_used': agents_used,
+        'sorted_agents': sorted_agents,
+        'primary_agent': sorted_agents[0][0] if sorted_agents else None,
+        'total_agents': len(agents_used),
+    }
+
+
 def run_report() -> Dict[str, Any]:
     """Report agent status without modifying any files (safe default)."""
     print("=" * 60)
@@ -1745,7 +1820,44 @@ def run_report() -> Dict[str, Any]:
     for agent in existing_agents[:5]:
         print(f"  • {agent.stem}")
     
-    # Determine what would need updating
+    # =========================================================================
+    # Session Agent Analysis - WHAT AGENTS SHOULD BE USED THIS SESSION
+    # =========================================================================
+    session_analysis = analyze_session_agents(session_files)
+    
+    if session_analysis['total_agents'] > 0:
+        print(f"\n" + "=" * 60)
+        print("🤖 AGENTS FOR THIS SESSION")
+        print("=" * 60)
+        print(f"\nBased on {len(session_files)} files modified, suggest these agents:")
+        print()
+        
+        for agent, data in session_analysis['sorted_agents']:
+            file_count = len(data['files'])
+            triggers = ', '.join(data['triggers'][:3])
+            agent_config = AGENT_TYPES.get(agent, {})
+            description = agent_config.get('description', 'Specialist agent')
+            
+            print(f"  🔹 {agent.upper()}")
+            print(f"     Description: {description}")
+            print(f"     Files matched: {file_count}")
+            print(f"     Patterns: {triggers}")
+            print(f"     Example: {data['files'][0] if data['files'] else 'N/A'}")
+            print()
+        
+        # Delegation suggestion
+        if session_analysis['total_agents'] >= 2:
+            print(f"💡 DELEGATION SUGGESTION:")
+            print(f"   This session touches {session_analysis['total_agents']} domains.")
+            print(f"   Consider delegating via runsubagent:")
+            for agent, data in session_analysis['sorted_agents'][:3]:
+                print(f'   runsubagent(agent="{agent}", task="...")')
+    else:
+        print(f"\n⚠️  No agent patterns detected in session files")
+    
+    # =========================================================================
+    # Legacy: Pattern-based updates (for comparison)
+    # =========================================================================
     updates_needed = []
     session_text = ' '.join(session_files).lower()
     
@@ -1766,32 +1878,14 @@ def run_report() -> Dict[str, Any]:
         if not agent_file.exists():
             missing_agents.append(agent_type)
     
-    # Output implementation-ready suggestions
+    # Output implementation-ready suggestions for MISSING agents only
     if missing_agents:
-        print(f"\n📋 SUGGESTED NEW AGENTS (create files):")
+        print(f"\n📋 MISSING AGENTS (create files):")
         print("-" * 60)
         for agent_type in missing_agents:
             config = AGENT_TYPES[agent_type]
-            print(f"CREATE: .github/agents/{agent_type}.agent.md")
-            print(f"```markdown")
-            print(f"---")
-            print(f"name: {agent_type}")
-            print(f"description: {config.get('description', 'Specialist agent')}")
-            print(f"---")
-            print(f"")
-            print(f"# {agent_type.replace('-', ' ').title()} Agent")
-            print(f"")
-            print(f"## Triggers")
-            print(f"- {', '.join(config.get('triggers', []))}")
-            print(f"```")
-            print()
+            print(f"  • {agent_type}: {config.get('description', 'Specialist agent')}")
         print("-" * 60)
-        print(f"\n💡 Agent: Create the agent files above")
-    
-    if updates_needed:
-        print(f"\n📋 Agents used this session:")
-        for u in updates_needed[:5]:
-            print(f"  • {u['agent']} (triggered by '{u['trigger']}')")
     
     return {
         'mode': 'report',
@@ -1799,6 +1893,7 @@ def run_report() -> Dict[str, Any]:
         'existing_agents': len(existing_agents),
         'updates_needed': len(updates_needed),
         'missing_agents': missing_agents,
+        'session_agents': session_analysis,
     }
 
 
