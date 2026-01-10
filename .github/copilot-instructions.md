@@ -63,6 +63,19 @@
 | Medium (3-5 files) | Consider delegation |
 | Complex (6+ files) | **Delegate** to specialist |
 
+| Agent | Triggers |
+|-------|----------|
+| architect | design, blueprint, plan |
+| research | research, compare, evaluate |
+| code | implement, create, write |
+| debugger | error, bug, traceback |
+| reviewer | review, audit, check |
+| documentation | doc, readme, explain |
+| devops | deploy, docker, ci |
+
+**Parallel OK:** code(A)+code(B), code+docs, reviewer+docs
+**Sequential:** architect→code→debugger→reviewer
+
 **Mark in TODO:** `<DELEGATE> → agent-name ⧖`
 
 ## Efficiency

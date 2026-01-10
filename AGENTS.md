@@ -29,8 +29,22 @@
 - `.github/skills/INDEX.md` - Skills
 - `.github/instructions/` - Guidance
 
+## Agents (7 Total)
+
+| Agent | Role | Triggers |
+|-------|------|----------|
+| AKIS | Orchestrator | Protocol enforcement |
+| architect | Planner | design, blueprint, plan |
+| research | Investigator | research, compare, evaluate |
+| code | Creator | implement, create, write |
+| debugger | Detective | error, bug, traceback |
+| reviewer | Auditor | review, audit, check |
+| documentation | Writer | doc, readme, explain |
+| devops | Infrastructure | deploy, docker, ci |
+
 ## ⚠️ Rules
 
 - Load skills before editing
 - Create workflow log at END
 - Use TODO for multi-step tasks
+- Delegate complex tasks (6+ files)
