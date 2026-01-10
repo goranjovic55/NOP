@@ -11,6 +11,7 @@ description: Load when editing AKIS framework files including .github/copilot-in
 - **Missing enforcement:** Add HARD GATES for discipline
 - **Agent verbosity:** Remove ASCII art, use template references
 - **Duplicate content:** Skills table in agent → reference INDEX.md
+- **Script output ignored:** Agent MUST interpret script suggestions and implement approved ones
 
 ## Token Targets (Balanced)
 
@@ -20,6 +21,16 @@ description: Load when editing AKIS framework files including .github/copilot-in
 | Instructions | <150 | 200 | Complementary |
 | Agents | <300 | 500 | Essential only |
 | INDEX.md | <100 | 150 | Quick reference |
+
+## END Phase Scripts
+
+| Script | Output Type | Agent Action |
+|--------|-------------|--------------|
+| `knowledge.py` | Entity suggestions | Append JSONL to project_knowledge.json |
+| `skills.py` | Skill gaps | Create .github/skills/{name}/SKILL.md |
+| `instructions.py` | Instruction gaps | Create .github/instructions/{name}.instructions.md |
+| `docs.py` | Doc updates | Update docs/ files |
+| `agents.py` | Agent updates | Update .github/agents/*.agent.md |
 
 ## Agent Optimization Pattern
 

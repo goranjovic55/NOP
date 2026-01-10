@@ -41,6 +41,20 @@ Task and workflow tracking for consistent, visible progress.
 4. **Only ONE ◆** at a time (no parallel active tasks)
 5. **Close all ⊘** before session end (no orphans)
 
+## END Phase Scripts (⛔ MANDATORY)
+
+Run these scripts at session end and **interpret output as guidance**:
+
+| Script | Purpose | Agent Action |
+|--------|---------|--------------|
+| `python .github/scripts/knowledge.py` | Suggests entity updates | Append to project_knowledge.json |
+| `python .github/scripts/skills.py` | Suggests new skills | Create .github/skills/{name}/SKILL.md |
+| `python .github/scripts/instructions.py` | Suggests instruction gaps | Create .github/instructions/{name}.instructions.md |
+| `python .github/scripts/docs.py` | Suggests doc updates | Update docs/ files |
+| `python .github/scripts/agents.py` | Suggests agent updates | Update .github/agents/*.agent.md |
+
+**Flow:** Run scripts → Show output → Ask user → Implement approved suggestions
+
 ## Workflow Log
 
 At session end, create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`:
@@ -68,3 +82,4 @@ Brief description of what was accomplished.
 - **Multiple ◆** indicates broken discipline - stop and consolidate
 - **No TODO** on complex tasks leads to lost context
 - **Skipping workflow log** loses session history
+- **Skipping END scripts** misses AKIS framework improvements

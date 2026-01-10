@@ -35,14 +35,16 @@ description: Protocol enforcement agent for strict workflow compliance. Orchestr
 ## END (Scripts Suggest → User Approves → Agent Implements)
 
 1. Close orphan ⊘
-2. Run scripts (suggest mode):
-   - `python knowledge.py`
-   - `python skills.py`
-   - `python instructions.py`
-   - `python docs.py`
-   - `python agents.py`
+2. Run scripts from `.github/scripts/` (interpret output as guidance):
+   ```bash
+   python .github/scripts/knowledge.py   # → Append entities to project_knowledge.json
+   python .github/scripts/skills.py      # → Create .github/skills/{name}/SKILL.md
+   python .github/scripts/instructions.py # → Create .github/instructions/{name}.instructions.md
+   python .github/scripts/docs.py         # → Update docs/ files
+   python .github/scripts/agents.py       # → Update .github/agents/*.agent.md
+   ```
 3. Show suggestions → Ask user: "Implement these? [y/n/select]"
-4. IF approved → Implement changes
+4. IF approved → Implement changes based on script output
 5. Create log/workflow/YYYY-MM-DD_HHMMSS_task.md
 6. Commit
 
