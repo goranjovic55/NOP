@@ -1,12 +1,21 @@
 /**
  * ConfigPanel - Cyberpunk-styled right sidebar for node configuration
+ * Phase 3: Added credential selector support
  */
 
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { getBlockDefinition, CATEGORY_COLORS } from '../../types/blocks';
+import { getBlockDefinition, CATEGORY_COLORS, validateBlockParameters } from '../../types/blocks';
 import { ParameterDefinition } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
+
+interface VaultCredential {
+  id: string;
+  name: string;
+  host: string;
+  protocol: string;
+  username: string;
+}
 
 interface ConfigPanelProps {
   nodeId: string | null;
@@ -17,16 +26,31 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
   const { nodes, updateNode } = useWorkflowStore();
   const [localParams, setLocalParams] = useState<Record<string, any>>({});
   const [localLabel, setLocalLabel] = useState('');
+  const [credentials, setCredentials] = useState<VaultCredential[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const node = nodes.find(n => n.id === nodeId);
   const definition = node ? getBlockDefinition(node.data.type) : null;
   const categoryColor = node ? CATEGORY_COLORS[node.data.category] : '#8b5cf6';
+
+  // Load credentials from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('vaultCredentials');
+      if (stored) {
+        setCredentials(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load credentials', e);
+    }
+  }, []);
 
   // Sync local state when node changes
   useEffect(() => {
     if (node) {
       setLocalParams(node.data.parameters || {});
       setLocalLabel(node.data.label);
+      setValidationErrors([]);
     }
   }, [node]);
 
@@ -41,9 +65,22 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
   const handleParamChange = (name: string, value: any) => {
     const newParams = { ...localParams, [name]: value };
     setLocalParams(newParams);
+    
+    // Clear validation errors when user makes changes
+    if (validationErrors.length > 0) {
+      const result = validateBlockParameters(node.data.type, newParams);
+      setValidationErrors(result.errors);
+    }
   };
 
   const handleSave = () => {
+    // Validate before saving
+    const result = validateBlockParameters(node.data.type, localParams);
+    if (!result.valid) {
+      setValidationErrors(result.errors);
+      return;
+    }
+    
     updateNode(nodeId, {
       data: {
         ...node.data,
@@ -51,10 +88,23 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         parameters: localParams,
       },
     });
+    setValidationErrors([]);
   };
 
   const handleLabelChange = (value: string) => {
     setLocalLabel(value);
+  };
+
+  // Apply credential to parameters
+  const applyCredential = (credentialId: string) => {
+    const cred = credentials.find(c => c.id === credentialId);
+    if (cred) {
+      const newParams = { ...localParams };
+      if (cred.host) newParams.host = cred.host;
+      if (cred.username) newParams.username = cred.username;
+      newParams.credential = credentialId;
+      setLocalParams(newParams);
+    }
   };
 
   return (
@@ -111,8 +161,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                 definition={param}
                 value={localParams[param.name]}
                 onChange={(value) => handleParamChange(param.name, value)}
+                credentials={credentials}
+                onApplyCredential={applyCredential}
               />
             ))}
+          </div>
+        )}
+
+        {/* Validation Errors */}
+        {validationErrors.length > 0 && (
+          <div className="p-3 bg-cyber-red/10 border border-cyber-red rounded">
+            <h4 className="text-sm font-mono text-cyber-red mb-2 flex items-center gap-2">
+              <span>⚠</span> VALIDATION ERRORS
+            </h4>
+            <ul className="text-xs text-cyber-red space-y-1">
+              {validationErrors.map((error, idx) => (
+                <li key={idx}>• {error}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -167,12 +233,57 @@ interface ParameterFieldProps {
   definition: ParameterDefinition;
   value: any;
   onChange: (value: any) => void;
+  credentials: VaultCredential[];
+  onApplyCredential: (credentialId: string) => void;
 }
 
-const ParameterField: React.FC<ParameterFieldProps> = ({ definition, value, onChange }) => {
-  const { label, type, required, placeholder, options, description } = definition;
+const ParameterField: React.FC<ParameterFieldProps> = ({ 
+  definition, 
+  value, 
+  onChange, 
+  credentials,
+  onApplyCredential 
+}) => {
+  const { name, label, type, required, placeholder, options, description } = definition;
 
   const inputClasses = "cyber-input w-full";
+
+  // Handle credential type
+  if (type === 'credential') {
+    return (
+      <div>
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
+          {label}
+          {required && <span className="text-cyber-red ml-1">*</span>}
+        </label>
+        <select
+          value={value ?? ''}
+          onChange={(e) => {
+            onChange(e.target.value);
+            if (e.target.value) {
+              onApplyCredential(e.target.value);
+            }
+          }}
+          className="cyber-select w-full"
+        >
+          <option value="">[ SELECT CREDENTIAL ]</option>
+          {credentials.map(cred => (
+            <option key={cred.id} value={cred.id}>
+              {cred.name} ({cred.host})
+            </option>
+          ))}
+        </select>
+        {description && (
+          <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
+        )}
+        {credentials.length === 0 && (
+          <p className="text-xs text-cyber-blue mt-1 font-mono">
+            ◇ No saved credentials. Add in Settings → Credentials
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>

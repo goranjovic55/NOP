@@ -1,6 +1,7 @@
 /**
  * Block Definitions Catalog
  * All available blocks for the workflow builder
+ * Phase 3: Complete block library with all block types
  */
 
 import { BlockDefinition, BlockCategory } from './workflow';
@@ -25,19 +26,23 @@ export const CATEGORY_ICONS: Record<BlockCategory, string> = {
   control: '⚙',
 };
 
-// Block definitions with cyberpunk icons
+// Block definitions with cyberpunk icons - Complete Phase 3 Library
 export const BLOCK_DEFINITIONS: BlockDefinition[] = [
-  // === Control Blocks ===
+  // ============================================
+  // === Control Blocks (7 blocks) ===
+  // ============================================
   {
     type: 'control.start',
     label: 'Start',
     category: 'control',
     icon: '▶',
     color: '#00ff88',
-    description: 'Workflow entry point',
+    description: 'Workflow entry point - execution begins here',
     inputs: [],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
-    parameters: [],
+    parameters: [
+      { name: 'name', label: 'Workflow Name', type: 'string', placeholder: 'My Workflow' },
+    ],
   },
   {
     type: 'control.end',
@@ -45,14 +50,15 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'control',
     icon: '■',
     color: '#ff0040',
-    description: 'Workflow exit point',
+    description: 'Workflow exit point - execution ends here',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [],
     parameters: [
-      { name: 'status', label: 'Status', type: 'select', options: [
+      { name: 'status', label: 'Exit Status', type: 'select', options: [
         { label: 'Success', value: 'success' },
         { label: 'Failure', value: 'failure' },
       ]},
+      { name: 'message', label: 'Exit Message', type: 'string', placeholder: 'Workflow completed' },
     ],
   },
   {
@@ -67,6 +73,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     parameters: [
       { name: 'seconds', label: 'Seconds', type: 'number', required: true, default: 5 },
     ],
+    api: { method: 'POST', endpoint: '/api/v1/workflows/block/delay' },
   },
   {
     type: 'control.condition',
@@ -74,7 +81,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'control',
     icon: '◇',
     color: '#6b7280',
-    description: 'Branch based on condition',
+    description: 'Branch execution based on condition',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
       { id: 'true', type: 'output', label: 'True' },
@@ -82,6 +89,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     ],
     parameters: [
       { name: 'expression', label: 'Expression', type: 'string', required: true, placeholder: '{{ $prev.success }} === true' },
+      { name: 'description', label: 'Description', type: 'string', placeholder: 'Check if previous step succeeded' },
     ],
   },
   {
@@ -107,6 +115,24 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     ],
   },
   {
+    type: 'control.parallel',
+    label: 'Parallel',
+    category: 'control',
+    icon: '⫴',
+    color: '#6b7280',
+    description: 'Execute multiple branches in parallel',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'branch1', type: 'output', label: 'Branch 1' },
+      { id: 'branch2', type: 'output', label: 'Branch 2' },
+      { id: 'branch3', type: 'output', label: 'Branch 3' },
+    ],
+    parameters: [
+      { name: 'waitAll', label: 'Wait for All', type: 'boolean', default: true, description: 'Wait for all branches to complete' },
+      { name: 'maxConcurrent', label: 'Max Concurrent', type: 'number', default: 3 },
+    ],
+  },
+  {
     type: 'control.variable_set',
     label: 'Set Variable',
     category: 'control',
@@ -116,8 +142,15 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
     parameters: [
-      { name: 'name', label: 'Variable Name', type: 'string', required: true },
-      { name: 'value', label: 'Value', type: 'string', required: true },
+      { name: 'name', label: 'Variable Name', type: 'string', required: true, placeholder: 'myVar' },
+      { name: 'value', label: 'Value', type: 'string', required: true, placeholder: '{{ $prev.output }}' },
+      { name: 'type', label: 'Type', type: 'select', options: [
+        { label: 'String', value: 'string' },
+        { label: 'Number', value: 'number' },
+        { label: 'Boolean', value: 'boolean' },
+        { label: 'Array', value: 'array' },
+        { label: 'Object', value: 'object' },
+      ]},
     ],
   },
   {
@@ -126,22 +159,24 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'control',
     icon: '▷',
     color: '#6b7280',
-    description: 'Get a workflow variable',
+    description: 'Get a workflow variable value',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
     parameters: [
-      { name: 'name', label: 'Variable Name', type: 'string', required: true },
+      { name: 'name', label: 'Variable Name', type: 'string', required: true, placeholder: 'myVar' },
     ],
   },
 
-  // === Connection Blocks ===
+  // ============================================
+  // === Connection Blocks (5 blocks) ===
+  // ============================================
   {
     type: 'connection.ssh_test',
     label: 'SSH Test',
     category: 'connection',
     icon: '⬡',
     color: '#00d4ff',
-    description: 'Test SSH connectivity',
+    description: 'Test SSH connectivity to a host',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
       { id: 'success', type: 'output', label: 'Success' },
@@ -150,10 +185,80 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true, placeholder: '192.168.1.1' },
       { name: 'port', label: 'Port', type: 'number', default: 22 },
-      { name: 'username', label: 'Username', type: 'string', required: true },
+      { name: 'username', label: 'Username', type: 'string', required: true, placeholder: 'admin' },
       { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential', description: 'Use saved credential instead' },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 10 },
     ],
     api: { method: 'POST', endpoint: '/api/v1/access/test/ssh' },
+  },
+  {
+    type: 'connection.rdp_test',
+    label: 'RDP Test',
+    category: 'connection',
+    icon: '⬢',
+    color: '#00d4ff',
+    description: 'Test RDP connectivity to Windows host',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'success', type: 'output', label: 'Success' },
+      { id: 'failure', type: 'output', label: 'Failure' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true, placeholder: '192.168.1.1' },
+      { name: 'port', label: 'Port', type: 'number', default: 3389 },
+      { name: 'username', label: 'Username', type: 'string', required: true },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'domain', label: 'Domain', type: 'string', placeholder: 'WORKGROUP' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/test/rdp' },
+  },
+  {
+    type: 'connection.vnc_test',
+    label: 'VNC Test',
+    category: 'connection',
+    icon: '⬣',
+    color: '#00d4ff',
+    description: 'Test VNC connectivity',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'success', type: 'output', label: 'Success' },
+      { id: 'failure', type: 'output', label: 'Failure' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'port', label: 'Port', type: 'number', default: 5900 },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/test/vnc' },
+  },
+  {
+    type: 'connection.ftp_test',
+    label: 'FTP Test',
+    category: 'connection',
+    icon: '⬤',
+    color: '#00d4ff',
+    description: 'Test FTP/SFTP connectivity',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'success', type: 'output', label: 'Success' },
+      { id: 'failure', type: 'output', label: 'Failure' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'port', label: 'Port', type: 'number', default: 21 },
+      { name: 'protocol', label: 'Protocol', type: 'select', options: [
+        { label: 'FTP', value: 'ftp' },
+        { label: 'SFTP', value: 'sftp' },
+        { label: 'FTPS', value: 'ftps' },
+      ]},
+      { name: 'username', label: 'Username', type: 'string' },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/test/ftp' },
   },
   {
     type: 'connection.tcp_test',
@@ -175,7 +280,9 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     api: { method: 'POST', endpoint: '/api/v1/access/test/tcp' },
   },
 
-  // === Command Blocks ===
+  // ============================================
+  // === Command Blocks (5 blocks) ===
+  // ============================================
   {
     type: 'command.ssh_execute',
     label: 'SSH Execute',
@@ -193,12 +300,174 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       { name: 'port', label: 'Port', type: 'number', default: 22 },
       { name: 'username', label: 'Username', type: 'string', required: true },
       { name: 'password', label: 'Password', type: 'password' },
-      { name: 'command', label: 'Command', type: 'textarea', required: true, placeholder: 'ls -la' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'command', label: 'Command', type: 'textarea', required: true, placeholder: 'ls -la /home' },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 30 },
     ],
     api: { method: 'POST', endpoint: '/api/v1/access/execute/ssh' },
   },
+  {
+    type: 'command.system_info',
+    label: 'System Info',
+    category: 'command',
+    icon: '⌘',
+    color: '#00ff88',
+    description: 'Get remote system information',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'username', label: 'Username', type: 'string', required: true },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'infoType', label: 'Info Type', type: 'select', options: [
+        { label: 'All', value: 'all' },
+        { label: 'OS Info', value: 'os' },
+        { label: 'Hardware', value: 'hardware' },
+        { label: 'Network', value: 'network' },
+        { label: 'Processes', value: 'processes' },
+      ]},
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/system-info' },
+  },
+  {
+    type: 'command.ftp_list',
+    label: 'FTP List',
+    category: 'command',
+    icon: '📂',
+    color: '#00ff88',
+    description: 'List directory contents via FTP',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'port', label: 'Port', type: 'number', default: 21 },
+      { name: 'username', label: 'Username', type: 'string' },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'path', label: 'Remote Path', type: 'string', default: '/', placeholder: '/home/user' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/ftp/list' },
+  },
+  {
+    type: 'command.ftp_download',
+    label: 'FTP Download',
+    category: 'command',
+    icon: '⬇',
+    color: '#00ff88',
+    description: 'Download file via FTP',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'port', label: 'Port', type: 'number', default: 21 },
+      { name: 'username', label: 'Username', type: 'string' },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'remotePath', label: 'Remote File', type: 'string', required: true, placeholder: '/home/user/file.txt' },
+      { name: 'localPath', label: 'Local Path', type: 'string', placeholder: '/tmp/downloaded.txt' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/ftp/download' },
+  },
+  {
+    type: 'command.ftp_upload',
+    label: 'FTP Upload',
+    category: 'command',
+    icon: '⬆',
+    color: '#00ff88',
+    description: 'Upload file via FTP',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'port', label: 'Port', type: 'number', default: 21 },
+      { name: 'username', label: 'Username', type: 'string' },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'localPath', label: 'Local File', type: 'string', required: true },
+      { name: 'remotePath', label: 'Remote Path', type: 'string', required: true, placeholder: '/home/user/upload.txt' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/access/ftp/upload' },
+  },
 
-  // === Traffic Blocks ===
+  // ============================================
+  // === Traffic Blocks (7 blocks) ===
+  // ============================================
+  {
+    type: 'traffic.start_capture',
+    label: 'Start Capture',
+    category: 'traffic',
+    icon: '◉',
+    color: '#8b5cf6',
+    description: 'Start traffic capture on interface',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'interface', label: 'Interface', type: 'string', placeholder: 'eth0' },
+      { name: 'filter', label: 'BPF Filter', type: 'string', placeholder: 'port 80 or port 443' },
+      { name: 'maxPackets', label: 'Max Packets', type: 'number', default: 1000 },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/traffic/start-capture' },
+  },
+  {
+    type: 'traffic.stop_capture',
+    label: 'Stop Capture',
+    category: 'traffic',
+    icon: '◌',
+    color: '#8b5cf6',
+    description: 'Stop traffic capture',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'captureId', label: 'Capture ID', type: 'string', placeholder: '{{ $prev.captureId }}' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/traffic/stop-capture' },
+  },
+  {
+    type: 'traffic.burst_capture',
+    label: 'Burst Capture',
+    category: 'traffic',
+    icon: '⊙',
+    color: '#8b5cf6',
+    description: 'Capture traffic for short duration',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'interface', label: 'Interface', type: 'string', placeholder: 'eth0' },
+      { name: 'duration_seconds', label: 'Duration (s)', type: 'number', default: 1, required: true },
+      { name: 'filter', label: 'BPF Filter', type: 'string', placeholder: 'host 192.168.1.1' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/traffic/burst-capture' },
+  },
+  {
+    type: 'traffic.get_stats',
+    label: 'Get Stats',
+    category: 'traffic',
+    icon: '📊',
+    color: '#8b5cf6',
+    description: 'Get traffic statistics',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'interface', label: 'Interface', type: 'string' },
+      { name: 'period', label: 'Period', type: 'select', options: [
+        { label: 'Last Minute', value: '1m' },
+        { label: 'Last 5 Minutes', value: '5m' },
+        { label: 'Last Hour', value: '1h' },
+        { label: 'Last Day', value: '1d' },
+      ]},
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/traffic/stats' },
+  },
   {
     type: 'traffic.ping',
     label: 'Ping',
@@ -213,32 +482,65 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'count', label: 'Count', type: 'number', default: 4 },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 5 },
     ],
     api: { method: 'POST', endpoint: '/api/v1/traffic/ping' },
   },
   {
-    type: 'traffic.burst_capture',
-    label: 'Burst Capture',
+    type: 'traffic.advanced_ping',
+    label: 'Advanced Ping',
     category: 'traffic',
-    icon: '◉',
+    icon: '⦿',
     color: '#8b5cf6',
-    description: 'Capture traffic for short duration',
+    description: 'Ping with advanced options',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'reachable', type: 'output', label: 'Reachable' },
+      { id: 'unreachable', type: 'output', label: 'Unreachable' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'count', label: 'Count', type: 'number', default: 4 },
+      { name: 'size', label: 'Packet Size', type: 'number', default: 64 },
+      { name: 'interval', label: 'Interval (ms)', type: 'number', default: 1000 },
+      { name: 'ttl', label: 'TTL', type: 'number', default: 64 },
+      { name: 'sourceInterface', label: 'Source Interface', type: 'string' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/traffic/advanced-ping' },
+  },
+  {
+    type: 'traffic.storm',
+    label: 'Traffic Storm',
+    category: 'traffic',
+    icon: '⚡',
+    color: '#8b5cf6',
+    description: 'Generate broadcast storm for testing',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
     parameters: [
-      { name: 'duration_seconds', label: 'Duration (s)', type: 'number', default: 1 },
+      { name: 'interface', label: 'Interface', type: 'string', required: true },
+      { name: 'type', label: 'Storm Type', type: 'select', options: [
+        { label: 'Broadcast', value: 'broadcast' },
+        { label: 'Multicast', value: 'multicast' },
+        { label: 'Unicast Flood', value: 'unicast' },
+      ]},
+      { name: 'duration', label: 'Duration (s)', type: 'number', default: 5 },
+      { name: 'rate', label: 'Packets/sec', type: 'number', default: 1000 },
     ],
-    api: { method: 'POST', endpoint: '/api/v1/traffic/burst-capture' },
+    api: { method: 'POST', endpoint: '/api/v1/traffic/storm' },
   },
 
-  // === Scanning Blocks ===
+  // ============================================
+  // === Scanning Blocks (2 blocks) ===
+  // ============================================
   {
     type: 'scanning.version_detect',
     label: 'Version Detection',
     category: 'scanning',
     icon: '◈',
     color: '#f59e0b',
-    description: 'Detect service versions (nmap)',
+    description: 'Detect service versions using nmap',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
       { id: 'out', type: 'output', label: 'Output' },
@@ -247,6 +549,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
       { name: 'ports', label: 'Ports', type: 'string', placeholder: '22,80,443 or leave empty for top 1000' },
+      { name: 'aggressive', label: 'Aggressive Scan', type: 'boolean', default: false },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 300 },
     ],
     api: { method: 'POST', endpoint: '/api/v1/scans/default/version-detection' },
   },
@@ -256,7 +560,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '⬢',
     color: '#f59e0b',
-    description: 'Scan common ports',
+    description: 'Scan for open ports',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
       { id: 'out', type: 'output', label: 'Output' },
@@ -264,18 +568,32 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
+      { name: 'scanType', label: 'Scan Type', type: 'select', options: [
+        { label: 'Quick (Top 100)', value: 'quick' },
+        { label: 'Standard (Top 1000)', value: 'standard' },
+        { label: 'Full (All 65535)', value: 'full' },
+        { label: 'Custom', value: 'custom' },
+      ]},
+      { name: 'ports', label: 'Custom Ports', type: 'string', placeholder: '1-1000 or 22,80,443,8080' },
+      { name: 'technique', label: 'Technique', type: 'select', options: [
+        { label: 'TCP SYN', value: 'syn' },
+        { label: 'TCP Connect', value: 'connect' },
+        { label: 'UDP', value: 'udp' },
+      ]},
     ],
-    api: { method: 'GET', endpoint: '/api/v1/access/scan/services/{host}' },
+    api: { method: 'POST', endpoint: '/api/v1/scans/default/port-scan' },
   },
 
-  // === Agent Blocks ===
+  // ============================================
+  // === Agent Blocks (3 blocks) ===
+  // ============================================
   {
     type: 'agent.generate',
     label: 'Generate Agent',
     category: 'agent',
     icon: '◆',
     color: '#ff0040',
-    description: 'Generate agent binary',
+    description: 'Generate agent binary for target platform',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
       { id: 'out', type: 'output', label: 'Output' },
@@ -283,14 +601,41 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     ],
     parameters: [
       { name: 'agent_id', label: 'Agent Template ID', type: 'string', required: true },
-      { name: 'platform', label: 'Platform', type: 'select', options: [
+      { name: 'platform', label: 'Platform', type: 'select', required: true, options: [
         { label: 'Linux AMD64', value: 'linux-amd64' },
+        { label: 'Linux ARM64', value: 'linux-arm64' },
         { label: 'Windows AMD64', value: 'windows-amd64' },
+        { label: 'Windows x86', value: 'windows-386' },
         { label: 'macOS AMD64', value: 'darwin-amd64' },
         { label: 'macOS ARM64', value: 'darwin-arm64' },
       ]},
+      { name: 'obfuscate', label: 'Obfuscate', type: 'boolean', default: true },
+      { name: 'compress', label: 'Compress', type: 'boolean', default: true },
     ],
     api: { method: 'POST', endpoint: '/api/v1/agents/{agent_id}/generate' },
+  },
+  {
+    type: 'agent.deploy',
+    label: 'Deploy Agent',
+    category: 'agent',
+    icon: '◇',
+    color: '#ff0040',
+    description: 'Deploy agent to target host',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Target Host', type: 'string', required: true },
+      { name: 'username', label: 'Username', type: 'string', required: true },
+      { name: 'password', label: 'Password', type: 'password' },
+      { name: 'credential', label: 'Saved Credential', type: 'credential' },
+      { name: 'agentBinary', label: 'Agent Binary', type: 'string', placeholder: '{{ $prev.agentPath }}' },
+      { name: 'remotePath', label: 'Remote Path', type: 'string', default: '/tmp/agent' },
+      { name: 'autoStart', label: 'Auto Start', type: 'boolean', default: true },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/agents/deploy' },
   },
   {
     type: 'agent.terminate',
@@ -303,6 +648,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
     parameters: [
       { name: 'agent_id', label: 'Agent ID', type: 'string', required: true },
+      { name: 'force', label: 'Force Kill', type: 'boolean', default: false },
+      { name: 'cleanup', label: 'Cleanup Files', type: 'boolean', default: true },
     ],
     api: { method: 'POST', endpoint: '/api/v1/agents/{agent_id}/terminate' },
   },
@@ -321,4 +668,34 @@ export function getBlocksByCategory(category: BlockCategory): BlockDefinition[] 
 // Get all categories
 export function getAllCategories(): BlockCategory[] {
   return ['control', 'connection', 'command', 'traffic', 'scanning', 'agent'];
+}
+
+// Get block count by category
+export function getBlockCounts(): Record<BlockCategory, number> {
+  const counts = {} as Record<BlockCategory, number>;
+  for (const category of getAllCategories()) {
+    counts[category] = getBlocksByCategory(category).length;
+  }
+  return counts;
+}
+
+// Validate block parameters
+export function validateBlockParameters(
+  type: string, 
+  params: Record<string, any>
+): { valid: boolean; errors: string[] } {
+  const definition = getBlockDefinition(type);
+  if (!definition) {
+    return { valid: false, errors: [`Unknown block type: ${type}`] };
+  }
+
+  const errors: string[] = [];
+  
+  for (const param of definition.parameters) {
+    if (param.required && (params[param.name] === undefined || params[param.name] === '')) {
+      errors.push(`${param.label} is required`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }

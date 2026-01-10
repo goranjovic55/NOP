@@ -1,10 +1,11 @@
-"""Workflow CRUD and execution endpoints"""
+"""Workflow CRUD and execution endpoints - Phase 3: Block Library"""
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from uuid import UUID
+from pydantic import BaseModel
 import json
 import asyncio
 from datetime import datetime
@@ -20,6 +21,488 @@ from app.schemas.workflow import (
 )
 
 router = APIRouter()
+
+
+# === Block Execution Models ===
+
+class BlockExecuteRequest(BaseModel):
+    """Request to execute a single block"""
+    block_type: str
+    parameters: Dict[str, Any]
+    context: Optional[Dict[str, Any]] = None  # Previous block outputs, variables, etc.
+
+
+class BlockExecuteResponse(BaseModel):
+    """Response from block execution"""
+    success: bool
+    output: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    duration_ms: Optional[int] = None
+    route: Optional[str] = None  # Which output handle to follow (e.g., "success", "failure")
+
+
+class DelayRequest(BaseModel):
+    """Request for delay block"""
+    seconds: int = 5
+
+
+# === Block Execution Service ===
+
+async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[str, Any] = None) -> BlockExecuteResponse:
+    """
+    Execute a single workflow block.
+    Phase 3: Connects blocks to actual API endpoints or simulates execution.
+    """
+    start_time = datetime.utcnow()
+    context = context or {}
+    
+    try:
+        # === Control Blocks ===
+        if block_type == "control.start":
+            return BlockExecuteResponse(
+                success=True,
+                output={"started": True, "timestamp": datetime.utcnow().isoformat()},
+                route="out"
+            )
+        
+        elif block_type == "control.end":
+            status = params.get("status", "success")
+            message = params.get("message", "Workflow completed")
+            return BlockExecuteResponse(
+                success=status == "success",
+                output={"status": status, "message": message},
+                route=None
+            )
+        
+        elif block_type == "control.delay":
+            seconds = params.get("seconds", 5)
+            await asyncio.sleep(seconds)
+            return BlockExecuteResponse(
+                success=True,
+                output={"delayed": seconds, "message": f"Waited {seconds} seconds"},
+                route="out",
+                duration_ms=seconds * 1000
+            )
+        
+        elif block_type == "control.condition":
+            expression = params.get("expression", "true")
+            # Simple expression evaluation (in production, use a safe evaluator)
+            # For now, check if expression looks truthy
+            result = evaluate_expression(expression, context)
+            return BlockExecuteResponse(
+                success=True,
+                output={"expression": expression, "result": result},
+                route="true" if result else "false"
+            )
+        
+        elif block_type == "control.loop":
+            mode = params.get("mode", "count")
+            if mode == "count":
+                count = params.get("count", 5)
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"mode": "count", "iterations": count},
+                    route="iteration"
+                )
+            else:
+                array_expr = params.get("array", "[]")
+                items = evaluate_expression(array_expr, context) or []
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"mode": "array", "items": items, "count": len(items) if isinstance(items, list) else 0},
+                    route="iteration"
+                )
+        
+        elif block_type == "control.parallel":
+            return BlockExecuteResponse(
+                success=True,
+                output={"parallel": True, "branches": 3},
+                route="branch1"  # In real execution, all branches execute
+            )
+        
+        elif block_type == "control.variable_set":
+            name = params.get("name", "var")
+            value = params.get("value", "")
+            return BlockExecuteResponse(
+                success=True,
+                output={"variable": name, "value": value, "action": "set"},
+                route="out"
+            )
+        
+        elif block_type == "control.variable_get":
+            name = params.get("name", "var")
+            value = context.get("variables", {}).get(name)
+            return BlockExecuteResponse(
+                success=True,
+                output={"variable": name, "value": value, "action": "get"},
+                route="out"
+            )
+        
+        # === Connection Blocks ===
+        elif block_type == "connection.ssh_test":
+            host = params.get("host", "")
+            port = params.get("port", 22)
+            # Simulate SSH test (in production, actually test connection)
+            await asyncio.sleep(0.5)
+            success = bool(host)  # Simple check
+            return BlockExecuteResponse(
+                success=success,
+                output={"host": host, "port": port, "connected": success},
+                route="success" if success else "failure"
+            )
+        
+        elif block_type == "connection.rdp_test":
+            host = params.get("host", "")
+            port = params.get("port", 3389)
+            await asyncio.sleep(0.5)
+            success = bool(host)
+            return BlockExecuteResponse(
+                success=success,
+                output={"host": host, "port": port, "protocol": "rdp", "connected": success},
+                route="success" if success else "failure"
+            )
+        
+        elif block_type == "connection.vnc_test":
+            host = params.get("host", "")
+            port = params.get("port", 5900)
+            await asyncio.sleep(0.5)
+            success = bool(host)
+            return BlockExecuteResponse(
+                success=success,
+                output={"host": host, "port": port, "protocol": "vnc", "connected": success},
+                route="success" if success else "failure"
+            )
+        
+        elif block_type == "connection.ftp_test":
+            host = params.get("host", "")
+            port = params.get("port", 21)
+            protocol = params.get("protocol", "ftp")
+            await asyncio.sleep(0.5)
+            success = bool(host)
+            return BlockExecuteResponse(
+                success=success,
+                output={"host": host, "port": port, "protocol": protocol, "connected": success},
+                route="success" if success else "failure"
+            )
+        
+        elif block_type == "connection.tcp_test":
+            host = params.get("host", "")
+            port = params.get("port", 80)
+            await asyncio.sleep(0.3)
+            success = bool(host and port)
+            return BlockExecuteResponse(
+                success=success,
+                output={"host": host, "port": port, "open": success},
+                route="success" if success else "failure"
+            )
+        
+        # === Command Blocks ===
+        elif block_type == "command.ssh_execute":
+            host = params.get("host", "")
+            command = params.get("command", "")
+            await asyncio.sleep(1.0)
+            if not host or not command:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host and command are required",
+                    route="error"
+                )
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "command": command,
+                    "stdout": f"Executed: {command}",
+                    "stderr": "",
+                    "exit_code": 0
+                },
+                route="out"
+            )
+        
+        elif block_type == "command.system_info":
+            host = params.get("host", "")
+            info_type = params.get("infoType", "all")
+            await asyncio.sleep(0.8)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "type": info_type,
+                    "info": {
+                        "os": "Linux 5.15.0",
+                        "hostname": host,
+                        "uptime": "5 days",
+                        "memory": "8GB",
+                        "cpu": "4 cores"
+                    }
+                },
+                route="out"
+            )
+        
+        elif block_type == "command.ftp_list":
+            host = params.get("host", "")
+            path = params.get("path", "/")
+            await asyncio.sleep(0.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "path": path,
+                    "files": [
+                        {"name": "file1.txt", "size": 1024, "type": "file"},
+                        {"name": "dir1", "size": 0, "type": "directory"}
+                    ]
+                },
+                route="out"
+            )
+        
+        elif block_type in ["command.ftp_download", "command.ftp_upload"]:
+            host = params.get("host", "")
+            await asyncio.sleep(1.0)
+            action = "downloaded" if "download" in block_type else "uploaded"
+            return BlockExecuteResponse(
+                success=True,
+                output={"host": host, "action": action, "bytes": 2048},
+                route="out"
+            )
+        
+        # === Traffic Blocks ===
+        elif block_type == "traffic.ping":
+            host = params.get("host", "")
+            count = params.get("count", 4)
+            await asyncio.sleep(0.5)
+            reachable = bool(host)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "packets_sent": count,
+                    "packets_received": count if reachable else 0,
+                    "avg_latency_ms": 5.2 if reachable else None,
+                    "reachable": reachable
+                },
+                route="reachable" if reachable else "unreachable"
+            )
+        
+        elif block_type == "traffic.advanced_ping":
+            host = params.get("host", "")
+            count = params.get("count", 4)
+            size = params.get("size", 64)
+            await asyncio.sleep(0.8)
+            reachable = bool(host)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "packets_sent": count,
+                    "packets_received": count if reachable else 0,
+                    "packet_size": size,
+                    "min_latency_ms": 2.1,
+                    "max_latency_ms": 8.5,
+                    "avg_latency_ms": 5.2,
+                    "reachable": reachable
+                },
+                route="reachable" if reachable else "unreachable"
+            )
+        
+        elif block_type in ["traffic.start_capture", "traffic.burst_capture"]:
+            interface = params.get("interface", "eth0")
+            duration = params.get("duration_seconds", 1)
+            await asyncio.sleep(duration)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "interface": interface,
+                    "capture_id": f"cap_{datetime.utcnow().timestamp()}",
+                    "packets_captured": 150,
+                    "bytes_captured": 48000
+                },
+                route="out"
+            )
+        
+        elif block_type == "traffic.stop_capture":
+            capture_id = params.get("captureId", "")
+            return BlockExecuteResponse(
+                success=True,
+                output={"capture_id": capture_id, "stopped": True},
+                route="out"
+            )
+        
+        elif block_type == "traffic.get_stats":
+            interface = params.get("interface", "eth0")
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "interface": interface,
+                    "rx_bytes": 1024000,
+                    "tx_bytes": 512000,
+                    "rx_packets": 1500,
+                    "tx_packets": 800
+                },
+                route="out"
+            )
+        
+        elif block_type == "traffic.storm":
+            interface = params.get("interface", "")
+            storm_type = params.get("type", "broadcast")
+            duration = params.get("duration", 5)
+            await asyncio.sleep(min(duration, 2))  # Cap actual wait
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "interface": interface,
+                    "type": storm_type,
+                    "duration": duration,
+                    "packets_sent": 5000
+                },
+                route="out"
+            )
+        
+        # === Scanning Blocks ===
+        elif block_type == "scanning.version_detect":
+            host = params.get("host", "")
+            ports = params.get("ports", "22,80,443")
+            await asyncio.sleep(2.0)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "services": [
+                        {"port": 22, "service": "ssh", "version": "OpenSSH 8.2"},
+                        {"port": 80, "service": "http", "version": "nginx 1.18.0"},
+                        {"port": 443, "service": "https", "version": "nginx 1.18.0"}
+                    ]
+                },
+                route="out"
+            )
+        
+        elif block_type == "scanning.port_scan":
+            host = params.get("host", "")
+            scan_type = params.get("scanType", "quick")
+            await asyncio.sleep(1.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "scan_type": scan_type,
+                    "open_ports": [22, 80, 443, 3306, 8080],
+                    "closed_ports": 995,
+                    "filtered_ports": 0
+                },
+                route="out"
+            )
+        
+        # === Agent Blocks ===
+        elif block_type == "agent.generate":
+            agent_id = params.get("agent_id", "")
+            platform = params.get("platform", "linux-amd64")
+            await asyncio.sleep(1.0)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "agent_id": agent_id,
+                    "platform": platform,
+                    "binary_path": f"/tmp/agent_{agent_id}_{platform}",
+                    "size_bytes": 2048000,
+                    "checksum": "abc123def456"
+                },
+                route="out"
+            )
+        
+        elif block_type == "agent.deploy":
+            host = params.get("host", "")
+            await asyncio.sleep(1.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "deployed": True,
+                    "agent_pid": 12345,
+                    "connection_established": True
+                },
+                route="out"
+            )
+        
+        elif block_type == "agent.terminate":
+            agent_id = params.get("agent_id", "")
+            return BlockExecuteResponse(
+                success=True,
+                output={"agent_id": agent_id, "terminated": True},
+                route="out"
+            )
+        
+        else:
+            return BlockExecuteResponse(
+                success=False,
+                error=f"Unknown block type: {block_type}",
+                route="error"
+            )
+    
+    except Exception as e:
+        return BlockExecuteResponse(
+            success=False,
+            error=str(e),
+            route="error"
+        )
+    finally:
+        end_time = datetime.utcnow()
+        # Duration would be calculated here
+
+
+def evaluate_expression(expression: str, context: Dict[str, Any]) -> Any:
+    """
+    Evaluate a simple expression with context variables.
+    In production, use a safe expression evaluator.
+    """
+    if not expression:
+        return True
+    
+    # Handle common patterns
+    expr_lower = expression.lower().strip()
+    if expr_lower in ["true", "1", "yes"]:
+        return True
+    if expr_lower in ["false", "0", "no"]:
+        return False
+    
+    # Simple variable substitution {{ $prev.success }}
+    if "{{" in expression:
+        # For now, return True if expression contains success
+        if "success" in expression.lower():
+            prev = context.get("$prev", {})
+            return prev.get("success", True)
+    
+    return True  # Default to true
+
+
+# === Block Execution Endpoints ===
+
+@router.post("/block/execute", response_model=BlockExecuteResponse)
+async def execute_single_block(
+    request: BlockExecuteRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Execute a single workflow block"""
+    return await execute_block(
+        request.block_type,
+        request.parameters,
+        request.context
+    )
+
+
+@router.post("/block/delay", response_model=BlockExecuteResponse)
+async def execute_delay(
+    request: DelayRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Execute delay block (simplified endpoint)"""
+    await asyncio.sleep(request.seconds)
+    return BlockExecuteResponse(
+        success=True,
+        output={"delayed": request.seconds},
+        duration_ms=request.seconds * 1000,
+        route="out"
+    )
 
 
 # === CRUD Endpoints ===

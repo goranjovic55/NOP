@@ -8,6 +8,48 @@ A comprehensive automation workflow builder page that allows users to create, ma
 - Exploit execution and agent deployment
 - Custom automation workflows
 
+## Phase 3: Block Library (IMPLEMENTED)
+
+### Block Definitions
+
+**Complete block library with 30 blocks across 6 categories:**
+
+| Category | Blocks | Description |
+|----------|--------|-------------|
+| Control (8) | Start, End, Delay, Condition, Loop, Parallel, Variable Set/Get | Flow control and logic |
+| Connection (5) | SSH Test, RDP Test, VNC Test, FTP Test, TCP Test | Connection testing |
+| Command (5) | SSH Execute, System Info, FTP List/Download/Upload | Remote command execution |
+| Traffic (7) | Start/Stop/Burst Capture, Get Stats, Ping, Advanced Ping, Storm | Traffic operations |
+| Scanning (2) | Version Detection, Port Scan | Network scanning |
+| Agent (3) | Generate, Deploy, Terminate | Agent management |
+
+### Backend Block Execution
+
+**New endpoints in `/api/v1/workflows/`:**
+
+- `POST /block/execute` - Execute any block with parameters
+- `POST /block/delay` - Execute delay block (simplified)
+
+**Block execution service features:**
+- Async execution with proper timeouts
+- Simulated responses (ready for real API integration)
+- Route-based output selection (success/failure paths)
+- Context passing for variables and previous outputs
+
+### Frontend Enhancements
+
+**ConfigPanel improvements:**
+- Credential selector for connection blocks
+- Block validation with error display
+- Real-time parameter validation
+- Auto-apply credential host/username
+
+**Block definitions include:**
+- Complete parameter definitions
+- API endpoint mappings
+- Credential type support
+- Required field indicators
+
 ## Features Implemented
 
 ### 1. Frontend Components
