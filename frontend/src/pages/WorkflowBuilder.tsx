@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useWorkflowStore } from '../store/workflowStore';
 import { WorkflowCanvas, BlockPalette, ConfigPanel } from '../components/workflow';
 import ExecutionOverlay from '../components/workflow/ExecutionOverlay';
+import ExecutionConsole from '../components/workflow/ExecutionConsole';
 import { WorkflowCreate, NodeExecutionStatus, WorkflowNode, WorkflowEdge } from '../types/workflow';
 import { CyberCard, CyberButton, CyberInput, CyberPageTitle } from '../components/CyberUI';
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution';
@@ -32,6 +33,7 @@ const WorkflowBuilder: React.FC = () => {
   const [showNewWorkflowModal, setShowNewWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
   
   const {
     workflows,
@@ -479,6 +481,13 @@ const WorkflowBuilder: React.FC = () => {
               onClose={() => setShowExecutionOverlay(false)}
             />
           )}
+
+          {/* Execution Console */}
+          <ExecutionConsole
+            execution={execution}
+            isOpen={showConsole}
+            onToggle={() => setShowConsole(!showConsole)}
+          />
         </div>
 
         {/* Right Config Panel */}
