@@ -5,6 +5,7 @@ import { CyberPageTitle } from '../components/CyberUI';
 import { assetService } from '../services/assetService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
+import { logger } from '../utils/logger';
 
 interface Asset {
   id: string;
@@ -57,7 +58,7 @@ const AccessHub: React.FC = () => {
         const assets = await assetService.getAssets(token, undefined, activeAgent?.id);
         setDiscoveredAssets(assets.filter((a: Asset) => a.status === 'online'));
       } catch (e) {
-        console.error('Failed to fetch assets', e);
+        logger.error('Failed to fetch assets', e);
       }
     };
     fetchAssets();
@@ -72,7 +73,7 @@ const AccessHub: React.FC = () => {
       try {
         setVaultCredentialsRaw(JSON.parse(stored));
       } catch (e) {
-        console.error('Failed to load vault credentials', e);
+        logger.error('Failed to load vault credentials', e);
       }
     }
   }, []);

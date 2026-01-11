@@ -173,7 +173,7 @@ class AgentService:
                         "settings": agent.settings or {}
                     })
                 except Exception as e:
-                    print(f"Failed to send settings update to agent {agent_id}: {e}")
+                    logger.warning("Failed to send settings update to agent %s: %s", agent_id, e)
         
         return agent
     

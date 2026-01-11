@@ -5,6 +5,7 @@ Handles data received from remote agents and stores it in the database
 with proper agent_id tagging.
 """
 
+import logging
 from typing import List, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,8 @@ from ipaddress import ip_address
 
 from app.models.asset import Asset, AssetStatus
 from app.models.flow import Flow
+
+logger = logging.getLogger(__name__)
 
 
 class AgentDataService:
@@ -78,7 +81,7 @@ class AgentDataService:
                 processed += 1
                 
             except Exception as e:
-                print(f"Error processing asset {asset_data}: {e}")
+                logger.warning("Error processing asset %s: %s", asset_data, e)
                 continue
         
         await db.commit()
@@ -119,24 +122,24 @@ class AgentDataService:
                     agent.agent_metadata = {}
                 
                 # Store interfaces for POV mode
-                print(f"[TRAFFIC INGEST] Traffic data keys: {traffic.keys()}")
+                logger.debug("Traffic data keys: %s", traffic.keys())
                 if 'interfaces' in traffic:
-                    print(f"[TRAFFIC INGEST] Storing {len(traffic['interfaces'])} interfaces")
+                    logger.debug("Storing %d interfaces", len(traffic['interfaces']))
                     agent.agent_metadata['interfaces'] = traffic['interfaces']
                     agent.agent_metadata['last_traffic_update'] = datetime.utcnow().isoformat()
                     # Mark JSONB field as modified for SQLAlchemy
                     flag_modified(agent, 'agent_metadata')
                 else:
-                    print(f"[TRAFFIC INGEST] No 'interfaces' key in traffic data")
+                    logger.debug("No 'interfaces' key in traffic data")
                 
                 # Store flows in database
-                print(f"[TRAFFIC INGEST] Checking for flows. 'flows' in traffic: {'flows' in traffic}")
+                logger.debug("Checking for flows. 'flows' in traffic: %s", 'flows' in traffic)
                 if 'flows' in traffic:
-                    print(f"[TRAFFIC INGEST] flows value type: {type(traffic['flows'])}, length: {len(traffic['flows']) if traffic['flows'] else 0}")
+                    logger.debug("flows value type: %s, length: %d", type(traffic['flows']), len(traffic['flows']) if traffic['flows'] else 0)
                 
                 if 'flows' in traffic and traffic['flows']:
                     flows_data = traffic['flows']
-                    print(f"[TRAFFIC INGEST] Processing {len(flows_data)} flows from agent {agent.name}")
+                    logger.debug("Processing %d flows from agent %s", len(flows_data), agent.name)
                     
                     for flow_data in flows_data:
                         try:
@@ -157,17 +160,15 @@ class AgentDataService:
                             )
                             db.add(flow)
                         except Exception as fe:
-                            print(f"[TRAFFIC INGEST] Error creating flow: {fe}")
+                            logger.warning("Error creating flow: %s", fe)
                     
-                    print(f"[TRAFFIC INGEST] Agent {agent.name} stored {len(flows_data)} flows")
+                    logger.debug("Agent %s stored %d flows", agent.name, len(flows_data))
                 
                 await db.commit()
             
             return True
         except Exception as e:
-            print(f"Error ingesting traffic data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("Error ingesting traffic data: %s", e)
             return False
     
     @staticmethod
@@ -212,7 +213,7 @@ class AgentDataService:
             
             return False
         except Exception as e:
-            print(f"Error ingesting host data: {e}")
+            logger.exception("Error ingesting host data: %s", e)
             return False
     
     @staticmethod

@@ -7,6 +7,7 @@ import { trafficService } from '../services/trafficService';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
 import { CyberTabs, CyberPageTitle } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 interface Packet {
   id: string;
@@ -241,7 +242,7 @@ const Traffic: React.FC = () => {
         const data = await response.json();
         setInterfaces(data);
       } catch (err) {
-        console.error('Failed to fetch interfaces:', err);
+        logger.error('Failed to fetch interfaces:', err);
       }
     };
 
@@ -312,11 +313,11 @@ const Traffic: React.FC = () => {
           ws.onclose = () => {
             // WebSocket closed but capture may still be running
           };
-          ws.onerror = (err) => console.error('WS Error:', err);
+          ws.onerror = (err) => logger.error('WS Error:', err);
           wsRef.current = ws;
         }
       } catch (err) {
-        console.error('Failed to check capture status:', err);
+        logger.error('Failed to check capture status:', err);
       }
     };
     if (token) {
@@ -385,7 +386,7 @@ const Traffic: React.FC = () => {
         setOnlineAssets(data);
       }
     } catch (err) {
-      console.error('Failed to fetch online assets:', err);
+      logger.error('Failed to fetch online assets:', err);
     }
   };
 
@@ -395,7 +396,7 @@ const Traffic: React.FC = () => {
       try {
         await trafficService.stopCapture(token!);
       } catch (err) {
-        console.error('Failed to stop capture:', err);
+        logger.error('Failed to stop capture:', err);
       }
       if (wsRef.current) wsRef.current.close();
       setIsSniffing(false);
@@ -427,10 +428,10 @@ const Traffic: React.FC = () => {
           // WebSocket closed but capture may still be running
           // Don't update isSniffing here - let it reflect backend state
         };
-        ws.onerror = (err) => console.error('WS Error:', err);
+        ws.onerror = (err) => logger.error('WS Error:', err);
         wsRef.current = ws;
       } catch (err) {
-        console.error('Failed to start capture:', err);
+        logger.error('Failed to start capture:', err);
         setIsSniffing(false);
         setIsCapturing(false);
       }
@@ -455,7 +456,7 @@ const Traffic: React.FC = () => {
         a.remove();
       }
     } catch (err) {
-      console.error('Export failed:', err);
+      logger.error('Export failed:', err);
     } finally {
       setIsExporting(false);
     }

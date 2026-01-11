@@ -2,6 +2,7 @@
 Asset management endpoints
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -10,9 +11,14 @@ import uuid
 
 from app.core.database import get_db
 from app.core.pov_middleware import get_agent_pov
-from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats
+from app.schemas.asset import (
+    AssetCreate, AssetUpdate, AssetResponse, AssetList, AssetStats,
+    OnlineAssetResponse, AssetClassificationResponse
+)
 from app.services.asset_service import AssetService
 from app.models.asset import Asset
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -34,7 +40,7 @@ async def get_assets(
     - In POV view: agent_id filter overrides exclude_agent_assets
     """
     agent_pov = get_agent_pov(request)
-    print(f"[ASSETS DEBUG] X-Agent-POV header: {request.headers.get('X-Agent-POV')}, agent_pov: {agent_pov}")
+    logger.debug("Agent POV header: %s, agent_pov: %s", request.headers.get('X-Agent-POV'), agent_pov)
     asset_service = AssetService(db)
     result = await asset_service.get_assets(
         page=page,
@@ -45,7 +51,7 @@ async def get_assets(
         agent_id=agent_pov,
         exclude_agent_assets=exclude_agent_assets if not agent_pov else False
     )
-    print(f"[ASSETS DEBUG] Returning {result.total} assets for agent_pov={agent_pov}")
+    logger.debug("Returning %d assets for agent_pov=%s", result.total, agent_pov)
     return result
 
 
@@ -64,7 +70,7 @@ async def get_asset_stats(
     )
 
 
-@router.get("/online", response_model=List[dict])
+@router.get("/online", response_model=List[OnlineAssetResponse])
 async def get_online_assets(db: AsyncSession = Depends(get_db)):
     """Get list of all assets (online and offline) for dropdown"""
     asset_service = AssetService(db)
@@ -75,16 +81,16 @@ async def get_online_assets(db: AsyncSession = Depends(get_db)):
     )
     # Return simplified list with IP, hostname, and status
     return [
-        {
-            "ip_address": asset.ip_address,
-            "hostname": asset.hostname or asset.ip_address,
-            "status": asset.status
-        }
+        OnlineAssetResponse(
+            ip_address=str(asset.ip_address),
+            hostname=asset.hostname or str(asset.ip_address),
+            status=str(asset.status)
+        )
         for asset in result.assets
     ]
 
 
-@router.get("/classification")
+@router.get("/classification", response_model=AssetClassificationResponse)
 async def get_asset_classification(db: AsyncSession = Depends(get_db)):
     """Get asset classification breakdown by OS type"""
     try:

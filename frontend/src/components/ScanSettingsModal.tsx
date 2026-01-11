@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 interface ScanSettings {
   autoScanEnabled: boolean;
@@ -67,7 +68,7 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({
         passiveDiscoveryEnabled: discovery.passive_discovery || false
       });
     } catch (err) {
-      console.log('Could not load agent settings, using defaults');
+      logger.debug('Could not load agent settings, using defaults');
       setLocalSettings(settings);
     } finally {
       setIsLoading(false);
@@ -94,9 +95,9 @@ const ScanSettingsModal: React.FC<ScanSettingsModalProps> = ({
             'X-Agent-POV': activeAgent.id
           }
         });
-        console.log('Agent settings saved successfully');
+        logger.debug('Agent settings saved successfully');
       } catch (err) {
-        console.error('Failed to save agent settings:', err);
+        logger.error('Failed to save agent settings:', err);
       } finally {
         setIsSaving(false);
       }

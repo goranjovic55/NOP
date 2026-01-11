@@ -6,6 +6,7 @@ import { dashboardService, SystemEvent } from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { CyberCard } from '../components/CyberUI';
+import { logger } from '../utils/logger';
 
 // Time ago helper
 const formatTimeAgo = (timestamp: string): string => {
@@ -167,7 +168,7 @@ const Dashboard: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }

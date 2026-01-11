@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import FileResponse
 from typing import List, Dict, Optional
@@ -14,6 +15,8 @@ import json
 import os
 import subprocess
 import time
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -88,9 +91,9 @@ async def traffic_ws(websocket: WebSocket):
             await websocket.send_json(packet)
 
     except WebSocketDisconnect:
-        print("Traffic WebSocket disconnected")
+        logger.debug("Traffic WebSocket disconnected")
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error("WebSocket error: %s", e)
     finally:
         # Only stop sniffing if NOT in persistent capture mode
         if not sniffer_service.persistent_capture:
@@ -256,7 +259,7 @@ async def get_traffic_flows(
         
         return {"flows": flows_list, "total": len(flows_list)}
     except Exception as e:
-        print(f"Error getting flows: {e}")
+        logger.error("Error getting flows: %s", e)
         return {"flows": [], "total": 0}
 
 @router.get("/stats")
@@ -340,9 +343,7 @@ async def get_traffic_stats(
                 "agent_id": str(agent_pov)
             }
         except Exception as e:
-            print(f"Error getting agent traffic stats: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("Error getting agent traffic stats: %s", e)
             return {
                 "total_packets": 0,
                 "total_bytes": 0,

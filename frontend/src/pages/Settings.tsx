@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CyberPageTitle } from '../components/CyberUI';
 import { usePOV, getPOVHeaders } from '../context/POVContext';
+import { logger } from '../utils/logger';
 
 interface ScanSettings {
   profile_name: string;
@@ -120,7 +121,7 @@ const Settings: React.FC = () => {
         });
         setInterfaces(response.data);
       } catch (error) {
-        console.error('Error fetching interfaces:', error);
+        logger.error('Error fetching interfaces:', error);
       }
     };
 
@@ -138,7 +139,7 @@ const Settings: React.FC = () => {
       });
       setInterfaces(response.data);
     } catch (error) {
-      console.error('Error fetching interfaces:', error);
+      logger.error('Error fetching interfaces:', error);
     }
   };
 
@@ -173,7 +174,7 @@ const Settings: React.FC = () => {
             };
             setSettings(mergedSettings);
           } catch (error) {
-            console.error('Error fetching agent settings:', error);
+            logger.error('Error fetching agent settings:', error);
             setAgentSettings(null);
             setSettings(response.data);
           }
@@ -185,7 +186,7 @@ const Settings: React.FC = () => {
         throw new Error('Invalid settings response structure');
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      logger.error('Error fetching settings:', error);
       showMessage('error', 'Failed to load settings');
     } finally {
       setLoading(false);
@@ -222,7 +223,7 @@ const Settings: React.FC = () => {
         showMessage('success', `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings saved successfully`);
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      logger.error('Error saving settings:', error);
       showMessage('error', 'Failed to save settings');
     } finally {
       setSaving(false);
@@ -238,7 +239,7 @@ const Settings: React.FC = () => {
       setSettings(prev => prev ? { ...prev, [activeTab]: response.data.config } : null);
       showMessage('success', `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings reset to defaults`);
     } catch (error) {
-      console.error('Error resetting settings:', error);
+      logger.error('Error resetting settings:', error);
       showMessage('error', 'Failed to reset settings');
     } finally {
       setSaving(false);

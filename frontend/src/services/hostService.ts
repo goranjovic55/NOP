@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 // Use relative URL to go through the React dev server proxy
 const API_URL = '/api/v1/host';
@@ -135,7 +136,7 @@ export const hostService = {
       const response = await axios.get(url, { headers });
       return response.data;
     } catch (error: any) {
-      console.error('[hostService.getSystemInfo] Error:', error.response?.status, error.message);
+      logger.error('[hostService.getSystemInfo] Error:', error.response?.status, error.message);
       throw error;
     }
   },
