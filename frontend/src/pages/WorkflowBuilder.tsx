@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWorkflowStore } from '../store/workflowStore';
-import { WorkflowCanvas, BlockPalette, ConfigPanel } from '../components/workflow';
+import { WorkflowCanvas, BlockPalette, ConfigPanel, FlowTemplates, FlowTabs } from '../components/workflow';
 import ExecutionOverlay from '../components/workflow/ExecutionOverlay';
 import ExecutionConsole from '../components/workflow/ExecutionConsole';
 import { WorkflowCreate, NodeExecutionStatus, WorkflowNode, WorkflowEdge } from '../types/workflow';
@@ -33,7 +33,19 @@ const WorkflowBuilder: React.FC = () => {
   const [showNewWorkflowModal, setShowNewWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
-  const [showConsole, setShowConsole] = useState(false);
+  
+  // Console state - persisted in localStorage
+  const [isConsoleMinimized, setIsConsoleMinimized] = useState(() => {
+    const saved = localStorage.getItem('flows-console-minimized');
+    return saved === 'true';
+  });
+  
+  // Persist console state
+  const handleToggleConsole = () => {
+    const newState = !isConsoleMinimized;
+    setIsConsoleMinimized(newState);
+    localStorage.setItem('flows-console-minimized', String(newState));
+  };
   
   const {
     workflows,
@@ -41,6 +53,9 @@ const WorkflowBuilder: React.FC = () => {
     nodes,
     edges,
     isPaletteOpen,
+    isTemplatesOpen,
+    openTabs,
+    activeTabId,
     loadWorkflows,
     createWorkflow,
     setCurrentWorkflow,
@@ -48,6 +63,7 @@ const WorkflowBuilder: React.FC = () => {
     saveCurrentWorkflow,
     compileWorkflow,
     togglePalette,
+    toggleTemplates,
     getCurrentWorkflow,
     updateNode,
     setNodes,
@@ -55,6 +71,10 @@ const WorkflowBuilder: React.FC = () => {
     removeNode,
     selectNode,
     selectedNodeId: storeSelectedNodeId,
+    openWorkflowTab,
+    closeTab,
+    switchToTab,
+    markTabDirty,
   } = useWorkflowStore();
 
   // Undo/Redo
@@ -229,6 +249,7 @@ const WorkflowBuilder: React.FC = () => {
     pause: pauseExecution,
     resume: resumeExecution,
     cancel: cancelExecution,
+    reset: resetExecution,
   } = useWorkflowExecution({
     onNodeStatusChange,
     onComplete: () => {
@@ -244,6 +265,12 @@ const WorkflowBuilder: React.FC = () => {
   });
 
   const currentWorkflow = getCurrentWorkflow();
+
+  // Reset execution state when switching workflows
+  useEffect(() => {
+    resetExecution();
+    setShowExecutionOverlay(false);
+  }, [currentWorkflowId, resetExecution]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -267,13 +294,19 @@ const WorkflowBuilder: React.FC = () => {
         window.alert(`Cannot execute - compilation errors:\n${compileResult.errors.map(e => e.message).join('\n')}`);
         return;
       }
-      // Start execution
+      // Start execution - console is always visible
       await startExecution(currentWorkflowId);
       setShowExecutionOverlay(true);
-    } catch (error) {
+      // Expand console if minimized
+      if (isConsoleMinimized) {
+        setIsConsoleMinimized(false);
+        localStorage.setItem('flows-console-minimized', 'false');
+      }
+    } catch (error: any) {
       console.error('Execution failed:', error);
+      window.alert(`Execution failed: ${error.message || 'Unknown error'}`);
     }
-  }, [currentWorkflowId, saveCurrentWorkflow, compileWorkflow, startExecution]);
+  }, [currentWorkflowId, saveCurrentWorkflow, compileWorkflow, startExecution, isConsoleMinimized]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -369,6 +402,64 @@ const WorkflowBuilder: React.FC = () => {
     }
   };
 
+  // Handle insert template
+  const handleInsertTemplate = useCallback((
+    templateNodes: Partial<WorkflowNode>[],
+    templateEdges: Partial<WorkflowEdge>[]
+  ) => {
+    if (!currentWorkflowId) {
+      window.alert('Please select or create a flow first');
+      return;
+    }
+
+    saveUndoState();
+
+    // Generate unique IDs for new nodes
+    const nodeIdMap: Record<string, string> = {};
+    const newNodes: WorkflowNode[] = templateNodes.map((node, idx) => {
+      const newId = `template_${Date.now()}_${idx}`;
+      nodeIdMap[String(idx + 1)] = newId;
+      
+      // Extract block type from node data or fallback
+      const blockType = node.data?.type || 'control.start';
+      const blockCategory = node.data?.category || 'control';
+      
+      return {
+        id: newId,
+        type: node.type || 'block',
+        position: {
+          x: (node.position?.x || 0) + 200, // Offset from existing nodes
+          y: (node.position?.y || 0) + 100,
+        },
+        data: node.data || { 
+          label: 'Block', 
+          type: blockType as any,
+          category: blockCategory as any,
+          parameters: {} 
+        },
+        selected: false,
+      };
+    });
+
+    // Map edge sources and targets to new IDs
+    const newEdges: WorkflowEdge[] = templateEdges.map((edge, idx) => ({
+      id: `edge_template_${Date.now()}_${idx}`,
+      source: nodeIdMap[edge.source || '1'] || edge.source || '',
+      target: nodeIdMap[edge.target || '2'] || edge.target || '',
+      sourceHandle: edge.sourceHandle || 'out',
+      targetHandle: edge.targetHandle || 'in',
+      type: 'smoothstep',
+    }));
+
+    setNodes([...nodes, ...newNodes]);
+    setEdges([...edges, ...newEdges]);
+    
+    // Mark tab as dirty
+    if (currentWorkflowId) {
+      markTabDirty(currentWorkflowId, true);
+    }
+  }, [currentWorkflowId, nodes, edges, saveUndoState, setNodes, setEdges, markTabDirty]);
+
   return (
     <div className="h-full flex flex-col bg-cyber-black">
       {/* Header */}
@@ -402,6 +493,14 @@ const WorkflowBuilder: React.FC = () => {
             onClick={handleImport}
           >
             ↓ IMPORT
+          </CyberButton>
+          
+          <CyberButton
+            variant={isTemplatesOpen ? 'purple' : 'gray'}
+            size="sm"
+            onClick={toggleTemplates}
+          >
+            ◈ TEMPLATES
           </CyberButton>
           
           {currentWorkflow && (
@@ -446,72 +545,97 @@ const WorkflowBuilder: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Palette */}
-        <BlockPalette isOpen={isPaletteOpen} onToggle={togglePalette} />
-
-        {/* Canvas */}
-        <div className="flex-1 relative bg-cyber-darker">
-          {currentWorkflow ? (
-            <WorkflowCanvas onNodeSelect={setSelectedNodeId} />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <CyberCard className="p-8 text-center">
-                <div className="text-cyber-purple text-4xl mb-4">◇</div>
-                <h2 className="text-xl text-cyber-gray-light mb-4 font-mono">NO FLOW SELECTED</h2>
-                <CyberButton
-                  variant="purple"
-                  onClick={() => setShowNewWorkflowModal(true)}
-                >
-                  + CREATE NEW FLOW
-                </CyberButton>
-              </CyberCard>
-            </div>
-          )}
-
-          {/* Execution Overlay */}
-          {showExecutionOverlay && (
-            <ExecutionOverlay
-              execution={execution}
-              isExecuting={isExecuting}
-              onStart={handleExecute}
-              onPause={handlePause}
-              onResume={handleResume}
-              onCancel={handleCancel}
-              onClose={() => setShowExecutionOverlay(false)}
-            />
-          )}
-
-          {/* Execution Console */}
-          <ExecutionConsole
-            execution={execution}
-            isOpen={showConsole}
-            onToggle={() => setShowConsole(!showConsole)}
-          />
-        </div>
-
-        {/* Right Config Panel */}
-        {selectedNodeId && (
-          <ConfigPanel 
-            nodeId={selectedNodeId} 
-            onClose={() => setSelectedNodeId(null)} 
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Flow Tabs */}
+        {openTabs.length > 0 && (
+          <FlowTabs
+            tabs={openTabs}
+            activeTabId={activeTabId}
+            onSwitchTab={switchToTab}
+            onCloseTab={closeTab}
           />
         )}
 
-        {/* Persistent Keyboard Shortcuts Legend */}
-        <div className="absolute bottom-4 right-4 z-10">
-          <div className="bg-cyber-darker/90 border border-cyber-gray/50 rounded px-3 py-2">
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {SHORTCUT_LEGEND.map((s, i) => (
-                <div key={i} className="flex items-center gap-1 text-xs">
-                  <kbd className="px-1 py-0.5 bg-cyber-black border border-cyber-gray/40 rounded text-[10px] font-mono text-cyber-blue">
-                    {s.keys}
-                  </kbd>
-                  <span className="text-cyber-gray-light">{s.desc}</span>
+        {/* Canvas + Panels Row */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Palette */}
+          <BlockPalette isOpen={isPaletteOpen} onToggle={togglePalette} />
+
+          {/* Canvas Area - flex column to include shortcuts */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Canvas */}
+            <div className="flex-1 relative bg-cyber-darker">
+              {currentWorkflow ? (
+                <WorkflowCanvas onNodeSelect={setSelectedNodeId} />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CyberCard className="p-8 text-center">
+                    <div className="text-cyber-purple text-4xl mb-4">◇</div>
+                    <h2 className="text-xl text-cyber-gray-light mb-4 font-mono">NO FLOW SELECTED</h2>
+                    <CyberButton
+                      variant="purple"
+                      onClick={() => setShowNewWorkflowModal(true)}
+                    >
+                      + CREATE NEW FLOW
+                    </CyberButton>
+                  </CyberCard>
                 </div>
-              ))}
+              )}
+
+              {/* Execution Overlay */}
+              {showExecutionOverlay && (
+                <ExecutionOverlay
+                  execution={execution}
+                  isExecuting={isExecuting}
+                  onStart={handleExecute}
+                  onPause={handlePause}
+                  onResume={handleResume}
+                  onCancel={handleCancel}
+                  onClose={() => setShowExecutionOverlay(false)}
+                />
+              )}
+
+              {/* Keyboard Shortcuts Legend */}
+              <div className="absolute bottom-4 right-4 z-10">
+                <div className="bg-cyber-darker/90 border border-cyber-gray/50 rounded px-3 py-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {SHORTCUT_LEGEND.map((s, i) => (
+                      <div key={i} className="flex items-center gap-1 text-xs">
+                        <kbd className="px-1 py-0.5 bg-cyber-black border border-cyber-gray/40 rounded text-[10px] font-mono text-cyber-blue">
+                          {s.keys}
+                        </kbd>
+                        <span className="text-cyber-gray-light">{s.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Execution Console - Always present, minimizable */}
+            <ExecutionConsole
+              execution={execution}
+              isMinimized={isConsoleMinimized}
+              onToggleMinimize={handleToggleConsole}
+            />
           </div>
+
+          {/* Right Config Panel */}
+          {selectedNodeId && (
+            <ConfigPanel 
+              nodeId={selectedNodeId} 
+              onClose={() => setSelectedNodeId(null)} 
+            />
+          )}
+
+          {/* Right Templates Panel */}
+          {!selectedNodeId && (
+            <FlowTemplates
+              isOpen={isTemplatesOpen}
+              onClose={toggleTemplates}
+              onInsertTemplate={handleInsertTemplate}
+            />
+          )}
         </div>
       </div>
 

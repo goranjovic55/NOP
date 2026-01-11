@@ -32,15 +32,17 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
       className={`
         relative bg-cyber-darker rounded min-w-[180px] max-w-[220px]
         transition-all duration-200
-        ${selected ? 'ring-2 ring-cyber-purple ring-offset-1 ring-offset-cyber-black' : ''}
+        ${selected ? 'ring-2 ring-cyber-purple ring-offset-2 ring-offset-cyber-black scale-105 z-50' : ''}
       `}
       style={{ 
-        borderWidth: '1px',
+        borderWidth: selected ? '2px' : '1px',
         borderStyle: 'solid',
-        borderColor: statusColor || categoryColor,
-        boxShadow: executionStatus === 'running' 
-          ? `0 0 20px ${statusColor}60, inset 0 0 20px ${statusColor}10` 
-          : `0 0 10px ${categoryColor}20`
+        borderColor: selected ? '#a855f7' : (statusColor || categoryColor),
+        boxShadow: selected
+          ? '0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(168, 85, 247, 0.3), inset 0 0 20px rgba(168, 85, 247, 0.1)'
+          : executionStatus === 'running' 
+            ? `0 0 20px ${statusColor}60, inset 0 0 20px ${statusColor}10` 
+            : `0 0 10px ${categoryColor}20`
       }}
     >
       {/* Header with glowing effect */}

@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
-    { name: 'Workflows', href: '/workflows', icon: '◇', symbol: '◆' },
+    { name: 'Flows', href: '/flows', icon: '◇', symbol: '◆' },
     { name: 'Agents', href: '/agents', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },

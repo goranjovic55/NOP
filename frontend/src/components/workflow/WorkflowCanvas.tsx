@@ -35,6 +35,13 @@ const cyberEdgeStyle = {
   strokeWidth: 2,
 };
 
+// Selected edge styling - more prominent
+const selectedEdgeStyle = {
+  stroke: '#a855f7',
+  strokeWidth: 4,
+  filter: 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.8))',
+};
+
 interface WorkflowCanvasProps {
   onNodeSelect: (nodeId: string | null) => void;
 }
@@ -67,8 +74,8 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
   const flowEdges = useMemo(() => 
     edges.map(edge => ({
       ...edge,
-      animated: false,
-      style: cyberEdgeStyle,
+      animated: edge.selected || false,
+      style: edge.selected ? selectedEdgeStyle : cyberEdgeStyle,
     })),
     [edges]
   );

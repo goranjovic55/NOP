@@ -49,7 +49,7 @@ function App() {
                   <Route path="/scans" element={<Scans />} />
                   <Route path="/access" element={<Access />} />
                   <Route path="/host" element={<Host />} />
-                  <Route path="/workflows" element={<WorkflowBuilder />} />
+                  <Route path="/flows" element={<WorkflowBuilder />} />
                   <Route path="/agents" element={<Agents />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/login" element={<Navigate to="/dashboard" replace />} />

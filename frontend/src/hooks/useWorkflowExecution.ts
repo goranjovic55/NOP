@@ -33,6 +33,46 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Track current workflow for polling
+  const currentWorkflowIdRef = useRef<string | null>(null);
+  
+  // Poll for execution status (for fast executions that complete before WS connects)
+  const pollExecutionStatus = useCallback(async (workflowId: string, executionId: string) => {
+    try {
+      const response = await fetch(`/api/v1/workflows/${workflowId}/executions/${executionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
+          // Execution already finished
+          setIsExecuting(false);
+          setExecution({
+            id: data.id,
+            workflowId: data.workflow_id,
+            status: data.status,
+            currentLevel: data.current_level,
+            totalLevels: data.total_levels,
+            nodeStatuses: data.node_statuses || {},
+            nodeResults: data.node_results || {},
+            progress: {
+              completed: data.progress?.completed || 0,
+              total: data.progress?.total || 0,
+              percentage: data.status === 'completed' ? 100 : (data.progress?.percentage || 0),
+            },
+            startedAt: data.started_at,
+            completedAt: data.completed_at,
+            errors: data.errors || [],
+            variables: data.variables || {},
+          });
+          if (options.onComplete && data.status === 'completed') {
+            options.onComplete(data);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to poll execution status:', err);
+    }
+  }, [options]);
+
   // Connect to WebSocket
   const connect = useCallback((executionId: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -50,6 +90,12 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
     ws.onopen = () => {
       console.log('Execution WebSocket connected');
       setIsConnected(true);
+      // Poll for status in case execution completed before WS connected
+      if (currentWorkflowIdRef.current) {
+        setTimeout(() => {
+          pollExecutionStatus(currentWorkflowIdRef.current!, executionId);
+        }, 200);
+      }
     };
     
     ws.onmessage = (event) => {
@@ -116,6 +162,12 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
                   ...prev,
                   status: data.status as ExecutionStatus,
                   completedAt: new Date().toISOString(),
+                  // Force progress to 100% on completion
+                  progress: {
+                    ...prev.progress,
+                    completed: prev.progress.total,
+                    percentage: 100,
+                  },
                 };
                 if (options.onComplete) {
                   options.onComplete(updated);
@@ -197,6 +249,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
   ): Promise<WorkflowExecution> => {
     setIsExecuting(true);
     setEvents([]);
+    currentWorkflowIdRef.current = workflowId;
     
     const response = await fetch(`/api/v1/workflows/${workflowId}/execute`, {
       method: 'POST',
@@ -257,6 +310,14 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
     }
   }, [disconnect]);
   
+  // Reset execution state
+  const reset = useCallback(() => {
+    disconnect();
+    setExecution(null);
+    setIsExecuting(false);
+    setEvents([]);
+  }, [disconnect]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -276,6 +337,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
     cancel,
     connect,
     disconnect,
+    reset,
   };
 }
 

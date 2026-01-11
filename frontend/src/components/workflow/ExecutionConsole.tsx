@@ -1,15 +1,17 @@
 /**
  * ExecutionConsole - Shows real-time output from workflow execution
+ * Features: Always visible, minimizable, expandable block outputs
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { WorkflowExecution, NodeResult } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ExecutionConsoleProps {
   execution: WorkflowExecution | null;
-  isOpen: boolean;
-  onToggle: () => void;
+  isMinimized: boolean;
+  onToggleMinimize: () => void;
 }
 
 interface LogEntry {
@@ -24,13 +26,27 @@ interface LogEntry {
 
 const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
   execution,
-  isOpen,
-  onToggle,
+  isMinimized,
+  onToggleMinimize,
 }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const consoleRef = useRef<HTMLDivElement>(null);
   const prevResultsRef = useRef<Record<string, NodeResult>>({});
+
+  // Toggle expanded state for a log entry
+  const toggleExpanded = (logId: string) => {
+    setExpandedLogs(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) {
+        next.delete(logId);
+      } else {
+        next.add(logId);
+      }
+      return next;
+    });
+  };
 
   // Watch for changes in execution and add log entries
   useEffect(() => {
@@ -39,44 +55,45 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
     const newLogs: LogEntry[] = [];
 
     // Check for new node results
-    Object.entries(execution.nodeResults).forEach(([nodeId, result]) => {
-      const prevResult = prevResultsRef.current[nodeId];
-      
-      // New result or updated result
-      if (!prevResult || prevResult.completedAt !== result.completedAt) {
-        if (result.success) {
+    if (execution.nodeResults) {
+      Object.entries(execution.nodeResults).forEach(([nodeId, result]) => {
+        const prevResult = prevResultsRef.current[nodeId];
+        
+        // New result or updated result
+        if (!prevResult || prevResult.completedAt !== result.completedAt) {
+          const logId = `${nodeId}-result-${Date.now()}`;
           newLogs.push({
-            id: `${nodeId}-success-${Date.now()}`,
+            id: logId,
             timestamp: new Date(result.completedAt || Date.now()),
             nodeId,
-            type: 'success',
-            message: `Completed in ${result.duration || 0}ms`,
+            type: result.success ? 'success' : 'error',
+            message: result.success 
+              ? `Completed in ${result.duration || 0}ms`
+              : (result.error || 'Failed'),
             data: result.output,
           });
-        } else if (result.error) {
-          newLogs.push({
-            id: `${nodeId}-error-${Date.now()}`,
-            timestamp: new Date(result.completedAt || Date.now()),
-            nodeId,
-            type: 'error',
-            message: result.error,
-          });
+          // Auto-expand results with data
+          if (result.output && Object.keys(result.output).length > 0) {
+            setExpandedLogs(prev => new Set(prev).add(logId));
+          }
         }
-      }
-    });
+      });
+    }
 
     // Check for nodes that started
-    Object.entries(execution.nodeStatuses).forEach(([nodeId, status]) => {
-      if (status === 'running' && !prevResultsRef.current[nodeId]) {
-        newLogs.push({
-          id: `${nodeId}-start-${Date.now()}`,
-          timestamp: new Date(),
-          nodeId,
-          type: 'start',
-          message: 'Started execution',
-        });
-      }
-    });
+    if (execution.nodeStatuses) {
+      Object.entries(execution.nodeStatuses).forEach(([nodeId, status]) => {
+        if (status === 'running' && !prevResultsRef.current[nodeId]) {
+          newLogs.push({
+            id: `${nodeId}-start-${Date.now()}`,
+            timestamp: new Date(),
+            nodeId,
+            type: 'start',
+            message: 'Started execution',
+          });
+        }
+      });
+    }
 
     if (newLogs.length > 0) {
       setLogs(prev => [...prev, ...newLogs].slice(-500)); // Keep last 500 entries
@@ -94,7 +111,7 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
 
   // Clear logs when execution restarts
   useEffect(() => {
-    if (execution?.status === 'running' && Object.keys(execution.nodeResults).length === 0) {
+    if (execution?.status === 'running' && Object.keys(execution.nodeResults || {}).length === 0) {
       setLogs([{
         id: 'start-' + Date.now(),
         timestamp: new Date(),
@@ -103,6 +120,7 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
         message: `Execution started: ${execution.id.slice(0, 8)}...`,
       }]);
       prevResultsRef.current = {};
+      setExpandedLogs(new Set());
     }
   }, [execution?.status, execution?.id]);
 
@@ -136,101 +154,150 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
     }
   };
 
+  const formatOutputSummary = (data: any): string => {
+    if (!data) return '';
+    if (typeof data === 'string') return data.slice(0, 100);
+    
+    // Create a brief summary of key fields
+    const summary: string[] = [];
+    if (data.host) summary.push(`host: ${data.host}`);
+    if (data.reachable !== undefined) summary.push(`reachable: ${data.reachable}`);
+    if (data.avg_latency_ms !== undefined) summary.push(`latency: ${data.avg_latency_ms}ms`);
+    if (data.packets_received !== undefined) summary.push(`recv: ${data.packets_received}/${data.packets_sent}`);
+    if (data.connected !== undefined) summary.push(`connected: ${data.connected}`);
+    if (data.exit_code !== undefined) summary.push(`exit: ${data.exit_code}`);
+    if (data.status) summary.push(`status: ${data.status}`);
+    if (data.error) summary.push(`error: ${data.error}`);
+    
+    return summary.length > 0 ? summary.join(' | ') : JSON.stringify(data).slice(0, 80);
+  };
+
   const clearLogs = () => {
     setLogs([]);
     prevResultsRef.current = {};
+    setExpandedLogs(new Set());
   };
 
-  if (!isOpen) {
-    return (
-      <div className="absolute bottom-16 left-4 z-10">
-        <CyberButton
-          variant="gray"
-          size="sm"
-          onClick={onToggle}
-          className="flex items-center gap-2"
-        >
-          <span>◈</span> CONSOLE
+  return (
+    <div className="border-t border-cyber-gray/50 bg-cyber-darker flex flex-col shrink-0">
+      {/* Header - Always visible */}
+      <div 
+        className="flex items-center justify-between px-4 py-2 bg-cyber-black/80 border-b border-cyber-gray/30 cursor-pointer hover:bg-cyber-black/90 transition-colors"
+        onClick={onToggleMinimize}
+      >
+        <div className="flex items-center gap-4">
+          <span className="text-cyber-purple font-mono text-sm flex items-center gap-2">
+            <span className={execution?.status === 'running' ? 'animate-pulse' : ''}>⌘</span> 
+            CONSOLE
+          </span>
+          {execution && (
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${
+                execution.status === 'running' ? 'bg-cyber-blue animate-pulse' :
+                execution.status === 'completed' ? 'bg-cyber-green' :
+                execution.status === 'failed' ? 'bg-cyber-red' : 'bg-cyber-gray'
+              }`}></span>
+              <span className="text-xs text-cyber-gray-light font-mono">
+                {execution.status.toUpperCase()}
+              </span>
+            </div>
+          )}
           {logs.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-cyber-purple/30 rounded text-xs">
-              {logs.length}
+            <span className="px-1.5 py-0.5 bg-cyber-purple/30 rounded text-xs font-mono text-cyber-purple">
+              {logs.length} entries
             </span>
           )}
-        </CyberButton>
-      </div>
-    );
-  }
-
-  return (
-    <div className="absolute bottom-16 left-4 right-4 z-10 max-w-3xl">
-      <div className="bg-cyber-darker border border-cyber-gray rounded overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 bg-cyber-black/50 border-b border-cyber-gray">
-          <div className="flex items-center gap-3">
-            <span className="text-cyber-purple font-mono text-sm">◈ EXECUTION CONSOLE</span>
-            {execution && (
-              <span className="text-xs text-cyber-gray-light">
-                {execution.status.toUpperCase()} · Level {execution.currentLevel}/{execution.totalLevels}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1 text-xs text-cyber-gray-light cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={(e) => setAutoScroll(e.target.checked)}
-                className="w-3 h-3"
-              />
-              Auto-scroll
-            </label>
-            <CyberButton variant="gray" size="sm" onClick={clearLogs}>
-              Clear
-            </CyberButton>
-            <CyberButton variant="gray" size="sm" onClick={onToggle}>
-              ✕
-            </CyberButton>
-          </div>
         </div>
+        <div className="flex items-center gap-3">
+          {!isMinimized && (
+            <>
+              <label 
+                className="flex items-center gap-2 text-xs text-cyber-gray-light cursor-pointer hover:text-cyber-purple transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={autoScroll}
+                  onChange={(e) => setAutoScroll(e.target.checked)}
+                  className="w-3 h-3 accent-cyber-purple"
+                />
+                Auto-scroll
+              </label>
+              <CyberButton 
+                variant="gray" 
+                size="sm" 
+                onClick={(e) => { e.stopPropagation(); clearLogs(); }}
+              >
+                Clear
+              </CyberButton>
+            </>
+          )}
+          <span className="text-cyber-gray-light text-sm">
+            {isMinimized ? '▲' : '▼'}
+          </span>
+        </div>
+      </div>
 
-        {/* Log entries */}
+      {/* Log entries - Collapsible */}
+      {!isMinimized && (
         <div
           ref={consoleRef}
-          className="h-64 overflow-y-auto font-mono text-xs p-2 space-y-1"
+          className="h-48 overflow-y-auto font-mono text-xs p-3 space-y-1 bg-cyber-black/40 custom-scrollbar"
         >
           {logs.length === 0 ? (
-            <div className="text-cyber-gray text-center py-8">
-              No execution logs yet. Run a flow to see output.
+            <div className="text-cyber-gray text-center py-6">
+              No execution logs yet. Click Execute to run the flow.
             </div>
           ) : (
-            logs.map((log) => (
-              <div key={log.id} className="flex gap-2 hover:bg-cyber-gray/10 px-1 rounded">
-                <span className="text-cyber-gray shrink-0">
-                  {log.timestamp.toLocaleTimeString('en-US', { hour12: false })}
-                </span>
-                <span className={`shrink-0 ${getTypeColor(log.type)}`}>
-                  {getTypeIcon(log.type)}
-                </span>
-                <span className="text-cyber-blue shrink-0">
-                  [{log.nodeId.slice(0, 12)}]
-                </span>
-                <span className={getTypeColor(log.type)}>
-                  {log.message}
-                </span>
-              </div>
-            ))
+            logs.map((log) => {
+              const isExpanded = expandedLogs.has(log.id);
+              const hasData = log.data && Object.keys(log.data).length > 0;
+              
+              return (
+                <div key={log.id} className="space-y-1">
+                  {/* Log entry header */}
+                  <div 
+                    className={`flex gap-2 px-1 rounded ${hasData ? 'cursor-pointer hover:bg-cyber-gray/20' : 'hover:bg-cyber-gray/10'}`}
+                    onClick={() => hasData && toggleExpanded(log.id)}
+                  >
+                    {hasData && (
+                      <span className="text-cyber-gray-light shrink-0 w-3">
+                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      </span>
+                    )}
+                    <span className="text-cyber-gray shrink-0">
+                      {log.timestamp.toLocaleTimeString('en-US', { hour12: false })}
+                    </span>
+                    <span className={`shrink-0 ${getTypeColor(log.type)}`}>
+                      {getTypeIcon(log.type)}
+                    </span>
+                    <span className="text-cyber-blue shrink-0">
+                      [{log.nodeId.slice(0, 12)}]
+                    </span>
+                    <span className={getTypeColor(log.type)}>
+                      {log.message}
+                    </span>
+                    {hasData && !isExpanded && (
+                      <span className="text-cyber-gray-light ml-2 truncate">
+                        → {formatOutputSummary(log.data)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Expanded output */}
+                  {hasData && isExpanded && (
+                    <div className="ml-6 bg-cyber-black/60 rounded p-2 border-l-2 border-cyber-purple/50">
+                      <pre className="text-cyber-gray-light whitespace-pre-wrap break-all text-[11px]">
+                        {formatOutput(log.data)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
-          
-          {/* Show output data for entries that have it */}
-          {logs.filter(l => l.data).map((log) => (
-            <div key={`${log.id}-data`} className="ml-24 bg-cyber-black/50 rounded p-2 mt-1">
-              <pre className="text-cyber-gray-light whitespace-pre-wrap break-all">
-                {formatOutput(log.data)}
-              </pre>
-            </div>
-          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 };

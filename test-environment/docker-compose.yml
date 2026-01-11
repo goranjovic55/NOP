@@ -19,7 +19,7 @@ services:
       test-network:
         ipv4_address: 172.21.0.10
     ports:
-      - "2222:22"
+      - "2223:22"
     restart: unless-stopped
 
   web-server:

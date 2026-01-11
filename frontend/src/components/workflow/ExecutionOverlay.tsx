@@ -1,10 +1,12 @@
 /**
  * ExecutionOverlay - Displays workflow execution status and controls
+ * Cyberpunk themed popup with glowing effects
  */
 
 import React from 'react';
 import { Play, Pause, Square, AlertTriangle, CheckCircle, XCircle, Loader2, Clock } from 'lucide-react';
-import { WorkflowExecution, ExecutionStatus, NodeExecutionStatus } from '../../types/workflow';
+import { WorkflowExecution, ExecutionStatus } from '../../types/workflow';
+import { CyberButton } from '../CyberUI';
 
 interface ExecutionOverlayProps {
   execution: WorkflowExecution | null;
@@ -16,22 +18,43 @@ interface ExecutionOverlayProps {
   onClose: () => void;
 }
 
-const statusColors: Record<ExecutionStatus, string> = {
-  pending: 'text-gray-400',
-  running: 'text-cyber-blue',
-  paused: 'text-yellow-400',
-  completed: 'text-cyber-green',
-  failed: 'text-red-500',
-  cancelled: 'text-gray-500',
-};
-
-const statusIcons: Record<ExecutionStatus, React.ReactNode> = {
-  pending: <Clock className="w-5 h-5" />,
-  running: <Loader2 className="w-5 h-5 animate-spin" />,
-  paused: <Pause className="w-5 h-5" />,
-  completed: <CheckCircle className="w-5 h-5" />,
-  failed: <XCircle className="w-5 h-5" />,
-  cancelled: <Square className="w-5 h-5" />,
+const statusConfig: Record<ExecutionStatus, { color: string; glowColor: string; icon: React.ReactNode; label: string }> = {
+  pending: { 
+    color: 'text-cyber-gray-light', 
+    glowColor: 'shadow-cyber-gray/30',
+    icon: <Clock className="w-5 h-5" />,
+    label: 'PENDING'
+  },
+  running: { 
+    color: 'text-cyber-blue', 
+    glowColor: 'shadow-cyber-blue/50',
+    icon: <Loader2 className="w-5 h-5 animate-spin" />,
+    label: 'RUNNING'
+  },
+  paused: { 
+    color: 'text-cyber-yellow', 
+    glowColor: 'shadow-yellow-500/30',
+    icon: <Pause className="w-5 h-5" />,
+    label: 'PAUSED'
+  },
+  completed: { 
+    color: 'text-cyber-green', 
+    glowColor: 'shadow-cyber-green/50',
+    icon: <CheckCircle className="w-5 h-5" />,
+    label: 'COMPLETED'
+  },
+  failed: { 
+    color: 'text-cyber-red', 
+    glowColor: 'shadow-cyber-red/50',
+    icon: <XCircle className="w-5 h-5" />,
+    label: 'FAILED'
+  },
+  cancelled: { 
+    color: 'text-cyber-gray', 
+    glowColor: 'shadow-cyber-gray/30',
+    icon: <Square className="w-5 h-5" />,
+    label: 'CANCELLED'
+  },
 };
 
 const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
@@ -48,123 +71,175 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
   }
 
   const status = execution?.status || 'pending';
+  const config = statusConfig[status] || statusConfig.pending;
   const progress = execution?.progress || { completed: 0, total: 0, percentage: 0 };
 
   return (
     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-cyber-darker/95 backdrop-blur-sm border border-cyber-gray rounded-lg shadow-xl p-4 min-w-[400px]">
+      {/* Cyberpunk styled container */}
+      <div className={`
+        bg-cyber-black/95 backdrop-blur-md 
+        border border-cyber-purple/60 
+        rounded-lg 
+        shadow-lg ${config.glowColor}
+        p-4 min-w-[420px]
+        font-mono
+      `}>
+        {/* Decorative corner accents */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyber-purple rounded-tl-lg" />
+        <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyber-purple rounded-tr-lg" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyber-purple rounded-bl-lg" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyber-purple rounded-br-lg" />
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className={statusColors[status]}>
-              {statusIcons[status]}
-            </span>
-            <span className="text-white font-medium capitalize">{status}</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`${config.color} flex items-center justify-center w-8 h-8 rounded bg-cyber-darker border border-current/30`}>
+              {config.icon}
+            </div>
+            <div>
+              <span className={`text-sm font-bold tracking-wider ${config.color}`}>
+                {config.label}
+              </span>
+              {execution && (
+                <div className="text-[10px] text-cyber-gray-light">
+                  ID: {execution.id.slice(0, 8)}...
+                </div>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-cyber-gray hover:text-cyber-purple transition-colors p-1 hover:bg-cyber-purple/20 rounded"
           >
             <XCircle className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-3">
-          <div className="flex justify-between text-sm text-gray-400 mb-1">
-            <span>Progress</span>
-            <span>{progress.completed} / {progress.total} nodes</span>
+        {/* Progress Section */}
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-cyber-gray-light mb-2">
+            <span className="uppercase tracking-wider">Progress</span>
+            <span className="text-cyber-purple font-bold">
+              {progress.completed} / {progress.total} <span className="text-cyber-gray-light font-normal">nodes</span>
+            </span>
           </div>
-          <div className="w-full h-2 bg-cyber-black rounded-full overflow-hidden">
+          
+          {/* Cyberpunk progress bar */}
+          <div className="relative h-3 bg-cyber-black rounded border border-cyber-gray/50 overflow-hidden">
+            {/* Grid pattern background */}
+            <div className="absolute inset-0 opacity-20" style={{
+              backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(139, 92, 246, 0.3) 50%)',
+              backgroundSize: '4px 100%'
+            }} />
+            
+            {/* Progress fill */}
             <div
-              className={`h-full transition-all duration-300 ${
-                status === 'failed' ? 'bg-red-500' :
-                status === 'completed' ? 'bg-cyber-green' :
-                'bg-cyber-purple'
+              className={`absolute inset-y-0 left-0 transition-all duration-500 ${
+                status === 'failed' ? 'bg-gradient-to-r from-cyber-red to-red-400' :
+                status === 'completed' ? 'bg-gradient-to-r from-cyber-green to-emerald-400' :
+                'bg-gradient-to-r from-cyber-purple to-cyber-blue'
               }`}
               style={{ width: `${progress.percentage}%` }}
             />
+            
+            {/* Scanline effect */}
+            {status === 'running' && (
+              <div 
+                className="absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"
+                style={{ 
+                  left: `${progress.percentage - 5}%`,
+                  animation: 'shimmer 1.5s infinite'
+                }}
+              />
+            )}
+          </div>
+          
+          {/* Percentage */}
+          <div className="text-right mt-1">
+            <span className={`text-lg font-bold ${config.color}`}>
+              {Math.round(progress.percentage)}%
+            </span>
           </div>
         </div>
 
         {/* Level Info */}
         {execution && (
-          <div className="text-sm text-gray-400 mb-3">
-            <span>Level: </span>
-            <span className="text-white">{execution.currentLevel + 1}</span>
-            <span> / {execution.totalLevels}</span>
+          <div className="flex items-center gap-4 mb-4 p-2 bg-cyber-darker/80 rounded border border-cyber-gray/30">
+            <div className="flex-1">
+              <div className="text-[10px] uppercase tracking-wider text-cyber-gray-light">Level</div>
+              <div className="text-cyber-purple font-bold">
+                {execution.currentLevel + 1} <span className="text-cyber-gray-light font-normal">/ {execution.totalLevels}</span>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-cyber-gray/30" />
+            <div className="flex-1">
+              <div className="text-[10px] uppercase tracking-wider text-cyber-gray-light">Time</div>
+              <div className="text-cyber-blue font-bold">
+                {execution.startedAt 
+                  ? `${Math.round((Date.now() - new Date(execution.startedAt).getTime()) / 1000)}s`
+                  : '--'
+                }
+              </div>
+            </div>
           </div>
         )}
 
         {/* Errors */}
         {execution?.errors && execution.errors.length > 0 && (
-          <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded">
-            <div className="flex items-center gap-2 text-red-400 text-sm">
-              <AlertTriangle className="w-4 h-4" />
-              <span>{execution.errors[0].message}</span>
+          <div className="mb-4 p-3 bg-cyber-red/10 border border-cyber-red/40 rounded">
+            <div className="flex items-start gap-2 text-cyber-red text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="font-mono">{execution.errors[0].message}</span>
             </div>
           </div>
         )}
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3 pt-2 border-t border-cyber-gray/30">
           {!isExecuting && status !== 'running' && (
-            <button
-              onClick={onStart}
-              className="flex items-center gap-2 px-4 py-2 bg-cyber-purple hover:bg-cyber-purple/80 text-white rounded transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              <span>Run</span>
-            </button>
+            <CyberButton variant="purple" size="sm" onClick={onStart}>
+              <Play className="w-4 h-4 mr-1" />
+              RUN
+            </CyberButton>
           )}
 
           {status === 'running' && (
             <>
-              <button
-                onClick={onPause}
-                className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/50 rounded transition-colors"
-              >
-                <Pause className="w-4 h-4" />
-                <span>Pause</span>
-              </button>
-              <button
-                onClick={onCancel}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded transition-colors"
-              >
-                <Square className="w-4 h-4" />
-                <span>Stop</span>
-              </button>
+              <CyberButton variant="gray" size="sm" onClick={onPause}>
+                <Pause className="w-4 h-4 mr-1" />
+                PAUSE
+              </CyberButton>
+              <CyberButton variant="red" size="sm" onClick={onCancel}>
+                <Square className="w-4 h-4 mr-1" />
+                STOP
+              </CyberButton>
             </>
           )}
 
           {status === 'paused' && (
             <>
-              <button
-                onClick={onResume}
-                className="flex items-center gap-2 px-4 py-2 bg-cyber-green/20 hover:bg-cyber-green/30 text-cyber-green border border-cyber-green/50 rounded transition-colors"
-              >
-                <Play className="w-4 h-4" />
-                <span>Resume</span>
-              </button>
-              <button
-                onClick={onCancel}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded transition-colors"
-              >
-                <Square className="w-4 h-4" />
-                <span>Stop</span>
-              </button>
+              <CyberButton variant="green" size="sm" onClick={onResume}>
+                <Play className="w-4 h-4 mr-1" />
+                RESUME
+              </CyberButton>
+              <CyberButton variant="red" size="sm" onClick={onCancel}>
+                <Square className="w-4 h-4 mr-1" />
+                STOP
+              </CyberButton>
             </>
           )}
 
           {(status === 'completed' || status === 'failed' || status === 'cancelled') && (
-            <button
-              onClick={onStart}
-              className="flex items-center gap-2 px-4 py-2 bg-cyber-purple hover:bg-cyber-purple/80 text-white rounded transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              <span>Run Again</span>
-            </button>
+            <CyberButton variant="purple" size="sm" onClick={onStart}>
+              <Play className="w-4 h-4 mr-1" />
+              RUN AGAIN
+            </CyberButton>
           )}
+          
+          <CyberButton variant="gray" size="sm" onClick={onClose}>
+            CLOSE
+          </CyberButton>
         </div>
       </div>
     </div>

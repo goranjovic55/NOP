@@ -109,6 +109,7 @@ export interface WorkflowEdge {
   type?: string;
   animated?: boolean;
   style?: Record<string, any>;
+  selected?: boolean;
 }
 
 

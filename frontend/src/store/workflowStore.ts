@@ -16,10 +16,22 @@ import {
   CompileResult,
 } from '../types/workflow';
 
+interface WorkflowTab {
+  workflowId: string;
+  name: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  isDirty: boolean;
+}
+
 interface WorkflowState {
   // Workflow list
   workflows: Workflow[];
   currentWorkflowId: string | null;
+  
+  // Tab management - multiple open flows
+  openTabs: WorkflowTab[];
+  activeTabId: string | null;
   
   // Canvas state (current workflow)
   nodes: WorkflowNode[];
@@ -33,6 +45,7 @@ interface WorkflowState {
   // UI state
   isPaletteOpen: boolean;
   isConfigPanelOpen: boolean;
+  isTemplatesOpen: boolean;
   zoom: number;
   
   // Workflow CRUD
@@ -41,6 +54,12 @@ interface WorkflowState {
   updateWorkflow: (id: string, data: Partial<Workflow>) => Promise<void>;
   deleteWorkflow: (id: string) => Promise<void>;
   setCurrentWorkflow: (id: string | null) => void;
+  
+  // Tab management
+  openWorkflowTab: (id: string) => void;
+  closeTab: (id: string) => void;
+  switchToTab: (id: string) => void;
+  markTabDirty: (id: string, dirty: boolean) => void;
   
   // Canvas operations
   addNode: (node: WorkflowNode) => void;
@@ -63,6 +82,7 @@ interface WorkflowState {
   // UI
   togglePalette: () => void;
   toggleConfigPanel: () => void;
+  toggleTemplates: () => void;
   setZoom: (zoom: number) => void;
   
   // Helpers
@@ -92,6 +112,8 @@ export const useWorkflowStore = create<WorkflowState>()(
       // Initial state
       workflows: [],
       currentWorkflowId: null,
+      openTabs: [],
+      activeTabId: null,
       nodes: [],
       edges: [],
       selectedNodeId: null,
@@ -99,6 +121,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       isExecuting: false,
       isPaletteOpen: true,
       isConfigPanelOpen: false,
+      isTemplatesOpen: false,
       zoom: 1,
 
       // Load workflows from API
@@ -134,9 +157,19 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
         
         const workflow = await response.json();
+        const newTab: WorkflowTab = {
+          workflowId: workflow.id,
+          name: workflow.name,
+          nodes: workflow.nodes || [],
+          edges: workflow.edges || [],
+          isDirty: false,
+        };
+        
         set(state => ({
           workflows: [...state.workflows, workflow],
           currentWorkflowId: workflow.id,
+          openTabs: [...state.openTabs, newTab],
+          activeTabId: workflow.id,
           nodes: workflow.nodes || [],
           edges: workflow.edges || [],
         }));
@@ -163,6 +196,9 @@ export const useWorkflowStore = create<WorkflowState>()(
         const updated = await response.json();
         set(state => ({
           workflows: state.workflows.map(w => w.id === id ? updated : w),
+          openTabs: state.openTabs.map(t => 
+            t.workflowId === id ? { ...t, isDirty: false } : t
+          ),
         }));
       },
 
@@ -178,9 +214,17 @@ export const useWorkflowStore = create<WorkflowState>()(
           throw new Error('Failed to delete workflow');
         }
         
+        const { openTabs, activeTabId } = get();
+        const remainingTabs = openTabs.filter(t => t.workflowId !== id);
+        const newActiveTab = activeTabId === id 
+          ? (remainingTabs[0]?.workflowId || null)
+          : activeTabId;
+        
         set(state => ({
           workflows: state.workflows.filter(w => w.id !== id),
-          currentWorkflowId: state.currentWorkflowId === id ? null : state.currentWorkflowId,
+          currentWorkflowId: state.currentWorkflowId === id ? newActiveTab : state.currentWorkflowId,
+          openTabs: remainingTabs,
+          activeTabId: newActiveTab,
           nodes: state.currentWorkflowId === id ? [] : state.nodes,
           edges: state.currentWorkflowId === id ? [] : state.edges,
         }));
@@ -188,16 +232,145 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Set current workflow
       setCurrentWorkflow: (id) => {
-        const { workflows } = get();
+        const { workflows, openTabs } = get();
         const workflow = workflows.find(w => w.id === id);
         
+        if (id && workflow) {
+          // Check if already open in a tab
+          const existingTab = openTabs.find(t => t.workflowId === id);
+          if (!existingTab) {
+            const newTab: WorkflowTab = {
+              workflowId: id,
+              name: workflow.name,
+              nodes: workflow.nodes || [],
+              edges: workflow.edges || [],
+              isDirty: false,
+            };
+            set(state => ({
+              currentWorkflowId: id,
+              openTabs: [...state.openTabs, newTab],
+              activeTabId: id,
+              nodes: workflow?.nodes || [],
+              edges: workflow?.edges || [],
+              selectedNodeId: null,
+              execution: null,
+            }));
+          } else {
+            set({
+              currentWorkflowId: id,
+              activeTabId: id,
+              nodes: existingTab.nodes,
+              edges: existingTab.edges,
+              selectedNodeId: null,
+              execution: null,
+            });
+          }
+        } else {
+          set({
+            currentWorkflowId: null,
+            activeTabId: null,
+            nodes: [],
+            edges: [],
+            selectedNodeId: null,
+            execution: null,
+          });
+        }
+      },
+      
+      // Tab management
+      openWorkflowTab: (id) => {
+        const { workflows, openTabs } = get();
+        const workflow = workflows.find(w => w.id === id);
+        if (!workflow) return;
+        
+        const existingTab = openTabs.find(t => t.workflowId === id);
+        if (existingTab) {
+          // Just switch to it
+          set({
+            currentWorkflowId: id,
+            activeTabId: id,
+            nodes: existingTab.nodes,
+            edges: existingTab.edges,
+          });
+        } else {
+          // Open new tab
+          const newTab: WorkflowTab = {
+            workflowId: id,
+            name: workflow.name,
+            nodes: workflow.nodes || [],
+            edges: workflow.edges || [],
+            isDirty: false,
+          };
+          set(state => ({
+            currentWorkflowId: id,
+            openTabs: [...state.openTabs, newTab],
+            activeTabId: id,
+            nodes: workflow.nodes || [],
+            edges: workflow.edges || [],
+          }));
+        }
+      },
+      
+      closeTab: (id) => {
+        const { openTabs, activeTabId } = get();
+        const remainingTabs = openTabs.filter(t => t.workflowId !== id);
+        const newActiveId = activeTabId === id 
+          ? (remainingTabs[remainingTabs.length - 1]?.workflowId || null)
+          : activeTabId;
+        
+        const newActiveTab = remainingTabs.find(t => t.workflowId === newActiveId);
+        
         set({
-          currentWorkflowId: id,
-          nodes: workflow?.nodes || [],
-          edges: workflow?.edges || [],
-          selectedNodeId: null,
-          execution: null,
+          openTabs: remainingTabs,
+          activeTabId: newActiveId,
+          currentWorkflowId: newActiveId,
+          nodes: newActiveTab?.nodes || [],
+          edges: newActiveTab?.edges || [],
         });
+      },
+      
+      switchToTab: (id) => {
+        const { openTabs, nodes, edges, activeTabId } = get();
+        
+        // Save current tab state before switching
+        if (activeTabId) {
+          const updatedTabs = openTabs.map(t => 
+            t.workflowId === activeTabId 
+              ? { ...t, nodes, edges }
+              : t
+          );
+          
+          const targetTab = updatedTabs.find(t => t.workflowId === id);
+          if (targetTab) {
+            set({
+              openTabs: updatedTabs,
+              activeTabId: id,
+              currentWorkflowId: id,
+              nodes: targetTab.nodes,
+              edges: targetTab.edges,
+              selectedNodeId: null,
+            });
+          }
+        } else {
+          const targetTab = openTabs.find(t => t.workflowId === id);
+          if (targetTab) {
+            set({
+              activeTabId: id,
+              currentWorkflowId: id,
+              nodes: targetTab.nodes,
+              edges: targetTab.edges,
+              selectedNodeId: null,
+            });
+          }
+        }
+      },
+      
+      markTabDirty: (id, dirty) => {
+        set(state => ({
+          openTabs: state.openTabs.map(t => 
+            t.workflowId === id ? { ...t, isDirty: dirty } : t
+          ),
+        }));
       },
 
       // Canvas: Add node
@@ -325,6 +498,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       // UI toggles
       togglePalette: () => set(state => ({ isPaletteOpen: !state.isPaletteOpen })),
       toggleConfigPanel: () => set(state => ({ isConfigPanelOpen: !state.isConfigPanelOpen })),
+      toggleTemplates: () => set(state => ({ isTemplatesOpen: !state.isTemplatesOpen })),
       setZoom: (zoom) => set({ zoom }),
 
       // Get current workflow
