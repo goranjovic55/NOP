@@ -2,67 +2,46 @@
 applyTo: "**"
 ---
 
-# Workflow Discipline v7.0 (100k Simulation Optimized)
+# Workflow v7.1
 
-## Session Phases
+## Phases
+| Phase | Actions |
+|-------|---------|
+| START | Knowledge → Skills → TODO → Announce |
+| WORK | ◆ → Skill → Edit → Verify → ✓ |
+| END | Close ⊘ → Scripts → Log → Commit |
 
-| Phase | Actions | Enforcement |
-|-------|---------|-------------|
-| START | Read knowledge → skills → docs INDEX → create TODO | ⛔ G3 |
-| WORK | Mark ◆ → load skill → edit → verify → mark ✓ | ⛔ G1,G2,G5,G6 |
-| END | Close ⊘ → run scripts → create log → commit | ⛔ G4 |
+## Symbols
+✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## Status Symbols
-
-| Symbol | Meaning | Rule |
-|--------|---------|------|
-| ○ | Not started | Default |
-| ◆ | In progress | ⛔ Only ONE (G6) |
-| ✓ | Completed | Mark immediately |
-| ⊘ | Paused | Close before END |
-| ⧖ | Delegated | Sub-agent working |
-
-## TODO Rules (⛔ G1 - 10.1% deviation rate)
-
-1. Create before multi-step work (3+ files)
+## TODO Rules
+1. Create before multi-step work
 2. Mark ◆ BEFORE edit, ✓ AFTER verify
-3. ⛔ Only ONE ◆ active (G6)
+3. Only ONE ◆ active
 4. Close all ⊘ before END
 
-## Verification (⛔ G5 - 17.9% deviation rate)
-
+## Verification
 After EVERY edit:
-1. Syntax check (no errors)
-2. Import validation (resolves)
-3. Test run (if applicable)
-4. THEN mark ✓
+1. Syntax check
+2. Import validation
+3. Test if applicable
+4. Mark ✓
 
-## END Scripts (⛔ G4 - 22.1% deviation rate)
-
+## END Scripts
 ```bash
 python .github/scripts/knowledge.py
 python .github/scripts/skills.py
-python .github/scripts/instructions.py
 python .github/scripts/docs.py
 python .github/scripts/agents.py
 ```
 
-| Response | Action |
-|----------|--------|
-| y | Run `--update` → verify |
-| n | Skip |
-| select | Agent implements manually |
+## Workflow Phases
+| Phase | Skill | Action |
+|-------|-------|--------|
+| PLAN | planning | Analyze, design |
+| BUILD | frontend/backend | Implement |
+| VERIFY | testing/debugging | Test, check |
+| DOCUMENT | documentation | Update docs |
 
-## Workflow Log
-
+## Log
 Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` at session end.
-
-## ⚠️ Gotchas (From 100k Simulation)
-
-| Issue | Deviation Rate | Impact |
-|-------|----------------|--------|
-| Skip skill loading | 31.1% | -15% quality |
-| Skip workflow log | 22.1% | Lost traceability |
-| Skip verification | 17.9% | Syntax errors |
-| Incomplete TODO | 10.1% | Lost progress |
-| Skip knowledge | 8.1% | Redundant lookups |
