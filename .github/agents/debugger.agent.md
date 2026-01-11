@@ -1,6 +1,7 @@
 ---
 name: debugger
 description: Trace logs, find bugs, report root cause. Returns trace to AKIS.
+tools: ['search', 'usages', 'problems', 'testFailure']
 ---
 
 # Debugger Agent

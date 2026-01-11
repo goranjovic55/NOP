@@ -66,27 +66,34 @@
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## Delegation (use ⧖) - Optimized from 100k simulation
+## Skills vs Agents
 
-| Complexity | Action | Efficiency* |
-|------------|--------|-------------|
-| Simple (<3 files) | Handle directly or smart delegate | 72% vs 94% |
-| Medium (3-5 files) | **Smart delegation** (task-match) | 93.5% |
-| Complex (6+ files) | **Always delegate** to specialist | 93.8% |
+| Concept | Type | How to Use |
+|---------|------|------------|
+| **Skills** | Callable | `skill("frontend-react")` loads context |
+| **Agents** | Conceptual | Follow patterns in `.github/agents/*.md` |
 
-*No delegation: 72% success, 27 min. With delegation: 94% success, 16 min.
+**Note:** Delegation = follow agent methodology, not spawn process.
+See: `docs/development/SKILLS_VS_AGENTS.md`
 
-| Agent | Triggers | Success Rate* |
-|-------|----------|---------------|
-| architect | design, blueprint, plan | 97.7% |
-| debugger | error, bug, traceback | 97.3% |
-| documentation | doc, readme, explain | 88.5% |
-| code | implement, create, write | ~95% |
-| reviewer | review, audit, check | ~90% |
-| research | research, compare, evaluate | 76.2% |
-| devops | deploy, docker, ci | ~90% |
+## Delegation (use ⧖) - Workflow Patterns
 
-*From 100k delegation optimization simulation
+| Complexity | Action |
+|------------|--------|
+| Simple (<3 files) | Direct execution |
+| Medium (3-5 files) | Follow agent patterns |
+| Complex (6+ files) | Trace with ⧖ in log |
+
+| Agent Pattern | Triggers | Use For |
+|---------------|----------|---------|
+| architect | design, blueprint, plan | Design before code |
+| debugger | error, bug, traceback | Root cause analysis |
+| documentation | doc, readme, explain | Docs with examples |
+| code | implement, create, write | Standards + tests |
+| reviewer | review, audit, check | Pass/fail audit |
+| research | research, compare | Gather info |
+| devops | deploy, docker, ci | Infrastructure |
+
 
 ## Parallel Execution (⛔ G7 enforcement - saves 9,395 hrs/100k sessions)
 
@@ -113,6 +120,16 @@
 - **Knowledge:** Read once at START (lines 1-4 only)
 - **Skills:** Load ONCE per domain per session
 - **Scripts:** Run at END only
+
+## Project Planning
+
+| Document Type | Location | Use For |
+|---------------|----------|---------|
+| Blueprints | `.project/blueprints/` | Feature design |
+| Roadmaps | `.project/roadmaps/` | Milestones |
+| Mockups | `.project/mockups/` | UI/UX design |
+
+See templates in each folder.
 
 ## If Lost
 ```

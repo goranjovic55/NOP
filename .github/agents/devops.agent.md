@@ -1,6 +1,7 @@
 ---
 name: devops
 description: CI/CD, Docker, infrastructure. Returns trace to AKIS.
+tools: ['search', 'fetch', 'problems']
 ---
 
 # DevOps Agent

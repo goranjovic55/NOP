@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated**: 2026-01-10 | **Total Active Documents**: 50
+**Last Updated**: 2026-01-11 | **Total Active Documents**: 51
 
 ## Quick Links
 
@@ -9,12 +9,13 @@
 | [Analysis](#analysis) | 19 | Analysis documents and reports |
 | [Architecture](#architecture) | 3 | System design and architecture decisions |
 | [Design](#design) | 3 | UI/UX specifications and component library |
-| [Development](#development) | 5 | Contributing, testing, and development guides |
+| [Development](#development) | 6 | Contributing, testing, and development guides |
 | [Features](#features) | 6 | Feature documentation and user guides |
 | [Guides](#guides) | 7 | Setup, deployment, and how-to guides |
 | [Screenshots](#screenshots) | 1 | Screenshots documentation |
 | [Technical](#technical) | 5 | API references and specifications |
 | [Archive](archive/INDEX.md) | 53 | Historical documentation (superseded) |
+| [.project](../.project/README.md) | - | Blueprints, roadmaps, mockups (planning) |
 
 ---
 
@@ -65,6 +66,7 @@ Contributing, testing, and development workflow.
 - [Contributing to NOP](development/CONTRIBUTING.md)
 - [Development Roadmap](development/ROADMAP.md)
 - [Automation Scripts Reference](development/SCRIPTS.md)
+- [Skills vs Agents](development/SKILLS_VS_AGENTS.md) ⭐ *Clarifies AKIS delegation*
 - [Testing Guide](development/TESTING.md)
 - [Agent/C2 Framework Improvements Roadmap](development/agent-improvements-roadmap.md)
 

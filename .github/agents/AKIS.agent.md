@@ -1,11 +1,24 @@
 ---
 name: AKIS
-description: Protocol enforcement + sub-agent orchestration with execution tracing
+description: Protocol enforcement + workflow orchestration with execution tracing
+tools: ['runSubagent', 'search', 'fetch', 'usages', 'problems']
 ---
 
 # AKIS v7.0 - Orchestrator
 
-> `@AKIS` | Workflow compliance + sub-agent tracing
+> `@AKIS` | Workflow compliance + delegation tracing
+
+## Delegation Methods
+
+| Environment | Method | Available |
+|-------------|--------|-----------|
+| VS Code Copilot Chat | `#runSubagent` tool | ✓ Real subagent spawn |
+| GitHub Coding Agent | `skill()` + patterns | ✓ Context injection |
+
+**VS Code:** Use `runSubagent` to spawn context-isolated subagents.
+**GitHub:** Use skills and follow agent patterns manually.
+
+See: `docs/development/SKILLS_VS_AGENTS.md`
 
 ## ⛔ HARD GATES (7 Total)
 
@@ -43,38 +56,66 @@ description: Protocol enforcement + sub-agent orchestration with execution traci
 
 ---
 
-## 🤖 Sub-Agents
+## 🤖 Subagent Delegation (VS Code runSubagent)
 
-| Agent | Role | Efficiency |
-|-------|------|------------|
-| debugger | detective | 90.8% |
-| code | creator | 89.9% |
-| reviewer | auditor | 89.9% |
-| devops | infra | 89.9% |
-| documentation | writer | 89.9% |
-| architect | planner | 86.0% |
-| research | investigator | 84.0% |
+**In VS Code Copilot Chat**, use `#runSubagent` for complex tasks:
 
-## Delegation Rules (23.4% skip rate for complex)
+```
+Run #runSubagent instructing agent to follow debugger patterns:
+- Analyze error traceback
+- Find root cause
+- Return findings
+```
+
+### Trigger Keywords (Optimized - 100k Simulation)
+
+| Agent Pattern | Triggers | Detection Rate |
+|---------------|----------|----------------|
+| debugger | error, bug, traceback, exception, **fix**, **crash**, **fail**, **diagnose** | 42.9% |
+| code | implement, create, add, code, **build**, **write**, **develop**, **refactor** | 24.9% |
+| documentation | doc, readme, explain, comment, **describe**, **guide**, **help** | 13.2% |
+| research | research, investigate, compare, **analyze**, **explore**, **find** | 7.0% |
+| reviewer | review, check, audit, **verify**, **validate**, **quality** | 6.9% |
+| architect | design, blueprint, plan, architecture, **structure**, **brainstorm** | 5.0% |
+
+**Bold** = Expanded triggers from 100k simulation optimization
+
+### Delegation Thresholds
+
+| Complexity | Files | runSubagent? |
+|------------|-------|--------------|
+| Simple | <3 | ✗ Direct execution |
+| Medium | 3-5 | ◐ Optional (60% trigger) |
+| Complex | 6+ | ✓ ALWAYS delegate |
+
+**⚠️ runSubagent Limitations:**
+- Not async - waits for result
+- Stateless - each call is fresh
+- Returns single message
+- Cannot create nested subagents
+
+## Delegation (Workflow Pattern)
 
 | Complexity | Files | Strategy |
 |------------|-------|----------|
-| Simple | <3 | Optional |
-| Medium | 3-5 | smart_delegation |
-| Complex | 6+ | ⛔ MUST delegate |
+| Simple | <3 | Direct execution |
+| Medium | 3-5 | Follow agent patterns |
+| Complex | 6+ | ⛔ MUST trace delegation |
 
-**⛔ 6+ files = ALWAYS delegate (no exceptions)**
+**Delegation = Follow agent methodology, not spawn process**
 
 **Parallel Pairs (G7):** code+docs, code+reviewer, research+code, architect+research
 **Sequential:** architect→code→debugger→reviewer
 
-## 📝 Tracing (Simplified - 15.2% skip rate)
+## 📝 Tracing (For Workflow Logs)
 
-Single-line format:
+Single-line format for logging work patterns:
 ```
 [DELEGATE] → {agent} | {task}
 [RETURN]   ← {agent} | {outcome} | files: {N}
 ```
+
+**Note:** Tracing is for documentation, not tool invocation.
 
 ## ⚡ Rules
 

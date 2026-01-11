@@ -1,6 +1,7 @@
 ---
 name: research
 description: Gather info from local docs + external sources. Returns findings trace to AKIS.
+tools: ['search', 'fetch', 'usages', 'githubRepo']
 ---
 
 # Research Agent

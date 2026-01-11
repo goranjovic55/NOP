@@ -1,6 +1,7 @@
 ---
 name: reviewer
 description: Independent pass/fail audit. Returns verdict trace to AKIS.
+tools: ['search', 'usages', 'problems', 'testFailure', 'changes']
 ---
 
 # Reviewer Agent

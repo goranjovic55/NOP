@@ -1,6 +1,7 @@
 ---
 name: architect
 description: Design blueprints before implementation. Returns design trace to AKIS.
+tools: ['search', 'fetch', 'usages', 'runSubagent']
 ---
 
 # Architect Agent
