@@ -2,6 +2,8 @@
 
 Copy this template when creating a new roadmap.
 
+> **Usage:** Copy everything below the `---` line. Replace all `{placeholder}` text with actual content. Delete this instruction block and any unused sections.
+
 ---
 
 # Roadmap: {Project/Phase Name}

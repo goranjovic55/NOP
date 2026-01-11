@@ -2,6 +2,8 @@
 
 Copy this template when creating a new UI/UX mockup document.
 
+> **Usage:** Copy everything below the `---` line. Replace all `{placeholder}` text with actual content. Delete this instruction block and any unused sections.
+
 ---
 
 # Mockup: {Feature Name}

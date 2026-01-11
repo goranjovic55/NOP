@@ -2,6 +2,8 @@
 
 Copy this template when creating a new feature blueprint.
 
+> **Usage:** Copy everything below the `---` line. Replace all `{placeholder}` text with actual content. Delete this instruction block and any unused sections.
+
 ---
 
 # Blueprint: {Feature Name}
