@@ -187,3 +187,6 @@
 {"type": "entity", "name": "agents", "entityType": "module", "path": ".github/scripts/agents.py", "exports": ["run_suggest", "extract_baseline", "run_generate", "simulate_akis_effectiveness"], "updated": "2026-01-11"}
 {"type": "entity", "name": "akis_full_audit", "entityType": "module", "path": ".github/scripts/akis_full_audit.py", "exports": ["SimulationResults", "ComplianceIssue", "ComplianceChecker", "SessionSimulator", "main"], "updated": "2026-01-11"}
 {"type": "entity", "name": "skills", "entityType": "module", "path": ".github/scripts/skills.py", "exports": ["validate_skill_quality", "detect_existing_skills", "detect_new_skill_candidates", "simulate_sessions"], "updated": "2026-01-11"}
+{"type": "entity", "name": "test_templates_e2e", "entityType": "module", "path": "scripts/test_templates_e2e.py", "exports": ["TemplateE2ETester", "TEMPLATES"], "updated": "2026-01-11"}
+{"type": "entity", "name": "test_flow_templates", "entityType": "module", "path": "scripts/test_flow_templates.py", "exports": ["FlowTemplateTester"], "updated": "2026-01-11"}
+{"type": "entity", "name": "test_templates_quick", "entityType": "module", "path": "scripts/test_templates_quick.py", "exports": [], "updated": "2026-01-11"}

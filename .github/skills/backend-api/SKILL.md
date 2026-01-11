@@ -10,6 +10,9 @@ description: Load when editing Python files in backend/, api/, routes/, services
 - **401 errors:** Call `logout()` from authStore for redirect
 - **Alembic:** Run `alembic upgrade head` after model changes
 - **WebSocket:** Always handle `WebSocketDisconnect` exception
+- **Auth/JWT:** Validate tokens server-side, never trust client
+- **Security:** Sanitize inputs, use parameterized queries
+- **Monitoring:** Use structured logging with context
 
 ## Rules
 | Rule | Pattern |

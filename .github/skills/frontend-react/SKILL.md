@@ -7,6 +7,8 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 
 ## Merged Skills
 - **state-management**: Zustand stores, selectors, subscriptions
+- **internationalization**: i18n, translation, locale patterns
+- **performance**: React.memo, useMemo, useCallback optimization
 
 ## ⚠️ Critical Gotchas
 - **401 errors:** Call `logout()` from authStore, don't show page-level error UI
