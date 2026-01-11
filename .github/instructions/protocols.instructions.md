@@ -4,9 +4,10 @@ applyTo: "**"
 
 # Protocols v7.1
 
-## Gates (7)
+## Gates (8)
 | G | Check | Fix |
 |---|-------|-----|
+| 0 | No knowledge query | Query project_knowledge.json FIRST |
 | 1 | No ◆ | Create TODO |
 | 2 | No skill for edit/command | Load skill FIRST |
 | 3 | No START | Do START |
@@ -14,6 +15,13 @@ applyTo: "**"
 | 5 | No verify | Check syntax |
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
+
+## ⛔ G0 Enforcement: Knowledge First
+**BEFORE any file read or search:**
+1. Check `hot_cache` for entity/exports/paths
+2. Check `gotchas` for known bugs/solutions
+3. Check `domain_index` for file locations
+4. **ONLY read files if knowledge cache miss**
 
 ## Skill Triggers
 | Trigger | Skill | Applies To |

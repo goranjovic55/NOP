@@ -174,6 +174,14 @@ export interface ExecutionProgress {
   percentage: number;
 }
 
+export interface IterationResult {
+  iteration: number;
+  success: boolean;
+  output?: any;
+  error?: string;
+  completedAt?: string;
+}
+
 export interface NodeResult {
   nodeId: string;
   success: boolean;
@@ -182,6 +190,7 @@ export interface NodeResult {
   startedAt?: string;
   completedAt?: string;
   duration?: number;
+  iterations?: IterationResult[];
 }
 
 export interface ExecutionError {

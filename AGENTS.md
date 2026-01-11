@@ -16,10 +16,11 @@
 | Backend test | `cd backend && python -m pytest` |
 | Frontend test | `cd frontend && npm test` |
 
-## ⛔ Gates (7)
+## ⛔ Gates (8)
 
 | G | Check | Fix |
 |---|-------|-----|
+| 0 | No knowledge query | Query project_knowledge.json FIRST |
 | 1 | No ◆ | Create TODO |
 | 2 | No skill | Load skill |
 | 3 | No START | Do START |
@@ -27,6 +28,8 @@
 | 5 | No verify | Check syntax |
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
+
+**G0 Enforcement:** Always query hot_cache → gotchas → domain_index BEFORE file reads
 
 ## Agents
 

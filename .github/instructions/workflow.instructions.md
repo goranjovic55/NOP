@@ -7,9 +7,17 @@ applyTo: "**"
 ## Phases
 | Phase | Actions |
 |-------|---------|
-| START | Knowledge → Skills → TODO → Announce |
-| WORK | ◆ → Skill → Edit → Verify → ✓ |
+| START | **Knowledge Query** → Skills → TODO → Announce |
+| WORK | Knowledge → ◆ → Skill → Edit → Verify → ✓ |
 | END | Close ⊘ → Scripts → Log → Commit |
+
+## ⛔ G0: Knowledge First (BEFORE file reads)
+```
+1. hot_cache   → Entity info, exports, paths
+2. gotchas     → Known issues + solutions
+3. domain_index → File locations by domain
+4. Read file   → ONLY if cache miss
+```
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated

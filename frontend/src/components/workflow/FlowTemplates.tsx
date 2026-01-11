@@ -99,7 +99,7 @@ const TEMPLATES: FlowTemplate[] = [
     name: 'Security Scan Pipeline',
     description: 'Port scan → Version detect → Vulnerability check',
     category: 'scanning',
-    icon: '⚡',
+    icon: '◈',
     nodes: [
       { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: {} } },
       { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Target', type: 'control.variable_set', category: 'control', parameters: { name: 'target', value: '192.168.1.100' } } },
@@ -263,7 +263,7 @@ const TEMPLATES: FlowTemplate[] = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  scanning: 'border-amber-500 bg-amber-500/10',
+  scanning: 'border-cyber-green bg-cyber-green/10',
   access: 'border-cyber-blue bg-cyber-blue/10',
   traffic: 'border-cyber-purple bg-cyber-purple/10',
   agent: 'border-cyber-red bg-cyber-red/10',

@@ -228,6 +228,7 @@ const Topology: React.FC = () => {
     return saved ? parseInt(saved, 10) : 5000;
   });
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -1145,10 +1146,16 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
-            // Check if this link is selected
+            // Check if this link is selected or hovered
             const isSelected = selectedLink && 
               ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
               ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
+            
+            const isHovered = hoveredLink && 
+              ((typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source) === start.id) &&
+              ((typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target) === end.id);
+            
+            const isHighlighted = isSelected || isHovered;
             
             // Calculate curvature based on node IDs for consistent curves
             const curvature = calculateLinkCurvature(start.id, end.id);
@@ -1157,7 +1164,7 @@ const Topology: React.FC = () => {
             const baseWidth = calculateLinkWidth(totalTraffic);
             // Scale with zoom - thinner when zoomed out, thicker when zoomed in
             const zoomScale = Math.max(0.3, Math.min(1.5, globalScale));
-            const width = (isSelected ? baseWidth * 2 : baseWidth) * zoomScale;
+            const width = (isHighlighted ? baseWidth * 1.5 : baseWidth) * zoomScale;
             const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
             // Apply opacity based on recency and traffic activity - more visible fading
             const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
@@ -1180,15 +1187,17 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw selection glow first (behind the curve) - green glow to match asset highlighting
-            if (isSelected) {
+            // Draw glow for selected or hovered links
+            if (isHighlighted) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              ctx.strokeStyle = '#00ff41';
-              ctx.lineWidth = width + 4;
-              ctx.shadowBlur = 20;
-              ctx.shadowColor = '#00ff41';
+              // Selected = bright green, Hovered = cyan glow
+              const glowColor = isSelected ? '#00ff41' : '#00f0ff';
+              ctx.strokeStyle = glowColor;
+              ctx.lineWidth = width + (isSelected ? 4 : 2);
+              ctx.shadowBlur = isSelected ? 20 : 12;
+              ctx.shadowColor = glowColor;
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
@@ -1199,8 +1208,8 @@ const Topology: React.FC = () => {
             ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
             ctx.lineWidth = width;
-            if (isSelected) {
-              ctx.shadowBlur = 10;
+            if (isHighlighted) {
+              ctx.shadowBlur = isSelected ? 10 : 6;
               ctx.shadowColor = color;
             }
             ctx.stroke();
@@ -1281,9 +1290,9 @@ const Topology: React.FC = () => {
             setHoveredNode(node || null);
           }}
           onLinkHover={(link: any) => {
-            // Only change cursor on link hover - no visual highlighting
-            // Details box shows on click via ConnectionContextMenu
+            // Change cursor and track hovered link for glow effect
             document.body.style.cursor = link ? 'pointer' : 'default';
+            setHoveredLink(link || null);
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;

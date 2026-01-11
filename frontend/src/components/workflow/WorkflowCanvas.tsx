@@ -2,7 +2,7 @@
  * WorkflowCanvas - Cyberpunk-styled React Flow canvas component
  */
 
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -17,6 +17,7 @@ import ReactFlow, {
   applyEdgeChanges,
   BackgroundVariant,
   Node,
+  SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -49,6 +50,31 @@ interface WorkflowCanvasProps {
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Track Ctrl key state for pan/selection mode switching
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  
+  // Listen for Ctrl key press/release
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control') setIsCtrlPressed(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control') setIsCtrlPressed(false);
+    };
+    // Also reset on blur (user switches windows while holding Ctrl)
+    const handleBlur = () => setIsCtrlPressed(false);
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
 
   const { 
     nodes, 
@@ -196,6 +222,12 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
         fitView
         snapToGrid
         snapGrid={[15, 15]}
+        // Default: pan + zoom, Ctrl held: box selection
+        selectionOnDrag={isCtrlPressed}
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={!isCtrlPressed}
+        zoomOnScroll={!isCtrlPressed}
+        panOnScroll={isCtrlPressed}
         defaultEdgeOptions={{
           style: cyberEdgeStyle,
           type: 'smoothstep',

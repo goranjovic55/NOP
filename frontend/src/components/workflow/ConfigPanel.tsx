@@ -1,13 +1,27 @@
 /**
  * ConfigPanel - Cyberpunk-styled right sidebar for node configuration
  * Phase 3: Added credential selector support
+ * Phase 4: Added execution results display with loop iteration tracking
  */
 
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { getBlockDefinition, CATEGORY_COLORS, validateBlockParameters } from '../../types/blocks';
-import { ParameterDefinition } from '../../types/workflow';
+import { ParameterDefinition, NodeResult } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
+
+// Extended result type for loop iterations
+interface IterationResult {
+  iteration: number;
+  success: boolean;
+  output?: any;
+  error?: string;
+  completedAt?: string;
+}
+
+interface ExtendedNodeResult extends NodeResult {
+  iterations?: IterationResult[];
+}
 
 interface VaultCredential {
   id: string;
@@ -23,15 +37,20 @@ interface ConfigPanelProps {
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
-  const { nodes, updateNode } = useWorkflowStore();
+  const { nodes, updateNode, execution } = useWorkflowStore();
   const [localParams, setLocalParams] = useState<Record<string, any>>({});
   const [localLabel, setLocalLabel] = useState('');
   const [credentials, setCredentials] = useState<VaultCredential[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showResults, setShowResults] = useState(true);
 
   const node = nodes.find(n => n.id === nodeId);
   const definition = node ? getBlockDefinition(node.data.type) : null;
   const categoryColor = node ? CATEGORY_COLORS[node.data.category] : '#8b5cf6';
+  
+  // Get execution result for this node
+  const nodeResult = execution?.nodeResults?.[nodeId || ''] as ExtendedNodeResult | undefined;
+  const nodeStatus = execution?.nodeStatuses?.[nodeId || ''];
 
   // Load credentials from localStorage
   useEffect(() => {
@@ -205,12 +224,127 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         {definition.api && (
           <div className="pt-4 border-t border-cyber-gray">
             <h4 className="text-sm font-mono text-cyber-purple mb-2 flex items-center gap-2">
-              <span>⚡</span> API
+              <span>◈</span> API
             </h4>
             <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-gray">
               <span className="text-cyber-green">{definition.api.method}</span>{' '}
               <span className="text-cyber-gray-light">{definition.api.endpoint}</span>
             </div>
+          </div>
+        )}
+
+        {/* Execution Results */}
+        {(nodeResult || nodeStatus) && (
+          <div className="pt-4 border-t border-cyber-gray">
+            <h4 
+              className="text-sm font-mono mb-2 flex items-center justify-between cursor-pointer"
+              onClick={() => setShowResults(!showResults)}
+            >
+              <span className={`flex items-center gap-2 ${nodeResult?.success ? 'text-cyber-green' : nodeResult?.error ? 'text-cyber-red' : 'text-cyber-blue'}`}>
+                <span>{nodeResult?.success ? '✓' : nodeResult?.error ? '✗' : '◎'}</span> 
+                EXECUTION RESULTS
+              </span>
+              <span className="text-cyber-gray-light text-xs">
+                {showResults ? '▼' : '▶'}
+              </span>
+            </h4>
+            
+            {showResults && (
+              <div className="space-y-2">
+                {/* Status Badge */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-cyber-gray-light font-mono">STATUS:</span>
+                  <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+                    nodeStatus === 'completed' ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green/30' :
+                    nodeStatus === 'failed' ? 'bg-cyber-red/20 text-cyber-red border border-cyber-red/30' :
+                    nodeStatus === 'running' ? 'bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/30 animate-pulse' :
+                    'bg-cyber-gray/20 text-cyber-gray-light border border-cyber-gray/30'
+                  }`}>
+                    {nodeStatus?.toUpperCase() || 'PENDING'}
+                  </span>
+                </div>
+
+                {/* Duration */}
+                {nodeResult?.duration && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-cyber-gray-light font-mono">DURATION:</span>
+                    <span className="text-xs font-mono text-cyber-purple">
+                      {nodeResult.duration}ms
+                    </span>
+                  </div>
+                )}
+
+                {/* Loop Iterations */}
+                {nodeResult?.iterations && nodeResult.iterations.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-cyber-gray-light font-mono mb-1">
+                      ITERATIONS ({nodeResult.iterations.length}):
+                    </p>
+                    <div className="max-h-32 overflow-y-auto cyber-scrollbar space-y-1">
+                      {nodeResult.iterations.map((iter, idx) => (
+                        <div 
+                          key={idx}
+                          className={`text-xs font-mono p-2 rounded border ${
+                            iter.success 
+                              ? 'bg-cyber-green/10 border-cyber-green/30' 
+                              : 'bg-cyber-red/10 border-cyber-red/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={iter.success ? 'text-cyber-green' : 'text-cyber-red'}>
+                              {iter.success ? '✓' : '✗'} #{iter.iteration}
+                            </span>
+                            {iter.completedAt && (
+                              <span className="text-cyber-gray-light text-[10px]">
+                                {new Date(iter.completedAt).toLocaleTimeString()}
+                              </span>
+                            )}
+                          </div>
+                          {iter.output && (
+                            <div className="text-cyber-gray-light mt-1 truncate">
+                              {typeof iter.output === 'object' 
+                                ? JSON.stringify(iter.output).slice(0, 50) + '...'
+                                : String(iter.output).slice(0, 50)
+                              }
+                            </div>
+                          )}
+                          {iter.error && (
+                            <div className="text-cyber-red mt-1 truncate">
+                              {iter.error}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Output (non-loop) */}
+                {nodeResult?.output && !nodeResult.iterations && (
+                  <div className="mt-2">
+                    <p className="text-xs text-cyber-gray-light font-mono mb-1">OUTPUT:</p>
+                    <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-green/30 max-h-40 overflow-y-auto cyber-scrollbar">
+                      <pre className="text-cyber-green whitespace-pre-wrap break-words">
+                        {typeof nodeResult.output === 'object' 
+                          ? JSON.stringify(nodeResult.output, null, 2)
+                          : String(nodeResult.output)
+                        }
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error */}
+                {nodeResult?.error && (
+                  <div className="mt-2">
+                    <p className="text-xs text-cyber-gray-light font-mono mb-1">ERROR:</p>
+                    <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-red/30">
+                      <span className="text-cyber-red">{nodeResult.error}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

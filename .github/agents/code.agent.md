@@ -14,7 +14,7 @@ description: Write production code following best practices. Reports back to AKI
 | test, tester, refactor, optimize | Merged |
 | .py, .tsx, .ts, .jsx | Extensions |
 | test_*, *_test.py, *.test.* | Tests |
-| backend/, frontend/, api/ | Directories |
+| backend/, frontend/, api/, docs/ | Directories |
 | components/, pages/, store/, services/, hooks/ | React |
 | .github/scripts/ | AKIS |
 

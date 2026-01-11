@@ -1190,7 +1190,7 @@ const Host: React.FC = () => {
           <div className="mt-4 bg-cyber-dark border border-cyber-purple/30 p-3">
             <div className="flex items-center justify-between">
               <h4 className="text-cyber-purple uppercase text-xs font-bold flex items-center">
-                <span className="mr-2">⚡</span> Transfer Matrix
+                <span className="mr-2">⬢</span> Transfer Matrix
               </h4>
               {transferStatus && (
                 <span className={`text-sm font-mono flex items-center ${transferStatus.includes('✓') ? 'text-cyber-green' : transferStatus.includes('✗') ? 'text-cyber-red' : 'text-cyber-purple'}`}>

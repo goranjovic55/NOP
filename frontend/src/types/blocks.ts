@@ -19,7 +19,7 @@ export const CATEGORY_COLORS: Record<BlockCategory, string> = {
 // Cyberpunk category icons (Unicode symbols)
 export const CATEGORY_ICONS: Record<BlockCategory, string> = {
   connection: '◎',
-  command: '⚡',
+  command: '⬢',
   traffic: '≋',
   scanning: '◈',
   agent: '◆',
@@ -287,7 +287,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'command.ssh_execute',
     label: 'SSH Execute',
     category: 'command',
-    icon: '⚡',
+    icon: '⬢',
     color: '#00ff88',
     description: 'Execute command via SSH',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
@@ -513,7 +513,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     type: 'traffic.storm',
     label: 'Traffic Storm',
     category: 'traffic',
-    icon: '⚡',
+    icon: '≋',
     color: '#8b5cf6',
     description: 'Generate broadcast storm for testing',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],

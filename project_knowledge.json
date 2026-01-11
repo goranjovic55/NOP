@@ -190,3 +190,4 @@
 {"type": "entity", "name": "test_templates_e2e", "entityType": "module", "path": "scripts/test_templates_e2e.py", "exports": ["TemplateE2ETester", "TEMPLATES"], "updated": "2026-01-11"}
 {"type": "entity", "name": "test_flow_templates", "entityType": "module", "path": "scripts/test_flow_templates.py", "exports": ["FlowTemplateTester"], "updated": "2026-01-11"}
 {"type": "entity", "name": "test_templates_quick", "entityType": "module", "path": "scripts/test_templates_quick.py", "exports": [], "updated": "2026-01-11"}
+{"type": "entity", "name": "stress_test", "entityType": "module", "path": ".github/scripts/stress_test.py", "exports": ["run_stress_test", "simulate_high_load_sessions", "measure_performance"], "updated": "2026-01-11"}

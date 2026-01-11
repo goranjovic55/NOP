@@ -8,7 +8,7 @@ description: Trace logs, find bugs, report root cause. Returns trace to AKIS.
 > `@debugger` | Trace → Execute → Find culprit
 
 ## Triggers
-error, bug, debug, traceback, exception, diagnose
+error, bug, debug, traceback, exception, diagnose, _test., test_
 
 ## Methodology (⛔ REQUIRED ORDER)
 1. **REPRODUCE** - Confirm bug exists (mandatory first)

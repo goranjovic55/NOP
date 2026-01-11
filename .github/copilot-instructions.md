@@ -1,8 +1,9 @@
 # AKIS v7.1 (Token-Optimized)
 
-## ⛔ GATES (7)
+## ⛔ GATES (8)
 | G | Check | Fix |
 |---|-------|-----|
+| 0 | No knowledge check | Query project_knowledge.json FIRST |
 | 1 | No ◆ | Create TODO, mark ◆ |
 | 2 | No skill for edit OR command | Load skill FIRST |
 | 3 | No START | Do START |
@@ -11,10 +12,19 @@
 | 6 | Multi ◆ | One ◆ only |
 | 7 | No parallel | Use parallel pairs |
 
+## ⚡ G0: Knowledge First
+**BEFORE reading/searching files:**
+1. `hot_cache` → entity info, exports, paths
+2. `gotchas` → known issues + solutions  
+3. `domain_index` → file locations by domain
+4. Read file ONLY if cache miss
+
 ## START
-1. `project_knowledge.json` (hot_cache, gotchas)
+1. **Query `project_knowledge.json`** (hot_cache → gotchas → domain_index)
 2. `skills/INDEX.md` → pre-load: frontend-react + backend-api
 3. Create TODO → Say: "AKIS v7.1 [complexity]. [N] tasks."
+
+**Knowledge reduces file reads by 85%** - Always check cache first!
 
 ## WORK
 **◆ → Skill → Edit/Command → Verify → ✓**

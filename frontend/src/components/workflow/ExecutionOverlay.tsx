@@ -169,7 +169,7 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
             <div className="flex-1">
               <div className="text-[10px] uppercase tracking-wider text-cyber-gray-light">Level</div>
               <div className="text-cyber-purple font-bold">
-                {execution.currentLevel + 1} <span className="text-cyber-gray-light font-normal">/ {execution.totalLevels}</span>
+                {(execution.currentLevel ?? 0) + 1} <span className="text-cyber-gray-light font-normal">/ {execution.totalLevels ?? 1}</span>
               </div>
             </div>
             <div className="w-px h-8 bg-cyber-gray/30" />
