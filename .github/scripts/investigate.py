@@ -327,10 +327,36 @@ def verify_script(script_name: str, config: Dict[str, Any]) -> ScriptVerificatio
     
     start_time = datetime.now()
     
+    # Validate script_path is within expected directory
+    try:
+        script_path.relative_to(SCRIPTS_DIR)
+    except ValueError:
+        return ScriptVerificationResult(
+            script_name=script_name,
+            works=False,
+            modes_tested=[],
+            modes_passed=[],
+            modes_failed=[],
+            error_messages=[f"Script not in expected directory: {script_path}"],
+            expected_outputs_found=[],
+            missing_outputs=config.get('expected_outputs', []),
+            execution_time_ms=0
+        )
+    
     for mode in config.get('modes', []):
         try:
-            # Run script with smaller session count for quick verification
-            cmd = ['python', str(script_path), mode, '--sessions', '100', '--dry-run']
+            # Build command based on script capabilities
+            # Some scripts don't support --sessions or --dry-run
+            cmd = ['python', str(script_path), mode]
+            
+            # Add --sessions if mode is generate-like
+            if 'generate' in mode or 'full' in mode:
+                cmd.extend(['--sessions', '100'])
+            
+            # Add --dry-run if available (safe by default for verification)
+            if mode not in ['--suggest']:  # suggest is already read-only
+                cmd.append('--dry-run')
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -732,9 +758,16 @@ def simulate_edge_cases(n: int = 100000) -> Dict[str, Any]:
                 deviations.append(dev_type)
         
         # Determine session outcome
+        # Check if all edge cases were handled (handled count > 0 means it was handled)
+        all_edge_cases_handled = all(
+            edge_case_results[e]['handled'] > 0 
+            for e in edge_cases_hit 
+            if edge_case_results[e]['occurrences'] > 0
+        ) if edge_cases_hit else True
+        
         if not edge_cases_hit and not deviations:
             session_results['success'] += 1
-        elif len(deviations) <= 2 and all(edge_case_results[e]['handled'] for e in edge_cases_hit):
+        elif len(deviations) <= 2 and all_edge_cases_handled:
             session_results['partial'] += 1
         else:
             session_results['failure'] += 1
@@ -1070,32 +1103,32 @@ def run_full_investigation(sessions: int = 100000) -> Dict[str, Any]:
     
     # 1. Verify scripts
     print(f"\n{'=' * 70}")
-    print("PHASE 1/5: Script Verification")
+    print("PHASE 1/6: Script Verification")
     results['verification'] = run_verification()
     
     # 2. Extract patterns
     print(f"\n{'=' * 70}")
-    print("PHASE 2/5: Pattern Extraction")
+    print("PHASE 2/6: Pattern Extraction")
     results['patterns'] = run_pattern_extraction()
     
     # 3. External integration
     print(f"\n{'=' * 70}")
-    print("PHASE 3/5: External Best Practices")
+    print("PHASE 3/6: External Best Practices")
     results['external'] = run_external_integration()
     
     # 4. Edge cases
     print(f"\n{'=' * 70}")
-    print("PHASE 4/5: Edge Case Coverage")
+    print("PHASE 4/6: Edge Case Coverage")
     results['edge_cases'] = simulate_edge_cases(sessions)
     
     # 5. Precision analysis
     print(f"\n{'=' * 70}")
-    print("PHASE 5/5: Upgrade Detection Precision")
+    print("PHASE 5/6: Upgrade Detection Precision")
     results['precision'] = analyze_upgrade_detection(sessions)
     
     # 6. Predictions
     print(f"\n{'=' * 70}")
-    print("BONUS: Future Skill Predictions")
+    print("PHASE 6/6: Future Skill Predictions")
     results['predictions'] = predict_future_skills()
     
     # Summary
