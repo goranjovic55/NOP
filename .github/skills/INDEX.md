@@ -1,44 +1,63 @@
-# Skills Index v6.3
+# Skills Index v7.0
 
-**Agent Skills Standard** - Load skills ONCE per domain per session.
+**Situation-Based Skills** - Load skills based on what you're doing, not just what files you're touching.
 
 ## Core Rule: Skill Caching
 - **Load once:** Don't reload skill already loaded this session
 - **Track loaded:** Keep list: [frontend-react, backend-api, ...]
-- **Announce:** Say "SKILL: frontend-react loaded" when loading a skill
+- **Announce:** Say "SKILL: frontend-react loaded" when loading
 
-## Domain Triggers
+## Workflow Phases → Skills
 
-| Touching | Load Skill | Cache? |
-|----------|------------|--------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | ⭐ Pre-load fullstack |
-| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | ⭐ Pre-load fullstack |
-| `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | On first touch |
-| `.github/workflows/*`, deploy scripts | [ci-cd](ci-cd/SKILL.md) | On first touch |
-| Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | On first error |
-| `docs/`, `README`, `*.md` | [documentation](documentation/SKILL.md) | ⚠️ **Always load** |
-| `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | On first test |
-| `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | Rarely needed |
-| `.github/copilot-instructions*`, `.github/skills/*` | [akis-development](akis-development/SKILL.md) | ⚠️ **Always load** |
+| Phase | Situation | Load Skill |
+|-------|-----------|------------|
+| **PLAN** | "new feature", "design", "how should we" | [planning](planning/SKILL.md) |
+| **BUILD** | Python/FastAPI code | [backend-api](backend-api/SKILL.md) |
+| **BUILD** | React/TypeScript code | [frontend-react](frontend-react/SKILL.md) |
+| **BUILD** | Containers, docker-compose | [docker](docker/SKILL.md) |
+| **BUILD** | CI/CD, workflows | [ci-cd](ci-cd/SKILL.md) |
+| **VERIFY** | Tests, test files | [testing](testing/SKILL.md) |
+| **VERIFY** | Errors, bugs, failures | [debugging](debugging/SKILL.md) |
+| **DOCUMENT** | README, docs/, .md files | [documentation](documentation/SKILL.md) |
+| **META** | AKIS framework files | [akis-development](akis-development/SKILL.md) |
+| **META** | project_knowledge.json | [knowledge](knowledge/SKILL.md) |
 
-> ⭐ Pre-load for fullstack sessions (40% of work)
-> ⚠️ Low compliance (40%) - always load these skills
+## Skill Combinations (Common Workflows)
+
+| Workflow | Skills Needed |
+|----------|---------------|
+| New feature (full) | planning → backend-api + frontend-react → testing → documentation |
+| Bug fix | debugging → backend-api or frontend-react → testing |
+| API only | backend-api → testing |
+| UI only | frontend-react → testing |
+| Deployment | docker + ci-cd |
+| Documentation | documentation |
+
+## Auto-Detection Triggers
+
+### Conversation Context (what user says)
+```
+"design a feature" → planning
+"implement" → backend-api or frontend-react (based on files)
+"fix this error" → debugging
+"deploy" → docker + ci-cd
+"document" → documentation
+"write tests" → testing
+```
+
+### File Patterns (what you're touching)
+```
+*.py, backend/, api/ → backend-api
+*.tsx, *.jsx, components/ → frontend-react
+Dockerfile, docker-compose* → docker
+.github/workflows/* → ci-cd
+test_*, *.test.* → testing
+*.md, docs/ → documentation
+```
 
 ## Efficiency Tips
 
-1. **Check cache first:** Before `read_file` for skill, check if already loaded
-2. **Use trigger descriptions:** System prompt has skill summaries  
-3. **Batch loads:** For fullstack, load frontend-react + backend-api together
-
-## Quick Reference
-
-```
-.tsx/.jsx → frontend-react (cache)
-.py → backend-api (cache)
-Dockerfile → docker (cache)
-.github/workflows/* → ci-cd (cache)
-error → debugging (cache)
-.md → documentation (always load)
-test_* → testing (cache)
-.github/skills/* → akis-development (always load)
-```
+1. **Planning first:** For new features, always start with planning skill
+2. **Combine skills:** backend-api + frontend-react for fullstack
+3. **Sequential flow:** PLAN → BUILD → VERIFY → DOCUMENT
+4. **Cache skills:** Don't reload within same session
