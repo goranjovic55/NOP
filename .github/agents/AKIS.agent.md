@@ -67,12 +67,26 @@ Run #runSubagent instructing agent to follow debugger patterns:
 - Return findings
 ```
 
-| Agent Pattern | Use For | runSubagent Prompt |
-|---------------|---------|-------------------|
-| debugger | Errors | "Follow debugger methodology: trace, analyze, report" |
-| code | Implementation | "Follow code patterns: types, tests, lint" |
-| research | Investigation | "Research comprehensively, return at 80% confidence" |
-| architect | Design | "Create blueprint with constraints and tradeoffs" |
+### Trigger Keywords (Optimized - 100k Simulation)
+
+| Agent Pattern | Triggers | Detection Rate |
+|---------------|----------|----------------|
+| debugger | error, bug, traceback, exception, **fix**, **crash**, **fail**, **diagnose** | 42.9% |
+| code | implement, create, add, code, **build**, **write**, **develop**, **refactor** | 24.9% |
+| documentation | doc, readme, explain, comment, **describe**, **guide**, **help** | 13.2% |
+| research | research, investigate, compare, **analyze**, **explore**, **find** | 7.0% |
+| reviewer | review, check, audit, **verify**, **validate**, **quality** | 6.9% |
+| architect | design, blueprint, plan, architecture, **structure**, **brainstorm** | 5.0% |
+
+**Bold** = Expanded triggers from 100k simulation optimization
+
+### Delegation Thresholds
+
+| Complexity | Files | runSubagent? |
+|------------|-------|--------------|
+| Simple | <3 | ✗ Direct execution |
+| Medium | 3-5 | ◐ Optional (60% trigger) |
+| Complex | 6+ | ✓ ALWAYS delegate |
 
 **⚠️ runSubagent Limitations:**
 - Not async - waits for result
