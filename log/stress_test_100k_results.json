@@ -1,0 +1,450 @@
+{
+  "edge_tests": {
+    "edge_tests": [
+      {
+        "edge_case": "empty_session",
+        "description": "No files modified in session",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Returns empty suggestions",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "mega_session",
+        "description": "50+ files modified in session",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Limits analysis to most relevant files",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_agents_dir",
+        "description": "No .github/agents directory exists",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Creates directory and agent stubs",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "circular_agents",
+        "description": "Agents reference each other in circles",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Detects cycles and breaks with sequential fallback",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "all_agents_active",
+        "description": "All agent types needed simultaneously",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Prioritizes by tier (core > supporting > specialized)",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "empty_knowledge",
+        "description": "project_knowledge.json is empty or missing",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Creates new knowledge structure from codebase",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "corrupted_jsonl",
+        "description": "project_knowledge.json has invalid JSON lines",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Skips invalid lines, logs warning",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "stale_knowledge",
+        "description": "Knowledge file is older than 7 days",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Triggers full regeneration",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "huge_codebase",
+        "description": "Codebase has 10k+ files to analyze",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Uses sampling and incremental updates",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "binary_files",
+        "description": "Binary files in source directories",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Detects and skips binary files",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "no_matching_skills",
+        "description": "Session files don't match any skill patterns",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Suggests new skill creation",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "multiple_skill_matches",
+        "description": "Files match 5+ skill patterns",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Ranks by confidence, returns top 3",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_skill_file",
+        "description": "Skill directory exists but no SKILL.md",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Generates stub SKILL.md",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "verbose_skill",
+        "description": "SKILL.md exceeds 350 word limit",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Flags as quality issue, suggests trimming",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "chain_skill_missing",
+        "description": "Auto-chain target skill doesn't exist",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Skips chain, logs warning",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "no_instructions",
+        "description": "No instruction files in .github/instructions/",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Uses copilot-instructions.md as fallback",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "conflicting_instructions",
+        "description": "Two instruction files contradict each other",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Later file takes precedence, logs conflict",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_frontmatter",
+        "description": "Instruction file lacks applyTo frontmatter",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Flags as issue, suggests adding frontmatter",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "full_coverage",
+        "description": "All instruction patterns already covered",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Reports no changes needed",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "session_interrupt",
+        "description": "Session interrupted mid-task",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Detects incomplete state, suggests resume",
+        "tokens_wasted": 0
+      }
+    ],
+    "total_passed": 20,
+    "total_tests": 20,
+    "pass_rate": 1.0
+  },
+  "simulation": {
+    "total_sessions": 100000,
+    "success_rate": 0.86649,
+    "edge_case_hit_rate": 0.15026,
+    "skill_accuracy": 0.95959,
+    "knowledge_hit_rate": 0.48061,
+    "instruction_compliance": 0.94665,
+    "agent_effectiveness": 0.91926,
+    "suggestion_precision": 0.8500235215649796,
+    "suggestion_recall": 0.8000258539038355,
+    "tokens_consumed": 1272728560,
+    "api_calls": 1878099,
+    "avg_resolution_time": 12.487243116636401
+  },
+  "patterns": {
+    "logs_analyzed": 124,
+    "session_patterns": {
+      "fullstack": 58,
+      "framework": 18,
+      "frontend_only": 21,
+      "backend_only": 24,
+      "docs_only": 2,
+      "docker_heavy": 1
+    },
+    "skill_usage": {
+      "testing": 49,
+      "documentation": 53,
+      "docker": 47,
+      "application": 3,
+      "loaded": 17,
+      "debugging": 27,
+      "at": 1,
+      "usage": 6,
+      "numbering": 1,
+      "invocation": 1,
+      "x": 1,
+      "are": 4,
+      "available": 1,
+      "after": 1,
+      "emission": 2,
+      "catalog": 1,
+      "auto-detection": 1,
+      "-": 9,
+      "not": 3,
+      "were": 2,
+      "listing": 1,
+      "but": 1,
+      "tracking": 2,
+      "frontend-react": 24,
+      "used": 33,
+      "backend-api": 20,
+      "applied": 2,
+      "format": 1,
+      "declaration": 1,
+      "suggestions": 23,
+      "detection": 2,
+      "creation": 3,
+      "covers": 1,
+      "based": 3,
+      "with": 6,
+      "template": 3,
+      "standard": 2,
+      "checks": 1,
+      "auto-chains": 1,
+      "integration": 1,
+      "streamlined": 1,
+      "from": 2,
+      "created": 11,
+      "analytical": 1,
+      "none": 1,
+      "caching": 1,
+      "once": 1,
+      "already": 1,
+      "loads": 1,
+      "reloaded": 1,
+      "aligned": 1,
+      "more": 1,
+      "selection": 1,
+      "obsolete": 1,
+      "cover": 1,
+      "table": 1,
+      "reference": 1,
+      "files": 5,
+      "activation": 2,
+      "to": 4,
+      "ecosystem": 2,
+      "paths": 2,
+      "ls": 1,
+      "improved": 1,
+      "structure": 2,
+      "can": 1,
+      "optimization": 1,
+      "-type": 1,
+      "now": 3,
+      "-name": 1,
+      "consolidation": 1,
+      "dominate": 1,
+      "names": 1,
+      "find": 1,
+      "and": 2,
+      "count": 1,
+      "added": 1,
+      "for": 4,
+      "proposals": 1,
+      "gets": 1,
+      "that": 1,
+      "in": 1,
+      "ensures": 1,
+      "suggestion": 4,
+      "discovery": 1,
+      "identified": 1,
+      "add": 1,
+      "---": 1,
+      "folders": 1,
+      "triggers": 2,
+      "refs": 1,
+      "references": 1,
+      "subdirectories": 1,
+      "lacked": 1,
+      "audit": 1,
+      "too": 1,
+      "merged": 1,
+      "updates": 1,
+      "updated": 2,
+      "trigger": 2,
+      "covered": 1,
+      "additions": 1,
+      "management": 1,
+      "index": 1,
+      "pattern": 2,
+      "defined": 1,
+      "refactored": 1,
+      "triggered": 1,
+      "compliance": 1,
+      "pass": 1,
+      "extraction": 1,
+      "output": 1,
+      "while": 1,
+      "properly": 1,
+      "suggester": 1,
+      "merging": 1,
+      "include": 1,
+      "quality": 1,
+      "per": 1
+    },
+    "common_sequences": [
+      [
+        "docker \u2192 used",
+        12
+      ],
+      [
+        "debugging \u2192 docker",
+        10
+      ],
+      [
+        "testing \u2192 docker",
+        9
+      ],
+      [
+        "testing \u2192 backend-api",
+        9
+      ],
+      [
+        "testing \u2192 documentation",
+        8
+      ],
+      [
+        "used \u2192 loaded",
+        7
+      ],
+      [
+        "documentation \u2192 docker",
+        6
+      ],
+      [
+        "backend-api \u2192 debugging",
+        6
+      ],
+      [
+        "used \u2192 documentation",
+        6
+      ],
+      [
+        "documentation \u2192 created",
+        6
+      ]
+    ],
+    "error_patterns": {
+      "fullstack": 47,
+      "framework": 12,
+      "frontend_only": 19,
+      "docs_only": 1,
+      "backend_only": 17
+    },
+    "success_patterns": {
+      "framework": 14,
+      "fullstack": 43,
+      "backend_only": 18,
+      "frontend_only": 11,
+      "docs_only": 1,
+      "docker_heavy": 1
+    },
+    "industry_alignment": 0.6794354838709694
+  },
+  "validation": {
+    "validation": {
+      "agents": {
+        "precision": 0.8897199733899054,
+        "recall": 0.780396747278539,
+        "specificity": 0.8776212780256993,
+        "relevance": 0.9060035022646236,
+        "actionability": 0.8396799681734538,
+        "pass": true
+      },
+      "knowledge": {
+        "precision": 0.8923493544248475,
+        "recall": 0.8219895295145183,
+        "freshness": 0.942932781132574,
+        "coverage": 0.8989246866576243,
+        "pass": true
+      },
+      "skills": {
+        "precision": 0.9253783817340067,
+        "recall": 0.8689377427426147,
+        "detection_accuracy": 0.9663060376678346,
+        "false_positive_rate": 0.049572405875760645,
+        "pass": true
+      },
+      "instructions": {
+        "precision": 0.8691749655106439,
+        "recall": 0.8590165929402841,
+        "compliance_improvement": 0.03954308858191637,
+        "pattern_coverage": 0.9093417063591256,
+        "pass": true
+      }
+    },
+    "all_pass": true,
+    "avg_precision": 0.8941556687648509,
+    "avg_recall": 0.8325851531189891
+  },
+  "industry": {
+    "industry_patterns": {
+      "tdd_first": 0.15,
+      "refactor_then_add": 0.12,
+      "pair_programming": 0.08,
+      "bisect_debug": 0.1,
+      "log_analysis": 0.18,
+      "reproduce_first": 0.25,
+      "design_doc_first": 0.12,
+      "spike_solution": 0.1,
+      "incremental_delivery": 0.22,
+      "self_review": 0.3,
+      "checklist_review": 0.2
+    },
+    "current_alignment": 0.6794354838709694,
+    "recommendations": [
+      "Increase test coverage",
+      "Add verification steps",
+      "Document design decisions"
+    ]
+  }
+}
