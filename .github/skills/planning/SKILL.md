@@ -1,18 +1,25 @@
-# Planning Skill
+# Planning Skill v7.1
 
-> For new features, design tasks, and research phases
+> For new features, design tasks, and architecture
 
 ## Triggers
 - "new feature", "implement", "add functionality"
 - "design", "architect", "plan"
-- "research", "investigate", "compare"
 
 ## Workflow
 1. **UNDERSTAND** - Clarify requirements, scope
-2. **RESEARCH** - Check existing code, patterns, external sources
+2. **RESEARCH** - ⚡ Auto-chain: Load [research skill](../research/SKILL.md)
 3. **DESIGN** - Create blueprint in `.project/blueprints/`
-4. **VALIDATE** - Review approach
+4. **VALIDATE** - Review approach against research findings
 5. **HANDOFF** - Transition to BUILD phase
+
+## Research Integration
+```
+UNDERSTAND → research skill (GATHER→ANALYZE→SYNTHESIZE) → DESIGN
+```
+- Research skill runs automatically during phase 2
+- Findings inform DESIGN decisions
+- Skip research only if trivial change
 
 ## Blueprint Template
 ```markdown

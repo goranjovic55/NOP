@@ -28,7 +28,8 @@ description: Workflow enforcement + skill-based execution
 
 | Situation | Skill |
 |-----------|-------|
-| new feature, design | planning |
+| new feature, design | planning → research |
+| research, standards | research |
 | .tsx .jsx | frontend-react |
 | .py backend/ | backend-api |
 | Dockerfile | docker |

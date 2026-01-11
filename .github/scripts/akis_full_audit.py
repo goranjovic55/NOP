@@ -151,6 +151,7 @@ class SessionMetrics:
     skills_loaded: int = 0
     knowledge_used: bool = False
     planning_used: bool = False
+    research_used: bool = False
     
     # Delegation (G7)
     parallel_used: bool = False
@@ -176,6 +177,7 @@ class SimulationResults:
     perfect_session_rate: float = 0.0
     parallel_usage_rate: float = 0.0
     planning_usage_rate: float = 0.0
+    research_usage_rate: float = 0.0
     
     # Totals
     total_tokens: int = 0
@@ -364,6 +366,28 @@ class ComplianceChecker:
                 description="Planning skill file missing",
                 fix="Create .github/skills/planning/SKILL.md"
             ))
+        
+        # Check research skill exists
+        research_skill = SKILLS_DIR / "research" / "SKILL.md"
+        if not research_skill.exists():
+            self.issues.append(ComplianceIssue(
+                file="skills/research/SKILL.md",
+                category="missing",
+                severity="medium",
+                description="Research skill file missing",
+                fix="Create .github/skills/research/SKILL.md"
+            ))
+        else:
+            # Check research skill is linked from planning
+            planning_content = planning_skill.read_text() if planning_skill.exists() else ""
+            if "research" not in planning_content.lower():
+                self.issues.append(ComplianceIssue(
+                    file="skills/planning/SKILL.md",
+                    category="sync",
+                    severity="medium",
+                    description="Planning skill doesn't auto-chain to research",
+                    fix="Add research skill auto-chain to RESEARCH phase"
+                ))
         
         # Check each skill for required sections
         required_skills = ["frontend-react", "backend-api", "debugging", "docker", "testing"]
@@ -562,6 +586,13 @@ class SessionSimulator:
         if "new" in domain or "design" in domain or complexity == "complex":
             if random.random() < 0.70:
                 metrics.planning_used = True
+                # Research auto-chains from planning in v7.1
+                if self.optimized and random.random() < 0.85:
+                    metrics.research_used = True
+        
+        # Standalone research usage
+        if not metrics.research_used and random.random() < 0.25:
+            metrics.research_used = True
         
         # Optimized mode adjustments
         if self.optimized:
@@ -666,6 +697,8 @@ class SessionSimulator:
         
         if metrics.planning_used and complexity == "complex":
             resolution_adj += 0.08
+        if metrics.research_used:
+            resolution_adj += 0.05  # Research improves design quality
         if self.optimized:
             resolution_adj += 0.05
         
@@ -717,6 +750,7 @@ class SessionSimulator:
         results.perfect_session_rate = sum(1 for s in sessions if not s.gate_violations and s.resolved) / n
         results.parallel_usage_rate = sum(1 for s in sessions if s.parallel_used) / n
         results.planning_usage_rate = sum(1 for s in sessions if s.planning_used) / n
+        results.research_usage_rate = sum(1 for s in sessions if s.research_used) / n
         
         # Calculate totals
         results.total_tokens = sum(s.token_usage for s in sessions)
@@ -827,6 +861,8 @@ def generate_report(
             "parallel_usage_optimized": optimized.parallel_usage_rate,
             "planning_usage_baseline": baseline.planning_usage_rate,
             "planning_usage_optimized": optimized.planning_usage_rate,
+            "research_usage_baseline": baseline.research_usage_rate,
+            "research_usage_optimized": optimized.research_usage_rate,
         },
     }
     
@@ -948,6 +984,10 @@ def print_report(report: Dict[str, Any]):
     print(f"\n   📋 Planning Skill:")
     print(f"      Baseline:  {features['planning_usage_baseline']:.1%}")
     print(f"      Optimized: {features['planning_usage_optimized']:.1%}")
+    
+    print(f"\n   🔍 Research Skill (NEW in v7.1+):")
+    print(f"      Baseline:  {features['research_usage_baseline']:.1%}")
+    print(f"      Optimized: {features['research_usage_optimized']:.1%}")
     
     print("\n" + "=" * 80)
 

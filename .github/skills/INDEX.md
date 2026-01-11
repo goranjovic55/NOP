@@ -3,7 +3,8 @@
 ## Skill Detection
 | Situation | Skill | Pre-load |
 |-----------|-------|----------|
-| new feature, design, research | [planning](planning/SKILL.md) | |
+| new feature, design | [planning](planning/SKILL.md) | |
+| research, best practice, standards | [research](research/SKILL.md) | |
 | .tsx .jsx components/ | [frontend-react](frontend-react/SKILL.md) | ⭐ |
 | .py backend/ api/ | [backend-api](backend-api/SKILL.md) | ⭐ |
 | Dockerfile docker-compose | [docker](docker/SKILL.md) | |
@@ -19,7 +20,7 @@
 ## Workflow Phases
 | Phase | Skills |
 |-------|--------|
-| PLAN | planning |
+| PLAN | planning → research (auto-chain) |
 | BUILD | frontend-react, backend-api, docker |
 | VERIFY | testing, debugging |
 | DOCUMENT | documentation |
@@ -27,10 +28,11 @@
 ## Skill Combinations
 | Task | Skills |
 |------|--------|
-| New feature | planning → frontend/backend |
+| New feature | planning → research → frontend/backend |
 | Fix bug | debugging → testing |
 | Deploy | docker → ci-cd |
-| Refactor | planning → frontend/backend → testing |
+| Refactor | planning → research → frontend/backend → testing |
+| Standards check | research (standalone) |
 
 ## Rules
 - Load skill ONCE per session

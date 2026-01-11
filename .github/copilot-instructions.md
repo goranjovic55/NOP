@@ -21,7 +21,8 @@
 
 | Situation | Skill |
 |-----------|-------|
-| new feature, design, research | planning |
+| new feature, design | planning → research |
+| research, standards, best practice | research |
 | .tsx .jsx components/ | frontend-react ⭐ |
 | .py backend/ api/ | backend-api ⭐ |
 | Dockerfile docker-compose | docker |
