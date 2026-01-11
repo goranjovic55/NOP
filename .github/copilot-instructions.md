@@ -46,7 +46,9 @@
 1. Close ⊘ orphans
 2. Verify all edits
 3. Run: `knowledge.py`, `skills.py`, `docs.py`, `agents.py`
-4. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+4. Present END Summary Table to user
+5. ASK before applying script suggestions
+6. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated

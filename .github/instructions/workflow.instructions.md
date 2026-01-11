@@ -35,6 +35,20 @@ python .github/scripts/docs.py
 python .github/scripts/agents.py
 ```
 
+## END Summary Table (Required)
+After running END scripts, present summary to user:
+
+| Metric | Value |
+|--------|-------|
+| Tasks | X/Y completed |
+| Tokens | ~X saved |
+| API Calls | ~X saved |
+| Resolution | X% |
+| Files | X modified |
+| Commits | X pushed |
+
+**Script Suggestions:** Present, ASK user before applying.
+
 ## Workflow Phases
 | Phase | Skill | Action |
 |-------|-------|--------|

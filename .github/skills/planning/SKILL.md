@@ -6,6 +6,12 @@
 - "new feature", "implement", "add functionality"
 - "design", "architect", "plan"
 
+## ⚠️ Critical Gotchas
+- **Blueprint before code:** NEVER implement without design doc
+- **Research auto-chains:** Don't skip - improves resolution by 4.9%
+- **Scope creep:** Define boundaries in blueprint, stick to them
+- **Complexity check:** Complex (6+ files) → MUST use planning
+
 ## Workflow
 1. **UNDERSTAND** - Clarify requirements, scope
 2. **RESEARCH** - ⚡ Auto-chain: Load [research skill](../research/SKILL.md)

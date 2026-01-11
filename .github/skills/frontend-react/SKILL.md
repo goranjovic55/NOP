@@ -33,55 +33,12 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 ## Patterns
 
 ```tsx
-// Typed component
-interface Props { item: Item; onSelect?: (item: Item) => void; }
-export const Card: FC<Props> = ({ item, onSelect }) => {
-  const handleClick = useCallback(() => onSelect?.(item), [item, onSelect]);
-  return <div onClick={handleClick}>{item.name}</div>;
-};
-
-// Zustand store
-export const useStore = create<State>((set) => ({
-  items: [],
-  addItem: (item) => set((s) => ({ items: [...s.items, item] })),
-}));
-
-// Zustand store with persistence
-import { persist } from 'zustand/middleware';
-
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      theme: 'dark',
-      setTheme: (theme) => set({ theme }),
-    }),
-    { name: 'settings-storage' }
-  )
-);
-
-// Zustand selector (prevents re-renders)
+// Component + Zustand selector
 const items = useStore((s) => s.items);
-const addItem = useStore((s) => s.addItem);
+const Card: FC<{item: Item}> = ({ item }) => <div key={item.id}>{item.name}</div>;
 
-// WebSocket client hook
-const useWebSocket = (url: string) => {
-  const [status, setStatus] = useState<'connecting' | 'connected' | 'closed'>('connecting');
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-    ws.onopen = () => setStatus('connected');
-    ws.onclose = () => setStatus('closed');
-    return () => ws.close();
-  }, [url]);
-
-  return { ws: wsRef.current, status };
-};
+// Store with persistence
+export const useStore = create<State>()(persist((set) => ({
+  items: [], addItem: (i) => set((s) => ({ items: [...s.items, i] }))
+}), { name: 'store' }));
 ```
-
-## Errors
-| Error | Fix |
-|-------|-----|
-| `')' expected` | Use `{/* */}` |
-| Stale closure | Add to deps array |

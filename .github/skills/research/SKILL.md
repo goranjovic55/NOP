@@ -7,6 +7,12 @@
 - Auto-chain from planning skill (RESEARCH phase)
 - External standards needed
 
+## ⚠️ Critical Gotchas
+- **Local first:** Always check docs/ + codebase BEFORE external (saves tokens)
+- **Time box:** Keep research <5 min per topic
+- **Cache findings:** Update project_knowledge.json with discoveries
+- **Cite sources:** Document where standards came from
+
 ## Sources (Priority Order)
 1. **Local docs/** - Project documentation
 2. **Codebase** - Existing patterns, implementations
