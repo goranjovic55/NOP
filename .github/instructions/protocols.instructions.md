@@ -8,7 +8,7 @@ applyTo: "**"
 | G | Check | Fix |
 |---|-------|-----|
 | 1 | No ◆ | Create TODO |
-| 2 | No skill | Load skill |
+| 2 | No skill for edit/command | Load skill FIRST |
 | 3 | No START | Do START |
 | 4 | No END | Do END |
 | 5 | No verify | Check syntax |
@@ -16,17 +16,20 @@ applyTo: "**"
 | 7 | No parallel | Use pairs |
 
 ## Skill Triggers
-| Situation | Skill |
-|-----------|-------|
-| new feature, design | planning |
-| .tsx .jsx | frontend-react ⭐ |
-| .py backend/ | backend-api ⭐ |
-| Dockerfile | docker |
-| error | debugging |
-| .md docs/ | documentation |
-| test_* | testing |
+| Trigger | Skill | Applies To |
+|---------|-------|------------|
+| .tsx .jsx | frontend-react ⭐ | edits |
+| .py backend/ | backend-api ⭐ | edits |
+| docker compose build | docker | commands |
+| Dockerfile | docker | edits |
+| error traceback | debugging | analysis |
+| .md docs/ | documentation | edits |
+| test_* pytest | testing | edits + commands |
+| new feature | planning | analysis |
 
 ⭐ Pre-load fullstack
+
+⚠️ **G2:** Skill required for edits AND domain commands
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
