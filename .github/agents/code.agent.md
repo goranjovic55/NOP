@@ -1,6 +1,7 @@
 ---
 name: code
 description: Write production code following best practices. Reports back to AKIS with trace.
+tools: ['search', 'usages', 'problems', 'testFailure']
 ---
 
 # Code Agent

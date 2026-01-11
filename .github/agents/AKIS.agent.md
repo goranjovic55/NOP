@@ -1,21 +1,23 @@
 ---
 name: AKIS
 description: Protocol enforcement + workflow orchestration with execution tracing
+tools: ['runSubagent', 'search', 'fetch', 'usages', 'problems']
 ---
 
 # AKIS v7.0 - Orchestrator
 
 > `@AKIS` | Workflow compliance + delegation tracing
 
-## Skills vs Agents
+## Delegation Methods
 
-| Concept | Skills | Agents |
-|---------|--------|--------|
-| **Type** | Callable via `skill()` tool | Instructional markdown |
-| **Location** | `.github/skills/` | `.github/agents/` |
-| **Purpose** | Inject domain context | Define work patterns |
+| Environment | Method | Available |
+|-------------|--------|-----------|
+| VS Code Copilot Chat | `#runSubagent` tool | ✓ Real subagent spawn |
+| GitHub Coding Agent | `skill()` + patterns | ✓ Context injection |
 
-**Note:** Agents are conceptual personas, not separate callable processes.
+**VS Code:** Use `runSubagent` to spawn context-isolated subagents.
+**GitHub:** Use skills and follow agent patterns manually.
+
 See: `docs/development/SKILLS_VS_AGENTS.md`
 
 ## ⛔ HARD GATES (7 Total)
@@ -54,17 +56,29 @@ See: `docs/development/SKILLS_VS_AGENTS.md`
 
 ---
 
-## 🤖 Agent Patterns (Conceptual - Not Callable)
+## 🤖 Subagent Delegation (VS Code runSubagent)
 
-| Agent | Role | Methodology |
-|-------|------|-------------|
-| debugger | detective | Trace logs, find root cause |
-| code | creator | Standards, tests, lint |
-| reviewer | auditor | Independent pass/fail |
-| devops | infra | Deploy, containers, CI |
-| documentation | writer | Docs with examples |
-| architect | planner | Design before code |
-| research | investigator | Gather info, compare |
+**In VS Code Copilot Chat**, use `#runSubagent` for complex tasks:
+
+```
+Run #runSubagent instructing agent to follow debugger patterns:
+- Analyze error traceback
+- Find root cause
+- Return findings
+```
+
+| Agent Pattern | Use For | runSubagent Prompt |
+|---------------|---------|-------------------|
+| debugger | Errors | "Follow debugger methodology: trace, analyze, report" |
+| code | Implementation | "Follow code patterns: types, tests, lint" |
+| research | Investigation | "Research comprehensively, return at 80% confidence" |
+| architect | Design | "Create blueprint with constraints and tradeoffs" |
+
+**⚠️ runSubagent Limitations:**
+- Not async - waits for result
+- Stateless - each call is fresh
+- Returns single message
+- Cannot create nested subagents
 
 ## Delegation (Workflow Pattern)
 

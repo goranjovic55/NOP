@@ -1,130 +1,157 @@
-# Skills vs Agents - Understanding the AKIS Framework
+# Skills vs Agents vs runSubagent
 
-**Purpose:** Clarify the distinction between Skills and Agents in GitHub Copilot's AKIS framework.
-
----
-
-## Key Distinction
-
-| Concept | Skills | Agents |
-|---------|--------|--------|
-| **Location** | `.github/skills/*/SKILL.md` | `.github/agents/*.agent.md` |
-| **Mechanism** | Loaded via `skill` tool | Conceptual personas |
-| **Invocation** | `skill("frontend-react")` | Not directly callable |
-| **Purpose** | Inject domain-specific context | Define work patterns |
-| **Type** | **Callable tools** | **Instructional markdown** |
+**Purpose:** Clarify the different mechanisms for delegation in GitHub Copilot.
 
 ---
 
-## How They Work
+## Three Mechanisms
 
-### Skills (Callable)
+| Mechanism | Available In | Purpose |
+|-----------|--------------|---------|
+| **Skills** | All environments | Inject domain context |
+| **Agent Files** | All environments | Define work patterns |
+| **runSubagent** | VS Code Copilot Chat | Spawn context-isolated subagent |
 
-Skills are loaded by the `skill` tool available in GitHub Copilot. When loaded, the skill's content is injected into the agent's context.
+---
+
+## 1. Skills (Context Injection)
+
+Skills are loaded by the `skill` tool to inject domain-specific context.
+
+| Property | Value |
+|----------|-------|
+| Location | `.github/skills/*/SKILL.md` |
+| Invocation | `skill("frontend-react")` |
+| Available | All Copilot environments |
 
 ```
-Agent: "I'm editing a .tsx file, let me load the frontend-react skill"
+Agent: "Editing .tsx file"
 → skill("frontend-react") 
 → Skill content added to context
-→ Agent now has React/TypeScript patterns available
 ```
-
-**Usage:** Skills are actively loaded and affect agent behavior.
-
-### Agents (Conceptual)
-
-Agents are **documentation that describes work patterns**. They are NOT separate callable entities. The main Copilot agent can read and follow agent instructions, but doesn't "delegate to" them as separate processes.
-
-```
-AKIS.agent.md → Orchestration patterns
-code.agent.md → Coding standards to follow
-debugger.agent.md → Debugging methodology
-```
-
-**Usage:** Agents define HOW to work, not separate workers.
 
 ---
 
-## Delegation Clarification
+## 2. Agent Files (Instructional Markdown)
 
-### What AKIS Delegation Means
+Agent files define work patterns and methodologies. They are **NOT directly callable**.
 
-When AKIS instructions say "delegate to code agent," this means:
-1. **Switch mental mode** to code agent patterns
-2. **Follow** the code agent's methodology
-3. **Report** using the code agent's output format
+| Property | Value |
+|----------|-------|
+| Location | `.github/agents/*.agent.md` |
+| Invocation | Read by agent, not invoked |
+| Purpose | Define HOW to work |
 
-It does **NOT** mean:
-- Spawning a separate AI agent
-- Making an API call to another service
-- Running a subprocess
+**In VS Code Copilot Chat**, these files can also be used with `runSubagent` to specify which agent persona to use.
 
-### Tracing Format
+---
 
-The delegation tracing format is for **workflow logging**, not actual tool invocation:
+## 3. runSubagent (VS Code Copilot Chat Only)
+
+**⭐ NEW: This is a real VS Code Copilot built-in tool!**
+
+`runSubagent` spawns a context-isolated subagent for complex tasks.
+
+| Property | Value |
+|----------|-------|
+| Location | Built-in VS Code Copilot Chat tool |
+| Invocation | `#tool:runSubagent` in chat |
+| Available | **VS Code Copilot Chat only** |
+
+### How runSubagent Works
+
+```json
+{
+  "function": {
+    "name": "runSubagent",
+    "parameters": {
+      "prompt": "Detailed task description",
+      "description": "3-5 word summary"
+    }
+  }
+}
+```
+
+**Key Characteristics:**
+- Subagents operate independently with their own context window
+- They don't run async - you wait for the result
+- Each invocation is stateless
+- Returns a single message when done
+- Can use same tools as main session (except creating other subagents)
+
+### Enabling runSubagent
+
+1. Enable in VS Code tool picker
+2. Or specify in agent/prompt file frontmatter:
+   ```yaml
+   tools: ['runSubagent', 'search', 'fetch']
+   ```
+
+### Using Custom Agents with runSubagent
+
+With `chat.customAgentInSubagent.enabled` setting:
+```
+Run the research agent as a subagent to research auth methods.
+Use the plan agent in a subagent to create implementation plan.
+```
+
+---
+
+## Environment Differences
+
+| Environment | Skills | Agent Files | runSubagent |
+|-------------|--------|-------------|-------------|
+| VS Code Copilot Chat | ✓ | ✓ | ✓ |
+| GitHub Copilot Coding Agent | ✓ | ✓ | ✗ |
+| GitHub.com Copilot | ✗ | ✓ | ✗ |
+
+**Note:** The GitHub Copilot Coding Agent (cloud-based) does NOT have access to `runSubagent`. Use the `skill` tool instead for context loading.
+
+---
+
+## AKIS Framework Delegation
+
+### In VS Code (with runSubagent available)
+
+```yaml
+# In your agent file frontmatter
+tools: ['runSubagent', 'search', 'fetch']
+```
+
+Then in chat:
+```
+Run #runSubagent to implement user authentication following code agent patterns.
+```
+
+### In GitHub Copilot Coding Agent (without runSubagent)
+
+Delegation is conceptual - follow agent methodologies manually:
 
 ```markdown
 [DELEGATE] → code | implement user authentication
-[RETURN]   ← code | result: ✓ | files: 3 | tests: added
+# Follow code.agent.md patterns
+# Execute the work directly
+[RETURN]   ← code | result: ✓ | files: 3
 ```
-
-This is a **log entry**, not a function call.
-
----
-
-## Correct Understanding
-
-### Skills ARE:
-- ✓ Tools that inject context
-- ✓ Loaded via `skill()` function
-- ✓ Available in `.github/skills/`
-- ✓ Domain-specific patterns (React, Python, Docker)
-
-### Agents ARE:
-- ✓ Documentation of work patterns
-- ✓ Mental models for task types
-- ✓ Workflow guides
-- ✓ Output format specifications
-
-### Agents ARE NOT:
-- ✗ Separate callable entities
-- ✗ Tools that can be invoked
-- ✗ Subprocess or API endpoints
-- ✗ GitHub Copilot's `@agent` feature (different concept)
-
----
-
-## GitHub Copilot Context
-
-In GitHub Copilot's architecture:
-- **Skills** = Context injection via skill tool
-- **Agents** = Instructional markdown that the main agent reads
-- **Delegation** = Following different instruction sets, not spawning processes
-
-The `.github/agents/*.agent.md` files use the YAML frontmatter format that GitHub Copilot recognizes, but they serve as **instructions for the main agent to follow**, not as separate callable agents.
 
 ---
 
 ## Best Practices
 
-### When to Use Skills
-- Load skills when touching domain-specific files
-- Cache loaded skills per session (don't reload)
-- Pre-load for fullstack work: frontend-react + backend-api
+### VS Code Users
+- Use `runSubagent` for complex multi-step research
+- Enable in tool picker or agent frontmatter
+- Subagents return results to main context
 
-### When to Reference Agents
-- Read agent instructions when starting a task type
-- Follow the agent's methodology and output format
-- Use tracing format for workflow logs
+### GitHub Coding Agent Users
+- Use `skill()` tool for domain context
+- Follow agent file patterns manually
+- Log delegation in workflow logs
 
-### Delegation Workflow
-```
-1. Identify task type (design, code, debug, review)
-2. Read relevant agent instructions
-3. Load required skills
-4. Execute following agent patterns
-5. Log completion in delegation trace format
-```
+### Agent File Authors
+- Add `tools: ['runSubagent', ...]` in frontmatter for VS Code
+- Include methodology for direct execution
+- Support both callable and manual delegation
 
 ---
 
@@ -132,9 +159,11 @@ The `.github/agents/*.agent.md` files use the YAML frontmatter format that GitHu
 
 | Question | Answer |
 |----------|--------|
-| Can I call an agent? | No, agents are documentation |
-| Can I call a skill? | Yes, via `skill()` tool |
-| What is delegation? | Following agent patterns |
-| Are agents sub-processes? | No, conceptual personas |
+| Is runSubagent real? | **Yes**, in VS Code Copilot Chat |
+| Do I have runSubagent? | Check your environment's tool list |
+| What about agent files? | Work patterns (can be used with runSubagent in VS Code) |
+| What about skills? | Context injection, available everywhere |
 
-The AKIS framework uses "delegation" as a mental model for organizing complex work, not as a technical mechanism for spawning separate agents.
+**References:**
+- [VS Code Copilot Chat Sessions](https://code.visualstudio.com/docs/copilot/chat/chat-sessions)
+- [microsoft/vscode-copilot-chat](https://github.com/microsoft/vscode-copilot-chat)

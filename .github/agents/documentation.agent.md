@@ -1,6 +1,7 @@
 ---
 name: documentation
 description: Update docs, READMEs, comments. Returns trace to AKIS.
+tools: ['search', 'fetch']
 ---
 
 # Documentation Agent
