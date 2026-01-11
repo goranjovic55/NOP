@@ -1,6 +1,6 @@
-# Skills Index v7.0
+# Skills Index v9.0 (AKIS Skills-Based Workflow)
 
-**Situation-Based Skills** - Load skills based on what you're doing, not just what files you're touching.
+**Situation-Based Skills** - Skills auto-load based on context. AKIS detects what you need.
 
 ## Core Rule: Skill Caching
 - **Load once:** Don't reload skill already loaded this session

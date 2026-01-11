@@ -66,7 +66,7 @@ Contributing, testing, and development workflow.
 - [Contributing to NOP](development/CONTRIBUTING.md)
 - [Development Roadmap](development/ROADMAP.md)
 - [Automation Scripts Reference](development/SCRIPTS.md)
-- [Skills vs Agents](development/SKILLS_VS_AGENTS.md) ⭐ *Clarifies AKIS delegation*
+- [Skills-Based Workflow](development/SKILLS_VS_AGENTS.md) ⭐ *AKIS v9.0 skills model*
 - [Testing Guide](development/TESTING.md)
 - [Agent/C2 Framework Improvements Roadmap](development/agent-improvements-roadmap.md)
 
