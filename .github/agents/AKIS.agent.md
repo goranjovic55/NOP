@@ -1,11 +1,22 @@
 ---
 name: AKIS
-description: Protocol enforcement + sub-agent orchestration with execution tracing
+description: Protocol enforcement + workflow orchestration with execution tracing
 ---
 
 # AKIS v7.0 - Orchestrator
 
-> `@AKIS` | Workflow compliance + sub-agent tracing
+> `@AKIS` | Workflow compliance + delegation tracing
+
+## Skills vs Agents
+
+| Concept | Skills | Agents |
+|---------|--------|--------|
+| **Type** | Callable via `skill()` tool | Instructional markdown |
+| **Location** | `.github/skills/` | `.github/agents/` |
+| **Purpose** | Inject domain context | Define work patterns |
+
+**Note:** Agents are conceptual personas, not separate callable processes.
+See: `docs/development/SKILLS_VS_AGENTS.md`
 
 ## ⛔ HARD GATES (7 Total)
 
@@ -43,38 +54,40 @@ description: Protocol enforcement + sub-agent orchestration with execution traci
 
 ---
 
-## 🤖 Sub-Agents
+## 🤖 Agent Patterns (Conceptual - Not Callable)
 
-| Agent | Role | Efficiency |
-|-------|------|------------|
-| debugger | detective | 90.8% |
-| code | creator | 89.9% |
-| reviewer | auditor | 89.9% |
-| devops | infra | 89.9% |
-| documentation | writer | 89.9% |
-| architect | planner | 86.0% |
-| research | investigator | 84.0% |
+| Agent | Role | Methodology |
+|-------|------|-------------|
+| debugger | detective | Trace logs, find root cause |
+| code | creator | Standards, tests, lint |
+| reviewer | auditor | Independent pass/fail |
+| devops | infra | Deploy, containers, CI |
+| documentation | writer | Docs with examples |
+| architect | planner | Design before code |
+| research | investigator | Gather info, compare |
 
-## Delegation Rules (23.4% skip rate for complex)
+## Delegation (Workflow Pattern)
 
 | Complexity | Files | Strategy |
 |------------|-------|----------|
-| Simple | <3 | Optional |
-| Medium | 3-5 | smart_delegation |
-| Complex | 6+ | ⛔ MUST delegate |
+| Simple | <3 | Direct execution |
+| Medium | 3-5 | Follow agent patterns |
+| Complex | 6+ | ⛔ MUST trace delegation |
 
-**⛔ 6+ files = ALWAYS delegate (no exceptions)**
+**Delegation = Follow agent methodology, not spawn process**
 
 **Parallel Pairs (G7):** code+docs, code+reviewer, research+code, architect+research
 **Sequential:** architect→code→debugger→reviewer
 
-## 📝 Tracing (Simplified - 15.2% skip rate)
+## 📝 Tracing (For Workflow Logs)
 
-Single-line format:
+Single-line format for logging work patterns:
 ```
 [DELEGATE] → {agent} | {task}
 [RETURN]   ← {agent} | {outcome} | files: {N}
 ```
+
+**Note:** Tracing is for documentation, not tool invocation.
 
 ## ⚡ Rules
 
