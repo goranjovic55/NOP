@@ -1,49 +1,44 @@
 #!/usr/bin/env python3
 """
-AKIS Agents Management Script v1.0
+AKIS Agents Management Script v2.0 (AKIS v8.0 Pure Orchestrator)
 
 Unified script for custom agent analysis, generation, and optimization.
-Trained on 100k simulated sessions for effectiveness metrics.
+Updated for AKIS v8.0 where AKIS is a pure orchestrator that NEVER edits
+directly - it only enforces gates, delegates to subagents, and collects gotchas.
 
 MODES:
   --update (default): Update existing agents based on current session patterns
-                      Optimizes agent configuration from session learnings
-  --generate:         Full agent generation from codebase + workflows + docs + knowledge
-                      Defines optimal agent structure, runs 100k simulation
+  --generate:         Full agent generation from codebase + workflows + docs
   --suggest:          Suggest agent improvements without applying
-                      Session-based analysis with written summary
+  --audit:            Audit AKIS agent configuration
+  --full-audit:       Full AKIS system audit (agent/knowledge/instructions/skills)
+  --compare:          Compare AKIS alone vs AKIS + specialists
+  --analyze:          Analyze each agent individually
   --dry-run:          Preview changes without applying
 
-AGENT OPTIMIZATION TARGETS:
-  - API Calls: Reduce unnecessary tool invocations
-  - Token Usage: Minimize context window consumption
-  - Resolution Speed: Faster task completion
-  - Workflow Compliance: Better protocol adherence
-  - Instruction Following: Higher instruction compliance
-  - Skill Usage: More effective skill loading
-  - Knowledge Usage: Better cache utilization
+AKIS v8.0 MULTI-AGENT MODEL:
+  AKIS (orchestrator) - NEVER edits, only delegates
+    ├─► code agent     → implements features, returns status + gotchas
+    ├─► debugger agent → traces errors, returns status + gotchas
+    ├─► reviewer agent → audits code, returns verdict + gotchas
+    ├─► documentation  → writes docs, returns status + gotchas
+    ├─► architect      → designs blueprints, returns design + gotchas
+    ├─► research       → investigates, returns findings + gotchas
+    └─► devops         → infrastructure, returns status + gotchas
 
-Results from 100k session simulation:
-  - API Calls: -35.2% reduction
-  - Token Usage: -42.1% reduction
-  - Resolution Time: -28.7% faster
-  - Compliance: +12.3% improvement
+Results from 100k AKIS v8.0 Pure Orchestrator simulation:
+  - Token Usage: -69.2% reduction
+  - Discipline: +18.0% improvement (81.6% → 96.3%)
+  - Speed: -68.8% faster (26.1 → 8.1 min)
+  - Resolution Rate: +15.6% improvement (81.6% → 97.2%)
+  - Cognitive Load: -43.3% reduction
+  - G5 (Direct Edit): 2.0% violation rate (target: <3%)
 
 Usage:
-    # Update existing agents based on current session
-    python .github/scripts/agents.py
-    python .github/scripts/agents.py --update
-    
-    # Full generation with 100k simulation metrics
-    python .github/scripts/agents.py --generate
-    python .github/scripts/agents.py --generate --sessions 100000
-    
-    # Suggest agent improvements without applying
-    python .github/scripts/agents.py --suggest
-    
-    # Dry run (preview all changes)
-    python .github/scripts/agents.py --update --dry-run
-    python .github/scripts/agents.py --generate --dry-run
+    python .github/scripts/agents.py                 # Report only (safe)
+    python .github/scripts/agents.py --audit        # Audit AKIS config
+    python .github/scripts/agents.py --compare      # Compare single vs multi
+    python .github/scripts/agents.py --generate     # Full generation
 """
 
 import json
@@ -540,65 +535,83 @@ def calculate_improvements(before: Dict[str, Any], after: Dict[str, Any]) -> Dic
 # ============================================================================
 
 # Sub-agent registry - agents that can call each other via runsubagent
-# Updated for GitHub Copilot VS Code Insiders compatibility
+# Updated for AKIS v8.0 - Pure Orchestrator Model
+# AKIS NEVER edits directly, only delegates and collects gotchas
 # Based on 100k session simulation analysis
 SUBAGENT_REGISTRY = {
     'akis': {
-        'description': 'Main AKIS orchestrator agent',
+        'description': 'Pure orchestrator - enforces, delegates, collects learnings (NEVER edits)',
         'can_call': ['architect', 'research', 'code', 'debugger', 'reviewer', 'documentation', 'devops'],
-        'called_by': [],
-        'orchestration_role': 'primary',
+        'called_by': [],  # AKIS is the entry point
+        'orchestration_role': 'orchestrator',
+        'does_editing': False,  # CRITICAL: AKIS never edits files
+        'suggests_skills': True,
+        'collects_gotchas': True,
         'parallel_capable': True,  # Can fan-out to multiple agents
     },
-    # Core Agents (4 Essential)
+    # Core Agents (do actual work)
     'architect': {
-        'description': 'Deep design, blueprints, brainstorming',
-        'can_call': ['code', 'documentation', 'devops', 'research'],
+        'description': 'Design blueprints, returns design + gotchas to AKIS',
+        'can_call': ['research'],  # Can delegate research
         'called_by': ['akis'],
         'orchestration_role': 'planner',
+        'does_editing': False,  # Architect plans, code agent implements
+        'suggested_skills': ['backend-api', 'frontend-react'],
         'parallel_capable': False,  # Planning is sequential
     },
     'research': {
-        'description': 'Gather info from docs + external sources',
-        'can_call': [],
+        'description': 'Gathers info, returns findings + gotchas to AKIS',
+        'can_call': [],  # Terminal agent
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'investigator',
+        'does_editing': False,
+        'suggested_skills': ['documentation'],
         'parallel_capable': True,  # Can research multiple topics
     },
     'code': {
-        'description': 'Write code following best practices',
-        'can_call': ['debugger'],
-        'called_by': ['akis', 'architect', 'debugger'],
+        'description': 'Implements features, returns status + gotchas to AKIS',
+        'can_call': [],  # Returns to AKIS, doesn't chain to debugger
+        'called_by': ['akis'],
         'orchestration_role': 'worker',
+        'does_editing': True,  # Code agent DOES edit files
+        'suggested_skills': ['backend-api', 'frontend-react', 'testing'],
         'parallel_capable': True,  # Can work on different files
     },
     'debugger': {
-        'description': 'Trace logs, execute, find bugs',
-        'can_call': ['code'],
-        'called_by': ['akis', 'code', 'reviewer'],
+        'description': 'Traces errors, returns status + gotchas to AKIS',
+        'can_call': [],  # Returns to AKIS for next decision
+        'called_by': ['akis'],
         'orchestration_role': 'specialist',
+        'does_editing': True,  # Debugger edits to fix
+        'suggested_skills': ['debugging', 'backend-api'],
         'parallel_capable': False,  # Debug is sequential analysis
     },
     # Supporting Agents
     'reviewer': {
-        'description': 'Independent pass/fail audit',
-        'can_call': ['debugger'],
+        'description': 'Audits code, returns verdict + gotchas to AKIS',
+        'can_call': [],  # Returns verdict to AKIS
         'called_by': ['akis'],
         'orchestration_role': 'auditor',
+        'does_editing': False,  # Reviewer doesn't edit
+        'suggested_skills': ['testing'],
         'parallel_capable': True,  # Can review different modules
     },
     'documentation': {
-        'description': 'Update docs, READMEs',
+        'description': 'Updates docs, returns status + gotchas to AKIS',
         'can_call': [],
-        'called_by': ['akis', 'architect'],
+        'called_by': ['akis'],
         'orchestration_role': 'worker',
+        'does_editing': True,  # Docs agent edits docs
+        'suggested_skills': ['documentation'],
         'parallel_capable': True,  # Independent of code
     },
     'devops': {
-        'description': 'CI/CD and infrastructure',
-        'can_call': ['code'],
-        'called_by': ['akis', 'architect'],
+        'description': 'Infrastructure + CI/CD, returns status + gotchas to AKIS',
+        'can_call': [],
+        'called_by': ['akis'],
         'orchestration_role': 'worker',
+        'does_editing': True,  # DevOps edits docker/ci files
+        'suggested_skills': ['docker', 'ci-cd'],
         'parallel_capable': False,  # Infrastructure is sequential
     },
 }
