@@ -23,3 +23,16 @@ Components are reusable UI elements used across pages.
 | `ProtocolConnection` | `frontend/src/components/ProtocolConnection.tsx` | ProtocolConnection |
 | `ConnectionContextMenu` | `frontend/src/components/ConnectionContextMenu.tsx` | ConnectionContextMenu |
 
+
+### Workflow
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `BlockNode` | `frontend/src/components/workflow/BlockNode.tsx` | Custom React Flow node for workflow blocks with selection highlighting |
+| `ExecutionConsole` | `frontend/src/components/workflow/ExecutionConsole.tsx` | Real-time execution output with expandable rows |
+| `ExecutionOverlay` | `frontend/src/components/workflow/ExecutionOverlay.tsx` | Cyberpunk-styled execution status popup overlay |
+| `FlowTabs` | `frontend/src/components/workflow/FlowTabs.tsx` | Tab management for multiple workflow flows |
+| `FlowTemplates` | `frontend/src/components/workflow/FlowTemplates.tsx` | Shift+click template selection sidebar |
+| `WorkflowCanvas` | `frontend/src/components/workflow/WorkflowCanvas.tsx` | React Flow canvas with custom edge styling |
+| `WorkflowSidebar` | `frontend/src/components/workflow/WorkflowSidebar.tsx` | Block palette and templates sidebar |
+

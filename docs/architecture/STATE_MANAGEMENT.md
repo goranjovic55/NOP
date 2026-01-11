@@ -53,3 +53,29 @@ The application uses Zustand for state management.
 ### discoveryStore
 **File**: `frontend/src/store/discoveryStore.ts` | **Updated**: 2026-01-09
 
+
+### workflowStore
+**File**: `frontend/src/store/workflowStore.ts` | **Updated**: 2026-01-11
+
+| State | Type | Description |
+|-------|------|-------------|
+| `workflows` | `Workflow[]` | List of all workflows/flows |
+| `currentWorkflowId` | `string \| null` | Currently selected workflow ID |
+| `nodes` | `Node[]` | React Flow nodes for current workflow |
+| `edges` | `Edge[]` | React Flow edges for current workflow |
+| `selectedNodes` | `string[]` | Currently selected node IDs |
+| `selectedEdges` | `string[]` | Currently selected edge IDs |
+
+| Action | Description |
+|--------|-------------|
+| `setCurrentWorkflow(id)` | Switch to different workflow |
+| `addNode(node)` | Add new block to canvas |
+| `updateNode(id, changes)` | Update existing node |
+| `addEdge(edge)` | Connect two nodes |
+| `setSelectedNodes(ids)` | Update node selection |
+| `setSelectedEdges(ids)` | Update edge selection |
+| `saveWorkflow()` | Persist current workflow to backend |
+| `loadWorkflows()` | Fetch all workflows from API |
+
+**Features:** Multi-select with Shift+click, edge selection styling, persistent storage via API.
+

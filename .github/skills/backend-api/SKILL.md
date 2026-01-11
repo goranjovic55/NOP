@@ -1,9 +1,14 @@
 ---
 name: backend-api
-description: Load when editing Python files in backend/, api/, routes/, services/, models/, or websocket files. Provides FastAPI, async SQLAlchemy, and WebSocket patterns.
+description: Load when editing Python files in backend/, api/, routes/, services/, models/, websocket files, or alembic/. Provides FastAPI, async SQLAlchemy, WebSocket, Authentication, and Database Migration patterns.
 ---
 
 # Backend API
+
+## Merged Skills
+- **websocket-realtime**: Real-time WebSocket patterns, ConnectionManager
+- **authentication**: JWT, OAuth, session management
+- **database-migration**: Alembic migrations, schema changes
 
 ## ⚠️ Critical Gotchas
 - **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
@@ -65,4 +70,43 @@ async def execution_ws(ws: WebSocket, execution_id: str):
             # Handle incoming messages
     except WebSocketDisconnect:
         manager.disconnect(execution_id)
+
+# Authentication (JWT)
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        if (user_id := payload.get("sub")) is None:
+            raise HTTPException(401, "Invalid token")
+        return await get_user(user_id)
+    except JWTError:
+        raise HTTPException(401, "Token expired")
+
+# Optional auth (for public endpoints that can be authenticated)
+async def get_optional_user(token: str = Depends(oauth2_scheme_optional)):
+    if not token:
+        return None
+    return await get_current_user(token)
+
+# Database Migration (Alembic)
+# alembic revision --autogenerate -m "Add column"
+# alembic upgrade head
+# alembic downgrade -1
 ```
+
+## Alembic Commands
+
+| Command | Purpose |
+|---------|---------||
+| `alembic revision --autogenerate -m "msg"` | Create migration from model changes |
+| `alembic upgrade head` | Apply all pending migrations |
+| `alembic downgrade -1` | Rollback one migration |
+| `alembic history` | Show migration history |

@@ -11,8 +11,8 @@
 
 | Touching | Load Skill | Cache? |
 |----------|------------|--------|
-| `*.tsx`, `*.jsx`, `components/`, `pages/` | [frontend-react](frontend-react/SKILL.md) | ⭐ Pre-load fullstack |
-| `*.py`, `backend/`, `api/`, `endpoints/` | [backend-api](backend-api/SKILL.md) | ⭐ Pre-load fullstack |
+| `*.tsx`, `*.jsx`, `components/`, `pages/`, `store/`, `hooks/` | [frontend-react](frontend-react/SKILL.md) | ⭐ Pre-load fullstack |
+| `*.py`, `backend/`, `api/`, `endpoints/`, `websocket`, `alembic/` | [backend-api](backend-api/SKILL.md) | ⭐ Pre-load fullstack |
 | `Dockerfile`, `docker-compose*`, `*.yml` | [docker](docker/SKILL.md) | On first touch |
 | `.github/workflows/*`, deploy scripts | [ci-cd](ci-cd/SKILL.md) | On first touch |
 | Error, exception, traceback, failed | [debugging](debugging/SKILL.md) | On first error |
@@ -20,6 +20,15 @@
 | `test_*`, `*.test.*`, `*_test.py` | [testing](testing/SKILL.md) | On first test |
 | `project_knowledge.json`, context | [knowledge](knowledge/SKILL.md) | Rarely needed |
 | `.github/copilot-instructions*`, `.github/skills/*` | [akis-development](akis-development/SKILL.md) | ⚠️ **Always load** |
+
+## Merged Skills
+
+| Suggested Skill | Merged Into | Reason |
+|-----------------|-------------|--------|
+| websocket-realtime | backend-api | WebSocket patterns already covered |
+| authentication | backend-api | JWT/OAuth patterns added |
+| database-migration | backend-api | Alembic patterns added |
+| state-management | frontend-react | Zustand patterns already covered |
 
 > ⭐ Pre-load for fullstack sessions (40% of work)
 > ⚠️ Low compliance (40%) - always load these skills

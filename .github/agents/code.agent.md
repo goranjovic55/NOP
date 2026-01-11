@@ -13,11 +13,11 @@ description: Write production code following best practices. Reports back to AKI
 | implement, create, write, build | Keywords |
 | .py, .tsx, .ts, .jsx | Extensions |
 | backend/, frontend/, api/ | Directories |
-| components/, pages/, store/, services/ | React |
+| components/, pages/, store/, services/, hooks/ | React |
 | .github/scripts/ | AKIS |
 
 ## Technologies
-Python, React, TypeScript, FastAPI, Zustand
+Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket
 
 ## Standards (⛔ ENFORCED)
 | Rule | Requirement |

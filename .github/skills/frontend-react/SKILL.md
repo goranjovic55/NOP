@@ -1,9 +1,12 @@
 ---
 name: frontend-react
-description: Load when editing .tsx, .jsx files or working in components/, pages/, store/, hooks/. Provides React and TypeScript patterns for frontend development.
+description: Load when editing .tsx, .jsx files or working in components/, pages/, store/, hooks/. Provides React, TypeScript, Zustand state management, and WebSocket client patterns.
 ---
 
 # Frontend React
+
+## Merged Skills
+- **state-management**: Zustand stores, selectors, subscriptions
 
 ## ⚠️ Critical Gotchas
 - **401 errors:** Call `logout()` from authStore, don't show page-level error UI
@@ -42,6 +45,39 @@ export const useStore = create<State>((set) => ({
   items: [],
   addItem: (item) => set((s) => ({ items: [...s.items, item] })),
 }));
+
+// Zustand store with persistence
+import { persist } from 'zustand/middleware';
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      theme: 'dark',
+      setTheme: (theme) => set({ theme }),
+    }),
+    { name: 'settings-storage' }
+  )
+);
+
+// Zustand selector (prevents re-renders)
+const items = useStore((s) => s.items);
+const addItem = useStore((s) => s.addItem);
+
+// WebSocket client hook
+const useWebSocket = (url: string) => {
+  const [status, setStatus] = useState<'connecting' | 'connected' | 'closed'>('connecting');
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+    ws.onopen = () => setStatus('connected');
+    ws.onclose = () => setStatus('closed');
+    return () => ws.close();
+  }, [url]);
+
+  return { ws: wsRef.current, status };
+};
 ```
 
 ## Errors
