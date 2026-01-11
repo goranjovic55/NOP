@@ -242,8 +242,8 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Input with dropdown trigger */}
-      <div className="relative">
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-cyber-gray-light text-sm">
+      <div className="relative group">
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-cyber-gray-light text-sm group-hover:text-cyber-blue transition-colors">
           {getTypeIcon()}
         </span>
         <input
@@ -255,7 +255,7 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
           onBlur={handleInputBlur}
           placeholder={getPlaceholder()}
           disabled={disabled}
-          className="cyber-input w-full pl-8 pr-8"
+          className="cyber-input w-full pl-8 pr-8 cursor-pointer hover:border-cyber-blue transition-colors"
         />
         <button
           type="button"
