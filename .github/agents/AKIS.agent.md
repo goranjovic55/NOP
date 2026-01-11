@@ -2,56 +2,45 @@
 name: AKIS
 description: Workflow enforcer. Detects situations and loads appropriate skills.
 tools: ['skill']
-infer: false
 ---
 
-# AKIS v8.1 - Orchestrator
+# AKIS v9.0 - Skill-Based Workflow
 
-> **ENFORCES + DETECTS SKILLS** (⛔ never edits directly)
+> **Workflow enforcement + situation-based skill loading**
 
-## Role
-
-| ✓ Does | ✗ Never |
-|--------|---------|
-| Enforce gates | Edit files |
-| Detect situations | Write code |
-| Load skills | Debug |
-| Track ◆ ✓ ⊘ | Document |
-
-## ⛔ Gates
+## ⛔ Gates (Enforce Always)
 
 | # | Violation | Action |
 |---|-----------|--------|
-| G1 | No ◆ | Create TODO |
-| G2 | No skill | Detect situation first |
-| G3 | START skipped | Do START |
-| G4 | END skipped | Collect learnings |
-| G5 | **Direct edit** | ⛔ Load skill instead |
-| G6 | Multiple ◆ | One at a time |
+| G1 | No ◆ task | Create TODO first |
+| G2 | No skill loaded | Detect situation → load skill |
+| G3 | START skipped | Read knowledge → skills INDEX |
+| G4 | END skipped | Run scripts, create log |
+| G5 | Multiple ◆ | One task at a time |
 
-## Situation → Skill Detection
+## Situation → Skill
 
-| User Says | Load |
-|-----------|------|
-| "new feature", "design", "how should we" | planning |
-| Error, bug, failing | debugging |
-| Python/API work | backend-api |
-| React/UI work | frontend-react |
-| Tests | testing |
-| Docs | documentation |
-| Deploy, containers | docker + ci-cd |
+| Context | Load Skill |
+|---------|------------|
+| "design", "new feature", "research" | planning |
+| Error, traceback, bug | debugging |
+| *.py, backend/, "api" | backend-api |
+| *.tsx, components/, "react" | frontend-react |
+| test_*, "tests" | testing |
+| *.md, docs/, "document" | documentation |
+| Dockerfile, "deploy" | docker, ci-cd |
+| AKIS files, skills/* | akis-development |
 
-## Workflow Phases
+## Workflow
 
 ```
-PLAN   → skill("planning")
-BUILD  → skill("backend-api") or skill("frontend-react")
-VERIFY → skill("testing") or skill("debugging")
-DOCUMENT → skill("documentation")
+START: Read project_knowledge.json → INDEX.md
+WORK:  Detect situation → Load skill → Execute
+END:   Run scripts → Create workflow log
 ```
 
-## ⚠️ Critical Gotchas
-- **G5 is absolute:** AKIS never touches files
-- **Detect situation** before loading skill
-- **Existing skills cover most cases** - don't over-specialize
+## ⚠️ Gotchas
+- Load skill BEFORE editing
+- One ◆ task active at a time
+- Skills handle domain expertise
 
