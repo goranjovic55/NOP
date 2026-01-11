@@ -114,12 +114,14 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
 
           case 'credential': {
             const creds = await flowConfigService.getVaultCredentials();
-            loadedOptions = creds.map((c: VaultCredential) => ({
-              value: c.id,
-              label: c.name,
-              sublabel: `${c.username}@${c.host} (${c.protocol})`,
-              icon: '🔐',
-            }));
+            loadedOptions = creds
+              .filter((c: VaultCredential) => c && c.id && c.name)
+              .map((c: VaultCredential) => ({
+                value: c.id,
+                label: c.name,
+                sublabel: `${c.username || 'user'}@${c.host || 'host'} (${c.protocol || 'ssh'})`,
+                icon: '⌘',
+              }));
             break;
           }
 
@@ -250,7 +252,7 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
     switch (type) {
       case 'ip': return '◎';
       case 'port': return '⬢';
-      case 'credential': return '🔐';
+      case 'credential': return '⌘';
       case 'interface': return '≋';
       case 'agent': return '◆';
       default: return '▾';
@@ -355,7 +357,7 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
                         <span className={`text-sm ${
                           option.icon === '◉' ? 'text-cyber-green' :
                           option.icon === '◎' ? 'text-cyber-blue' :
-                          option.icon === '🔐' ? '' :
+                          option.icon === '⌘' ? 'text-cyber-yellow' :
                           option.icon === '◆' ? 'text-cyber-red' :
                           'text-cyber-gray-light'
                         }`}>

@@ -145,47 +145,66 @@ export const flowConfigService = {
    * Get saved credentials from vault (localStorage for now)
    */
   getVaultCredentials: async (): Promise<VaultCredential[]> => {
+    const results: VaultCredential[] = [];
+    
     try {
       // Check localStorage vault (current implementation)
       const stored = localStorage.getItem('vaultCredentials');
       if (stored) {
         const creds = JSON.parse(stored);
-        return creds.map((c: any) => ({
-          id: c.id,
-          name: c.name || `${c.username}@${c.host}`,
-          host: c.host,
-          protocol: c.protocol || 'ssh',
-          username: c.username,
-          hasPassword: !!c.password,
-          hasPrivateKey: !!c.privateKey,
-        }));
+        if (Array.isArray(creds)) {
+          creds.forEach((c: any) => {
+            if (c && c.id) {
+              results.push({
+                id: String(c.id),
+                name: c.name || `${c.username || 'user'}@${c.host || 'host'}`,
+                host: c.host || '*',
+                protocol: c.protocol || 'ssh',
+                username: c.username || '',
+                hasPassword: !!c.password,
+                hasPrivateKey: !!c.privateKey,
+              });
+            }
+          });
+        }
       }
     } catch (e) {
-      console.error('Failed to load vault credentials', e);
+      console.error('Failed to load vault credentials from localStorage', e);
     }
 
     // Also try to get from backend API
     const token = getAuthToken();
-    if (!token) return [];
+    if (!token) return results;
 
     try {
       const response = await axios.get(`${API_URL}/credentials/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      return (response.data.credentials || []).map((c: any) => ({
-        id: c.id,
-        name: c.name || c.label || `${c.username}@${c.host}`,
-        host: c.host || '*',
-        protocol: c.protocol || c.type || 'ssh',
-        username: c.username,
-        hasPassword: !!c.password || !!c.encrypted_password,
-        hasPrivateKey: !!c.private_key,
-      }));
+      const apiCreds = response.data?.credentials || response.data || [];
+      if (Array.isArray(apiCreds)) {
+        apiCreds.forEach((c: any) => {
+          if (c && c.id) {
+            // Avoid duplicates by ID
+            if (!results.find(r => r.id === String(c.id))) {
+              results.push({
+                id: String(c.id),
+                name: c.name || c.label || `${c.username || 'user'}@${c.host || 'host'}`,
+                host: c.host || '*',
+                protocol: c.protocol || c.type || 'ssh',
+                username: c.username || '',
+                hasPassword: !!c.password || !!c.encrypted_password,
+                hasPrivateKey: !!c.private_key,
+              });
+            }
+          }
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch credentials from API:', error);
-      return [];
     }
+    
+    return results;
   },
 
   /**

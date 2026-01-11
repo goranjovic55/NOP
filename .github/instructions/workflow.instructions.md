@@ -27,7 +27,7 @@ applyTo: "**"
 2. **Annotate with skill:** `○ Task [skill-name]` when skill applies
 3. Mark ◆ BEFORE edit, ✓ AFTER verify
 4. Only ONE ◆ active
-5. Close all ⊘ before END
+6. **ASK user confirmation before END phase**
 
 **Example TODO:**
 ```
@@ -46,11 +46,20 @@ After EVERY edit:
 
 ## END Scripts
 ```bash
-python .github/scripts/knowledge.py
-python .github/scripts/skills.py
-python .github/scripts/docs.py
-python .github/scripts/agents.py
+python .github/scripts/knowledge.py --update
+python .github/scripts/skills.py --suggest
+python .github/scripts/docs.py --suggest
+python .github/scripts/agents.py --suggest
+python .github/scripts/instructions.py --suggest
 ```
+
+⚠️ **Git Push:** Always ASK user before `git push`. Never auto-push.
+
+## ⛔ END Confirmation (Required)
+Before starting END phase:
+1. Say: "Ready for END phase. Confirm?"
+2. Wait for user confirmation
+3. Then proceed with END scripts
 
 ## END Summary Table (Required)
 After running END scripts, present summary to user:
@@ -58,11 +67,17 @@ After running END scripts, present summary to user:
 | Metric | Value |
 |--------|-------|
 | Tasks | X/Y completed |
-| Tokens | ~X saved |
-| API Calls | ~X saved |
-| Resolution | X% |
 | Files | X modified |
-| Commits | X pushed |
+| Knowledge | X entities merged |
+
+**Script Suggestions Table (Required):**
+| Script | Output |
+|--------|--------|
+| knowledge.py | X entities merged |
+| skills.py | X suggestions |
+| docs.py | X suggestions |
+| agents.py | X suggestions |
+| instructions.py | X suggestions |
 
 **Script Suggestions:** Present, ASK user before applying.
 

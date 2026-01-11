@@ -70,3 +70,6 @@ code+docs | code+reviewer | research+code | architect+research
 
 ## Verification
 After edit: Syntax → Imports → Tests → ✓
+
+⚠️ **Git Push:** ASK before push. Never auto-push.
+⚠️ **END Phase:** ASK user confirmation before END. Never auto-END.
