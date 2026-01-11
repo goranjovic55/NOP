@@ -1,3 +1,31 @@
+---
+session:
+  id: "2026-01-01_akis_edge_failure_analysis"
+  date: "2026-01-01"
+  complexity: medium
+  domain: fullstack
+
+skills:
+  loaded: [backend-api, debugging, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "unknown", type: md, domain: docs}
+  types: {md: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Workflow Log: AKIS Edge Failure Analysis & Improvement Recommendations
 
 **Session**: 2026-01-01_114300  

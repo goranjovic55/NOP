@@ -1,3 +1,35 @@
+---
+session:
+  id: "2026-01-07_merge_akis_framework"
+  date: "2026-01-07"
+  complexity: complex
+  domain: backend_only
+
+skills:
+  loaded: [backend-api, docker, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: ".github/instructions/protocols.md", type: md, domain: docs}
+    - {path: ".github/skills/docker.md", type: md, domain: docs}
+    - {path: ".github/scripts/simulate_sessions.py", type: py, domain: backend}
+    - {path: ".github/scripts/test_instructions.py", type: py, domain: backend}
+    - {path: ".github/copilot-instructions.md", type: md, domain: docs}
+  types: {md: 3, py: 3}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Workflow Log: Merge AKIS Framework Enhancements
 
 **Date:** 2026-01-07

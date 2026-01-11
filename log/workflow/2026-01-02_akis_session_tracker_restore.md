@@ -1,3 +1,31 @@
+---
+session:
+  id: "2026-01-02_akis_session_tracker_restore"
+  date: "2026-01-02"
+  complexity: simple
+  domain: fullstack
+
+skills:
+  loaded: [debugging, testing, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "unknown", type: md, domain: docs}
+  types: {md: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # AKIS Workflow Log
 
 **Generated**: 2026-01-02T19:33:15.040Z

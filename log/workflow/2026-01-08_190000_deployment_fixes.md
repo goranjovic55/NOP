@@ -1,3 +1,34 @@
+---
+session:
+  id: "2026-01-08_deployment_fixes"
+  date: "2026-01-08"
+  complexity: simple
+  domain: fullstack
+
+skills:
+  loaded: [frontend-react, backend-api, docker, debugging, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "backend/alembic/env.py", type: py, domain: backend}
+    - {path: "backend/alembic/versions/001_add_cve_tables.py", type: py, domain: backend}
+    - {path: "frontend/src/pages/Agents.tsx", type: tsx, domain: frontend}
+    - {path: "alembic/env.py", type: py, domain: backend}
+  types: {py: 3, tsx: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Deployment Fixes | 2026-01-08 | ~45min
 
 ## Summary
@@ -82,4 +113,3 @@ docker compose down -v  # Remove old volumes
 docker compose pull     # Get latest images
 docker compose up -d    # Start fresh
 docker logs nop-backend-1  # Verify "Database tables created"
-```

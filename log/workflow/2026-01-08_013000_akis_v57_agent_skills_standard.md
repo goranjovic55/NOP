@@ -1,3 +1,35 @@
+---
+session:
+  id: "2026-01-08_akis_v57_agent_skills_standard"
+  date: "2026-01-08"
+  complexity: complex
+  domain: fullstack
+
+skills:
+  loaded: [frontend-react, backend-api, debugging, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: ".github/agents/akis.agent.md", type: md, domain: docs}
+    - {path: ".github/copilot-instructions.md", type: md, domain: docs}
+    - {path: ".github/skills/INDEX.md", type: md, domain: docs}
+    - {path: ".github/skills/*/SKILL.md", type: md, domain: docs}
+    - {path: ".github/templates/skill.md", type: md, domain: docs}
+  types: {md: 8, py: 2}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # AKIS v5.7 + Agent Skills Standard Migration | 2026-01-08 | 45min
 
 ## Summary

@@ -1,3 +1,31 @@
+---
+session:
+  id: "2026-01-09_akis_v63_enforced_discipline"
+  date: "2026-01-09"
+  complexity: simple
+  domain: fullstack
+
+skills:
+  loaded: [frontend-react, backend-api, docker, debugging, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "skills/INDEX.md", type: md, domain: docs}
+  types: {md: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # AKIS v6.3 Enforced Discipline Fix | 2026-01-09 | ~25min
 
 ## Summary
