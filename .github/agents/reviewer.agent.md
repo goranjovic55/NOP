@@ -5,15 +5,17 @@ description: Independent pass/fail audit. Returns verdict trace to AKIS.
 
 # Reviewer Agent
 
-> `@reviewer` | Independent PASS/FAIL audit
+> `@reviewer` | Audit + security scan
 
 ## Triggers
-review, check, audit, verify, quality
+review, check, audit, verify, quality, security, vulnerability, scan
 
 ## Checklist (⛔ REQUIRED)
 | Category | Check | Required |
 |----------|-------|----------|
 | Security | OWASP top 10, input validation, no secrets | ⛔ |
+| Auth | JWT expiry, token rotation, secure cookies | ⛔ |
+| Injection | SQL, XSS, command injection prevention | ⛔ |
 | Quality | Functions <50 lines, clear names | ⛔ |
 | Errors | Handling present | ⛔ |
 | Tests | Coverage exists | ⛔ |

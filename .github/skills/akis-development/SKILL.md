@@ -12,17 +12,33 @@ description: Load when editing AKIS framework files including .github/copilot-in
 - **Script output ignored:** Agent MUST present script suggestions, ASK user before applying
 - **No END summary:** MUST present END summary table to user
 
-## Optimization Targets (All Content)
+## Optimization Targets (⛔ MANDATORY)
 
-| Target | Goal |
-|--------|------|
-| Tokens | MINIMUM usage |
-| API Calls | MINIMUM calls |
-| Speed | MAXIMUM resolution speed |
-| Resolution | MAXIMUM success rate |
-| Traceability | MAXIMUM audit trail |
-| Performance | MAXIMUM efficiency |
-| Cognitive Load | MINIMUM complexity |
+| Target | Goal | How |
+|--------|------|-----|
+| Tokens | MIN | Tables > prose, symbols, no filler |
+| API Calls | MIN | Batch reads, parallel tools |
+| Speed | MAX | Pre-load skills, hot cache |
+| Resolution | MAX | Gotchas, patterns, examples |
+| Traceability | MAX | TODO states, END summary |
+| Performance | MAX | G7 parallel, smart delegation |
+| Cognitive | MIN | Clear triggers, one ◆ rule |
+
+## Standardized Edit Rules (⛔ ENFORCED)
+
+| Content | Format | Structure |
+|---------|--------|----------|
+| Skills | Tables + code blocks | Gotchas → Rules → Patterns |
+| Agents | Tables + output template | Triggers → Checklist → Output |
+| Instructions | Bullet tables | Phase → Action → Tool |
+| Knowledge | JSONL, dedup | module + context |
+
+## Compliance Checks
+```bash
+# Before commit
+python .github/scripts/skills.py   # <350 words, has Gotchas
+python .github/scripts/agents.py   # <500 words, has triggers
+```
 
 ## END Summary Table (Required)
 
