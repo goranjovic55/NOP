@@ -43,33 +43,28 @@ python .github/scripts/stress_test.py --industry
 
 20 edge cases tested across all scripts:
 
-**agents.py (5 cases)**
-- Empty session handling
-- Mega session (50+ files)
-- Missing agents directory
-- Circular agent dependencies
-- All agents active simultaneously
-
-**knowledge.py (5 cases)**
-- Empty knowledge file
-- Corrupted JSONL
-- Stale knowledge (>7 days old)
-- Huge codebase (10k+ files)
-- Binary files in source
-
-**skills.py (5 cases)**
-- No matching skills
-- Multiple skill matches
-- Missing SKILL.md
-- Verbose skill (>350 words)
-- Chain skill missing
-
-**instructions.py (5 cases)**
-- No instruction files
-- Conflicting instructions
-- Missing frontmatter
-- Full coverage already
-- Session interrupt
+| Script | Edge Case | Description | Recovery Method |
+|--------|-----------|-------------|-----------------|
+| agents.py | empty_session | No files modified in session | Returns empty suggestions |
+| agents.py | mega_session | 50+ files modified | Limits to most relevant files |
+| agents.py | missing_agents_dir | No .github/agents directory | Creates directory and stubs |
+| agents.py | circular_agents | Circular agent dependencies | Breaks cycles with sequential fallback |
+| agents.py | all_agents_active | All agent types needed at once | Prioritizes by tier (core > supporting) |
+| knowledge.py | empty_knowledge | Empty or missing knowledge file | Creates new structure from codebase |
+| knowledge.py | corrupted_jsonl | Invalid JSON lines in file | Skips invalid lines, logs warning |
+| knowledge.py | stale_knowledge | Knowledge file older than 7 days | Triggers full regeneration |
+| knowledge.py | huge_codebase | 10k+ files to analyze | Uses sampling and incremental updates |
+| knowledge.py | binary_files | Binary files in source directories | Detects and skips binary files |
+| skills.py | no_matching_skills | Session files don't match patterns | Suggests new skill creation |
+| skills.py | multiple_skill_matches | Files match 5+ skill patterns | Ranks by confidence, returns top 3 |
+| skills.py | missing_skill_file | Skill directory exists but no SKILL.md | Generates stub SKILL.md |
+| skills.py | verbose_skill | SKILL.md exceeds 350 word limit | Flags as quality issue |
+| skills.py | chain_skill_missing | Auto-chain target doesn't exist | Skips chain, logs warning |
+| instructions.py | no_instructions | No files in .github/instructions/ | Uses copilot-instructions.md fallback |
+| instructions.py | conflicting_instructions | Two files contradict each other | Later file takes precedence |
+| instructions.py | missing_frontmatter | File lacks applyTo frontmatter | Flags issue, suggests fix |
+| instructions.py | full_coverage | All patterns already covered | Reports no changes needed |
+| instructions.py | session_interrupt | Session interrupted mid-task | Detects incomplete state, suggests resume |
 
 ### 3. Precision/Recall Testing
 

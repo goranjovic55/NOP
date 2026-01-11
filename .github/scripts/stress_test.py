@@ -301,15 +301,32 @@ class WorkflowPatternExtractor:
     
     def _extract_skills(self, content: str) -> List[str]:
         """Extract skills used from content."""
-        skills = re.findall(r'(?:skill|skills?)[:\s]+([a-z-]+)', content.lower())
-        skills += re.findall(r'frontend-react|backend-api|docker|debugging|documentation|testing', content.lower())
-        return list(set(skills))
+        # Only match known skill names to avoid false positives
+        known_skills = [
+            'frontend-react', 'backend-api', 'docker', 'debugging', 
+            'documentation', 'testing', 'ci-cd', 'akis-development',
+            'planning', 'research', 'knowledge'
+        ]
+        found_skills = []
+        content_lower = content.lower()
+        for skill in known_skills:
+            if skill in content_lower:
+                found_skills.append(skill)
+        return list(set(found_skills))
     
     def _extract_agents(self, content: str) -> List[str]:
         """Extract agents used from content."""
-        agents = re.findall(r'(?:agent|agents?)[:\s]+([a-z-]+)', content.lower())
-        agents += re.findall(r'architect|code|debugger|reviewer|documentation|devops|research', content.lower())
-        return list(set(agents))
+        # Only match known agent names to avoid false positives
+        known_agents = [
+            'architect', 'code', 'debugger', 'reviewer', 
+            'documentation', 'devops', 'research', 'tester', 'security'
+        ]
+        found_agents = []
+        content_lower = content.lower()
+        for agent in known_agents:
+            if agent in content_lower:
+                found_agents.append(agent)
+        return list(set(found_agents))
     
     def _count_tasks(self, content: str) -> int:
         """Count tasks in content."""
@@ -711,15 +728,20 @@ class MixedScenarioSimulator:
     def _generate_files(self, session_type: str, complexity: int) -> List[str]:
         """Generate file list based on session type."""
         files = []
-        num_files = complexity * 2
+        num_files = max(2, complexity * 2)  # Ensure at least 2 files
         
         if session_type in ['frontend_only', 'fullstack']:
-            files.extend([f'frontend/src/components/Component{i}.tsx' for i in range(num_files // 2)])
-            files.extend([f'frontend/src/pages/Page{i}.tsx' for i in range(num_files // 4)])
+            # Ensure at least 1 file for each type
+            component_count = max(1, num_files // 2)
+            page_count = max(1, num_files // 4)
+            files.extend([f'frontend/src/components/Component{i}.tsx' for i in range(component_count)])
+            files.extend([f'frontend/src/pages/Page{i}.tsx' for i in range(page_count)])
         
         if session_type in ['backend_only', 'fullstack']:
-            files.extend([f'backend/app/services/service{i}.py' for i in range(num_files // 2)])
-            files.extend([f'backend/app/api/v1/endpoints/endpoint{i}.py' for i in range(num_files // 4)])
+            service_count = max(1, num_files // 2)
+            endpoint_count = max(1, num_files // 4)
+            files.extend([f'backend/app/services/service{i}.py' for i in range(service_count)])
+            files.extend([f'backend/app/api/v1/endpoints/endpoint{i}.py' for i in range(endpoint_count)])
         
         if session_type == 'docker_heavy':
             files.extend(['Dockerfile', 'docker-compose.yml', 'docker/dev.yml'])
@@ -830,11 +852,25 @@ class MixedScenarioSimulator:
             if effective:
                 total_agent_effectiveness += 1
             
-            # Suggestion quality
-            precision = random.uniform(0.75, 0.95)
-            recall = random.uniform(0.70, 0.90)
-            total_suggestion_precision += precision
-            total_suggestion_recall += recall
+            # Suggestion quality - calculated based on session characteristics
+            # Precision depends on how well patterns match expected behaviors
+            base_precision = 0.85
+            base_recall = 0.80
+            
+            # Edge cases reduce precision
+            edge_penalty = len(scenario.edge_cases) * 0.02
+            
+            # Industry patterns increase precision
+            industry_bonus = len(scenario.industry_patterns) * 0.01
+            
+            # Complexity affects recall
+            complexity_penalty = (scenario.complexity - 3) * 0.01
+            
+            session_precision = max(0.60, min(0.98, base_precision - edge_penalty + industry_bonus))
+            session_recall = max(0.55, min(0.95, base_recall - complexity_penalty + industry_bonus))
+            
+            total_suggestion_precision += session_precision
+            total_suggestion_recall += session_recall
             
             # Resource consumption
             tokens = random.randint(10000, 30000) * (1 - 0.42 if success else 1)
