@@ -24,9 +24,18 @@ applyTo: "**"
 
 ## TODO Rules
 1. Create before multi-step work
-2. Mark ◆ BEFORE edit, ✓ AFTER verify
-3. Only ONE ◆ active
-4. Close all ⊘ before END
+2. **Annotate with skill:** `○ Task [skill-name]` when skill applies
+3. Mark ◆ BEFORE edit, ✓ AFTER verify
+4. Only ONE ◆ active
+5. Close all ⊘ before END
+
+**Example TODO:**
+```
+○ Create service for data [backend-api]
+○ Add dropdown component [frontend-react]  
+○ Update docker config [docker]
+○ Simple cleanup (no skill)
+```
 
 ## Verification
 After EVERY edit:

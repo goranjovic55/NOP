@@ -8,6 +8,7 @@ import { useWorkflowStore } from '../store/workflowStore';
 import { WorkflowCanvas, BlockPalette, ConfigPanel, FlowTemplates, FlowTabs } from '../components/workflow';
 import ExecutionOverlay from '../components/workflow/ExecutionOverlay';
 import ExecutionConsole from '../components/workflow/ExecutionConsole';
+import FlowSettingsPanel from '../components/workflow/FlowSettingsPanel';
 import { WorkflowCreate, NodeExecutionStatus, WorkflowNode, WorkflowEdge } from '../types/workflow';
 import { CyberCard, CyberButton, CyberInput, CyberPageTitle } from '../components/CyberUI';
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution';
@@ -33,6 +34,7 @@ const WorkflowBuilder: React.FC = () => {
   const [showNewWorkflowModal, setShowNewWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   
   // Console state - persisted in localStorage
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(() => {
@@ -515,6 +517,15 @@ const WorkflowBuilder: React.FC = () => {
         <div className="flex items-center gap-2">
           {currentWorkflow && (
             <>
+              <CyberButton 
+                variant={showSettingsPanel ? 'blue' : 'gray'} 
+                size="sm" 
+                onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+                title="Block Settings - View and edit all block parameters"
+              >
+                ⚙ SETTINGS
+              </CyberButton>
+              
               <CyberButton variant="gray" size="sm" onClick={handleExport}>
                 ↑ EXPORT
               </CyberButton>
@@ -621,15 +632,23 @@ const WorkflowBuilder: React.FC = () => {
           </div>
 
           {/* Right Config Panel */}
-          {selectedNodeId && (
+          {selectedNodeId && !showSettingsPanel && (
             <ConfigPanel 
               nodeId={selectedNodeId} 
               onClose={() => setSelectedNodeId(null)} 
             />
           )}
 
+          {/* Right Settings Panel - Block config list */}
+          {showSettingsPanel && (
+            <FlowSettingsPanel
+              isOpen={showSettingsPanel}
+              onClose={() => setShowSettingsPanel(false)}
+            />
+          )}
+
           {/* Right Templates Panel */}
-          {!selectedNodeId && (
+          {!selectedNodeId && !showSettingsPanel && (
             <FlowTemplates
               isOpen={isTemplatesOpen}
               onClose={toggleTemplates}

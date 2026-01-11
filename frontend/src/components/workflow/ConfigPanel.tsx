@@ -2,6 +2,7 @@
  * ConfigPanel - Cyberpunk-styled right sidebar for node configuration
  * Phase 3: Added credential selector support
  * Phase 4: Added execution results display with loop iteration tracking
+ * Phase 5: Added dynamic dropdowns for IPs, ports, and credentials from NOP data
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { getBlockDefinition, CATEGORY_COLORS, validateBlockParameters } from '../../types/blocks';
 import { ParameterDefinition, NodeResult } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
+import DynamicDropdown from './DynamicDropdown';
 
 // Extended result type for loop iterations
 interface IterationResult {
@@ -182,6 +184,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                 onChange={(value) => handleParamChange(param.name, value)}
                 credentials={credentials}
                 onApplyCredential={applyCredential}
+                allParams={localParams}
+                blockType={node.data.type}
               />
             ))}
           </div>
@@ -369,6 +373,8 @@ interface ParameterFieldProps {
   onChange: (value: any) => void;
   credentials: VaultCredential[];
   onApplyCredential: (credentialId: string) => void;
+  allParams: Record<string, any>;  // Access to all params for context-aware dropdowns
+  blockType: string;  // Block type for determining dropdown behavior
 }
 
 const ParameterField: React.FC<ParameterFieldProps> = ({ 
@@ -376,13 +382,29 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
   value, 
   onChange, 
   credentials,
-  onApplyCredential 
+  onApplyCredential,
+  allParams,
+  blockType,
 }) => {
   const { name, label, type, required, placeholder, options, description } = definition;
 
   const inputClasses = "cyber-input w-full";
 
-  // Handle credential type
+  // Determine if this field should use a dynamic dropdown
+  const isDynamicHost = name === 'host' && type === 'string';
+  const isDynamicPort = name === 'port' && type === 'number';
+  const isDynamicInterface = name === 'interface' && type === 'string';
+
+  // Get service filter for port dropdowns based on block type
+  const getServiceFilter = (): string | undefined => {
+    if (blockType.includes('ssh')) return 'ssh';
+    if (blockType.includes('rdp')) return 'rdp';
+    if (blockType.includes('vnc')) return 'vnc';
+    if (blockType.includes('ftp')) return 'ftp';
+    return undefined;
+  };
+
+  // Handle credential type with DynamicDropdown
   if (type === 'credential') {
     return (
       <div>
@@ -390,30 +412,88 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
           {label}
           {required && <span className="text-cyber-red ml-1">*</span>}
         </label>
-        <select
+        <DynamicDropdown
+          type="credential"
           value={value ?? ''}
-          onChange={(e) => {
-            onChange(e.target.value);
-            if (e.target.value) {
-              onApplyCredential(e.target.value);
+          onChange={(val) => {
+            onChange(val);
+            if (val) {
+              onApplyCredential(val);
             }
           }}
-          className="cyber-select w-full"
-        >
-          <option value="">[ SELECT CREDENTIAL ]</option>
-          {credentials.map(cred => (
-            <option key={cred.id} value={cred.id}>
-              {cred.name} ({cred.host})
-            </option>
-          ))}
-        </select>
+          placeholder="Select saved credential..."
+          allowCustom={false}
+        />
         {description && (
           <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
         )}
-        {credentials.length === 0 && (
-          <p className="text-xs text-cyber-blue mt-1 font-mono">
-            ◇ No saved credentials. Add in Settings → Credentials
-          </p>
+      </div>
+    );
+  }
+
+  // Handle host field with DynamicDropdown (discovered IPs)
+  if (isDynamicHost) {
+    return (
+      <div>
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
+          {label}
+          {required && <span className="text-cyber-red ml-1">*</span>}
+        </label>
+        <DynamicDropdown
+          type="ip"
+          value={value ?? ''}
+          onChange={onChange}
+          placeholder={placeholder || 'Select or enter IP address...'}
+          allowCustom={true}
+        />
+        {description && (
+          <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Handle port field with DynamicDropdown (discovered ports)
+  if (isDynamicPort) {
+    return (
+      <div>
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
+          {label}
+          {required && <span className="text-cyber-red ml-1">*</span>}
+        </label>
+        <DynamicDropdown
+          type="port"
+          value={value?.toString() ?? ''}
+          onChange={(val) => onChange(val ? Number(val) : undefined)}
+          placeholder={placeholder || 'Select or enter port...'}
+          hostFilter={allParams.host}  // Filter ports by selected host
+          serviceFilter={getServiceFilter()}
+          allowCustom={true}
+        />
+        {description && (
+          <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Handle interface field with DynamicDropdown
+  if (isDynamicInterface) {
+    return (
+      <div>
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
+          {label}
+          {required && <span className="text-cyber-red ml-1">*</span>}
+        </label>
+        <DynamicDropdown
+          type="interface"
+          value={value ?? ''}
+          onChange={onChange}
+          placeholder={placeholder || 'Select network interface...'}
+          allowCustom={true}
+        />
+        {description && (
+          <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
         )}
       </div>
     );

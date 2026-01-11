@@ -42,6 +42,22 @@ applyTo: "**"
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
+## TODO Skill Annotation
+When creating TODOs, match each task to its skill:
+```
+○ Task description [skill-name]
+```
+
+| Task Type | Skill to Annotate |
+|-----------|------------------|
+| Python service/endpoint | [backend-api] |
+| React component/page | [frontend-react] |
+| Docker config | [docker] |
+| Tests | [testing] |
+| Docs/README | [documentation] |
+| Bug fix | [debugging] |
+| No specific domain | (no annotation) |
+
 ## Delegation
 | Complexity | Strategy |
 |------------|----------|

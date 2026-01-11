@@ -22,7 +22,9 @@
 ## START
 1. **Query `project_knowledge.json`** (hot_cache → gotchas → domain_index)
 2. `skills/INDEX.md` → pre-load: frontend-react + backend-api
-3. Create TODO → Say: "AKIS v7.1 [complexity]. [N] tasks."
+3. Create TODO with skill annotations → Say: "AKIS v7.1 [complexity]. [N] tasks."
+
+**TODO Format:** `◆ Task description [skill-name]` or `○ Task description` (no skill needed)
 
 **Knowledge reduces file reads by 85%** - Always check cache first!
 
@@ -64,6 +66,16 @@
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
+
+## TODO Skill Annotation
+```
+○ Create FlowConfigService [backend-api]
+○ Add DynamicDropdown component [frontend-react]
+○ Update docker-compose [docker]
+○ Write unit tests [testing]
+○ Simple task (no skill needed)
+```
+When creating TODOs, annotate each with `[skill-name]` if skill applies.
 
 ## Delegation
 | Complexity | Strategy |
