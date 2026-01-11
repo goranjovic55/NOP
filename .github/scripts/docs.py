@@ -912,6 +912,210 @@ def run_index(dry_run: bool = False) -> Dict[str, Any]:
     }
 
 
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive documentation suggestions."""
+    print("=" * 70)
+    print("AKIS Documentation - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    docs_dir = root / 'docs'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_files_modified = defaultdict(lambda: {'count': 0, 'domains': set()})
+    all_file_types = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_gotchas = []
+    all_root_causes = []
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_yaml_frontmatter(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract files modified - use regex for reliability
+            file_pattern = r'\{path:\s*"?([^",}]+)"?,\s*type:\s*(\w+),\s*domain:\s*(\w+)\}'
+            file_matches = re.findall(file_pattern, content)
+            for path, ftype, domain in file_matches:
+                path = path.strip('"').strip()
+                if path and path != 'unknown':
+                    all_files_modified[path]['count'] += weight
+                    all_files_modified[path]['domains'].add(domain)
+                    all_file_types[ftype] += 1
+            
+            # Extract types from {tsx: 1, py: 2} format
+            types_pattern = r'types:\s*\{([^}]+)\}'
+            types_match = re.search(types_pattern, content)
+            if types_match:
+                for pair in types_match.group(1).split(','):
+                    if ':' in pair:
+                        ftype, count = pair.split(':')
+                        try:
+                            all_file_types[ftype.strip()] += int(count.strip())
+                        except ValueError:
+                            pass
+            
+            # Extract session domain - use regex for reliability
+            domain_pattern = r'session:.*?domain:\s*(\w+)'
+            domain_match = re.search(domain_pattern, content, re.DOTALL)
+            if domain_match:
+                domain = domain_match.group(1)
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract gotchas
+            if 'gotchas' in yaml_data:
+                gotchas = yaml_data['gotchas']
+                if isinstance(gotchas, list):
+                    for g in gotchas:
+                        if g and g not in all_gotchas:
+                            all_gotchas.append(g)
+            
+            # Extract root causes
+            if 'root_causes' in yaml_data:
+                causes = yaml_data['root_causes']
+                if isinstance(causes, list):
+                    for c in causes:
+                        if c and c not in all_root_causes:
+                            all_root_causes.append(c)
+                            
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze patterns
+    print(f"\n📊 FILE MODIFICATION ANALYSIS")
+    print("-" * 50)
+    
+    print("\n📄 Most Frequently Modified Files (weighted):")
+    top_files = sorted(all_files_modified.items(), key=lambda x: -x[1]['count'])[:10]
+    for path, data in top_files:
+        domains = ', '.join(data['domains']) if data['domains'] else 'unknown'
+        print(f"   {path}: {data['count']:.1f} mentions ({domains})")
+    
+    print(f"\n📁 File Types Distribution:")
+    for ftype, count in sorted(all_file_types.items(), key=lambda x: -x[1])[:8]:
+        print(f"   .{ftype}: {count} files")
+    
+    print(f"\n📈 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    # Generate documentation suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 DOCUMENTATION SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Check for heavily modified files without documentation
+    for path, data in top_files[:20]:
+        if data['count'] >= 5.0:
+            # Check if documentation exists for this file
+            doc_exists = False
+            component_name = Path(path).stem
+            for doc_file in docs_dir.rglob('*.md'):
+                if component_name.lower() in doc_file.stem.lower():
+                    doc_exists = True
+                    break
+            
+            if not doc_exists:
+                suggestions.append({
+                    'type': 'create',
+                    'target': path,
+                    'reason': f'Frequently modified ({data["count"]:.0f}x) but no dedicated documentation',
+                    'priority': 'High' if data['count'] >= 10 else 'Medium'
+                })
+    
+    # Check for domain gaps
+    if all_domains.get('frontend', 0) > 10:
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/design/COMPONENTS.md',
+            'reason': f'High frontend activity ({all_domains.get("frontend", 0)} sessions) - update component docs',
+            'priority': 'Medium'
+        })
+    
+    if all_domains.get('backend', 0) > 10:
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/technical/API_rest_v1.md',
+            'reason': f'High backend activity ({all_domains.get("backend", 0)} sessions) - update API docs',
+            'priority': 'Medium'
+        })
+    
+    # Gotcha documentation
+    if all_gotchas:
+        print(f"\n⚠️  GOTCHAS CAPTURED ({len(all_gotchas)} total):")
+        for gotcha in all_gotchas[:5]:
+            print(f"   - {gotcha}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/development/TROUBLESHOOTING.md',
+            'reason': f'Add {len(all_gotchas)} gotchas to troubleshooting guide',
+            'priority': 'High'
+        })
+    
+    # Root causes documentation
+    if all_root_causes:
+        print(f"\n🔍 ROOT CAUSES CAPTURED ({len(all_root_causes)} total):")
+        for cause in all_root_causes[:5]:
+            print(f"   - {cause}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/development/DEBUGGING.md',
+            'reason': f'Document {len(all_root_causes)} root causes for future reference',
+            'priority': 'Medium'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 80)
+        print(f"{'Type':<10} {'Target':<45} {'Priority':<10} {'Reason'}")
+        print("-" * 80)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['target']:<45} {s['priority']:<10} {s['reason'][:30]}")
+        print("-" * 80)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Documentation coverage complete - no gaps detected")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'files_modified': {k: {'count': v['count'], 'domains': list(v['domains'])} for k, v in all_files_modified.items()},
+        'file_types': dict(all_file_types),
+        'domains': dict(all_domains),
+        'gotchas_count': len(all_gotchas),
+        'root_causes_count': len(all_root_causes),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Documentation Management Script',
@@ -922,6 +1126,7 @@ Examples:
   python docs.py --update           # Apply documentation updates
   python docs.py --generate         # Full generation with metrics
   python docs.py --suggest          # Suggest without applying
+  python docs.py --ingest-all       # Ingest ALL workflow logs and suggest
   python docs.py --index            # Regenerate INDEX.md
   python docs.py --dry-run          # Preview changes
         """
@@ -934,6 +1139,8 @@ Examples:
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest changes without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--index', action='store_true',
                            help='Regenerate INDEX.md')
     
@@ -951,6 +1158,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.index:
         result = run_index(args.dry_run)
     elif args.update:

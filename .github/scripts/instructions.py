@@ -817,6 +817,196 @@ def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
     }
 
 
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive instruction suggestions."""
+    print("=" * 70)
+    print("AKIS Instructions - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_gate_violations = defaultdict(int)
+    all_gates_passed = defaultdict(int)
+    all_complexities = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_gotchas = []
+    all_skills_loaded = defaultdict(int)
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_workflow_log_yaml(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract gate data
+            if 'gates' in yaml_data and isinstance(yaml_data['gates'], dict):
+                violations = yaml_data['gates'].get('violations', [])
+                if isinstance(violations, list):
+                    for v in violations:
+                        all_gate_violations[v] += weight
+                
+                passed = yaml_data['gates'].get('passed', [])
+                if isinstance(passed, str):
+                    passed = [g.strip() for g in passed.strip('[]').split(',') if g.strip()]
+                if isinstance(passed, list):
+                    for g in passed:
+                        all_gates_passed[g] += 1
+            
+            # Extract session info
+            if 'session' in yaml_data and isinstance(yaml_data['session'], dict):
+                complexity = yaml_data['session'].get('complexity', 'unknown')
+                if complexity:
+                    all_complexities[complexity] += 1
+                domain = yaml_data['session'].get('domain', 'unknown')
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract skills
+            if 'skills' in yaml_data and isinstance(yaml_data['skills'], dict):
+                loaded = yaml_data['skills'].get('loaded', [])
+                if isinstance(loaded, str):
+                    loaded = [s.strip() for s in loaded.strip('[]').split(',') if s.strip()]
+                for skill in loaded:
+                    all_skills_loaded[skill] += 1
+            
+            # Extract gotchas
+            if 'gotchas' in yaml_data:
+                gotchas = yaml_data['gotchas']
+                if isinstance(gotchas, list):
+                    for g in gotchas:
+                        if g and g not in all_gotchas:
+                            all_gotchas.append(g)
+                            
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze gate compliance
+    print(f"\n📊 GATE COMPLIANCE ANALYSIS")
+    print("-" * 50)
+    
+    if all_gate_violations:
+        print("\n⚠️  Gate Violations (weighted by recency):")
+        for gate, count in sorted(all_gate_violations.items(), key=lambda x: -x[1]):
+            print(f"   {gate}: {count:.1f} weighted violations")
+    else:
+        print("\n✅ No gate violations recorded")
+    
+    print(f"\n✓ Gates Passed Distribution:")
+    for gate, count in sorted(all_gates_passed.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {gate}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📈 Session Complexity Distribution:")
+    for complexity, count in sorted(all_complexities.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {complexity}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📁 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n🔧 Top Skills Used:")
+    for skill, count in sorted(all_skills_loaded.items(), key=lambda x: -x[1])[:10]:
+        print(f"   {skill}: {count} sessions")
+    
+    # Generate instruction suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 INSTRUCTION SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Gate violation based suggestions
+    for gate, count in all_gate_violations.items():
+        if count >= 3.0:
+            suggestions.append({
+                'type': 'update',
+                'target': 'protocols.instructions.md',
+                'reason': f'{gate} violated {count:.0f}x - reinforce in protocols',
+                'priority': 'High'
+            })
+    
+    # Domain-specific instruction suggestions
+    if all_domains.get('fullstack', 0) / max(parsed_count, 1) > 0.4:
+        suggestions.append({
+            'type': 'create',
+            'target': 'fullstack.instructions.md',
+            'reason': f'{100*all_domains.get("fullstack", 0)/max(parsed_count, 1):.0f}% sessions are fullstack - needs dedicated instructions',
+            'priority': 'Medium'
+        })
+    
+    # Complexity based suggestions
+    complex_ratio = all_complexities.get('complex', 0) / max(parsed_count, 1)
+    if complex_ratio > 0.2:
+        suggestions.append({
+            'type': 'update',
+            'target': 'workflow.instructions.md',
+            'reason': f'{100*complex_ratio:.0f}% sessions are complex - add complexity handling guidance',
+            'priority': 'Medium'
+        })
+    
+    # Gotcha-based suggestions
+    if all_gotchas:
+        print(f"\n⚠️  GOTCHAS CAPTURED ({len(all_gotchas)} total):")
+        for gotcha in all_gotchas[:5]:
+            print(f"   - {gotcha}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'quality.instructions.md',
+            'reason': f'Add {len(all_gotchas)} gotchas to quality checklist',
+            'priority': 'High'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 80)
+        print(f"{'Type':<10} {'Target':<35} {'Priority':<10} {'Reason'}")
+        print("-" * 80)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['target']:<35} {s['priority']:<10} {s['reason'][:35]}")
+        print("-" * 80)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Instructions comprehensive - no gaps detected")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'gate_violations': dict(all_gate_violations),
+        'gates_passed': dict(all_gates_passed),
+        'complexities': dict(all_complexities),
+        'domains': dict(all_domains),
+        'skills_loaded': dict(all_skills_loaded),
+        'gotchas_count': len(all_gotchas),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Instructions Management Script',
@@ -827,6 +1017,7 @@ Examples:
   python instructions.py --update           # Create/update instruction files
   python instructions.py --generate         # Full generation with metrics
   python instructions.py --suggest          # Suggest without applying
+  python instructions.py --ingest-all       # Ingest ALL workflow logs and suggest
   python instructions.py --precision        # Test precision/recall (100k sessions)
   python instructions.py --dry-run          # Preview changes
         """
@@ -839,6 +1030,8 @@ Examples:
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest changes without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--precision', action='store_true',
                            help='Test precision/recall of instruction suggestions')
     
@@ -856,6 +1049,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.precision:
         result = run_precision_test(args.sessions)
     elif args.update:

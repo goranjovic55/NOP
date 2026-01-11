@@ -3372,6 +3372,184 @@ def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
     }
 
 
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive agent suggestions."""
+    print("=" * 70)
+    print("AKIS Agents - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_agents_delegated = defaultdict(lambda: {'count': 0, 'tasks': [], 'results': []})
+    all_complexities = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_root_causes = []
+    all_gate_violations = defaultdict(int)
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_workflow_log_yaml(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract agents delegated
+            if 'agents' in yaml_data and isinstance(yaml_data['agents'], dict):
+                delegated = yaml_data['agents'].get('delegated', [])
+                if isinstance(delegated, list):
+                    for agent_info in delegated:
+                        if isinstance(agent_info, dict):
+                            name = agent_info.get('name', 'unknown')
+                            all_agents_delegated[name]['count'] += weight
+                            if agent_info.get('task'):
+                                all_agents_delegated[name]['tasks'].append(agent_info['task'])
+                            if agent_info.get('result'):
+                                all_agents_delegated[name]['results'].append(agent_info['result'])
+            
+            # Extract session complexity
+            if 'session' in yaml_data and isinstance(yaml_data['session'], dict):
+                complexity = yaml_data['session'].get('complexity', 'unknown')
+                if complexity:
+                    all_complexities[complexity] += 1
+                domain = yaml_data['session'].get('domain', 'unknown')
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract root causes
+            if 'root_causes' in yaml_data:
+                causes = yaml_data['root_causes']
+                if isinstance(causes, list):
+                    for c in causes:
+                        if c and c not in all_root_causes:
+                            all_root_causes.append(c)
+            
+            # Extract gate violations
+            if 'gates' in yaml_data and isinstance(yaml_data['gates'], dict):
+                violations = yaml_data['gates'].get('violations', [])
+                if isinstance(violations, list):
+                    for v in violations:
+                        all_gate_violations[v] += 1
+                        
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze agent delegation patterns
+    print(f"\n📊 AGENT DELEGATION ANALYSIS")
+    print("-" * 50)
+    
+    print("\n🤖 Agent Usage (weighted by recency):")
+    for agent, data in sorted(all_agents_delegated.items(), key=lambda x: -x[1]['count']):
+        print(f"   {agent}: {data['count']:.1f} delegations")
+        if data['tasks'][:2]:
+            for task in data['tasks'][:2]:
+                print(f"      └─ {task[:50]}")
+    
+    print(f"\n📈 Session Complexity Distribution:")
+    for complexity, count in sorted(all_complexities.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {complexity}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📁 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    if all_gate_violations:
+        print(f"\n⚠️  Gate Violations:")
+        for gate, count in sorted(all_gate_violations.items(), key=lambda x: -x[1]):
+            print(f"   {gate}: {count} violations")
+    
+    # Generate suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 AGENT SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Check for underutilized agents
+    available_agents = {'architect', 'code', 'debugger', 'reviewer', 'documentation', 'research', 'devops'}
+    used_agents = set(all_agents_delegated.keys())
+    unused = available_agents - used_agents
+    
+    if unused:
+        for agent in unused:
+            suggestions.append({
+                'type': 'review',
+                'agent': agent,
+                'reason': f'Agent never delegated to - verify triggers or remove',
+                'priority': 'Low'
+            })
+    
+    # Check for high-complexity sessions without delegation
+    complex_sessions = all_complexities.get('complex', 0)
+    total_delegations = sum(d['count'] for d in all_agents_delegated.values())
+    if complex_sessions > 5 and total_delegations < complex_sessions * 0.5:
+        suggestions.append({
+            'type': 'optimize',
+            'agent': 'AKIS',
+            'reason': f'{complex_sessions} complex sessions but low delegation rate - increase parallel usage',
+            'priority': 'High'
+        })
+    
+    # Root cause patterns
+    if all_root_causes:
+        print(f"\n🔍 ROOT CAUSES CAPTURED ({len(all_root_causes)} total):")
+        for cause in all_root_causes[:5]:
+            print(f"   - {cause}")
+        suggestions.append({
+            'type': 'update',
+            'agent': 'debugger',
+            'reason': f'Add {len(all_root_causes)} root causes to debugger knowledge base',
+            'priority': 'Medium'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 70)
+        print(f"{'Type':<10} {'Agent':<20} {'Priority':<10} {'Reason'}")
+        print("-" * 70)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['agent']:<20} {s['priority']:<10} {s['reason'][:40]}")
+        print("-" * 70)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Agent patterns optimal - no suggestions")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'agents_delegated': {k: dict(v) for k, v in all_agents_delegated.items()},
+        'complexities': dict(all_complexities),
+        'domains': dict(all_domains),
+        'gate_violations': dict(all_gate_violations),
+        'root_causes_count': len(all_root_causes),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Agents Management Script',
@@ -3382,6 +3560,7 @@ Examples:
   python agents.py --update           # Update existing agents
   python agents.py --generate         # Full generation with metrics + agent files
   python agents.py --suggest          # Suggest without applying
+  python agents.py --ingest-all       # Ingest ALL workflow logs and suggest
   python agents.py --audit            # Audit AKIS agent with sub-agent orchestration
   python agents.py --full-audit       # Full AKIS system audit (agent/knowledge/instructions/skills)
   python agents.py --compare          # Compare AKIS alone vs AKIS + specialists (100k sessions)
@@ -3398,6 +3577,8 @@ Examples:
                            help='Full generation with 100k simulation and agent file creation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest improvements without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--audit', action='store_true',
                            help='Audit AKIS agent with sub-agent orchestration analysis')
     mode_group.add_argument('--full-audit', action='store_true',
@@ -3423,6 +3604,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.audit:
         result = run_audit(args.sessions)
     elif args.full_audit:

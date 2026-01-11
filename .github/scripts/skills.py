@@ -965,6 +965,207 @@ def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
     }
 
 
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive skill suggestions."""
+    print("=" * 70)
+    print("AKIS Skills - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True  # Most recent first
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data from all logs with recency weighting
+    all_skills_loaded = defaultdict(float)  # skill -> weighted count
+    all_skills_suggested = defaultdict(float)
+    all_gotchas = []
+    all_root_causes = []
+    all_domains = defaultdict(int)
+    all_complexities = defaultdict(int)
+    all_file_types = defaultdict(int)
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_workflow_log_yaml(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            
+            # Recency weight: latest=3x, second=2x, rest=1x
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract skills loaded
+            if 'skills' in yaml_data and isinstance(yaml_data['skills'], dict):
+                loaded = yaml_data['skills'].get('loaded', [])
+                if isinstance(loaded, str):
+                    # Parse [skill1, skill2] format
+                    loaded = [s.strip() for s in loaded.strip('[]').split(',') if s.strip()]
+                for skill in loaded:
+                    all_skills_loaded[skill] += weight
+                
+                suggested = yaml_data['skills'].get('suggested', [])
+                if isinstance(suggested, str):
+                    suggested = [s.strip() for s in suggested.strip('[]').split(',') if s.strip()]
+                for skill in suggested:
+                    all_skills_suggested[skill] += weight
+            
+            # Extract session info
+            if 'session' in yaml_data and isinstance(yaml_data['session'], dict):
+                domain = yaml_data['session'].get('domain', 'unknown')
+                if domain:
+                    all_domains[domain] += 1
+                complexity = yaml_data['session'].get('complexity', 'unknown')
+                if complexity:
+                    all_complexities[complexity] += 1
+            
+            # Extract file types
+            if 'files' in yaml_data and isinstance(yaml_data['files'], dict):
+                types_data = yaml_data['files'].get('types', '')
+                if isinstance(types_data, str) and types_data.startswith('{'):
+                    # Parse {tsx: 1, py: 2} format
+                    for pair in types_data.strip('{}').split(','):
+                        if ':' in pair:
+                            ftype, count = pair.split(':')
+                            all_file_types[ftype.strip()] += int(count.strip())
+            
+            # Extract gotchas
+            if 'gotchas' in yaml_data:
+                gotchas = yaml_data['gotchas']
+                if isinstance(gotchas, list):
+                    for g in gotchas:
+                        if g and g not in all_gotchas:
+                            all_gotchas.append(g)
+            
+            # Extract root causes
+            if 'root_causes' in yaml_data:
+                causes = yaml_data['root_causes']
+                if isinstance(causes, list):
+                    for c in causes:
+                        if c and c not in all_root_causes:
+                            all_root_causes.append(c)
+                            
+        except Exception as e:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze skill usage patterns
+    print(f"\n📊 SKILL USAGE ANALYSIS (weighted by recency)")
+    print("-" * 50)
+    
+    print("\n🔹 Most Used Skills (loaded):")
+    top_skills = sorted(all_skills_loaded.items(), key=lambda x: -x[1])[:10]
+    for skill, score in top_skills:
+        print(f"   {skill}: {score:.1f} weighted mentions")
+    
+    print("\n🔸 Previously Suggested Skills:")
+    for skill, score in sorted(all_skills_suggested.items(), key=lambda x: -x[1])[:5]:
+        if skill:
+            print(f"   {skill}: {score:.1f} weighted mentions")
+    
+    print(f"\n📁 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📈 Complexity Distribution:")
+    for complexity, count in sorted(all_complexities.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {complexity}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📄 File Types Modified:")
+    for ftype, count in sorted(all_file_types.items(), key=lambda x: -x[1])[:8]:
+        print(f"   .{ftype}: {count} files")
+    
+    # Generate suggestions based on patterns
+    print(f"\n" + "=" * 50)
+    print("📝 SKILL SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Check for skill gaps: frequently used but no dedicated skill
+    skill_set = set(EXISTING_SKILL_TRIGGERS.keys())
+    for skill, score in all_skills_loaded.items():
+        if skill and skill not in skill_set and score >= 5.0:
+            suggestions.append({
+                'type': 'create',
+                'skill': skill,
+                'reason': f'Mentioned in logs {score:.0f} weighted times but no SKILL.md exists',
+                'priority': 'High' if score >= 10 else 'Medium'
+            })
+    
+    # Check for underutilized skills
+    for skill in skill_set:
+        if skill not in all_skills_loaded or all_skills_loaded[skill] < 2.0:
+            suggestions.append({
+                'type': 'review',
+                'skill': skill,
+                'reason': f'Existing skill rarely used - consider merging or removing',
+                'priority': 'Low'
+            })
+    
+    # Gotcha-based suggestions
+    if all_gotchas:
+        print(f"\n⚠️  GOTCHAS CAPTURED ({len(all_gotchas)} total):")
+        for gotcha in all_gotchas[:5]:
+            print(f"   - {gotcha}")
+        suggestions.append({
+            'type': 'update',
+            'skill': 'debugging',
+            'reason': f'Add {len(all_gotchas)} gotchas to debugging skill',
+            'priority': 'Medium'
+        })
+    
+    # Root cause based suggestions
+    if all_root_causes:
+        print(f"\n🔍 ROOT CAUSES CAPTURED ({len(all_root_causes)} total):")
+        for cause in all_root_causes[:5]:
+            print(f"   - {cause}")
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 70)
+        print(f"{'Type':<10} {'Skill':<25} {'Priority':<10} {'Reason'}")
+        print("-" * 70)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['skill']:<25} {s['priority']:<10} {s['reason'][:40]}")
+        print("-" * 70)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ No skill gaps detected - all patterns covered")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'skills_loaded': dict(all_skills_loaded),
+        'skills_suggested': dict(all_skills_suggested),
+        'domains': dict(all_domains),
+        'complexities': dict(all_complexities),
+        'file_types': dict(all_file_types),
+        'gotchas_count': len(all_gotchas),
+        'root_causes_count': len(all_root_causes),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Skills Management Script',
@@ -975,6 +1176,7 @@ Examples:
   python skills.py --update           # Update/create skill stubs
   python skills.py --generate         # Full generation with metrics
   python skills.py --suggest          # Suggest without applying
+  python skills.py --ingest-all       # Ingest ALL workflow logs and suggest
   python skills.py --precision        # Test precision/recall (100k sessions)
   python skills.py --dry-run          # Preview changes
         """
@@ -987,6 +1189,8 @@ Examples:
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest changes without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--precision', action='store_true',
                            help='Test precision/recall of skill detection')
     
@@ -1004,6 +1208,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.precision:
         result = run_precision_test(args.sessions)
     elif args.update:
