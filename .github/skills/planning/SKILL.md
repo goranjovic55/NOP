@@ -9,7 +9,7 @@
 
 ## Workflow
 1. **UNDERSTAND** - Clarify requirements, scope
-2. **RESEARCH** - Check existing code, patterns
+2. **RESEARCH** - Check existing code, patterns, external sources
 3. **DESIGN** - Create blueprint in `.project/blueprints/`
 4. **VALIDATE** - Review approach
 5. **HANDOFF** - Transition to BUILD phase

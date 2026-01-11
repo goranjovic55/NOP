@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# Structure
+# Structure v7.1
 
 ## Root Files
 - .py: agent.py only

@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# Architecture
+# Architecture v7.1
 
 Project structure and component layers for NOP (Network Operations Platform).
 

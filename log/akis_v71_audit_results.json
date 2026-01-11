@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-01-11T12:09:30.707734",
+  "simulation_count": 100000,
+  "compliance": {
+    "total_issues": 0,
+    "high_severity": 0,
+    "medium_severity": 0,
+    "low_severity": 0,
+    "issues": []
+  },
+  "metrics_comparison": {
+    "token_usage": {
+      "baseline": 16040.98519,
+      "optimized": 12250.30334,
+      "improvement": 0.23631228413346594
+    },
+    "api_calls": {
+      "baseline": 25.20858,
+      "optimized": 20.21081,
+      "improvement": 0.19825670466166687
+    },
+    "speed": {
+      "baseline": 21.632289700912068,
+      "optimized": 19.24699267728814,
+      "improvement": 0.11026558245118905
+    },
+    "resolution_rate": {
+      "baseline": 0.9077,
+      "optimized": 0.95114,
+      "improvement": 0.047857221548969965
+    },
+    "control": {
+      "baseline": 0.8640864146825398,
+      "optimized": 0.8853245734126985,
+      "improvement": 0.024578743941902556
+    },
+    "discipline": {
+      "baseline": 0.8762471428571429,
+      "optimized": 0.90454,
+      "improvement": 0.032288672634758916
+    },
+    "traceability": {
+      "baseline": 0.849303,
+      "optimized": 0.8675586666666667,
+      "improvement": 0.02149488070413818
+    },
+    "cognitive_load": {
+      "baseline": 0.5064751000000001,
+      "optimized": 0.39933019999999997,
+      "improvement": 0.21155018282241336
+    }
+  },
+  "totals_saved": {
+    "tokens": 379068185,
+    "api_calls": 499777,
+    "gate_violations": 19805,
+    "additional_resolutions": 4344
+  },
+  "gate_analysis": {
+    "baseline_violations": {
+      "G1_no_todo": 16205,
+      "G2_no_skill": 19248,
+      "G5_no_verify": 14297,
+      "G4_no_end": 17802,
+      "G3_no_start": 12780,
+      "G6_multi_active": 5217,
+      "G7_skip_parallel": 1078
+    },
+    "optimized_violations": {
+      "G1_no_todo": 13978,
+      "G2_no_skill": 15751,
+      "G3_no_start": 10482,
+      "G4_no_end": 13046,
+      "G6_multi_active": 3401,
+      "G5_no_verify": 9749,
+      "G7_skip_parallel": 415
+    },
+    "baseline_violation_rate": 0.5456,
+    "optimized_violation_rate": 0.42973
+  },
+  "feature_usage": {
+    "parallel_usage_baseline": 0.12969,
+    "parallel_usage_optimized": 0.15802,
+    "planning_usage_baseline": 0.13893,
+    "planning_usage_optimized": 0.14107
+  }
+}
