@@ -45,13 +45,23 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState(value || '');
+  const [hasLoaded, setHasLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const loadingRef = useRef(false);
+  
+  // Memoize customOptions to prevent infinite re-renders
+  const customOptionsKey = JSON.stringify(customOptions);
 
   // Load options based on type
   useEffect(() => {
     const loadOptions = async () => {
+      // Prevent concurrent loading
+      if (loadingRef.current) return;
+      
+      loadingRef.current = true;
       setLoading(true);
+      
       try {
         let loadedOptions: DropdownOption[] = [];
 
@@ -141,18 +151,26 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
         }
 
         setOptions(loadedOptions);
+        setHasLoaded(true);
       } catch (error) {
         console.error('Failed to load dropdown options:', error);
         setOptions([]);
       } finally {
         setLoading(false);
+        loadingRef.current = false;
       }
     };
 
-    if (isOpen) {
+    // Only load when dropdown opens and hasn't loaded yet
+    if (isOpen && !hasLoaded && !loadingRef.current) {
       loadOptions();
     }
-  }, [type, isOpen, hostFilter, serviceFilter, customOptions]);
+  }, [type, isOpen, hostFilter, serviceFilter, customOptionsKey, hasLoaded]);
+  
+  // Reset hasLoaded when type or filters change
+  useEffect(() => {
+    setHasLoaded(false);
+  }, [type, hostFilter, serviceFilter]);
 
   // Sync input value with prop value
   useEffect(() => {
