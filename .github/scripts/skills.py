@@ -238,22 +238,47 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
     diff_lower = diff.lower()
     
     # Check for patterns not covered by existing skills
+    # Updated based on 100k session investigation (investigate.py --predict)
     new_patterns = {
         'websocket-realtime': {
             'patterns': ['websocket', 'socket.io', 'real-time', 'realtime', 'broadcast'],
             'file_patterns': [r'websocket', r'socket'],
+            'confidence_boost': 0.0,  # Baseline
         },
         'authentication': {
-            'patterns': ['auth', 'jwt', 'oauth', 'login', 'session', 'token'],
-            'file_patterns': [r'auth', r'login'],
+            'patterns': ['auth', 'jwt', 'oauth', 'login', 'session', 'token', 'bearer'],
+            'file_patterns': [r'auth', r'login', r'token'],
+            'confidence_boost': 0.15,  # High priority from prediction
         },
         'database-migration': {
-            'patterns': ['alembic', 'migration', 'schema', 'migrate'],
-            'file_patterns': [r'alembic', r'migration'],
+            'patterns': ['alembic', 'migration', 'schema', 'migrate', 'revision'],
+            'file_patterns': [r'alembic', r'migration', r'versions/'],
+            'confidence_boost': 0.15,  # High priority from prediction
         },
         'state-management': {
-            'patterns': ['zustand', 'redux', 'store', 'state management'],
+            'patterns': ['zustand', 'redux', 'store', 'state management', 'useStore'],
             'file_patterns': [r'store/', r'\.store\.'],
+            'confidence_boost': 0.0,  # Baseline
+        },
+        'performance': {
+            'patterns': ['performance', 'optimization', 'cache', 'memoize', 'lazy', 'profiler'],
+            'file_patterns': [r'cache', r'optimize'],
+            'confidence_boost': 0.05,  # Moderate priority
+        },
+        'monitoring': {
+            'patterns': ['monitoring', 'metrics', 'logging', 'observability', 'trace', 'span'],
+            'file_patterns': [r'monitor', r'metrics', r'logging'],
+            'confidence_boost': 0.05,  # Moderate priority
+        },
+        'internationalization': {
+            'patterns': ['i18n', 'translation', 'locale', 'language', 'intl'],
+            'file_patterns': [r'i18n', r'locale', r'translations'],
+            'confidence_boost': 0.10,  # New pattern detected
+        },
+        'security': {
+            'patterns': ['security', 'vulnerability', 'injection', 'xss', 'csrf', 'sanitize'],
+            'file_patterns': [r'security', r'sanitize'],
+            'confidence_boost': 0.05,  # Moderate priority
         },
     }
     
@@ -274,7 +299,9 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
                     break
         
         if score >= 3:
-            confidence = min(0.8, 0.3 + 0.1 * score)
+            # Apply confidence boost from investigation predictions
+            boost = triggers.get('confidence_boost', 0.0)
+            confidence = min(0.95, 0.3 + 0.1 * score + boost)
             candidates.append(SkillSuggestion(
                 skill_name=skill_name,
                 confidence=confidence,

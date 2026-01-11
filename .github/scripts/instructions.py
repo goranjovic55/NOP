@@ -173,7 +173,7 @@ KNOWN_INSTRUCTION_PATTERNS = [
         triggers=["code_edit", "new_import"],
         expected_behavior="Verify imports can be resolved",
         failure_mode="Import errors",
-        keywords=["import", "resolve", "validate"],
+        keywords=["import", "resolve", "validate", "dependency"],
         severity="medium"
     ),
     InstructionPattern(
@@ -204,6 +204,47 @@ KNOWN_INSTRUCTION_PATTERNS = [
         expected_behavior="Use ◆ before edit, ✓ after, close ⊘ orphans",
         failure_mode="Untracked work, orphan tasks, lost progress",
         keywords=["workflow", "discipline", "◆", "✓", "⊘", "orphan", "worktree"],
+        severity="high"
+    ),
+    # New patterns from investigation.py external best practices analysis
+    InstructionPattern(
+        name="temp_file_cleanup",
+        description="Clean up temporary files at session end",
+        category="end",
+        triggers=["session_end", "task_complete"],
+        expected_behavior="Remove /tmp files, clean build artifacts",
+        failure_mode="Temporary files accumulate, clutter repo",
+        keywords=["cleanup", "temporary", "tmp", "artifact", "clean"],
+        severity="low"
+    ),
+    InstructionPattern(
+        name="security_review",
+        description="Review changes for security vulnerabilities",
+        category="work",
+        triggers=["code_edit", "auth_change", "input_handling"],
+        expected_behavior="Check for XSS, injection, auth issues",
+        failure_mode="Security vulnerabilities introduced",
+        keywords=["security", "vulnerability", "xss", "injection", "sanitize"],
+        severity="high"
+    ),
+    InstructionPattern(
+        name="gotcha_check",
+        description="Check common gotchas before debugging",
+        category="work",
+        triggers=["error", "bug", "issue"],
+        expected_behavior="Check project_knowledge.json gotchas first",
+        failure_mode="Re-solving known issues",
+        keywords=["gotcha", "common", "known issue", "cache", "history"],
+        severity="medium"
+    ),
+    InstructionPattern(
+        name="root_cause_analysis",
+        description="Identify root cause, not symptoms",
+        category="work",
+        triggers=["error", "bug", "fix"],
+        expected_behavior="Trace error to actual cause before fixing",
+        failure_mode="Fix symptoms, bug returns",
+        keywords=["root cause", "actual", "underlying", "trace", "source"],
         severity="high"
     ),
 ]
