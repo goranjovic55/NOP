@@ -73,3 +73,4 @@ After edit: Syntax → Imports → Tests → ✓
 
 ⚠️ **Git Push:** ASK before push. Never auto-push.
 ⚠️ **END Phase:** ASK user confirmation before END. Never auto-END.
+⚠️ **Workflow Log:** Create log BEFORE running END scripts (scripts parse the log).

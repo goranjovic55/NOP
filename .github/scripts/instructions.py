@@ -48,6 +48,98 @@ from pathlib import Path
 from datetime import datetime
 
 # ============================================================================
+# Workflow Log YAML Parsing (standalone - no external dependencies)
+# ============================================================================
+
+def parse_workflow_log_yaml(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML front matter from workflow log. Standalone - no yaml module needed."""
+    if not content.startswith('---'):
+        return None
+    
+    # Find end of YAML front matter
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    current_section = None
+    current_list = None
+    
+    for line in yaml_content.split('\n'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        
+        # Top-level key
+        if not line.startswith(' ') and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value and not value.startswith('{') and not value.startswith('['):
+                result[key] = value.strip('"').strip("'")
+            else:
+                current_section = key
+                result[key] = {} if not value else value
+            current_list = None
+        # Nested under section
+        elif current_section and stripped.startswith('-'):
+            list_value = stripped[1:].strip()
+            if current_list:
+                if isinstance(result.get(current_section), dict):
+                    if current_list not in result[current_section]:
+                        result[current_section][current_list] = []
+                    result[current_section][current_list].append(list_value)
+            else:
+                if not isinstance(result.get(current_section), list):
+                    result[current_section] = []
+                result[current_section].append(list_value)
+        elif current_section and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value.startswith('[') or value.startswith('{'):
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value
+            elif value:
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value.strip('"').strip("'")
+            else:
+                current_list = key
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = []
+    
+    return result
+
+
+def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
+    """Get the most recent workflow log with parsed YAML data."""
+    if not workflow_dir.exists():
+        return None
+    
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    if not log_files:
+        return None
+    
+    latest = log_files[0]
+    try:
+        content = latest.read_text(encoding='utf-8')
+        parsed = parse_workflow_log_yaml(content)
+        return {
+            'path': str(latest),
+            'name': latest.stem,
+            'content': content,
+            'yaml': parsed,
+            'is_latest': True
+        }
+    except Exception:
+        return None
+
+
+# ============================================================================
 # Configuration from Workflow Log Analysis
 # ============================================================================
 

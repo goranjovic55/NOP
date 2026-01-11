@@ -1,3 +1,68 @@
+---
+session:
+  id: "2026-01-11_flows-execution-fixes"
+  date: "2026-01-11"
+  complexity: medium
+  domain: fullstack
+
+skills:
+  loaded: [frontend-react, backend-api, debugging]
+  suggested: [testing]
+
+files:
+  modified:
+    - {path: "frontend/src/components/workflow/BlockNode.tsx", type: tsx, domain: frontend}
+    - {path: "frontend/src/components/workflow/WorkflowCanvas.tsx", type: tsx, domain: frontend}
+    - {path: "frontend/src/types/workflow.ts", type: ts, domain: frontend}
+    - {path: "frontend/src/hooks/useWorkflowExecution.ts", type: ts, domain: frontend}
+    - {path: "frontend/src/pages/WorkflowBuilder.tsx", type: tsx, domain: frontend}
+    - {path: "frontend/src/components/workflow/ExecutionOverlay.tsx", type: tsx, domain: frontend}
+  types: {tsx: 4, ts: 2}
+
+agents:
+  delegated: []
+
+commands:
+  - {cmd: "npm test", domain: testing, success: true}
+
+errors:
+  - type: StateError
+    message: "Progress stuck at 3/4 blocks"
+    file: "useWorkflowExecution.ts"
+    fixed: true
+    root_cause: "execution_completed not updating progress to 100%"
+  - type: RaceCondition
+    message: "Fast executions not detected"
+    file: "useWorkflowExecution.ts"
+    fixed: true
+    root_cause: "WebSocket events missed for <100ms executions"
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6, G7]
+  violations: []
+
+root_causes:
+  - problem: "Black screen on workflow switch"
+    solution: "Added reset() function to clear execution state"
+    skill: frontend-react
+  - problem: "Progress stuck at 3/4"
+    solution: "Set progress to 100% on execution_completed event"
+    skill: debugging
+  - problem: "Fast execution polling"
+    solution: "Added pollExecutionStatus() for <100ms workflows"
+    skill: frontend-react
+
+gotchas:
+  - pattern: "WebSocket events for fast operations"
+    warning: "Events can be missed for <100ms operations"
+    solution: "Add polling fallback for fast operations"
+    applies_to: [frontend-react, backend-api]
+  - pattern: "State not reset on context switch"
+    warning: "Previous state bleeds into new context"
+    solution: "Add reset() function called on context change"
+    applies_to: [frontend-react]
+---
+
 # Workflow Log: Flows Execution Fixes
 
 **Date:** 2026-01-11
@@ -5,7 +70,6 @@
 **Complexity:** Medium (3-5 files)
 
 ## Summary
-
 Fixed multiple issues with the Flows page execution system including block selection highlighting, execution state management when switching workflows, and handling of fast-executing workflows.
 
 ## Tasks Completed
@@ -59,30 +123,7 @@ All templates tested against real hosts:
 | Ping | traffic.ping | 172.21.0.10 | ✅ |
 | SSH Test | connection.ssh_test | 172.21.0.10:22 | ✅ |
 | TCP Port | connection.tcp_test | 172.21.0.20:80 | ✅ |
-| Delay | control.delay | N/A | ✅ |
-| Multi-Ping | traffic.ping x2 | Both hosts | ✅ |
-| SSH Command | command.ssh_execute | 172.21.0.10 | ✅ |
-| Port Scan | scanning.port_scan | 172.21.0.10 | ✅ |
-| Traffic Stats | traffic.get_stats | eth0 | ✅ |
-| System Info | command.system_info | 172.21.0.10 | ✅ |
 
 ## Known Issues
-
 - Traffic stats block returns simulated data (not real interface stats)
 - Fast executions (<100ms) rely on polling rather than WebSocket events
-
-## Skills Loaded
-
-- frontend-react
-- backend-api
-- debugging
-
-## AKIS Compliance
-
-- ✅ G1: TODO created before work
-- ✅ G2: Skills loaded
-- ✅ G3: START phase completed
-- ✅ G4: END scripts run
-- ✅ G5: Verification after edits
-- ✅ G6: Single ◆ active
-- ✅ G7: N/A (single agent session)

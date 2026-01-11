@@ -48,6 +48,11 @@ Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytes
 - Match project code style | Run linting after changes
 - Report blockers immediately
 
+## ⚙️ Optimizations
+- **Documentation pre-loading**: Load relevant docs before implementation
+- **Test-aware mode**: Check existing tests, update when changing code
+- **Operation batching**: Group related file edits to reduce token usage
+
 ## Orchestration
 | From | To |
 |------|----|

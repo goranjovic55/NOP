@@ -58,6 +58,98 @@ from pathlib import Path
 from datetime import datetime
 
 # ============================================================================
+# Workflow Log YAML Parsing (standalone - no external dependencies)
+# ============================================================================
+
+def parse_workflow_log_yaml(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML front matter from workflow log. Standalone - no yaml module needed."""
+    if not content.startswith('---'):
+        return None
+    
+    # Find end of YAML front matter
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    current_section = None
+    current_list = None
+    
+    for line in yaml_content.split('\n'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        
+        # Top-level key
+        if not line.startswith(' ') and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value and not value.startswith('{') and not value.startswith('['):
+                result[key] = value.strip('"').strip("'")
+            else:
+                current_section = key
+                result[key] = {} if not value else value
+            current_list = None
+        # Nested under section
+        elif current_section and stripped.startswith('-'):
+            list_value = stripped[1:].strip()
+            if current_list:
+                if isinstance(result.get(current_section), dict):
+                    if current_list not in result[current_section]:
+                        result[current_section][current_list] = []
+                    result[current_section][current_list].append(list_value)
+            else:
+                if not isinstance(result.get(current_section), list):
+                    result[current_section] = []
+                result[current_section].append(list_value)
+        elif current_section and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value.startswith('[') or value.startswith('{'):
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value
+            elif value:
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value.strip('"').strip("'")
+            else:
+                current_list = key
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = []
+    
+    return result
+
+
+def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
+    """Get the most recent workflow log with parsed YAML data."""
+    if not workflow_dir.exists():
+        return None
+    
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    if not log_files:
+        return None
+    
+    latest = log_files[0]
+    try:
+        content = latest.read_text(encoding='utf-8')
+        parsed = parse_workflow_log_yaml(content)
+        return {
+            'path': str(latest),
+            'name': latest.stem,
+            'content': content,
+            'yaml': parsed,
+            'is_latest': True
+        }
+    except Exception:
+        return None
+
+
+# ============================================================================
 # Configuration
 # ============================================================================
 
@@ -2285,16 +2377,59 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
 
 
 def run_suggest() -> Dict[str, Any]:
-    """Suggest agent improvements without applying."""
+    """Suggest agent improvements without applying. Prioritizes latest workflow log."""
     print("=" * 60)
     print("AKIS Agents Suggestion (Suggest Mode)")
     print("=" * 60)
     
     root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
     
-    # Get session context
+    # PRIORITY 1: Latest workflow log with YAML front matter
+    latest_log = get_latest_workflow_log(workflow_dir)
+    log_agents = []
+    log_errors = []
+    log_root_causes = []
+    log_gotchas = []
+    
+    if latest_log and latest_log.get('yaml'):
+        yaml_data = latest_log['yaml']
+        print(f"\n📋 Latest workflow log: {latest_log['name']}")
+        
+        # Extract agents from YAML
+        if 'agents' in yaml_data:
+            agents_data = yaml_data['agents']
+            if isinstance(agents_data, dict) and 'delegated' in agents_data:
+                log_agents = agents_data['delegated']
+                if isinstance(log_agents, list):
+                    print(f"   Agents delegated: {len(log_agents)}")
+        
+        # Extract errors from YAML
+        if 'errors' in yaml_data:
+            errors_data = yaml_data['errors']
+            if isinstance(errors_data, list):
+                log_errors = errors_data
+                print(f"   Errors encountered: {len(log_errors)}")
+        
+        # Extract root causes from YAML
+        if 'root_causes' in yaml_data:
+            rc_data = yaml_data['root_causes']
+            if isinstance(rc_data, list):
+                log_root_causes = rc_data
+                print(f"   Root causes fixed: {len(log_root_causes)}")
+        
+        # Extract gotchas from YAML
+        if 'gotchas' in yaml_data:
+            gotchas_data = yaml_data['gotchas']
+            if isinstance(gotchas_data, list):
+                log_gotchas = gotchas_data
+                print(f"   Gotchas captured: {len(log_gotchas)}")
+    else:
+        print(f"\n⚠️  No YAML front matter in latest log - using git diff")
+    
+    # PRIORITY 2: Git-based analysis (fallback/supplement)
     session_files = get_session_files()
-    print(f"\n📁 Session files: {len(session_files)}")
+    print(f"\n📁 Session files (git): {len(session_files)}")
     
     # Extract baseline
     baseline = extract_baseline(root)
@@ -2304,25 +2439,48 @@ def run_suggest() -> Dict[str, Any]:
     print(f"   Knowledge entries: {baseline['knowledge_entries']}")
     print(f"   Documentation: {baseline['documentation_files']}")
     
-    # Suggest agents
+    # Suggest agents - prioritize workflow log data
     print(f"\n🤖 AGENT SUGGESTIONS:")
     print("-" * 40)
     
     suggestions = []
-    for agent_type in baseline['optimal_agents']:
+    suggested_agents = set(baseline['optimal_agents'])
+    
+    # Add agents mentioned in workflow log (higher priority)
+    for agent_info in log_agents:
+        if isinstance(agent_info, dict):
+            agent_name = agent_info.get('name', '')
+            if agent_name and agent_name in AGENT_TYPES:
+                suggested_agents.add(agent_name)
+        elif isinstance(agent_info, str):
+            # Parse "name: code" format
+            if ':' in agent_info:
+                agent_name = agent_info.split(':')[1].strip()
+                if agent_name in AGENT_TYPES:
+                    suggested_agents.add(agent_name)
+    
+    # If errors found, suggest debugger
+    if log_errors:
+        suggested_agents.add('debugger')
+    
+    for agent_type in suggested_agents:
+        if agent_type not in AGENT_TYPES:
+            continue
         config = AGENT_TYPES[agent_type]
+        from_log = agent_type in [a.get('name', '') if isinstance(a, dict) else '' for a in log_agents]
         suggestion = {
             'agent': agent_type,
             'description': config['description'],
             'skills': config['skills'],
             'triggers': config['triggers'],
+            'from_workflow_log': from_log,
         }
         suggestions.append(suggestion)
         
-        print(f"\n🔹 {agent_type}")
+        source = "✓ from workflow log" if from_log else "from git analysis"
+        print(f"\n🔹 {agent_type} ({source})")
         print(f"   Description: {config['description']}")
         print(f"   Skills: {', '.join(config['skills'])}")
-        print(f"   Triggers: {', '.join(config['triggers'][:3])}...")
     
     # Suggest optimizations
     print(f"\n⚡ OPTIMIZATION SUGGESTIONS:")
@@ -2348,9 +2506,31 @@ def run_suggest() -> Dict[str, Any]:
     optimizations.append(opt)
     print(f"   - {opt}")
     
+    # Output gotchas and root causes from workflow log
+    if log_gotchas:
+        print(f"\n⚠️  GOTCHAS FROM SESSION:")
+        for gotcha in log_gotchas[:3]:
+            if isinstance(gotcha, str):
+                print(f"   - {gotcha}")
+            elif isinstance(gotcha, dict):
+                print(f"   - {gotcha.get('pattern', 'Unknown')}: {gotcha.get('warning', '')}")
+    
+    if log_root_causes:
+        print(f"\n🔧 ROOT CAUSES FIXED:")
+        for rc in log_root_causes[:3]:
+            if isinstance(rc, str):
+                print(f"   - {rc}")
+            elif isinstance(rc, dict):
+                print(f"   - {rc.get('problem', 'Unknown')} → {rc.get('solution', 'Unknown')}")
+    
     return {
         'mode': 'suggest',
         'session_files': len(session_files),
+        'workflow_log': latest_log['name'] if latest_log else None,
+        'log_agents': log_agents,
+        'log_errors': log_errors,
+        'log_root_causes': log_root_causes,
+        'log_gotchas': log_gotchas,
         'baseline': baseline,
         'agent_suggestions': suggestions,
         'optimization_suggestions': optimizations,

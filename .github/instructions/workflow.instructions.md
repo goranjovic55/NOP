@@ -9,7 +9,7 @@ applyTo: "**"
 |-------|---------|
 | START | **Knowledge Query** → Skills → TODO → Announce |
 | WORK | Knowledge → ◆ → Skill → Edit → Verify → ✓ |
-| END | Close ⊘ → Scripts → Log → Commit |
+| END | Close ⊘ → **Create Log** → Scripts → Commit |
 
 ## ⛔ G0: Knowledge First (BEFORE file reads)
 ```
@@ -27,15 +27,6 @@ applyTo: "**"
 2. **Annotate with skill:** `○ Task [skill-name]` when skill applies
 3. Mark ◆ BEFORE edit, ✓ AFTER verify
 4. Only ONE ◆ active
-6. **ASK user confirmation before END phase**
-
-**Example TODO:**
-```
-○ Create service for data [backend-api]
-○ Add dropdown component [frontend-react]  
-○ Update docker config [docker]
-○ Simple cleanup (no skill)
-```
 
 ## Verification
 After EVERY edit:
@@ -44,7 +35,18 @@ After EVERY edit:
 3. Test if applicable
 4. Mark ✓
 
-## END Scripts
+## ⛔ END Phase (Strict Order)
+
+**Step 1: User Confirmation**
+- Say: "Ready for END phase. Confirm?"
+- Wait for user confirmation
+
+**Step 2: Create Workflow Log (BEFORE scripts)**
+- Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+- Use YAML front matter format (see below)
+- Include: skills loaded, files modified, gotchas, root_causes
+
+**Step 3: Run END Scripts**
 ```bash
 python .github/scripts/knowledge.py --update
 python .github/scripts/skills.py --suggest
@@ -53,24 +55,14 @@ python .github/scripts/agents.py --suggest
 python .github/scripts/instructions.py --suggest
 ```
 
-⚠️ **Git Push:** Always ASK user before `git push`. Never auto-push.
-
-## ⛔ END Confirmation (Required)
-Before starting END phase:
-1. Say: "Ready for END phase. Confirm?"
-2. Wait for user confirmation
-3. Then proceed with END scripts
-
-## END Summary Table (Required)
-After running END scripts, present summary to user:
-
+**Step 4: Present Summary Table**
 | Metric | Value |
 |--------|-------|
 | Tasks | X/Y completed |
 | Files | X modified |
 | Knowledge | X entities merged |
 
-**Script Suggestions Table (Required):**
+**Script Results Table (REQUIRED):**
 | Script | Output |
 |--------|--------|
 | knowledge.py | X entities merged |
@@ -79,7 +71,74 @@ After running END scripts, present summary to user:
 | agents.py | X suggestions |
 | instructions.py | X suggestions |
 
-**Script Suggestions:** Present, ASK user before applying.
+**Step 5: Present Script Suggestions Table (REQUIRED)**
+Collect ALL suggestions from script output and present in table:
+
+| Script | Suggestion | Priority | Action |
+|--------|------------|----------|--------|
+| skills.py | Create new skill: authentication | Medium | Apply/Skip |
+| skills.py | Create new skill: performance | Low | Apply/Skip |
+| docs.py | Update docs/technical/API_rest_v1.md | High | Apply/Skip |
+| docs.py | Update docs/design/COMPONENTS.md | Medium | Apply/Skip |
+| agents.py | Enable documentation pre-loading | Low | Apply/Skip |
+| instructions.py | Add security_review instruction | High | Apply/Skip |
+
+**Rules:**
+- Include EVERY suggestion from ALL scripts
+- Group by script name
+- Show actual suggestion text from output
+- ASK user: "Apply any suggestions?" before implementing
+
+**Step 6: Commit & Push**
+- ⚠️ Always ASK user before `git push`. Never auto-push.
+
+## Workflow Log Format (YAML Front Matter)
+
+```yaml
+---
+session:
+  id: "YYYY-MM-DD_task_name"
+  date: "YYYY-MM-DD"
+  complexity: medium  # simple | medium | complex
+  domain: fullstack   # frontend_only | backend_only | fullstack | docker_heavy
+
+skills:
+  loaded: [skill1, skill2]
+  suggested: [skill3]
+
+files:
+  modified:
+    - {path: "path/to/file.tsx", type: tsx, domain: frontend}
+  types: {tsx: 1, py: 1}
+
+agents:
+  delegated: []  # or [{name: agent, task: "desc", result: success}]
+
+gotchas:
+  - pattern: "Pattern that caused issue"
+    warning: "What went wrong"
+    solution: "How to fix"
+    applies_to: [skill-name]
+
+root_causes:
+  - problem: "Description"
+    solution: "How fixed"
+    skill: skill-name
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+---
+
+# Session Log: Task Name
+
+## Summary
+Brief description.
+
+## Tasks Completed
+- ✓ Task 1
+- ✓ Task 2
+```
 
 ## Workflow Phases
 | Phase | Skill | Action |
@@ -88,6 +147,3 @@ After running END scripts, present summary to user:
 | BUILD | frontend/backend | Implement |
 | VERIFY | testing/debugging | Test, check |
 | DOCUMENT | documentation | Update docs |
-
-## Log
-Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` at session end.

@@ -51,6 +51,97 @@ from datetime import datetime
 # Configuration
 # ============================================================================
 
+# Workflow log YAML parsing (standalone - no external dependencies)
+def parse_workflow_log_yaml(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML front matter from workflow log. Standalone - no yaml module needed."""
+    if not content.startswith('---'):
+        return None
+    
+    # Find end of YAML front matter
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    current_section = None
+    current_list = None
+    
+    for line in yaml_content.split('\n'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        
+        # Top-level key
+        if not line.startswith(' ') and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value and not value.startswith('{') and not value.startswith('['):
+                result[key] = value.strip('"').strip("'")
+            else:
+                current_section = key
+                result[key] = {} if not value else value
+            current_list = None
+        # Nested under section
+        elif current_section and stripped.startswith('-'):
+            list_value = stripped[1:].strip()
+            if current_list:
+                if current_list not in result.get(current_section, {}):
+                    if isinstance(result.get(current_section), dict):
+                        result[current_section][current_list] = []
+                result[current_section][current_list].append(list_value)
+            else:
+                if not isinstance(result.get(current_section), list):
+                    result[current_section] = []
+                result[current_section].append(list_value)
+        elif current_section and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value.startswith('[') or value.startswith('{'):
+                # Simple array/object - just store as string for now
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value
+            elif value:
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value.strip('"').strip("'")
+            else:
+                current_list = key
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = []
+    
+    return result
+
+
+def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
+    """Get the most recent workflow log with parsed YAML data."""
+    if not workflow_dir.exists():
+        return None
+    
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    if not log_files:
+        return None
+    
+    latest = log_files[0]
+    try:
+        content = latest.read_text(encoding='utf-8')
+        parsed = parse_workflow_log_yaml(content)
+        return {
+            'path': str(latest),
+            'name': latest.stem,
+            'content': content,
+            'yaml': parsed,
+            'is_latest': True
+        }
+    except Exception:
+        return None
+
+
+# ============================================================================
 # Existing skill triggers - optimized via 100k simulation (96.0% accuracy)
 EXISTING_SKILL_TRIGGERS = {
     'planning': {
@@ -698,19 +789,65 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
 
 
 def run_suggest() -> Dict[str, Any]:
-    """Suggest skill changes without applying."""
+    """Suggest skill changes without applying. Prioritizes latest workflow log."""
     print("=" * 60)
     print("AKIS Skills Suggestion (Suggest Mode)")
     print("=" * 60)
     
-    # Get session context
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    # PRIORITY 1: Latest workflow log with YAML front matter
+    latest_log = get_latest_workflow_log(workflow_dir)
+    log_skills = []
+    log_gotchas = []
+    log_files = []
+    
+    if latest_log and latest_log.get('yaml'):
+        yaml_data = latest_log['yaml']
+        print(f"\n📋 Latest workflow log: {latest_log['name']}")
+        
+        # Extract skills from YAML
+        if 'skills' in yaml_data:
+            skills_data = yaml_data['skills']
+            if isinstance(skills_data, dict):
+                log_skills = skills_data.get('loaded', [])
+                if isinstance(log_skills, list):
+                    print(f"   Skills loaded: {', '.join(log_skills)}")
+        
+        # Extract gotchas from YAML  
+        if 'gotchas' in yaml_data:
+            gotchas_data = yaml_data['gotchas']
+            if isinstance(gotchas_data, list):
+                log_gotchas = gotchas_data
+                print(f"   Gotchas captured: {len(log_gotchas)}")
+        
+        # Extract files from YAML
+        if 'files' in yaml_data:
+            files_data = yaml_data['files']
+            if isinstance(files_data, dict) and 'modified' in files_data:
+                log_files = files_data['modified']
+                if isinstance(log_files, list):
+                    print(f"   Files modified: {len(log_files)}")
+    else:
+        print(f"\n⚠️  No YAML front matter in latest log - using git diff")
+    
+    # PRIORITY 2: Git diff (fallback or supplement)
     session_files = get_session_files()
     diff = get_git_diff()
     
-    print(f"\n📁 Session files: {len(session_files)}")
+    print(f"\n📁 Session files (git): {len(session_files)}")
     
-    # Detect skills
+    # Detect skills - combine workflow log + git data
+    # Workflow log skills get 1.5x confidence boost
     existing = detect_existing_skills(session_files, diff)
+    
+    # Boost confidence for skills mentioned in workflow log
+    for skill in existing:
+        if skill.skill_name in log_skills:
+            skill.confidence = min(0.99, skill.confidence * 1.5)
+            skill.evidence.insert(0, f"✓ Confirmed in workflow log")
+    
     new_candidates = detect_new_skill_candidates(session_files, diff)
     
     print(f"\n📝 SKILL SUGGESTIONS:")
@@ -729,9 +866,21 @@ def run_suggest() -> Dict[str, Any]:
             for e in s.evidence[:3]:
                 print(f"   {e}")
     
+    # Output gotchas from workflow log
+    if log_gotchas:
+        print(f"\n⚠️  GOTCHAS FROM SESSION:")
+        for gotcha in log_gotchas[:3]:
+            if isinstance(gotcha, str):
+                print(f"   - {gotcha}")
+            elif isinstance(gotcha, dict):
+                print(f"   - {gotcha.get('pattern', 'Unknown')}: {gotcha.get('warning', '')}")
+    
     return {
         'mode': 'suggest',
         'session_files': len(session_files),
+        'workflow_log': latest_log['name'] if latest_log else None,
+        'log_skills': log_skills,
+        'log_gotchas': log_gotchas,
         'existing_skills': [{'name': s.skill_name, 'confidence': s.confidence, 'evidence': s.evidence} for s in existing],
         'new_candidates': [{'name': s.skill_name, 'confidence': s.confidence, 'evidence': s.evidence} for s in new_candidates],
     }

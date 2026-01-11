@@ -5,6 +5,12 @@ description: Load when editing Python files in backend/, api/, routes/, services
 
 # Backend API
 
+## Merged Skills
+- **authentication**: JWT tokens, session management, OAuth flows
+- **security**: Input sanitization, CORS, rate limiting, XSS/CSRF protection
+- **monitoring**: Structured logging, metrics, tracing, health checks
+- **websocket-realtime**: ConnectionManager, broadcast, room management
+
 ## ⚠️ Critical Gotchas
 - **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
 - **401 errors:** Call `logout()` from authStore for redirect

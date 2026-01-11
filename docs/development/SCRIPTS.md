@@ -211,51 +211,64 @@ This document catalogs automation scripts used in the project.
 
 Scripts for AKIS framework session management. Located in `.github/scripts/`.
 
-### knowledge
-**File**: `.github/scripts/knowledge.py` | **Updated**: 2026-01-09
+**⚠️ END Phase Order:** Create workflow log BEFORE running scripts (scripts parse YAML front matter).
 
-| Function | Description |
-|----------|-------------|
-| `run_analyze` | Safe default - reports session entities without modifying files |
-| `run_update` | Actually updates project_knowledge.json with session entities |
-| `run_generate` | Full regeneration with 100k session simulation |
-| `CodeAnalyzer` | Extracts entities from Python/TypeScript files |
+### knowledge
+**File**: `.github/scripts/knowledge.py` | **Updated**: 2026-01-11
+
+| Mode | Description |
+|------|-------------|
+| `--update` | Updates project_knowledge.json with session entities |
+| (default) | Reports session entities without modifying files |
 
 ### skills
-**File**: `.github/scripts/skills.py` | **Updated**: 2026-01-09
+**File**: `.github/scripts/skills.py` | **Updated**: 2026-01-11
 
-| Function | Description |
-|----------|-------------|
-| `run_analyze` | Safe default - reports skill usage and candidates |
-| `run_update` | Creates stub files for new skill candidates |
-| `detect_existing_skills` | Detects which skills were used in session |
-| `detect_new_skill_candidates` | Suggests new skills based on patterns |
-
-### instructions
-**File**: `.github/scripts/instructions.py` | **Updated**: 2026-01-09
-
-| Function | Description |
-|----------|-------------|
-| `run_analyze` | Safe default - reports instruction coverage gaps |
-| `run_update` | Creates instruction files for gaps |
-| `analyze_instruction_files` | Checks existing instruction coverage |
+| Mode | Description |
+|------|-------------|
+| `--suggest` | Suggests skills based on workflow log + git diff (3x weight for latest log) |
+| `--update` | Creates stub files for new skill candidates |
+| (default) | Reports skill usage and candidates |
 
 ### docs
-**File**: `.github/scripts/docs.py` | **Updated**: 2026-01-09
+**File**: `.github/scripts/docs.py` | **Updated**: 2026-01-11
 
-| Function | Description |
-|----------|-------------|
-| `run_analyze` | Safe default - reports documentation updates needed |
-| `run_update` | Applies documentation updates |
-| `run_index` | Regenerates docs/INDEX.md |
+| Mode | Description |
+|------|-------------|
+| `--suggest` | Suggests doc updates from workflow log gotchas/root_causes + git diff |
+| `--update` | Applies documentation updates |
+| `--index` | Regenerates docs/INDEX.md |
+| (default) | Reports documentation updates needed |
 
 ### agents
-**File**: `.github/scripts/agents.py` | **Updated**: 2026-01-09
+**File**: `.github/scripts/agents.py` | **Updated**: 2026-01-11
 
-| Function | Description |
-|----------|-------------|
-| `run_report` | Safe default - reports agent status |
-| `run_update` | Updates existing agent files |
-| `run_generate` | Creates agent files with 100k simulation |
-| `run_audit` | Audits AKIS orchestration patterns |
+| Mode | Description |
+|------|-------------|
+| `--suggest` | Suggests agent optimizations from workflow log + session patterns |
+| `--update` | Updates existing agent files |
+| `--generate` | Creates agent files with 100k simulation |
+| (default) | Reports agent status |
+
+### instructions
+**File**: `.github/scripts/instructions.py` | **Updated**: 2026-01-11
+
+| Mode | Description |
+|------|-------------|
+| `--suggest` | Suggests instruction additions from workflow log gate violations + gotchas |
+| `--update` | Creates instruction files for gaps |
+| (default) | Reports instruction coverage gaps |
+
+### Workflow Log Parsing
+
+All scripts parse YAML front matter from `log/workflow/*.md`:
+
+| Script | Parses |
+|--------|--------|
+| skills.py | `skills.loaded`, `skills.suggested`, `gotchas` |
+| agents.py | `agents.delegated`, `session.complexity`, `root_causes` |
+| docs.py | `files.modified`, `gotchas`, `root_causes` |
+| instructions.py | `gates.violations`, `gotchas` |
+
+**Priority:** Latest log gets **3x weight**, second log **2x weight**.
 

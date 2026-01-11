@@ -59,10 +59,20 @@
 ## END
 1. Close ⊘ orphans
 2. Verify all edits
-3. Run: `knowledge.py`, `skills.py`, `docs.py`, `agents.py`
-4. Present END Summary Table to user
-5. ASK before applying script suggestions
-6. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+3. **Create workflow log FIRST** (YAML front matter format)
+4. Run: `knowledge.py --update`, `skills.py --suggest`, `docs.py --suggest`, `agents.py --suggest`, `instructions.py --suggest`
+5. Present END Summary Table (metrics + script results)
+6. **Present Script Suggestions Table** (REQUIRED - show ALL actual suggestions)
+7. ASK before applying script suggestions
+8. ASK before `git push`
+
+**Script Suggestions Table (show actual output):**
+| Script | Suggestion | Priority | Action |
+|--------|------------|----------|--------|
+| skills.py | Create skill: authentication | Medium | Apply/Skip |
+| docs.py | Update API_rest_v1.md | High | Apply/Skip |
+| agents.py | Enable doc pre-loading | Low | Apply/Skip |
+| instructions.py | Add security_review | High | Apply/Skip |
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
