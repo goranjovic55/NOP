@@ -582,17 +582,20 @@ class SessionSimulator:
             elif random.random() < skip_rate:
                 metrics.gate_violations.append("G7_skip_parallel")
         
-        # Planning skill usage
-        if "new" in domain or "design" in domain or complexity == "complex":
-            if random.random() < 0.70:
+        # Planning skill usage - triggered by complexity and task type
+        needs_planning = complexity == "complex" or domain in ["fullstack", "devops"]
+        if needs_planning:
+            if random.random() < 0.80:  # 80% use planning when applicable
                 metrics.planning_used = True
-                # Research auto-chains from planning in v7.1
+                # Research auto-chains from planning in v7.1 with 85% probability
                 if self.optimized and random.random() < 0.85:
                     metrics.research_used = True
         
-        # Standalone research usage
-        if not metrics.research_used and random.random() < 0.25:
-            metrics.research_used = True
+        # Standalone research usage - for standards/best practices queries
+        if not metrics.research_used:
+            # Research without planning: standards checks, comparisons
+            if random.random() < 0.15:  # 15% standalone research
+                metrics.research_used = True
         
         # Optimized mode adjustments
         if self.optimized:

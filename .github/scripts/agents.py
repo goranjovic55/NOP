@@ -68,25 +68,27 @@ KNOWLEDGE_GOTCHAS_MIN = 10
 DOCS_HIGH_THRESHOLD = 30
 DOCS_MEDIUM_THRESHOLD = 20
 DOCS_LOW_THRESHOLD = 10
-ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation']
+ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation', 'planning', 'research']
 
 # Agent types that can be optimized
 # Updated based on 100k simulation analysis for GitHub Copilot VS Code Insiders
 AGENT_TYPES = {
-    # Core Agents (4 Essential - User's workflow)
+    # Core Agents (5 Essential - User's workflow)
     'architect': {
         'description': 'Deep design, blueprints, brainstorming before projects',
         'triggers': ['design', 'architecture', 'blueprint', 'plan', 'brainstorm', 'structure'],
-        'skills': ['backend-api', 'frontend-react', 'docker'],
+        'skills': ['planning', 'research', 'backend-api', 'frontend-react', 'docker'],
         'optimization_targets': ['completeness', 'consistency', 'knowledge_usage'],
         'tier': 'core',
+        'auto_chain': ['research'],  # Architect can chain to research
     },
     'research': {
-        'description': 'Gather info from local docs + external sources',
-        'triggers': ['research', 'investigate', 'compare', 'evaluate', 'best practices'],
-        'skills': ['documentation'],
+        'description': 'Gather info from local docs + external sources for industry/community standards',
+        'triggers': ['research', 'investigate', 'compare', 'evaluate', 'best practices', 'standard', 'industry', 'community'],
+        'skills': ['research', 'documentation'],
         'optimization_targets': ['accuracy', 'comprehensiveness', 'source_quality'],
         'tier': 'core',
+        'auto_chain': [],  # Research is terminal
     },
     'code': {
         'description': 'Write code following best practices and standards',
@@ -94,6 +96,7 @@ AGENT_TYPES = {
         'skills': ['backend-api', 'frontend-react', 'testing'],
         'optimization_targets': ['token_usage', 'api_calls', 'accuracy'],
         'tier': 'core',
+        'auto_chain': [],
     },
     'debugger': {
         'description': 'Trace logs, execute, find bugs and culprits',
@@ -101,6 +104,7 @@ AGENT_TYPES = {
         'skills': ['debugging', 'testing'],
         'optimization_targets': ['resolution_time', 'accuracy', 'root_cause_detection'],
         'tier': 'core',
+        'auto_chain': [],
     },
     # Supporting Agents (Use when needed)
     'reviewer': {
@@ -549,21 +553,24 @@ SUBAGENT_REGISTRY = {
         'called_by': [],
         'orchestration_role': 'primary',
         'parallel_capable': True,  # Can fan-out to multiple agents
+        'skills': ['planning', 'research'],  # AKIS uses planning→research chain
     },
-    # Core Agents (4 Essential)
+    # Core Agents (5 Essential)
     'architect': {
         'description': 'Deep design, blueprints, brainstorming',
         'can_call': ['code', 'documentation', 'devops', 'research'],
         'called_by': ['akis'],
         'orchestration_role': 'planner',
         'parallel_capable': False,  # Planning is sequential
+        'skills': ['planning', 'research'],  # Auto-chains to research
     },
     'research': {
-        'description': 'Gather info from docs + external sources',
+        'description': 'Gather info from local docs + external sources for industry/community standards',
         'can_call': [],
-        'called_by': ['akis', 'architect'],
+        'called_by': ['akis', 'architect'],  # Called by planning-related agents
         'orchestration_role': 'investigator',
         'parallel_capable': True,  # Can research multiple topics
+        'skills': ['research'],
     },
     'code': {
         'description': 'Write code following best practices',
@@ -571,6 +578,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'architect', 'debugger'],
         'orchestration_role': 'worker',
         'parallel_capable': True,  # Can work on different files
+        'skills': ['backend-api', 'frontend-react'],
     },
     'debugger': {
         'description': 'Trace logs, execute, find bugs',
@@ -578,6 +586,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'code', 'reviewer'],
         'orchestration_role': 'specialist',
         'parallel_capable': False,  # Debug is sequential analysis
+        'skills': ['debugging'],
     },
     # Supporting Agents
     'reviewer': {
@@ -586,13 +595,15 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis'],
         'orchestration_role': 'auditor',
         'parallel_capable': True,  # Can review different modules
+        'skills': ['testing'],
     },
     'documentation': {
         'description': 'Update docs, READMEs',
-        'can_call': [],
+        'can_call': ['research'],  # Can call research for standards
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
         'parallel_capable': True,  # Independent of code
+        'skills': ['documentation'],
     },
     'devops': {
         'description': 'CI/CD and infrastructure',
@@ -600,6 +611,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
         'parallel_capable': False,  # Infrastructure is sequential
+        'skills': ['docker', 'ci-cd'],
     },
 }
 
