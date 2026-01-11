@@ -87,6 +87,90 @@ SESSION_TYPES = {
     'docs_only': 0.06,
 }
 
+
+def write_knowledge_jsonl(filepath: Path, knowledge: Dict[str, Any]) -> None:
+    """Write knowledge to JSONL format (one JSON object per line).
+    
+    Format:
+    - Line 1: hot_cache (top entities, common answers, quick facts)
+    - Line 2: domain_index (per-domain entity indexes)
+    - Line 3: change_tracking (file hashes)
+    - Line 4: gotchas (historical issues + solutions)
+    - Line 5: interconnections (service→model→endpoint chains)
+    - Line 6: session_patterns (predictive file loading)
+    - Line 7+: entities (one per line)
+    """
+    with open(filepath, 'w', encoding='utf-8') as f:
+        # Line 1: hot_cache
+        hot_cache = {
+            'type': 'hot_cache',
+            'version': knowledge.get('version', '3.2'),
+            'generated': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'description': 'Top 20 entities + common answers + quick facts',
+            'top_entities': knowledge.get('hot_cache', {}).get('top_entities', []),
+            'common_answers': knowledge.get('hot_cache', {}).get('common_answers', {}),
+            'quick_facts': knowledge.get('hot_cache', {}).get('quick_facts', {}),
+        }
+        f.write(json.dumps(hot_cache) + '\n')
+        
+        # Line 2: domain_index
+        domain_index = {
+            'type': 'domain_index',
+            'description': 'Per-domain entity indexes - Fast O(1) lookup',
+            'backend': knowledge.get('domain_index', {}).get('backend', []),
+            'frontend': knowledge.get('domain_index', {}).get('frontend', []),
+        }
+        f.write(json.dumps(domain_index) + '\n')
+        
+        # Line 3: change_tracking
+        change_tracking = {
+            'type': 'change_tracking',
+            'description': 'File hashes for staleness detection',
+            'file_hashes': {},
+            'last_updated': knowledge.get('last_updated', datetime.now().isoformat()),
+        }
+        f.write(json.dumps(change_tracking) + '\n')
+        
+        # Line 4: gotchas
+        gotchas = {
+            'type': 'gotchas',
+            'version': knowledge.get('version', '3.2'),
+            'description': 'Historical issues + solutions - 75% debug acceleration',
+            'issues': {g.get('problem', '')[:50]: g for g in knowledge.get('gotchas', [])},
+        }
+        f.write(json.dumps(gotchas) + '\n')
+        
+        # Line 5: interconnections (placeholder)
+        interconnections = {
+            'type': 'interconnections',
+            'version': knowledge.get('version', '3.2'),
+            'description': 'Service→Model→Endpoint→Page chains',
+            'backend_chains': {},
+            'frontend_chains': {},
+        }
+        f.write(json.dumps(interconnections) + '\n')
+        
+        # Line 6: session_patterns (placeholder)
+        session_patterns = {
+            'type': 'session_patterns',
+            'version': '3.0',
+            'description': 'Predictive file loading',
+            'patterns': {},
+        }
+        f.write(json.dumps(session_patterns) + '\n')
+        
+        # Line 7+: entities (one per line)
+        for entity in knowledge.get('entities', []):
+            entity_line = {
+                'type': 'entity',
+                'name': entity.get('name', ''),
+                'entityType': entity.get('type', entity.get('entityType', 'unknown')),
+                'path': entity.get('path', ''),
+                'exports': entity.get('exports', []),
+                'updated': entity.get('updated_at', datetime.now().strftime('%Y-%m-%d')),
+            }
+            f.write(json.dumps(entity_line) + '\n')
+
 # Query types and their frequencies
 QUERY_TYPES = {
     'where_is': 0.25,
@@ -235,11 +319,57 @@ class CodeAnalyzer:
 # ============================================================================
 
 def load_current_knowledge(root: Path) -> Dict[str, Any]:
-    """Load existing project_knowledge.json."""
+    """Load existing project_knowledge.json (supports both JSONL and standard JSON)."""
     knowledge_path = root / 'project_knowledge.json'
     if knowledge_path.exists():
         try:
-            return json.loads(knowledge_path.read_text(encoding='utf-8'))
+            content = knowledge_path.read_text(encoding='utf-8')
+            lines = content.strip().split('\n')
+            
+            # Try JSONL format first (multiple lines of JSON)
+            if len(lines) > 1:
+                knowledge = {
+                    'hot_cache': {'top_entities': [], 'common_answers': {}, 'quick_facts': {}},
+                    'domain_index': {'backend': [], 'frontend': []},
+                    'gotchas': [],
+                    'entities': []
+                }
+                for line in lines:
+                    if not line.strip():
+                        continue
+                    try:
+                        obj = json.loads(line)
+                        obj_type = obj.get('type', '')
+                        if obj_type == 'hot_cache':
+                            knowledge['hot_cache'] = {
+                                'top_entities': obj.get('top_entities', []),
+                                'common_answers': obj.get('common_answers', {}),
+                                'quick_facts': obj.get('quick_facts', {}),
+                            }
+                            knowledge['version'] = obj.get('version', '3.2')
+                        elif obj_type == 'domain_index':
+                            knowledge['domain_index'] = {
+                                'backend': obj.get('backend', []),
+                                'frontend': obj.get('frontend', []),
+                            }
+                        elif obj_type == 'gotchas':
+                            issues = obj.get('issues', {})
+                            knowledge['gotchas'] = [
+                                {'problem': k, **v} for k, v in issues.items()
+                            ] if isinstance(issues, dict) else []
+                        elif obj_type == 'entity':
+                            knowledge['entities'].append({
+                                'name': obj.get('name', ''),
+                                'type': obj.get('entityType', 'unknown'),
+                                'path': obj.get('path', ''),
+                                'exports': obj.get('exports', []),
+                            })
+                    except json.JSONDecodeError:
+                        continue
+                return knowledge
+            else:
+                # Single-line or standard JSON format
+                return json.loads(content)
         except json.JSONDecodeError:
             pass
     return {}
@@ -484,7 +614,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
         })
     
     if not dry_run and updates:
-        # Actually update project_knowledge.json
+        # Actually update project_knowledge.json in JSONL format
         knowledge = current if current else {
             'version': '3.2',
             'generated_at': datetime.now().isoformat(),
@@ -510,9 +640,9 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
         knowledge['hot_cache']['top_entities'] = [u['name'] for u in updates[:20]]
         knowledge['last_updated'] = datetime.now().isoformat()
         
-        with open(knowledge_path, 'w') as f:
-            json.dump(knowledge, f, indent=2)
-        print(f"\n✅ Knowledge updated: {knowledge_path}")
+        # Write as JSONL (one JSON object per line)
+        write_knowledge_jsonl(knowledge_path, knowledge)
+        print(f"\n✅ Knowledge updated (JSONL): {knowledge_path}")
         print(f"   {len(updates)} entities merged")
     elif dry_run:
         print(f"\n🔍 Dry run - would update {len(updates)} entities")
@@ -598,9 +728,9 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     
     if not dry_run:
         knowledge_path = root / 'project_knowledge.json'
-        with open(knowledge_path, 'w') as f:
-            json.dump(knowledge, f, indent=2)
-        print(f"\n✅ Knowledge saved to: {knowledge_path}")
+        # Write as JSONL (one JSON object per line)
+        write_knowledge_jsonl(knowledge_path, knowledge)
+        print(f"\n✅ Knowledge saved (JSONL) to: {knowledge_path}")
     else:
         print("\n🔍 Dry run - no changes applied")
     

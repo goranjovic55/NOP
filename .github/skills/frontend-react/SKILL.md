@@ -1,9 +1,14 @@
 ---
 name: frontend-react
-description: Load when editing .tsx, .jsx files or working in components/, pages/, store/, hooks/. Provides React and TypeScript patterns for frontend development.
+description: Load when editing .tsx, .jsx files or working in components/, pages/, store/, hooks/. Provides React, TypeScript, Zustand state management, and WebSocket client patterns.
 ---
 
 # Frontend React
+
+## Merged Skills
+- **state-management**: Zustand stores, selectors, subscriptions
+- **internationalization**: i18n, translation, locale patterns
+- **performance**: React.memo, useMemo, useCallback optimization
 
 ## ⚠️ Critical Gotchas
 - **401 errors:** Call `logout()` from authStore, don't show page-level error UI
@@ -30,22 +35,12 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 ## Patterns
 
 ```tsx
-// Typed component
-interface Props { item: Item; onSelect?: (item: Item) => void; }
-export const Card: FC<Props> = ({ item, onSelect }) => {
-  const handleClick = useCallback(() => onSelect?.(item), [item, onSelect]);
-  return <div onClick={handleClick}>{item.name}</div>;
-};
+// Component + Zustand selector
+const items = useStore((s) => s.items);
+const Card: FC<{item: Item}> = ({ item }) => <div key={item.id}>{item.name}</div>;
 
-// Zustand store
-export const useStore = create<State>((set) => ({
-  items: [],
-  addItem: (item) => set((s) => ({ items: [...s.items, item] })),
-}));
+// Store with persistence
+export const useStore = create<State>()(persist((set) => ({
+  items: [], addItem: (i) => set((s) => ({ items: [...s.items, i] }))
+}), { name: 'store' }));
 ```
-
-## Errors
-| Error | Fix |
-|-------|-----|
-| `')' expected` | Use `{/* */}` |
-| Stale closure | Add to deps array |

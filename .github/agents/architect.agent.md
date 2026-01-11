@@ -8,7 +8,11 @@ description: Design blueprints before implementation. Returns design trace to AK
 > `@architect` | Design BEFORE code
 
 ## Triggers
-design, architecture, blueprint, plan, brainstorm
+| Pattern | Type |
+|---------|------|
+| design, architecture, blueprint, plan | Keywords |
+| .project/ | Blueprints |
+| docs/design/, docs/architecture/ | Design docs |
 
 ## When to Use
 - ✅ New project/feature | Major refactoring | System integration

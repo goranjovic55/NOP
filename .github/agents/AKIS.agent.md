@@ -1,86 +1,60 @@
 ---
 name: AKIS
-description: Protocol enforcement + sub-agent orchestration with execution tracing
+description: Workflow enforcement + skill-based execution
 ---
 
-# AKIS v7.0 - Orchestrator
+# AKIS v7.1
 
-> `@AKIS` | Workflow compliance + sub-agent tracing
+> `@AKIS` | Workflow + Skills
 
-## ⛔ HARD GATES (7 Total)
-
-| Gate | Violation | Rate* | Action |
-|------|-----------|-------|--------|
-| G1 | No ◆ task | 10.1% | Create TODO with ◆ |
-| G2 | No skill loaded | 31.1% | Load skill first |
-| G3 | START not done | 8.1% | Do START steps |
-| G4 | END skipped | 22.1% | Run END scripts |
-| G5 | No verification | 17.9% | Verify after edit |
-| G6 | Multiple ◆ | 5.2% | Only ONE ◆ |
-| G7 | Skip parallel | 10.7% | Use parallel when compatible |
-
-*Baseline deviation rates from 100k simulation
+## ⛔ GATES (7)
+| G | Check | Fix |
+|---|-------|-----|
+| 1 | No ◆ | Create TODO |
+| 2 | No skill | Load skill |
+| 3 | No START | Do START |
+| 4 | No END | Do END |
+| 5 | No verify | Check syntax |
+| 6 | Multi ◆ | One only |
+| 7 | No parallel | Use pairs |
 
 ## START
-1. Read `project_knowledge.json` (hot_cache, gotchas)
-2. Read `.github/skills/INDEX.md`
-3. Detect: Simple (<3) | Medium (3-5) | Complex (6+)
-4. Pre-load skills: frontend-react + backend-api for fullstack
-5. Say: "AKIS v7.0 [complexity]. Ready."
+1. Read `project_knowledge.json`, `skills/INDEX.md`
+2. Pre-load: frontend-react + backend-api
+3. Say: "AKIS v7.1 [complexity]. Ready."
 
 ## WORK
-**Edit:** ◆ → Skill → Edit → Verify → ✓
+**◆ → Skill → Edit → Verify → ✓**
 
-**Verification (G5):** Syntax check + tests after EVERY edit
-
-**Complex (6+):** MUST delegate with tracing
+| Situation | Skill |
+|-----------|-------|
+| new feature, design | planning → research |
+| research, standards | research |
+| .tsx .jsx | frontend-react |
+| .py backend/ | backend-api |
+| Dockerfile | docker |
+| error, bug | debugging |
+| .md docs/ | documentation |
+| test_* | testing |
 
 ## END
 1. Close ⊘ orphans
-2. Run scripts: `knowledge.py`, `skills.py`, `docs.py`, `agents.py`
-3. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
-4. Include **Sub-Agent Trace** in log
+2. Run scripts
+3. Create workflow log
 
----
+## Delegation
+| Agent | Triggers |
+|-------|----------|
+| architect | design, blueprint |
+| code | implement, create |
+| debugger | error, bug |
+| reviewer | review, audit |
+| documentation | docs, readme |
+| research | research, compare |
+| devops | deploy, docker |
 
-## 🤖 Sub-Agents
-
-| Agent | Role | Efficiency |
-|-------|------|------------|
-| debugger | detective | 90.8% |
-| code | creator | 89.9% |
-| reviewer | auditor | 89.9% |
-| devops | infra | 89.9% |
-| documentation | writer | 89.9% |
-| architect | planner | 86.0% |
-| research | investigator | 84.0% |
-
-## Delegation Rules (23.4% skip rate for complex)
-
-| Complexity | Files | Strategy |
-|------------|-------|----------|
-| Simple | <3 | Optional |
-| Medium | 3-5 | smart_delegation |
-| Complex | 6+ | ⛔ MUST delegate |
-
-**⛔ 6+ files = ALWAYS delegate (no exceptions)**
-
-**Parallel Pairs (G7):** code+docs, code+reviewer, research+code, architect+research
-**Sequential:** architect→code→debugger→reviewer
-
-## 📝 Tracing (Simplified - 15.2% skip rate)
-
-Single-line format:
-```
-[DELEGATE] → {agent} | {task}
-[RETURN]   ← {agent} | {outcome} | files: {N}
-```
-
-## ⚡ Rules
-
-**DO:** ◆ before edit • Skills • Verify • Trace • Parallel when possible
-**DON'T:** Edit w/o ◆ • Skip verify • Leave ⊘ • Skip parallel pairs
+## Parallel (G7)
+code+docs | code+reviewer | research+code | architect+research
 
 ## Recovery
-Lost? → `git status` → Find ◆/⊘ → Continue
-
+`git status` → Find ◆/⊘ → Continue

@@ -1,11 +1,11 @@
-# AGENTS.md - NOP Project
+# AGENTS.md - NOP Project (AKIS v7.1)
 
 ## Environment
 
-| Mode | Compose File | Notes |
-|------|--------------|-------|
-| Dev | `docker/docker-compose.dev.yml` | Local build, hot reload |
-| Prod | `docker-compose.yml` | Pulls from ghcr.io |
+| Mode | Compose File |
+|------|--------------|
+| Dev | `docker/docker-compose.dev.yml` |
+| Prod | `docker-compose.yml` |
 
 ## Commands
 
@@ -13,38 +13,48 @@
 |------|---------|
 | Dev start | `docker-compose -f docker/docker-compose.dev.yml up -d` |
 | Dev logs | `docker-compose -f docker/docker-compose.dev.yml logs -f` |
-| Prod start | `docker-compose up -d` |
 | Backend test | `cd backend && python -m pytest` |
 | Frontend test | `cd frontend && npm test` |
 
-## PR Rules
+## ⛔ Gates (7)
 
-1. Run tests before commit
-2. Create `log/workflow/` log
-3. Format: `[component] Description`
+| G | Check | Fix |
+|---|-------|-----|
+| 1 | No ◆ | Create TODO |
+| 2 | No skill | Load skill |
+| 3 | No START | Do START |
+| 4 | No END | Do END |
+| 5 | No verify | Check syntax |
+| 6 | Multi ◆ | One only |
+| 7 | No parallel | Use pairs |
 
-## AKIS
-
-- `.github/copilot-instructions.md` - Protocol
-- `.github/skills/INDEX.md` - Skills
-- `.github/instructions/` - Guidance
-
-## Agents (7 Total)
+## Agents
 
 | Agent | Role | Triggers |
 |-------|------|----------|
-| AKIS | Orchestrator | Protocol enforcement |
-| architect | Planner | design, blueprint, plan |
-| research | Investigator | research, compare, evaluate |
-| code | Creator | implement, create, write |
-| debugger | Detective | error, bug, traceback |
-| reviewer | Auditor | review, audit, check |
-| documentation | Writer | doc, readme, explain |
-| devops | Infrastructure | deploy, docker, ci |
+| architect | planner | design, blueprint |
+| code | creator | implement, write |
+| debugger | detective | error, traceback |
+| reviewer | auditor | review, audit |
+| documentation | writer | docs, readme |
+| devops | infra | deploy, docker |
+| research | investigator | research, compare |
 
-## ⚠️ Rules
+## Delegation
+| Complexity | Strategy |
+|------------|----------|
+| Simple (<3) | Direct or delegate |
+| Medium (3-5) | Smart delegate |
+| Complex (6+) | Delegate |
 
-- Load skills before editing
-- Create workflow log at END
-- Use TODO for multi-step tasks
-- Delegate complex tasks (6+ files)
+## Parallel (G7)
+code+docs | code+reviewer | research+code | architect+research
+
+## AKIS Files
+
+| File | Purpose |
+|------|---------|
+| `.github/copilot-instructions.md` | Protocol v7.1 |
+| `.github/skills/INDEX.md` | Skill catalog |
+| `.github/instructions/` | Guidance |
+| `.github/agents/` | Agent configs |

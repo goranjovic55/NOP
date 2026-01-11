@@ -68,25 +68,27 @@ KNOWLEDGE_GOTCHAS_MIN = 10
 DOCS_HIGH_THRESHOLD = 30
 DOCS_MEDIUM_THRESHOLD = 20
 DOCS_LOW_THRESHOLD = 10
-ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation']
+ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation', 'planning', 'research']
 
 # Agent types that can be optimized
 # Updated based on 100k simulation analysis for GitHub Copilot VS Code Insiders
 AGENT_TYPES = {
-    # Core Agents (4 Essential - User's workflow)
+    # Core Agents (5 Essential - User's workflow)
     'architect': {
         'description': 'Deep design, blueprints, brainstorming before projects',
         'triggers': ['design', 'architecture', 'blueprint', 'plan', 'brainstorm', 'structure'],
-        'skills': ['backend-api', 'frontend-react', 'docker'],
+        'skills': ['planning', 'research', 'backend-api', 'frontend-react', 'docker'],
         'optimization_targets': ['completeness', 'consistency', 'knowledge_usage'],
         'tier': 'core',
+        'auto_chain': ['research'],  # Architect can chain to research
     },
     'research': {
-        'description': 'Gather info from local docs + external sources',
-        'triggers': ['research', 'investigate', 'compare', 'evaluate', 'best practices'],
-        'skills': ['documentation'],
+        'description': 'Gather info from local docs + external sources for industry/community standards',
+        'triggers': ['research', 'investigate', 'compare', 'evaluate', 'best practices', 'standard', 'industry', 'community'],
+        'skills': ['research', 'documentation'],
         'optimization_targets': ['accuracy', 'comprehensiveness', 'source_quality'],
         'tier': 'core',
+        'auto_chain': [],  # Research is terminal
     },
     'code': {
         'description': 'Write code following best practices and standards',
@@ -94,6 +96,7 @@ AGENT_TYPES = {
         'skills': ['backend-api', 'frontend-react', 'testing'],
         'optimization_targets': ['token_usage', 'api_calls', 'accuracy'],
         'tier': 'core',
+        'auto_chain': [],
     },
     'debugger': {
         'description': 'Trace logs, execute, find bugs and culprits',
@@ -101,6 +104,7 @@ AGENT_TYPES = {
         'skills': ['debugging', 'testing'],
         'optimization_targets': ['resolution_time', 'accuracy', 'root_cause_detection'],
         'tier': 'core',
+        'auto_chain': [],
     },
     # Supporting Agents (Use when needed)
     'reviewer': {
@@ -549,21 +553,24 @@ SUBAGENT_REGISTRY = {
         'called_by': [],
         'orchestration_role': 'primary',
         'parallel_capable': True,  # Can fan-out to multiple agents
+        'skills': ['planning', 'research'],  # AKIS uses planning→research chain
     },
-    # Core Agents (4 Essential)
+    # Core Agents (5 Essential)
     'architect': {
         'description': 'Deep design, blueprints, brainstorming',
         'can_call': ['code', 'documentation', 'devops', 'research'],
         'called_by': ['akis'],
         'orchestration_role': 'planner',
         'parallel_capable': False,  # Planning is sequential
+        'skills': ['planning', 'research'],  # Auto-chains to research
     },
     'research': {
-        'description': 'Gather info from docs + external sources',
+        'description': 'Gather info from local docs + external sources for industry/community standards',
         'can_call': [],
-        'called_by': ['akis', 'architect'],
+        'called_by': ['akis', 'architect'],  # Called by planning-related agents
         'orchestration_role': 'investigator',
         'parallel_capable': True,  # Can research multiple topics
+        'skills': ['research'],
     },
     'code': {
         'description': 'Write code following best practices',
@@ -571,6 +578,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'architect', 'debugger'],
         'orchestration_role': 'worker',
         'parallel_capable': True,  # Can work on different files
+        'skills': ['backend-api', 'frontend-react'],
     },
     'debugger': {
         'description': 'Trace logs, execute, find bugs',
@@ -578,6 +586,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'code', 'reviewer'],
         'orchestration_role': 'specialist',
         'parallel_capable': False,  # Debug is sequential analysis
+        'skills': ['debugging'],
     },
     # Supporting Agents
     'reviewer': {
@@ -586,13 +595,15 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis'],
         'orchestration_role': 'auditor',
         'parallel_capable': True,  # Can review different modules
+        'skills': ['testing'],
     },
     'documentation': {
         'description': 'Update docs, READMEs',
-        'can_call': [],
+        'can_call': ['research'],  # Can call research for standards
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
         'parallel_capable': True,  # Independent of code
+        'skills': ['documentation'],
     },
     'devops': {
         'description': 'CI/CD and infrastructure',
@@ -600,6 +611,7 @@ SUBAGENT_REGISTRY = {
         'called_by': ['akis', 'architect'],
         'orchestration_role': 'worker',
         'parallel_capable': False,  # Infrastructure is sequential
+        'skills': ['docker', 'ci-cd'],
     },
 }
 
@@ -1717,6 +1729,199 @@ def run_analyze(sessions: int = 100000) -> Dict[str, Any]:
 # Main Functions
 # ============================================================================
 
+def analyze_agent_instruction_updates(
+    root: Path,
+    session_files: List[str],
+    session_analysis: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Analyze and suggest modifications to individual agent instruction files."""
+    suggestions = []
+    agents_dir = root / '.github' / 'agents'
+    
+    if not agents_dir.exists():
+        return suggestions
+    
+    # Patterns learned from session
+    session_patterns = {
+        'file_extensions': set(),
+        'directories': set(),
+        'technologies': set(),
+        'error_patterns': set(),
+    }
+    
+    for file_path in session_files:
+        # Extract extensions
+        if '.' in file_path:
+            ext = '.' + file_path.split('.')[-1]
+            session_patterns['file_extensions'].add(ext)
+        
+        # Extract directories
+        parts = file_path.split('/')
+        if len(parts) > 1:
+            session_patterns['directories'].add(parts[0])
+        
+        # Detect technologies
+        if '.tsx' in file_path or '.jsx' in file_path:
+            session_patterns['technologies'].add('React')
+        if '.py' in file_path:
+            session_patterns['technologies'].add('Python')
+        if 'docker' in file_path.lower():
+            session_patterns['technologies'].add('Docker')
+        if 'workflow' in file_path.lower():
+            session_patterns['technologies'].add('Workflows')
+    
+    # Check each agent used in session for potential updates
+    for agent_name, data in session_analysis.get('agents_used', {}).items():
+        agent_file = agents_dir / f"{agent_name}.agent.md"
+        
+        if not agent_file.exists():
+            # Suggest creating the agent
+            suggestions.append({
+                'agent': agent_name,
+                'type': 'CREATE',
+                'file': str(agent_file),
+                'reason': f"Agent used in session but file missing",
+                'suggestion': f"Create {agent_name}.agent.md with triggers: {', '.join(data.get('triggers', [])[:3])}",
+            })
+            continue
+        
+        # Read existing agent content
+        try:
+            content = agent_file.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        
+        agent_suggestions = []
+        
+        # Check if triggers match session patterns
+        session_triggers = data.get('triggers', [])
+        for trigger in session_triggers:
+            if trigger not in content.lower():
+                agent_suggestions.append({
+                    'section': 'Triggers',
+                    'action': 'ADD',
+                    'value': trigger,
+                    'reason': f"Pattern '{trigger}' used in session but not in agent triggers",
+                })
+        
+        # Check if technologies are mentioned
+        for tech in session_patterns['technologies']:
+            if tech.lower() not in content.lower() and agent_name == 'code':
+                agent_suggestions.append({
+                    'section': 'Technologies',
+                    'action': 'ADD',
+                    'value': tech,
+                    'reason': f"Technology '{tech}' used in session",
+                })
+        
+        # Check file count - high activity suggests adding gotchas
+        file_count = len(data.get('files', []))
+        if file_count > 10 and 'gotcha' not in content.lower():
+            agent_suggestions.append({
+                'section': 'Gotchas',
+                'action': 'ADD',
+                'value': 'Session-specific gotchas section',
+                'reason': f"High activity ({file_count} files) - consider adding gotchas",
+            })
+        
+        # Check for directory-specific patterns
+        for directory in session_patterns['directories']:
+            if directory in ['frontend', 'backend', 'scripts', 'docs']:
+                if directory not in content.lower() and agent_name == 'code':
+                    agent_suggestions.append({
+                        'section': 'Scope',
+                        'action': 'ADD',
+                        'value': f"{directory}/ directory",
+                        'reason': f"Agent worked on {directory}/ this session",
+                    })
+        
+        if agent_suggestions:
+            suggestions.append({
+                'agent': agent_name,
+                'type': 'UPDATE',
+                'file': str(agent_file),
+                'reason': f"{len(agent_suggestions)} potential improvements",
+                'modifications': agent_suggestions,
+            })
+    
+    return suggestions
+
+
+def analyze_session_agents(session_files: List[str]) -> Dict[str, Any]:
+    """Analyze session files to determine which agents were used/should be used."""
+    agents_used = {}
+    
+    # File pattern to agent mapping
+    file_agent_mapping = {
+        # Frontend patterns
+        '.tsx': 'code',
+        '.jsx': 'code', 
+        '.ts': 'code',
+        'frontend/': 'code',
+        'components/': 'code',
+        'pages/': 'code',
+        'store/': 'code',
+        'hooks/': 'code',
+        # Backend patterns
+        '.py': 'code',
+        'backend/': 'code',
+        'api/': 'code',
+        'routes/': 'code',
+        'services/': 'code',
+        'models/': 'code',
+        # DevOps patterns
+        'Dockerfile': 'devops',
+        'docker-compose': 'devops',
+        '.yml': 'devops',
+        'deploy': 'devops',
+        '.github/workflows/': 'devops',
+        # Documentation patterns
+        '.md': 'documentation',
+        'docs/': 'documentation',
+        'README': 'documentation',
+        # Testing patterns
+        'test_': 'debugger',
+        '_test.': 'debugger',
+        '.test.': 'debugger',
+        'tests/': 'debugger',
+        # Architecture patterns
+        '.project/': 'architect',
+        'blueprint': 'architect',
+        'design/': 'architect',
+        # AKIS patterns
+        '.github/skills/': 'documentation',
+        '.github/instructions/': 'documentation',
+        '.github/agents/': 'documentation',
+        '.github/scripts/': 'code',
+        'project_knowledge': 'documentation',
+    }
+    
+    for file_path in session_files:
+        file_lower = file_path.lower()
+        for pattern, agent in file_agent_mapping.items():
+            if pattern in file_lower:
+                if agent not in agents_used:
+                    agents_used[agent] = {'files': [], 'triggers': []}
+                if file_path not in agents_used[agent]['files']:
+                    agents_used[agent]['files'].append(file_path)
+                if pattern not in agents_used[agent]['triggers']:
+                    agents_used[agent]['triggers'].append(pattern)
+    
+    # Determine primary agents (most files)
+    sorted_agents = sorted(
+        agents_used.items(), 
+        key=lambda x: len(x[1]['files']), 
+        reverse=True
+    )
+    
+    return {
+        'agents_used': agents_used,
+        'sorted_agents': sorted_agents,
+        'primary_agent': sorted_agents[0][0] if sorted_agents else None,
+        'total_agents': len(agents_used),
+    }
+
+
 def run_report() -> Dict[str, Any]:
     """Report agent status without modifying any files (safe default)."""
     print("=" * 60)
@@ -1745,7 +1950,44 @@ def run_report() -> Dict[str, Any]:
     for agent in existing_agents[:5]:
         print(f"  • {agent.stem}")
     
-    # Determine what would need updating
+    # =========================================================================
+    # Session Agent Analysis - WHAT AGENTS SHOULD BE USED THIS SESSION
+    # =========================================================================
+    session_analysis = analyze_session_agents(session_files)
+    
+    if session_analysis['total_agents'] > 0:
+        print(f"\n" + "=" * 60)
+        print("🤖 AGENTS FOR THIS SESSION")
+        print("=" * 60)
+        print(f"\nBased on {len(session_files)} files modified, suggest these agents:")
+        print()
+        
+        for agent, data in session_analysis['sorted_agents']:
+            file_count = len(data['files'])
+            triggers = ', '.join(data['triggers'][:3])
+            agent_config = AGENT_TYPES.get(agent, {})
+            description = agent_config.get('description', 'Specialist agent')
+            
+            print(f"  🔹 {agent.upper()}")
+            print(f"     Description: {description}")
+            print(f"     Files matched: {file_count}")
+            print(f"     Patterns: {triggers}")
+            print(f"     Example: {data['files'][0] if data['files'] else 'N/A'}")
+            print()
+        
+        # Delegation suggestion
+        if session_analysis['total_agents'] >= 2:
+            print(f"💡 DELEGATION SUGGESTION:")
+            print(f"   This session touches {session_analysis['total_agents']} domains.")
+            print(f"   Consider delegating via runsubagent:")
+            for agent, data in session_analysis['sorted_agents'][:3]:
+                print(f'   runsubagent(agent="{agent}", task="...")')
+    else:
+        print(f"\n⚠️  No agent patterns detected in session files")
+    
+    # =========================================================================
+    # Legacy: Pattern-based updates (for comparison)
+    # =========================================================================
     updates_needed = []
     session_text = ' '.join(session_files).lower()
     
@@ -1766,32 +2008,67 @@ def run_report() -> Dict[str, Any]:
         if not agent_file.exists():
             missing_agents.append(agent_type)
     
-    # Output implementation-ready suggestions
+    # Output implementation-ready suggestions for MISSING agents only
     if missing_agents:
-        print(f"\n📋 SUGGESTED NEW AGENTS (create files):")
+        print(f"\n📋 MISSING AGENTS (create files):")
         print("-" * 60)
         for agent_type in missing_agents:
             config = AGENT_TYPES[agent_type]
-            print(f"CREATE: .github/agents/{agent_type}.agent.md")
-            print(f"```markdown")
-            print(f"---")
-            print(f"name: {agent_type}")
-            print(f"description: {config.get('description', 'Specialist agent')}")
-            print(f"---")
-            print(f"")
-            print(f"# {agent_type.replace('-', ' ').title()} Agent")
-            print(f"")
-            print(f"## Triggers")
-            print(f"- {', '.join(config.get('triggers', []))}")
-            print(f"```")
-            print()
+            print(f"  • {agent_type}: {config.get('description', 'Specialist agent')}")
         print("-" * 60)
-        print(f"\n💡 Agent: Create the agent files above")
     
-    if updates_needed:
-        print(f"\n📋 Agents used this session:")
-        for u in updates_needed[:5]:
-            print(f"  • {u['agent']} (triggered by '{u['trigger']}')")
+    # =========================================================================
+    # Agent Instruction Modifications
+    # =========================================================================
+    instruction_suggestions = analyze_agent_instruction_updates(
+        root, session_files, session_analysis
+    )
+    
+    if instruction_suggestions:
+        print(f"\n" + "=" * 60)
+        print("📝 AGENT INSTRUCTION MODIFICATIONS")
+        print("=" * 60)
+        
+        for suggestion in instruction_suggestions:
+            agent = suggestion['agent']
+            stype = suggestion['type']
+            
+            if stype == 'CREATE':
+                print(f"\n  🆕 CREATE: {agent}.agent.md")
+                print(f"     Reason: {suggestion['reason']}")
+                print(f"     Action: {suggestion['suggestion']}")
+            
+            elif stype == 'UPDATE':
+                print(f"\n  ✏️  UPDATE: {agent}.agent.md")
+                print(f"     File: {suggestion['file']}")
+                
+                for mod in suggestion.get('modifications', []):
+                    section = mod['section']
+                    action = mod['action']
+                    value = mod['value']
+                    reason = mod['reason']
+                    print(f"     • [{section}] {action}: {value}")
+                    print(f"       Reason: {reason}")
+        
+        # Generate copy-paste ready modifications
+        print(f"\n" + "-" * 60)
+        print("📋 COPY-PASTE MODIFICATIONS:")
+        print("-" * 60)
+        
+        for suggestion in instruction_suggestions:
+            if suggestion['type'] == 'UPDATE':
+                agent = suggestion['agent']
+                print(f"\n# {agent}.agent.md additions:")
+                for mod in suggestion.get('modifications', []):
+                    if mod['section'] == 'Triggers':
+                        print(f"# Add to Triggers: {mod['value']}")
+                    elif mod['section'] == 'Gotchas':
+                        print(f"## ⚠️ Session Gotchas")
+                        print(f"# - Add patterns from high-activity session")
+                    elif mod['section'] == 'Technologies':
+                        print(f"# Add to supported: {mod['value']}")
+                    elif mod['section'] == 'Scope':
+                        print(f"# Add to scope: {mod['value']}")
     
     return {
         'mode': 'report',
@@ -1799,6 +2076,8 @@ def run_report() -> Dict[str, Any]:
         'existing_agents': len(existing_agents),
         'updates_needed': len(updates_needed),
         'missing_agents': missing_agents,
+        'session_agents': session_analysis,
+        'instruction_suggestions': instruction_suggestions,
     }
 
 

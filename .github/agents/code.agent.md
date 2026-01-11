@@ -5,10 +5,21 @@ description: Write production code following best practices. Reports back to AKI
 
 # Code Agent
 
-> `@code` | Write code with standards
+> `@code` | Write code + test + refactor
 
 ## Triggers
-implement, create, write, add, build, function, component
+| Pattern | Type |
+|---------|------|
+| implement, create, write, build | Keywords |
+| test, tester, refactor, optimize | Merged |
+| .py, .tsx, .ts, .jsx | Extensions |
+| test_*, *_test.py, *.test.* | Tests |
+| backend/, frontend/, api/ | Directories |
+| components/, pages/, store/, services/, hooks/ | React |
+| .github/scripts/ | AKIS |
+
+## Technologies
+Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytest, jest
 
 ## Standards (⛔ ENFORCED)
 | Rule | Requirement |

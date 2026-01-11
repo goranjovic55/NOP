@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# Quality Standards
+# Quality v7.1
 
 ## After Every Edit
 1. Verify syntax (no errors)

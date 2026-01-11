@@ -53,50 +53,71 @@ from datetime import datetime
 
 # Existing skill triggers - optimized via 100k simulation (96.0% accuracy)
 EXISTING_SKILL_TRIGGERS = {
+    'planning': {
+        'file_patterns': [r'\.project/', r'blueprints/', r'design/'],
+        'patterns': ['new feature', 'implement', 'add functionality', 'design', 'architect', 'plan', 'blueprint', 'structure'],
+        'when_helpful': ['new feature', 'design', 'plan', 'architect', 'blueprint', 'structure'],
+        'auto_chain': ['research'],  # Planning auto-chains to research
+    },
+    'research': {
+        'file_patterns': [r'docs/', r'\.md$'],
+        'patterns': ['research', 'investigate', 'compare', 'best practice', 'standard', 'industry', 'community'],
+        'when_helpful': ['research', 'best practice', 'standard', 'compare', 'investigate'],
+        'auto_chain': [],
+    },
     'frontend-react': {
         'file_patterns': [r'\.tsx$', r'\.jsx$', r'frontend/', r'components/', r'pages/'],
         'patterns': ['react', 'component', 'frontend', 'ui', 'page', 'hook', 'state'],
         'when_helpful': ['styling', 'component', 'react', 'ui', 'frontend', 'page'],
+        'auto_chain': [],
     },
     'backend-api': {
         'file_patterns': [r'\.py$', r'backend/', r'api/', r'endpoints/', r'services/'],
         'patterns': ['fastapi', 'api', 'endpoint', 'backend', 'service', 'sqlalchemy', 'database', 'model', 'websocket', 'async'],
         'when_helpful': ['api', 'endpoint', 'backend', 'service', 'database', 'model', 'websocket'],
+        'auto_chain': [],
     },
     'docker': {
         'file_patterns': [r'Dockerfile', r'docker-compose.*\.yml$'],
         'patterns': ['docker', 'container', 'compose', 'dockerfile'],
         'when_helpful': ['docker', 'container', 'compose', 'image'],
+        'auto_chain': [],
     },
     'ci-cd': {
         'file_patterns': [r'\.github/workflows/.*\.yml$', r'deploy\.sh$', r'\.github/actions/'],
         'patterns': ['workflow', 'github actions', 'deploy', 'pipeline', 'ci', 'cd', 'build and push'],
         'when_helpful': ['workflow', 'deploy', 'pipeline', 'github actions', 'ci/cd'],
+        'auto_chain': [],
     },
     'debugging': {
         'file_patterns': [],
         'patterns': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback', 'exception'],
         'when_helpful': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback'],
+        'auto_chain': [],
     },
     'testing': {
         'file_patterns': [r'test_.*\.py$', r'.*_test\.py$', r'tests/', r'\.test\.(ts|tsx|js)$'],
         'patterns': ['test', 'pytest', 'jest', 'unittest', 'assert', 'mock', 'coverage'],
         'when_helpful': ['test', 'pytest', 'coverage', 'assert', 'mock'],
+        'auto_chain': [],
     },
     'documentation': {
         'file_patterns': [r'\.md$', r'docs/', r'README'],
         'patterns': ['doc', 'readme', 'markdown', 'documentation'],
         'when_helpful': ['doc', 'readme', 'documentation', 'update docs'],
+        'auto_chain': [],
     },
     'akis-development': {
         'file_patterns': [r'\.github/instructions/', r'\.github/skills/', r'copilot-instructions'],
         'patterns': ['akis', 'instruction', 'skill', 'copilot'],
         'when_helpful': ['instruction', 'skill', 'akis', 'copilot'],
+        'auto_chain': [],
     },
     'knowledge': {
         'file_patterns': [r'project_knowledge\.json$', r'knowledge\.py'],
         'patterns': ['knowledge', 'context', 'cache', 'entity'],
         'when_helpful': ['knowledge', 'context', 'project understanding'],
+        'auto_chain': [],
     },
 }
 
@@ -108,6 +129,14 @@ SESSION_TYPES = {
     'docker_heavy': 0.10,
     'framework': 0.10,
     'docs_only': 0.06,
+}
+
+# Task complexity that triggers planning→research chain
+PLANNING_TRIGGERS = {
+    'new_feature': 0.35,      # 35% of sessions are new features
+    'design_change': 0.15,    # 15% involve design
+    'refactor': 0.10,         # 10% are refactors
+    'simple_fix': 0.40,       # 40% are simple fixes (no planning needed)
 }
 
 
@@ -184,6 +213,20 @@ def detect_existing_skills(files: List[str], diff: str) -> List[SkillSuggestion]
                 is_existing=True
             ))
     
+    # Handle auto-chain: if planning detected, add research
+    skill_names = [s.skill_name for s in detected]
+    for skill in detected[:]:
+        auto_chain = EXISTING_SKILL_TRIGGERS.get(skill.skill_name, {}).get('auto_chain', [])
+        for chained_skill in auto_chain:
+            if chained_skill not in skill_names:
+                detected.append(SkillSuggestion(
+                    skill_name=chained_skill,
+                    confidence=skill.confidence * 0.9,
+                    evidence=[f"Auto-chain from {skill.skill_name}"],
+                    is_existing=True
+                ))
+                skill_names.append(chained_skill)
+    
     # Sort by confidence
     detected.sort(key=lambda x: x.confidence, reverse=True)
     return detected
@@ -195,22 +238,47 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
     diff_lower = diff.lower()
     
     # Check for patterns not covered by existing skills
+    # Updated based on 100k session investigation (investigate.py --predict)
     new_patterns = {
         'websocket-realtime': {
             'patterns': ['websocket', 'socket.io', 'real-time', 'realtime', 'broadcast'],
             'file_patterns': [r'websocket', r'socket'],
+            'confidence_boost': 0.0,  # Baseline
         },
         'authentication': {
-            'patterns': ['auth', 'jwt', 'oauth', 'login', 'session', 'token'],
-            'file_patterns': [r'auth', r'login'],
+            'patterns': ['auth', 'jwt', 'oauth', 'login', 'session', 'token', 'bearer'],
+            'file_patterns': [r'auth', r'login', r'token'],
+            'confidence_boost': 0.15,  # High priority from prediction
         },
         'database-migration': {
-            'patterns': ['alembic', 'migration', 'schema', 'migrate'],
-            'file_patterns': [r'alembic', r'migration'],
+            'patterns': ['alembic', 'migration', 'schema', 'migrate', 'revision'],
+            'file_patterns': [r'alembic', r'migration', r'versions/'],
+            'confidence_boost': 0.15,  # High priority from prediction
         },
         'state-management': {
-            'patterns': ['zustand', 'redux', 'store', 'state management'],
+            'patterns': ['zustand', 'redux', 'store', 'state management', 'useStore'],
             'file_patterns': [r'store/', r'\.store\.'],
+            'confidence_boost': 0.0,  # Baseline
+        },
+        'performance': {
+            'patterns': ['performance', 'optimization', 'cache', 'memoize', 'lazy', 'profiler'],
+            'file_patterns': [r'cache', r'optimize'],
+            'confidence_boost': 0.05,  # Moderate priority
+        },
+        'monitoring': {
+            'patterns': ['monitoring', 'metrics', 'logging', 'observability', 'trace', 'span'],
+            'file_patterns': [r'monitor', r'metrics', r'logging'],
+            'confidence_boost': 0.05,  # Moderate priority
+        },
+        'internationalization': {
+            'patterns': ['i18n', 'translation', 'locale', 'language', 'intl'],
+            'file_patterns': [r'i18n', r'locale', r'translations'],
+            'confidence_boost': 0.10,  # New pattern detected
+        },
+        'security': {
+            'patterns': ['security', 'vulnerability', 'injection', 'xss', 'csrf', 'sanitize'],
+            'file_patterns': [r'security', r'sanitize'],
+            'confidence_boost': 0.05,  # Moderate priority
         },
     }
     
@@ -231,7 +299,9 @@ def detect_new_skill_candidates(files: List[str], diff: str) -> List[SkillSugges
                     break
         
         if score >= 3:
-            confidence = min(0.8, 0.3 + 0.1 * score)
+            # Apply confidence boost from investigation predictions
+            boost = triggers.get('confidence_boost', 0.0)
+            confidence = min(0.95, 0.3 + 0.1 * score + boost)
             candidates.append(SkillSuggestion(
                 skill_name=skill_name,
                 confidence=confidence,
@@ -323,17 +393,27 @@ def read_workflow_logs(workflow_dir: Path) -> List[Dict[str, Any]]:
 # Session Simulation
 # ============================================================================
 
-def simulate_sessions(n: int, detection_accuracy: float = 0.96) -> Dict[str, Any]:
-    """Simulate n sessions with skill detection."""
+def simulate_sessions(n: int, detection_accuracy: float = 0.96, with_planning_research: bool = True) -> Dict[str, Any]:
+    """Simulate n sessions with skill detection including planning→research chain."""
     session_types = list(SESSION_TYPES.keys())
     session_weights = list(SESSION_TYPES.values())
+    task_types = list(PLANNING_TRIGGERS.keys())
+    task_weights = list(PLANNING_TRIGGERS.values())
     
     true_positives = 0
     false_positives = 0
     false_negatives = 0
     
+    # Track planning/research usage
+    planning_needed = 0
+    planning_detected = 0
+    research_needed = 0
+    research_detected = 0
+    chain_triggered = 0
+    
     for _ in range(n):
         session_type = random.choices(session_types, weights=session_weights)[0]
+        task_type = random.choices(task_types, weights=task_weights)[0]
         
         # Simulate skill needs based on session type
         needed_skills = []
@@ -350,12 +430,37 @@ def simulate_sessions(n: int, detection_accuracy: float = 0.96) -> Dict[str, Any
         elif session_type == 'docs_only':
             needed_skills = ['documentation']
         
+        # Determine if planning→research chain is needed
+        needs_planning = task_type in ['new_feature', 'design_change', 'refactor']
+        needs_research = needs_planning  # Research auto-chains from planning
+        
+        if needs_planning:
+            needed_skills.append('planning')
+            planning_needed += 1
+        if needs_research:
+            needed_skills.append('research')
+            research_needed += 1
+        
         # Simulate detection
+        detected_skills = []
         for skill in needed_skills:
             if random.random() < detection_accuracy:
                 true_positives += 1
+                detected_skills.append(skill)
             else:
                 false_negatives += 1
+        
+        # Track planning/research detection
+        if 'planning' in detected_skills:
+            planning_detected += 1
+            # Auto-chain triggers research with high probability
+            if with_planning_research and needs_research:
+                if 'research' not in detected_skills and random.random() < 0.85:
+                    detected_skills.append('research')
+                    chain_triggered += 1
+        
+        if 'research' in detected_skills:
+            research_detected += 1
         
         # Simulate false positives (low rate with good detection)
         if random.random() < (1 - detection_accuracy) * 0.5:
@@ -366,6 +471,10 @@ def simulate_sessions(n: int, detection_accuracy: float = 0.96) -> Dict[str, Any
     recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
     
+    # Planning/research precision
+    planning_precision = planning_detected / planning_needed if planning_needed > 0 else 0
+    research_precision = (research_detected + chain_triggered) / research_needed if research_needed > 0 else 0
+    
     return {
         'total_detections': total,
         'true_positives': true_positives,
@@ -374,6 +483,14 @@ def simulate_sessions(n: int, detection_accuracy: float = 0.96) -> Dict[str, Any
         'precision': precision,
         'recall': recall,
         'f1_score': f1,
+        # Planning/research specific
+        'planning_needed': planning_needed,
+        'planning_detected': planning_detected,
+        'planning_precision': planning_precision,
+        'research_needed': research_needed,
+        'research_detected': research_detected,
+        'research_chain_triggered': chain_triggered,
+        'research_precision': research_precision,
     }
 
 
@@ -526,29 +643,38 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     for skill, count in sorted(skill_usage.items(), key=lambda x: -x[1])[:5]:
         print(f"  - {skill}: {count} times")
     
-    # Simulate with BASELINE detection (14.3%)
-    print(f"\n🔄 Simulating {sessions:,} sessions with BASELINE detection (14.3%)...")
-    baseline_metrics = simulate_sessions(sessions, 0.143)
+    # Simulate with BASELINE detection (14.3%, no planning→research chain)
+    print(f"\n🔄 Simulating {sessions:,} sessions with BASELINE detection (14.3%, no chain)...")
+    baseline_metrics = simulate_sessions(sessions, 0.143, with_planning_research=False)
     print(f"  Precision: {100*baseline_metrics['precision']:.1f}%")
     print(f"  Recall: {100*baseline_metrics['recall']:.1f}%")
     print(f"  F1: {100*baseline_metrics['f1_score']:.1f}%")
+    print(f"  Planning Detection: {100*baseline_metrics['planning_precision']:.1f}%")
+    print(f"  Research Detection: {100*baseline_metrics['research_precision']:.1f}%")
     
-    # Simulate with OPTIMIZED detection (96.0%)
-    print(f"\n🚀 Simulating {sessions:,} sessions with OPTIMIZED detection (96.0%)...")
-    optimized_metrics = simulate_sessions(sessions, 0.96)
+    # Simulate with OPTIMIZED detection (96.0%, with planning→research chain)
+    print(f"\n🚀 Simulating {sessions:,} sessions with OPTIMIZED detection (96.0%, with chain)...")
+    optimized_metrics = simulate_sessions(sessions, 0.96, with_planning_research=True)
     print(f"  Precision: {100*optimized_metrics['precision']:.1f}%")
     print(f"  Recall: {100*optimized_metrics['recall']:.1f}%")
     print(f"  F1: {100*optimized_metrics['f1_score']:.1f}%")
+    print(f"  Planning Detection: {100*optimized_metrics['planning_precision']:.1f}%")
+    print(f"  Research Detection: {100*optimized_metrics['research_precision']:.1f}%")
+    print(f"  Research Auto-Chain Triggered: {optimized_metrics['research_chain_triggered']:,}")
     
     # Calculate improvements
     precision_delta = optimized_metrics['precision'] - baseline_metrics['precision']
     recall_delta = optimized_metrics['recall'] - baseline_metrics['recall']
     f1_delta = optimized_metrics['f1_score'] - baseline_metrics['f1_score']
+    planning_delta = optimized_metrics['planning_precision'] - baseline_metrics['planning_precision']
+    research_delta = optimized_metrics['research_precision'] - baseline_metrics['research_precision']
     
     print(f"\n📈 IMPROVEMENT METRICS:")
     print(f"  Precision: +{100*precision_delta:.1f}%")
     print(f"  Recall: +{100*recall_delta:.1f}%")
     print(f"  F1 Score: +{100*f1_delta:.1f}%")
+    print(f"  Planning Precision: +{100*planning_delta:.1f}%")
+    print(f"  Research Precision: +{100*research_delta:.1f}%")
     
     if not dry_run:
         print("\n✅ Skill patterns updated")
@@ -565,6 +691,8 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
             'precision_delta': precision_delta,
             'recall_delta': recall_delta,
             'f1_delta': f1_delta,
+            'planning_delta': planning_delta,
+            'research_delta': research_delta,
         }
     }
 

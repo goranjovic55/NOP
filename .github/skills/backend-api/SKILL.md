@@ -1,30 +1,34 @@
 ---
 name: backend-api
-description: Load when editing Python files in backend/, api/, routes/, services/, or models/ directories. Provides FastAPI and async SQLAlchemy patterns for REST API development.
+description: Load when editing Python files in backend/, api/, routes/, services/, models/, websocket files, or alembic/. Provides FastAPI, async SQLAlchemy, WebSocket, Authentication, and Database Migration patterns.
 ---
 
 # Backend API
 
 ## ⚠️ Critical Gotchas
 - **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
-- **401 on frontend:** Call `logout()` from authStore to trigger app redirect
-- **Missing import:** json module often forgotten in services
-- **Auth tokens:** Always validate JWT expiry before trusting claims
-- **Alembic migrations:** Run `alembic upgrade head` after model changes
+- **401 errors:** Call `logout()` from authStore for redirect
+- **Alembic:** Run `alembic upgrade head` after model changes
+- **WebSocket:** Always handle `WebSocketDisconnect` exception
+- **Auth/JWT:** Validate tokens server-side, never trust client
+- **Security:** Sanitize inputs, use parameterized queries
+- **Monitoring:** Use structured logging with context
 
 ## Rules
-- **Endpoint→Service→Model:** No DB logic in routes
-- **Always `response_model`:** Type safety + auto-docs
-- **Async all the way:** `await` all I/O
-- **Auth patterns:** Use `Depends(get_current_user)` for protected routes
+| Rule | Pattern |
+|------|---------|
+| Layer separation | Endpoint→Service→Model |
+| Type safety | Always `response_model=Schema` |
+| Async I/O | `await` all DB/network calls |
+| Auth | `Depends(get_current_user)` |
+| WebSocket | Use ConnectionManager |
 
 ## Avoid
-
 | ❌ Bad | ✅ Good |
 |--------|---------|
-| DB queries in routes | Service layer |
-| Missing response_model | `response_model=Schema` |
-| Mutable default args | `Field(default_factory=list)` |
+| DB in routes | Service layer |
+| Mutable defaults | `Field(default_factory=list)` |
+| Missing types | `response_model=Schema` |
 
 ## Patterns
 
@@ -40,4 +44,26 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db)):
 # JSONB mutation (CRITICAL)
 flag_modified(item, 'metadata')
 await db.commit()
+
+# WebSocket
+@router.websocket("/ws/{id}")
+async def ws_endpoint(ws: WebSocket, id: str):
+    await manager.connect(ws, id)
+    try:
+        while True:
+            data = await ws.receive_json()
+    except WebSocketDisconnect:
+        manager.disconnect(id)
+
+# JWT Auth
+def create_access_token(data: dict):
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    return jwt.encode({**data, "exp": expire}, SECRET_KEY)
 ```
+
+## Alembic
+| Command | Purpose |
+|---------|---------|
+| `alembic revision --autogenerate -m "msg"` | Create migration |
+| `alembic upgrade head` | Apply migrations |
+| `alembic downgrade -1` | Rollback one |
