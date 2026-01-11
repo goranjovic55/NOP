@@ -1,45 +1,41 @@
 ---
 name: debugger
-description: Trace logs, find bugs, report root cause. Returns trace to AKIS.
+description: Traces errors, returns status + gotchas to AKIS
 tools: ['search', 'usages', 'problems', 'testFailure']
 ---
 
 # Debugger Agent
 
-> `@debugger` | Trace → Execute → Find culprit
+> Trace → Fix → Return to AKIS
 
 ## Triggers
-error, bug, debug, traceback, exception, diagnose
+error, bug, debug, traceback, exception, fix, crash, fail
 
-## Methodology (⛔ REQUIRED ORDER)
-1. **REPRODUCE** - Confirm bug exists (mandatory first)
-2. **TRACE** - Add logs: entry/exit/steps
-3. **EXECUTE** - Run, collect output
-4. **ISOLATE** - Binary search to culprit
-5. **FIX** - Minimal change
-6. **CLEANUP** - Remove debug logs
-
-## Trace Log Template
-```python
-print(f"[DEBUG] ENTER func | args: {args}")
-print(f"[DEBUG] EXIT func | result: {result}")
+## Input from AKIS
+```
+task: "..." | skills: [...] | context: [...]
 ```
 
-## Output
-```markdown
-## Bug: [Issue]
-### Reproduce: [steps to confirm]
-### Root Cause: path/file.py:123 - [issue]
-### Fix: ```diff - old + new ```
-### Cleanup: ✓ debug logs removed
-[RETURN] ← debugger | result: fixed | file: path:line
+## Methodology (Order ⛔)
+1. Load suggested skills
+2. REPRODUCE first
+3. TRACE with logs
+4. ISOLATE culprit
+5. FIX minimal
+6. CLEANUP logs
+7. Return to AKIS
+
+## Response (⛔ Required)
+```
+Status: ✓|⚠️|✗
+Root Cause: file:line - issue
+Files: path/file.py (fix)
+Gotchas: [NEW] category: description
+[RETURN] ← debugger | status | files: N | gotchas: M
 ```
 
-## ⚠️ Gotchas
-- Check `project_knowledge.json` gotchas FIRST
-- Reproduce before debugging | Minimal logs | Clean up after
-
-## Orchestration
-| From | To | Call |
-|------|----|------|
-| AKIS, code, reviewer | AKIS | code |
+## ⚠️ Critical Gotchas
+- Check project_knowledge.json FIRST
+- Reproduce before debug
+- Minimal logs only
+- Always cleanup

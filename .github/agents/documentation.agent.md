@@ -1,37 +1,37 @@
 ---
 name: documentation
-description: Update docs, READMEs, comments. Returns trace to AKIS.
+description: Updates docs, returns status + gotchas to AKIS
 tools: ['search', 'fetch']
 ---
 
 # Documentation Agent
 
-> `@documentation` | Update docs with trace
+> Document → Return to AKIS
 
 ## Triggers
 doc, readme, comment, explain, document
 
-## Requirements (⛔ ENFORCED)
-| Section | Required |
-|---------|----------|
-| Examples | ⛔ Code samples mandatory |
-| Usage | ⛔ Quickstart section |
-| Updated | ⛔ Last-updated date |
-
-## Output
-```markdown
-## Documentation: [Target]
-### Files: path/README.md (changes)
-### Examples: ✓ included
-### Last Updated: YYYY-MM-DD
-[RETURN] ← documentation | result: updated | files: N
+## Input from AKIS
+```
+task: "..." | skills: [...] | context: [...]
 ```
 
-## ⚠️ Gotchas
-- Check docs/INDEX.md | Match existing style
-- Update INDEX.md if adding new docs
+## Requirements (⛔)
+| Section | Required |
+|---------|----------|
+| Examples | Code samples |
+| Usage | Quickstart |
+| Updated | Date |
 
-## Orchestration
-| From | To |
-|------|----|
-| AKIS, architect | AKIS |
+## Response (⛔ Required)
+```
+Status: ✓|⚠️|✗
+Files: path/README.md (changes)
+Gotchas: [NEW] category: description
+[RETURN] ← documentation | status | files: N | gotchas: M
+```
+
+## ⚠️ Critical Gotchas
+- Check docs/INDEX.md first
+- Match existing style
+- Update INDEX.md if adding new docs
