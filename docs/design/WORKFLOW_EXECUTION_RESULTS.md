@@ -176,15 +176,137 @@ interface LoopIteration {
 }
 ```
 
-### 3. Output Interpreter Block
+---
 
-For complex output parsing (like "show rep ring"), use an **Output Interpreter Block**:
+## Simplified Approach: Code Block with 3 Outputs
+
+### The 3-Output Model
+
+Every block produces **3 standard outputs** that can be connected to other blocks:
+
+```typescript
+interface BlockOutputs {
+  pass: boolean;   // Did the block pass?
+  fail: boolean;   // Did the block fail?
+  output: any;     // Data to pass to next block
+}
+```
+
+### Code Block
+
+The **Code Block** is a flexible JavaScript processing block that:
+1. Takes input from previous block's output
+2. Uses JavaScript code to determine pass/fail
+3. Defines custom output to pass to next blocks
+
+```typescript
+interface CodeBlockConfig {
+  // JavaScript code for pass condition
+  // Input: context.input (previous block output)
+  // Returns: boolean
+  passCode: string;
+  
+  // JavaScript code for fail condition (optional, defaults to !pass)
+  failCode?: string;
+  
+  // JavaScript code for output transformation
+  // Input: context.input
+  // Returns: any data for next block
+  outputCode: string;
+}
+```
+
+### Example: Rep Ring Test with Code Block
+
+```
+┌──────────────────┐
+│   SSH Login      │
+│   to Switch      │
+└────────┬─────────┘
+         │ output: { connected: true }
+         ▼
+┌──────────────────┐
+│   SSH Command    │
+│  "show rep ring" │
+└────────┬─────────┘
+         │ output: "Port Te1/0/1: Open\nRing is OK\n4 ports..."
+         ▼
+┌──────────────────────────────────────────────────────┐
+│   CODE BLOCK: "Parse Rep Ring"                       │
+│                                                      │
+│   passCode:                                          │
+│   ────────                                           │
+│   return /Ring is OK/i.test(context.input);          │
+│                                                      │
+│   outputCode:                                        │
+│   ──────────                                         │
+│   const match = context.input.match(/(\d+) ports/);  │
+│   return {                                           │
+│     ringStatus: /Ring is OK/i.test(context.input)    │
+│       ? 'OK' : 'FAILED',                             │
+│     portCount: match ? parseInt(match[1]) : 0        │
+│   };                                                 │
+│                                                      │
+└────────┬─────────────────────────────────────────────┘
+         │ pass: true, fail: false
+         │ output: { ringStatus: 'OK', portCount: 4 }
+         ▼
+┌──────────────────┐
+│   Next Block     │
+│   (uses output)  │
+└──────────────────┘
+```
+
+### Code Block in UI
+
+The Code Block would have 3 text areas in its configuration:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CODE BLOCK: Parse Rep Ring Output                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ Input: {{previous.output}}  [Connected from SSH Command]    │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ PASS CONDITION (JavaScript - return true/false)         │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ // Check if "Ring is OK" is in the output               │ │
+│ │ return /Ring is OK/i.test(context.input);               │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ FAIL CONDITION (optional - defaults to !pass)           │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ // Explicitly fail if we see error messages             │ │
+│ │ return /Error|Failed|Down/i.test(context.input);        │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ OUTPUT (JavaScript - return value for next block)       │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ const match = context.input.match(/(\d+) ports/);       │ │
+│ │ return {                                                │ │
+│ │   ringStatus: this.pass ? 'OK' : 'FAILED',              │ │
+│ │   portCount: match ? parseInt(match[1]) : 0,            │ │
+│ │   rawOutput: context.input                              │ │
+│ │ };                                                      │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ Outputs: ● pass  ● fail  ● output                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3. Output Interpreter Block (Alternative)
+
+For simpler use cases without writing code, the **Output Interpreter Block** provides a declarative approach:
 
 ```typescript
 // New block type for parsing command outputs
 type BlockType = 
   // ... existing types ...
   | 'output_interpreter'  // Parse and interpret output from previous block
+  | 'code'                // JavaScript code block for custom logic
 ```
 
 **Output Interpreter Block Properties:**
@@ -243,7 +365,7 @@ config:
       pattern: "(\\d+) ports in ring"
 ```
 
-### 2. Block Type Categories
+### 4. Block Type Categories
 
 Based on analysis of NOP automation patterns:
 

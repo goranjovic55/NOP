@@ -7,13 +7,134 @@
  * - Security assessment (vulnerability, compliance)
  * - Monitoring (health checks, baselines)
  * 
- * KEY CONCEPT: Dual-State Model
- * Each block has two distinct states:
- * 1. executionState: Did the block complete? (completed/failed)
- * 2. interpretedResult: What's the pass/fail verdict based on output?
+ * KEY CONCEPT: 3-Output Model
+ * Every block produces 3 outputs:
+ * 1. pass: boolean - Did the block pass?
+ * 2. fail: boolean - Did the block fail?
+ * 3. output: any - Data to pass to next block
+ * 
+ * Use the CODE BLOCK for custom JavaScript logic to:
+ * - Parse command outputs
+ * - Define pass/fail conditions
+ * - Transform output for next blocks
  */
 
-import { WorkflowTemplate, BlockType, PassCondition, OutputInterpreterConfig, ParseRule } from './executionResults';
+import { WorkflowTemplate, BlockType, PassCondition, OutputInterpreterConfig, ParseRule, CodeBlockConfig } from './executionResults';
+
+/**
+ * Template: Rep Ring Test (Simple - Code Block)
+ * Uses a CODE BLOCK to parse SSH output and determine pass/fail
+ * 
+ * This is the RECOMMENDED approach for interpreting command outputs.
+ * The Code Block provides maximum flexibility with JavaScript.
+ */
+export const REP_RING_CODE_BLOCK_TEMPLATE: WorkflowTemplate = {
+  id: 'template-rep-ring-code',
+  name: 'Rep Ring Test (Code Block)',
+  description: 'REP ring test using Code Block for flexible JavaScript-based output parsing. Each block has 3 outputs: pass, fail, output.',
+  category: 'network_testing',
+  icon: '🔄',
+  author: 'NOP Team',
+  version: '3.0.0',
+  createdAt: '2026-01-12T00:00:00Z',
+  updatedAt: '2026-01-12T00:00:00Z',
+  
+  requiredInputs: [
+    {
+      name: 'switch_ip',
+      type: 'string',
+      required: true,
+      description: 'IP address of the switch to test',
+      example: '192.168.1.1',
+    },
+    {
+      name: 'username',
+      type: 'string',
+      required: true,
+      description: 'SSH username',
+    },
+    {
+      name: 'password',
+      type: 'string',
+      required: true,
+      description: 'SSH password',
+    },
+  ],
+  
+  expectedOutputs: ['ring_status', 'port_count', 'test_passed'],
+  
+  workflow: {
+    nodes: [
+      { id: 'start', type: 'start', position: { x: 100, y: 50 }, data: { label: 'Start' } },
+      
+      // Login to switch - outputs: pass, fail, output (session)
+      { id: 'login', type: 'agent_login', position: { x: 100, y: 130 }, data: { 
+        host: '{{switch_ip}}',
+        username: '{{username}}',
+        password: '{{password}}',
+        protocol: 'ssh',
+      }},
+      
+      // Show rep ring - outputs: pass (command ran), fail, output (raw text)
+      { id: 'show-rep-ring', type: 'ssh_command', position: { x: 100, y: 210 }, data: { 
+        command: 'show rep topology segment 1',
+      }},
+      
+      // CODE BLOCK: Parse the output and determine pass/fail
+      { id: 'parse-output', type: 'code', position: { x: 100, y: 290 }, data: {
+        description: 'Parse Rep Ring output to determine if ring is OK',
+        
+        // Pass condition: Check for "Ring is OK" in output
+        passCode: `
+// Check if ring status is OK
+const output = context.input;
+return /Ring is OK/i.test(output);
+        `.trim(),
+        
+        // Fail condition: Check for error indicators
+        failCode: `
+// Fail if we see error messages
+const output = context.input;
+return /Error|Failed|Ring is Down/i.test(output);
+        `.trim(),
+        
+        // Output: Extract useful data for next blocks
+        outputCode: `
+const output = context.input;
+const portMatch = output.match(/(\\d+) ports? in segment/);
+const ringOK = /Ring is OK/i.test(output);
+
+return {
+  ringStatus: ringOK ? 'OK' : 'FAILED',
+  portCount: portMatch ? parseInt(portMatch[1]) : 0,
+  rawOutput: output,
+  timestamp: new Date().toISOString()
+};
+        `.trim(),
+        
+        language: 'javascript'
+      } as CodeBlockConfig},
+      
+      // Log the result
+      { id: 'log-result', type: 'log', position: { x: 100, y: 370 }, data: {
+        message: 'Ring status: {{parse-output.output.ringStatus}}, Ports: {{parse-output.output.portCount}}',
+      }},
+      
+      { id: 'end', type: 'end', position: { x: 100, y: 450 }, data: { label: 'End' } },
+    ],
+    edges: [
+      { id: 'e1', source: 'start', target: 'login' },
+      { id: 'e2', source: 'login', target: 'show-rep-ring', label: 'pass' },
+      { id: 'e3', source: 'show-rep-ring', target: 'parse-output', label: 'output' },
+      { id: 'e4', source: 'parse-output', target: 'log-result', label: 'pass' },
+      { id: 'e5', source: 'log-result', target: 'end' },
+    ],
+    variables: {},
+  },
+  
+  estimatedDuration: '10-30 seconds',
+  complexity: 'simple',
+};
 
 /**
  * Template: Rep Ring Test (Full)
@@ -685,6 +806,7 @@ export const QUICK_SCAN_TEMPLATE: WorkflowTemplate = {
  * All available templates
  */
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  REP_RING_CODE_BLOCK_TEMPLATE,  // Recommended: Uses Code Block for flexible parsing
   REP_RING_FULL_TEST_TEMPLATE,
   REP_RING_TEST_TEMPLATE,
   FULL_DISCOVERY_TEMPLATE,

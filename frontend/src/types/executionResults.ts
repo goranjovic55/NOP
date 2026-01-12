@@ -47,6 +47,7 @@ export type BlockType =
   | 'aggregate'           // Aggregate results
   | 'http_request'        // HTTP API call
   | 'output_interpreter'  // Parse and interpret output from previous block
+  | 'code'                // JavaScript code block - processes input, defines pass/fail/output
   
   // Agent Operations
   | 'agent_command'       // Send command to agent
@@ -178,6 +179,102 @@ export interface ExtractRule {
   
   // Default value if extraction fails
   defaultValue?: any;
+}
+
+// =============================================================================
+// Code Block - Simplified JavaScript Processing Block
+// =============================================================================
+
+/**
+ * Code Block Configuration
+ * 
+ * A simplified, flexible block that uses JavaScript to:
+ * 1. Process input from previous block's output
+ * 2. Determine pass/fail status
+ * 3. Define custom output to pass to next blocks
+ * 
+ * EVERY BLOCK HAS 3 OUTPUTS:
+ * - pass: boolean (did the block pass?)
+ * - fail: boolean (did the block fail?)
+ * - output: any (data to pass to next block)
+ * 
+ * Example usage for Rep Ring Test:
+ * ```javascript
+ * // Input: previous block's output (SSH command result)
+ * const input = context.input;
+ * 
+ * // Pass condition: Check if "Ring is OK" is in output
+ * const pass = /Ring is OK/i.test(input);
+ * 
+ * // Output: Extract ring port count
+ * const match = input.match(/(\d+) ports? in segment/);
+ * const output = {
+ *   ringStatus: pass ? 'OK' : 'FAILED',
+ *   portCount: match ? parseInt(match[1]) : 0
+ * };
+ * 
+ * return { pass, output };
+ * ```
+ */
+export interface CodeBlockConfig {
+  // JavaScript code for pass/fail condition
+  // Input: context.input (previous block output)
+  // Should return: boolean
+  passCode: string;
+  
+  // JavaScript code for fail condition (optional, defaults to !pass)
+  // Input: context.input (previous block output)
+  // Should return: boolean
+  failCode?: string;
+  
+  // JavaScript code for output transformation
+  // Input: context.input (previous block output)
+  // Should return: any (will be passed to next block)
+  outputCode: string;
+  
+  // Human-readable description of what this code block does
+  description?: string;
+  
+  // Language (for syntax highlighting, default: javascript)
+  language?: 'javascript' | 'typescript';
+}
+
+/**
+ * Simplified Block Output Model
+ * 
+ * ALL blocks produce these 3 outputs that can be connected to other blocks:
+ */
+export interface BlockOutputs {
+  // Did the block pass its success criteria?
+  pass: boolean;
+  
+  // Did the block fail? (Usually !pass, but can be different for "requires_review")
+  fail: boolean;
+  
+  // The block's output data - can be connected to next block's input
+  output: any;
+}
+
+/**
+ * Block execution context passed to code blocks
+ */
+export interface CodeBlockContext {
+  // Input from previous block (connected to this block's input)
+  input: any;
+  
+  // Raw output text (for command blocks)
+  rawInput?: string;
+  
+  // Workflow variables
+  variables: Record<string, any>;
+  
+  // Previous block information
+  previousBlock?: {
+    id: string;
+    type: BlockType;
+    name: string;
+    outputs: BlockOutputs;
+  };
 }
 
 // =============================================================================
