@@ -407,9 +407,129 @@ type BlockType =
 
 ---
 
-## 3. UI Component Design
+## 3. Implementing 3-Output Model on Templates
 
-### 3.1 Execution Tree View
+Every template should use the 3-output model with Code Blocks for interpreting results.
+
+### 3.1 Pattern: Add Code Block After Command Execution
+
+The pattern is simple:
+1. Execute the command/operation block
+2. Connect the `output` to a Code Block
+3. Code Block interprets the output and sets `pass`, `fail`, and structured `output`
+
+```
+┌─────────────┐         ┌─────────────────────┐
+│ SSH Command │─output─▶│ Code Block          │
+│ "show xyz"  │         │ - passCode: regex   │
+└─────────────┘         │ - outputCode: parse │
+                        └─────────────────────┘
+                              │    │    │
+                            pass  fail output
+```
+
+### 3.2 Template Examples with Code Blocks
+
+#### Port Check Template
+```javascript
+// After port_scan block, add code block:
+{
+  id: 'parse-port-result',
+  type: 'code',
+  data: {
+    passCode: `return context.input?.open === true;`,
+    outputCode: `return {
+      host: context.variables.host,
+      port: context.variables.port,
+      isOpen: context.input?.open || false,
+      status: context.input?.open ? 'OPEN' : 'CLOSED'
+    };`
+  }
+}
+```
+
+#### Service Health Template
+```javascript
+// After health_check block, add code block:
+{
+  id: 'parse-health',
+  type: 'code',
+  data: {
+    passCode: `return context.input?.success === true;`,
+    outputCode: `return {
+      serviceName: context.variables.service?.name,
+      isHealthy: context.input?.success || false,
+      responseTimeMs: context.input?.latencyMs,
+      status: context.input?.success ? 'HEALTHY' : 'UNHEALTHY'
+    };`
+  }
+}
+```
+
+#### Vulnerability Scan Template
+```javascript
+// After cve_lookup block, add code block:
+{
+  id: 'parse-vulns',
+  type: 'code',
+  data: {
+    passCode: `
+      const vulns = context.input?.vulnerabilities || [];
+      const critical = vulns.filter(v => v.severity === 'critical');
+      return critical.length === 0; // Pass if no critical vulns
+    `,
+    outputCode: `return {
+      totalVulns: context.input?.vulnerabilities?.length || 0,
+      criticalCount: context.input?.vulnerabilities?.filter(v => v.severity === 'critical')?.length || 0,
+      highCount: context.input?.vulnerabilities?.filter(v => v.severity === 'high')?.length || 0,
+      riskScore: context.input?.riskScore || 0
+    };`
+  }
+}
+```
+
+---
+
+## 4. UI Component Design
+
+### 4.1 WorkflowExecutionTree Component
+
+The main visualization component shows:
+- Every block with PASS/FAIL/OUTPUT badges
+- Expandable tree for loops
+- Click OUTPUT to see block results
+- Summary at top (passed/failed/total)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Rep Ring Test                                      COMPLETED ✓  │
+│ Duration: 2m 34s │ ✓ 15 passed │ ✗ 1 failed │ 94% Success      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ▼ ✓ Start                [PASS] [FAIL] [OUTPUT ▼]      0.1s    │
+│   ▼ ✓ SSH Login          [PASS] [FAIL] [OUTPUT ▼]      1.2s    │
+│   ▼ ✓ Port Shutdown      [PASS] [FAIL] [OUTPUT ▼]      0.5s    │
+│   ▼ ✓ Show Rep Ring      [PASS] [FAIL] [OUTPUT ▼]      0.8s    │
+│   ▼ ✓ Parse Rep Status   [✓ PASS] [FAIL] [OUTPUT ▼]   0.01s   │
+│       └─ Output: { ringStatus: 'OK', portCount: 4 }            │
+│   ▼ Loop: 10 iterations                               (8✓ 2✗)  │
+│     ├─ + Iteration 1: 10.0.0.1                        ✓  3.2s  │
+│     ├─ + Iteration 2: 10.0.0.2                        ✓  2.8s  │
+│     ├─ - Iteration 3: 10.0.0.3 (expanded)             ✗  4.1s  │
+│     │   ├─ ✓ SSH Login         [✓ PASS] [OUTPUT ▼]            │
+│     │   ├─ ✓ Port Down         [✓ PASS] [OUTPUT ▼]            │
+│     │   ├─ ✗ Rep Ring Check    [FAIL ✗] [OUTPUT ▼]            │
+│     │   │   └─ Output: { ringStatus: 'FAILED', error: '...' } │
+│     │   └─ ✓ Port Up           [✓ PASS] [OUTPUT ▼]            │
+│     ├─ + Iteration 4: 10.0.0.4                        ✓  3.0s  │
+│     └─ ...                                                     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Legend: 3-Output Model: [PASS] [FAIL] [OUTPUT] - Click OUTPUT to expand
+```
+
+### 4.2 Execution Tree View (Simple)
 
 The main visualization component showing execution flow as a tree:
 

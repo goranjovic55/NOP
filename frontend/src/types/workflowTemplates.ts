@@ -535,9 +535,24 @@ export const PORT_CHECK_TEMPLATE: WorkflowTemplate = {
         ports: '{{port}}',
         timeout: '{{timeout_ms}}',
       }},
-      { id: 'assert-open', type: 'assertion', position: { x: 100, y: 370 }, data: {
-        expression: '{{port_result.open}} == true',
-        message: 'Port {{port}} on {{host}} should be open',
+      // CODE BLOCK: Parse port scan results
+      { id: 'parse-port-result', type: 'code', position: { x: 200, y: 330 }, data: {
+        description: 'Interpret port scan result and determine pass/fail',
+        passCode: `
+// Port is open if scan found the port accessible
+return context.input && context.input.open === true;
+        `.trim(),
+        outputCode: `
+const result = context.input;
+return {
+  host: context.variables.host,
+  port: context.variables.port,
+  isOpen: result?.open || false,
+  latencyMs: result?.latencyMs || null,
+  status: result?.open ? 'OPEN' : 'CLOSED'
+};
+        `.trim(),
+        language: 'javascript'
       }},
       { id: 'aggregate', type: 'aggregate', position: { x: 100, y: 450 }, data: {
         operation: 'collect',
@@ -549,8 +564,8 @@ export const PORT_CHECK_TEMPLATE: WorkflowTemplate = {
       { id: 'e1', source: 'start', target: 'loop-hosts' },
       { id: 'e2', source: 'loop-hosts', target: 'loop-ports' },
       { id: 'e3', source: 'loop-ports', target: 'check-port' },
-      { id: 'e4', source: 'check-port', target: 'assert-open' },
-      { id: 'e5', source: 'assert-open', target: 'loop-ports', label: 'next port' },
+      { id: 'e4', source: 'check-port', target: 'parse-port-result', label: 'output' },
+      { id: 'e5', source: 'parse-port-result', target: 'loop-ports', label: 'next port' },
       { id: 'e6', source: 'loop-ports', target: 'loop-hosts', label: 'next host' },
       { id: 'e7', source: 'loop-hosts', target: 'aggregate', label: 'complete' },
       { id: 'e8', source: 'aggregate', target: 'end' },
@@ -613,9 +628,27 @@ export const SERVICE_HEALTH_TEMPLATE: WorkflowTemplate = {
         port: '{{service.port}}',
         protocol: '{{service.protocol}}',
       }},
-      { id: 'assert-healthy', type: 'assertion', position: { x: 100, y: 290 }, data: {
-        expression: '{{health_result.success}} == true',
-        message: '{{service.name}} should be healthy',
+      // CODE BLOCK: Parse health check result
+      { id: 'parse-health', type: 'code', position: { x: 200, y: 290 }, data: {
+        description: 'Interpret health check result and determine service status',
+        passCode: `
+// Service is healthy if it responded successfully
+return context.input && context.input.success === true;
+        `.trim(),
+        outputCode: `
+const result = context.input;
+const service = context.variables.service;
+return {
+  serviceName: service?.name || 'Unknown',
+  host: service?.host,
+  port: service?.port,
+  isHealthy: result?.success || false,
+  responseTimeMs: result?.latencyMs || null,
+  status: result?.success ? 'HEALTHY' : 'UNHEALTHY',
+  errorMessage: result?.error || null
+};
+        `.trim(),
+        language: 'javascript'
       }},
       { id: 'condition-alert', type: 'condition', position: { x: 100, y: 370 }, data: {
         expression: '{{alert_on_failure}} && {{failed_count}} > 0',
@@ -629,8 +662,8 @@ export const SERVICE_HEALTH_TEMPLATE: WorkflowTemplate = {
     edges: [
       { id: 'e1', source: 'start', target: 'loop-services' },
       { id: 'e2', source: 'loop-services', target: 'health-check' },
-      { id: 'e3', source: 'health-check', target: 'assert-healthy' },
-      { id: 'e4', source: 'assert-healthy', target: 'loop-services', label: 'next' },
+      { id: 'e3', source: 'health-check', target: 'parse-health', label: 'output' },
+      { id: 'e4', source: 'parse-health', target: 'loop-services', label: 'next' },
       { id: 'e5', source: 'loop-services', target: 'condition-alert', label: 'complete' },
       { id: 'e6', source: 'condition-alert', target: 'send-alert', condition: 'true' },
       { id: 'e7', source: 'condition-alert', target: 'end', condition: 'false' },
