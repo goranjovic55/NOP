@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated**: 2026-01-10 | **Total Active Documents**: 50
+**Last Updated**: 2026-01-12 | **Total Active Documents**: 51
 
 ## Quick Links
 
@@ -8,7 +8,7 @@
 |----------|-------|-------------|
 | [Analysis](#analysis) | 19 | Analysis documents and reports |
 | [Architecture](#architecture) | 3 | System design and architecture decisions |
-| [Design](#design) | 3 | UI/UX specifications and component library |
+| [Design](#design) | 4 | UI/UX specifications and component library |
 | [Development](#development) | 5 | Contributing, testing, and development guides |
 | [Features](#features) | 6 | Feature documentation and user guides |
 | [Guides](#guides) | 7 | Setup, deployment, and how-to guides |
@@ -54,6 +54,7 @@ System design and technical architecture.
 
 UI/UX specifications and component library.
 
+- [**Workflow Execution Results**](design/WORKFLOW_EXECUTION_RESULTS.md) ⭐ *New - Unified automation results visualization*
 - [React Components](design/COMPONENTS.md)
 - [UI/UX Mockups](design/UI_UX_SPEC.md)
 - [Unified Style Guide](design/UNIFIED_STYLE_GUIDE.md)
