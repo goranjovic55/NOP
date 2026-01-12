@@ -33,6 +33,7 @@ interface ExecutionTreeProps {
   onToggleNode: (nodeId: string) => void;
   onToggleIteration: (nodeId: string, iterationIndex: number) => void;
   onSelectNode: (nodeId: string) => void;
+  onFilterChange?: (key: keyof ExecutionTreeProps['filter'], value: boolean | string) => void;
 }
 
 export const ExecutionTree: React.FC<ExecutionTreeProps> = ({
@@ -44,6 +45,7 @@ export const ExecutionTree: React.FC<ExecutionTreeProps> = ({
   onToggleNode,
   onToggleIteration,
   onSelectNode,
+  onFilterChange,
 }) => {
   // Filter nodes based on status
   const shouldShowNode = (node: ExecutionNode): boolean => {
@@ -139,24 +141,28 @@ export const ExecutionTree: React.FC<ExecutionTreeProps> = ({
           checked={filter.showPassed}
           color={EXECUTION_STATUS_COLORS.passed}
           icon={STATUS_ICONS.passed}
+          onChange={(checked) => onFilterChange?.('showPassed', checked)}
         />
         <FilterToggle
           label="Failed"
           checked={filter.showFailed}
           color={EXECUTION_STATUS_COLORS.failed}
           icon={STATUS_ICONS.failed}
+          onChange={(checked) => onFilterChange?.('showFailed', checked)}
         />
         <FilterToggle
           label="Skipped"
           checked={filter.showSkipped}
           color={EXECUTION_STATUS_COLORS.skipped}
           icon={STATUS_ICONS.skipped}
+          onChange={(checked) => onFilterChange?.('showSkipped', checked)}
         />
         <FilterToggle
           label="Warnings"
           checked={filter.showWarnings}
           color={EXECUTION_STATUS_COLORS.warning}
           icon={STATUS_ICONS.warning}
+          onChange={(checked) => onFilterChange?.('showWarnings', checked)}
         />
       </div>
 
@@ -187,14 +193,29 @@ interface FilterToggleProps {
   checked: boolean;
   color: string;
   icon: string;
+  onChange?: (checked: boolean) => void;
 }
 
-const FilterToggle: React.FC<FilterToggleProps> = ({ label, checked, color, icon }) => (
+const FilterToggle: React.FC<FilterToggleProps> = ({ label, checked, color, icon, onChange }) => (
   <label
-    className={`flex items-center gap-1 cursor-pointer ${
+    className={`flex items-center gap-2 cursor-pointer select-none ${
       checked ? 'opacity-100' : 'opacity-50'
     }`}
   >
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange?.(e.target.checked)}
+      className="sr-only"
+    />
+    <span
+      className={`w-4 h-4 rounded border flex items-center justify-center ${
+        checked ? 'border-current bg-current/20' : 'border-gray-500'
+      }`}
+      style={{ borderColor: checked ? color : undefined }}
+    >
+      {checked && <span style={{ color }} className="text-xs">✓</span>}
+    </span>
     <span style={{ color }}>{icon}</span>
     <span className="text-gray-300">{label}</span>
   </label>

@@ -546,14 +546,18 @@ export type PassFailRules = Partial<Record<BlockType, PassFailRule>>;
 
 /**
  * Status colors for cyberpunk theme
+ * Note: These colors are supplemented with distinct icons (STATUS_ICONS)
+ * to ensure accessibility for users with color vision deficiencies.
+ * The combination of color + unique icon shape provides multiple
+ * differentiating factors beyond color alone.
  */
 export const EXECUTION_STATUS_COLORS: Record<NodeStatus, string> = {
-  pending: '#666666',
-  running: '#00ccff',
-  passed: '#00ff88',
-  failed: '#ff0055',
-  skipped: '#888888',
-  warning: '#ffcc00',
+  pending: '#666666',   // Gray circle ○
+  running: '#00ccff',   // Cyan filled circle ● (animated)
+  passed: '#00ff88',    // Green checkmark ✓
+  failed: '#ff0055',    // Red X ✗
+  skipped: '#888888',   // Gray empty set ⊘
+  warning: '#ffcc00',   // Yellow warning ⚠
 } as const;
 
 /**

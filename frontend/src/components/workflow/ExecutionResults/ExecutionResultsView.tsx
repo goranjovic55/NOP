@@ -111,77 +111,100 @@ export const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
     setState(prev => {
       if (!prev.execution) return prev;
       
-      // Clone execution for immutable update
-      const execution = { ...prev.execution };
+      // Create new execution object for immutable update
+      let newExecution = { ...prev.execution };
       
       switch (event.type) {
         case 'execution_completed':
         case 'execution_failed':
-          execution.status = event.type === 'execution_completed' ? 'completed' : 'failed';
-          execution.completedAt = event.timestamp;
+          newExecution = {
+            ...newExecution,
+            status: event.type === 'execution_completed' ? 'completed' : 'failed',
+            completedAt: event.timestamp,
+          };
           break;
           
         case 'node_started':
         case 'node_completed':
         case 'node_failed':
-          // Update node status in tree
-          updateNodeInTree(execution.rootNode, event);
+          // Update node status in tree (immutably)
+          newExecution = {
+            ...newExecution,
+            rootNode: updateNodeInTree(prev.execution.rootNode, event),
+          };
           break;
           
         case 'log':
-          // Add log to node
+          // Add log to node (immutably)
           if (event.nodeId && event.data?.log) {
-            addLogToNode(execution.rootNode, event.nodeId, event.data.log);
+            newExecution = {
+              ...newExecution,
+              rootNode: addLogToNode(prev.execution.rootNode, event.nodeId, event.data.log),
+            };
           }
           break;
       }
       
-      return { ...prev, execution };
+      return { ...prev, execution: newExecution };
     });
   }, []);
 
-  // Helper: Update node status in tree
-  const updateNodeInTree = (node: ExecutionNode, event: ExecutionEvent) => {
-    if (node.id === event.nodeId) {
-      node.status = event.data?.status || node.status;
-      if (event.type === 'node_started') {
-        node.startedAt = event.timestamp;
-      } else if (event.type === 'node_completed' || event.type === 'node_failed') {
-        node.completedAt = event.timestamp;
-      }
-      return;
-    }
-    
-    // Recurse into children
-    node.children.forEach(child => updateNodeInTree(child, event));
-    
-    // Check iterations
-    if (node.iterations) {
-      node.iterations.forEach(iter => {
-        iter.children.forEach(child => updateNodeInTree(child, event));
-      });
-    }
+  // Helper: Deep clone a node tree for immutable updates
+  const cloneNode = (node: ExecutionNode): ExecutionNode => {
+    return {
+      ...node,
+      result: node.result ? { ...node.result, logs: node.result.logs ? [...node.result.logs] : undefined } : undefined,
+      children: node.children.map(cloneNode),
+      iterations: node.iterations?.map(iter => ({
+        ...iter,
+        children: iter.children.map(cloneNode),
+      })),
+    };
   };
 
-  // Helper: Add log entry to node
-  const addLogToNode = (node: ExecutionNode, nodeId: string, log: any) => {
-    if (node.id === nodeId) {
-      if (!node.result) {
-        node.result = { success: false, logs: [] };
-      }
-      if (!node.result.logs) {
-        node.result.logs = [];
-      }
-      node.result.logs.push(log);
-      return;
+  // Helper: Update node status in tree (immutable)
+  const updateNodeInTree = (node: ExecutionNode, event: ExecutionEvent): ExecutionNode => {
+    if (node.id === event.nodeId) {
+      return {
+        ...node,
+        status: event.data?.status || node.status,
+        startedAt: event.type === 'node_started' ? event.timestamp : node.startedAt,
+        completedAt: (event.type === 'node_completed' || event.type === 'node_failed') ? event.timestamp : node.completedAt,
+      };
     }
     
-    node.children.forEach(child => addLogToNode(child, nodeId, log));
-    if (node.iterations) {
-      node.iterations.forEach(iter => {
-        iter.children.forEach(child => addLogToNode(child, nodeId, log));
-      });
+    return {
+      ...node,
+      children: node.children.map(child => updateNodeInTree(child, event)),
+      iterations: node.iterations?.map(iter => ({
+        ...iter,
+        children: iter.children.map(child => updateNodeInTree(child, event)),
+      })),
+    };
+  };
+
+  // Helper: Add log entry to node (immutable)
+  const addLogToNode = (node: ExecutionNode, nodeId: string, log: any): ExecutionNode => {
+    if (node.id === nodeId) {
+      const currentLogs = node.result?.logs || [];
+      return {
+        ...node,
+        result: {
+          ...node.result,
+          success: node.result?.success ?? false,
+          logs: [...currentLogs, log],
+        },
+      };
     }
+    
+    return {
+      ...node,
+      children: node.children.map(child => addLogToNode(child, nodeId, log)),
+      iterations: node.iterations?.map(iter => ({
+        ...iter,
+        children: iter.children.map(child => addLogToNode(child, nodeId, log)),
+      })),
+    };
   };
 
   // Toggle node expansion
@@ -212,6 +235,14 @@ export const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
       newIterations.set(nodeId, nodeIterations);
       return { ...prev, expandedIterations: newIterations };
     });
+  };
+
+  // Update filter
+  const updateFilter = (key: keyof typeof state.filter, value: boolean | string) => {
+    setState(prev => ({
+      ...prev,
+      filter: { ...prev.filter, [key]: value },
+    }));
   };
 
   // Select node for details view
@@ -330,6 +361,7 @@ export const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
             onToggleNode={toggleNodeExpanded}
             onToggleIteration={toggleIterationExpanded}
             onSelectNode={selectNode}
+            onFilterChange={updateFilter}
           />
         </div>
 
