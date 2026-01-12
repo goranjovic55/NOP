@@ -36,10 +36,11 @@ const WorkflowBuilder: React.FC = () => {
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   
-  // Console state - persisted in localStorage
+  // Console state - starts minimized by default, persisted in localStorage
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(() => {
     const saved = localStorage.getItem('flows-console-minimized');
-    return saved === 'true';
+    // Default to minimized (true) if no saved preference
+    return saved === null ? true : saved === 'true';
   });
   
   // Persist console state

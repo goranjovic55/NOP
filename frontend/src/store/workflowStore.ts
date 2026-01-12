@@ -28,6 +28,7 @@ interface WorkflowState {
   // Workflow list
   workflows: Workflow[];
   currentWorkflowId: string | null;
+  lastWorkflowId: string | null; // Remember last opened flow
   
   // Tab management - multiple open flows
   openTabs: WorkflowTab[];
@@ -112,6 +113,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       // Initial state
       workflows: [],
       currentWorkflowId: null,
+      lastWorkflowId: null,
       openTabs: [],
       activeTabId: null,
       nodes: [],
@@ -133,7 +135,33 @@ export const useWorkflowStore = create<WorkflowState>()(
           });
           if (response.ok) {
             const data = await response.json();
-            set({ workflows: data.workflows || [] });
+            const workflows = data.workflows || [];
+            
+            // Get the persisted lastWorkflowId from storage
+            const { lastWorkflowId } = get();
+            
+            // If we have a last workflow and it exists in the loaded workflows, restore it
+            const lastWorkflow = lastWorkflowId ? workflows.find((w: Workflow) => w.id === lastWorkflowId) : null;
+            
+            if (lastWorkflow) {
+              const newTab: WorkflowTab = {
+                workflowId: lastWorkflow.id,
+                name: lastWorkflow.name,
+                nodes: lastWorkflow.nodes || [],
+                edges: lastWorkflow.edges || [],
+                isDirty: false,
+              };
+              set({ 
+                workflows,
+                currentWorkflowId: lastWorkflow.id,
+                openTabs: [newTab],
+                activeTabId: lastWorkflow.id,
+                nodes: lastWorkflow.nodes || [],
+                edges: lastWorkflow.edges || [],
+              });
+            } else {
+              set({ workflows });
+            }
           }
         } catch (error) {
           console.error('Failed to load workflows:', error);
@@ -518,9 +546,10 @@ export const useWorkflowStore = create<WorkflowState>()(
     {
       name: 'nop-workflow-store',
       partialize: (state) => ({
-        // Only persist UI preferences, not data
+        // Persist UI preferences and last workflow
         isPaletteOpen: state.isPaletteOpen,
         zoom: state.zoom,
+        lastWorkflowId: state.currentWorkflowId, // Remember last opened flow
       }),
     }
   )

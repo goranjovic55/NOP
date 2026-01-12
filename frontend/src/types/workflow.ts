@@ -60,6 +60,18 @@ export type BlockType =
   // Scanning
   | 'scanning.version_detect'
   | 'scanning.port_scan'
+  | 'scanning.network_discovery'
+  | 'scanning.host_scan'
+  | 'scanning.ping_sweep'
+  | 'scanning.service_scan'
+  // Vulnerability
+  | 'vulnerability.cve_lookup'
+  | 'vulnerability.get_exploits'
+  | 'vulnerability.execute_exploit'
+  // Asset
+  | 'asset.list_assets'
+  | 'asset.get_asset'
+  | 'asset.get_stats'
   // Agent
   | 'agent.generate'
   | 'agent.deploy'

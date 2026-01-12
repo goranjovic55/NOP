@@ -532,7 +532,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
   },
 
   // ============================================
-  // === Scanning Blocks (2 blocks) ===
+  // === Scanning Blocks (6 blocks) ===
   // ============================================
   {
     type: 'scanning.version_detect',
@@ -582,6 +582,85 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       ]},
     ],
     api: { method: 'POST', endpoint: '/api/v1/scans/default/port-scan' },
+  },
+  {
+    type: 'scanning.network_discovery',
+    label: 'Network Discovery',
+    category: 'scanning',
+    icon: '◎',
+    color: '#f59e0b',
+    description: 'Discover hosts on a network range',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'network', label: 'Network CIDR', type: 'string', required: true, placeholder: '192.168.1.0/24' },
+      { name: 'scan_type', label: 'Scan Type', type: 'select', options: [
+        { label: 'Basic (Fast)', value: 'basic' },
+        { label: 'Comprehensive', value: 'comprehensive' },
+        { label: 'Ping Only', value: 'ping_only' },
+        { label: 'ARP Scan', value: 'arp' },
+      ]},
+      { name: 'ports', label: 'Port Range', type: 'string', placeholder: '1-1000', default: '1-1000' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/scan' },
+  },
+  {
+    type: 'scanning.host_scan',
+    label: 'Host Scan',
+    category: 'scanning',
+    icon: '◇',
+    color: '#f59e0b',
+    description: 'Comprehensive scan of a single host',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'out', type: 'output', label: 'Output' },
+      { id: 'error', type: 'output', label: 'Error' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host IP', type: 'string', required: true, placeholder: '192.168.1.1' },
+      { name: 'scan_type', label: 'Scan Type', type: 'select', options: [
+        { label: 'Comprehensive', value: 'comprehensive' },
+        { label: 'Ports Only', value: 'ports' },
+        { label: 'Services', value: 'services' },
+      ]},
+      { name: 'ports', label: 'Port Range', type: 'string', placeholder: '1-65535' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/scan/host' },
+  },
+  {
+    type: 'scanning.ping_sweep',
+    label: 'Ping Sweep',
+    category: 'scanning',
+    icon: '≋',
+    color: '#f59e0b',
+    description: 'Ping sweep to find live hosts',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'reachable', type: 'output', label: 'Reachable' },
+      { id: 'unreachable', type: 'output', label: 'Unreachable' },
+    ],
+    parameters: [
+      { name: 'target', label: 'Target', type: 'string', required: true, placeholder: '192.168.1.0/24 or 192.168.1.1' },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 5 },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/ping/{host}' },
+  },
+  {
+    type: 'scanning.service_scan',
+    label: 'Service Scan',
+    category: 'scanning',
+    icon: '⬡',
+    color: '#f59e0b',
+    description: 'Scan for common services on a host',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'host', label: 'Host', type: 'string', required: true },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/access/scan/services/{host}' },
   },
 
   // ============================================
@@ -652,6 +731,133 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       { name: 'cleanup', label: 'Cleanup Files', type: 'boolean', default: true },
     ],
     api: { method: 'POST', endpoint: '/api/v1/agents/{agent_id}/terminate' },
+  },
+
+  // ============================================
+  // === Vulnerability Blocks (3 blocks) ===
+  // ============================================
+  {
+    type: 'vulnerability.cve_lookup',
+    label: 'CVE Lookup',
+    category: 'scanning',
+    icon: '⚠',
+    color: '#f59e0b',
+    description: 'Lookup CVE information from NVD database',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'found', type: 'output', label: 'Found' },
+      { id: 'not_found', type: 'output', label: 'Not Found' },
+    ],
+    parameters: [
+      { name: 'cve_id', label: 'CVE ID', type: 'string', placeholder: 'CVE-2023-1234' },
+      { name: 'product', label: 'Product Name', type: 'string', placeholder: 'apache' },
+      { name: 'version', label: 'Version', type: 'string', placeholder: '2.4.49' },
+      { name: 'vendor', label: 'Vendor', type: 'string', placeholder: 'apache' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/vulnerabilities/lookup-cve' },
+  },
+  {
+    type: 'vulnerability.get_exploits',
+    label: 'Get Exploits',
+    category: 'scanning',
+    icon: '⚡',
+    color: '#f59e0b',
+    description: 'Get available exploit modules for a CVE',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'found', type: 'output', label: 'Exploits Found' },
+      { id: 'not_found', type: 'output', label: 'No Exploits' },
+    ],
+    parameters: [
+      { name: 'cve_id', label: 'CVE ID', type: 'string', required: true, placeholder: 'CVE-2023-1234' },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/vulnerabilities/exploits/{cve_id}' },
+  },
+  {
+    type: 'vulnerability.execute_exploit',
+    label: 'Execute Exploit',
+    category: 'agent',
+    icon: '⚔',
+    color: '#ff0040',
+    description: 'Execute an exploit against a target',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'success', type: 'output', label: 'Success' },
+      { id: 'failure', type: 'output', label: 'Failure' },
+    ],
+    parameters: [
+      { name: 'target_ip', label: 'Target IP', type: 'string', required: true },
+      { name: 'target_port', label: 'Target Port', type: 'number', required: true },
+      { name: 'exploit_type', label: 'Exploit Type', type: 'select', required: true, options: [
+        { label: 'vsftpd Backdoor', value: 'vsftpd_backdoor' },
+        { label: 'Shell Command', value: 'shell_command' },
+      ]},
+      { name: 'command', label: 'Command', type: 'string', placeholder: 'id && whoami' },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/vulnerabilities/exploit/execute' },
+  },
+
+  // ============================================
+  // === Asset Blocks (3 blocks) ===
+  // ============================================
+  {
+    type: 'asset.list_assets',
+    label: 'List Assets',
+    category: 'scanning',
+    icon: '▤',
+    color: '#f59e0b',
+    description: 'Get list of discovered assets',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [
+      { name: 'search', label: 'Search', type: 'string', placeholder: 'Filter by IP or hostname' },
+      { name: 'asset_type', label: 'Asset Type', type: 'select', options: [
+        { label: 'All', value: '' },
+        { label: 'Server', value: 'server' },
+        { label: 'Workstation', value: 'workstation' },
+        { label: 'Router', value: 'router' },
+        { label: 'Switch', value: 'switch' },
+        { label: 'IoT', value: 'iot' },
+      ]},
+      { name: 'status', label: 'Status', type: 'select', options: [
+        { label: 'All', value: '' },
+        { label: 'Online', value: 'online' },
+        { label: 'Offline', value: 'offline' },
+        { label: 'Unknown', value: 'unknown' },
+      ]},
+      { name: 'page', label: 'Page', type: 'number', default: 1 },
+      { name: 'size', label: 'Page Size', type: 'number', default: 50 },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/assets/' },
+  },
+  {
+    type: 'asset.get_asset',
+    label: 'Get Asset',
+    category: 'scanning',
+    icon: '◉',
+    color: '#f59e0b',
+    description: 'Get details of a specific asset',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'found', type: 'output', label: 'Found' },
+      { id: 'not_found', type: 'output', label: 'Not Found' },
+    ],
+    parameters: [
+      { name: 'asset_id', label: 'Asset ID', type: 'string', required: true },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/assets/{asset_id}' },
+  },
+  {
+    type: 'asset.get_stats',
+    label: 'Asset Stats',
+    category: 'scanning',
+    icon: '◊',
+    color: '#f59e0b',
+    description: 'Get asset statistics',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    parameters: [],
+    api: { method: 'GET', endpoint: '/api/v1/assets/stats' },
   },
 ];
 
