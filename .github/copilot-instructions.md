@@ -19,12 +19,15 @@
 3. `domain_index` → file locations by domain
 4. Read file ONLY if cache miss
 
-## START
+## START (⛔ G3 Mandatory)
 1. **Query `project_knowledge.json`** (hot_cache → gotchas → domain_index)
-2. `skills/INDEX.md` → pre-load: frontend-react + backend-api
-3. Create TODO with skill annotations → Say: "AKIS v7.1 [complexity]. [N] tasks."
+2. **Read `skills/INDEX.md`** → pre-load: frontend-react ⭐ + backend-api ⭐
+3. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
+4. **Announce:** "AKIS v7.1 [complexity]. Skills: [skill1, skill2]. [N] tasks. Ready."
 
-**TODO Format:** `◆ Task description [skill-name]` or `○ Task description` (no skill needed)
+**TODO Format:** `○ Task description [skill-name]` or `○ Task description` (no skill needed)
+
+⚠️ **G3 Enforcement:** MUST read skills/INDEX.md, MUST use manage_todo_list tool, MUST announce skills
 
 **Knowledge reduces file reads by 85%** - Always check cache first!
 
@@ -116,3 +119,13 @@ When creating TODOs, annotate each with `[skill-name]` if skill applies.
 
 ## Recovery
 `git status` → Find ◆/⊘ → Continue
+
+## ⚡ Optimizations
+
+| Optimization | Method |
+|--------------|--------|
+| Batch reads | Read 50+ lines, parallel reads |
+| Batch edits | Use multi_replace for multiple changes |
+| Pre-load docs | Read INDEX.md for structure awareness |
+| Test-aware | Check tests exist before debugging |
+| Knowledge first | G0: Cache before file reads |

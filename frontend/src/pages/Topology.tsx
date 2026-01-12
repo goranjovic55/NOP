@@ -1020,6 +1020,7 @@ const Topology: React.FC = () => {
           width={dimensions.width}
           height={dimensions.height}
           graphData={graphData}
+          enablePointerInteraction={true}
           cooldownTicks={simulationCompleteRef.current ? 0 : 200}
           cooldownTime={simulationCompleteRef.current ? 0 : 10000}
           warmupTicks={simulationCompleteRef.current ? 0 : 100}
@@ -1136,6 +1137,7 @@ const Topology: React.FC = () => {
             if (link.bidirectional) return '#00ff41'; // Green particles
             return '#ffffff'; // White particles
           }}
+          linkCanvasObjectMode="replace"
           linkCanvasObject={(link: any, ctx, globalScale) => {
             // Custom link rendering with curved lines to reduce overlapping
             const start = link.source;
@@ -1262,12 +1264,13 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw thick curved hit area
+            // Draw thick curved hit area - use lineCap round and wide stroke
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
             ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
-            ctx.lineWidth = 10; // Wide hit area for easier clicking
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 15; // Even wider hit area for easier clicking
             ctx.stroke();
           }}
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
@@ -1279,8 +1282,22 @@ const Topology: React.FC = () => {
             setSelectedLink(null);
             setContextMenuPosition({ x: event.clientX, y: event.clientY });
           }}
+          onNodeRightClick={(node: any, event: MouseEvent) => {
+            // Right-click also opens context menu (workaround for Teams screen sharing)
+            event.preventDefault();
+            setSelectedNode(node);
+            setSelectedLink(null);
+            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
           onLinkClick={(link: any, event: MouseEvent) => {
             // Open context menu for connection
+            setSelectedLink(link);
+            setSelectedNode(null);
+            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
+          onLinkRightClick={(link: any, event: MouseEvent) => {
+            // Right-click also opens context menu (workaround for Teams screen sharing)
+            event.preventDefault();
             setSelectedLink(link);
             setSelectedNode(null);
             setContextMenuPosition({ x: event.clientX, y: event.clientY });
@@ -1414,7 +1431,7 @@ const Topology: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg">
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg pointer-events-none">
           <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px]">Nodes</div>
           <div className="flex items-center space-x-2 mb-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-cyber-green shadow-[0_0_5px_#00ff41]"></span>
@@ -1470,7 +1487,19 @@ const Topology: React.FC = () => {
           </div>
         </div>
 
-        {/* Context menus inside container for fullscreen support */}
+        {/* Click backdrop to close context menus - MUST be rendered BEFORE menus for proper z-ordering */}
+        {(selectedNode || selectedLink) && (
+          <div 
+            className="absolute inset-0 z-40" 
+            onClick={() => {
+              setSelectedNode(null);
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Context menus inside container for fullscreen support - rendered AFTER backdrop so they appear on top */}
         {/* Host Context Menu */}
         {selectedNode && contextMenuPosition && (
           <HostContextMenu
@@ -1502,18 +1531,6 @@ const Topology: React.FC = () => {
             }}
             position={contextMenuPosition}
             onClose={() => {
-              setSelectedLink(null);
-              setContextMenuPosition(null);
-            }}
-          />
-        )}
-
-        {/* Click backdrop to close context menus */}
-        {(selectedNode || selectedLink) && (
-          <div 
-            className="absolute inset-0 z-40" 
-            onClick={() => {
-              setSelectedNode(null);
               setSelectedLink(null);
               setContextMenuPosition(null);
             }}

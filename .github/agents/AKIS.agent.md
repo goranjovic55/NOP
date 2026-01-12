@@ -7,21 +7,26 @@ description: Workflow enforcement + skill-based execution
 
 > `@AKIS` | Workflow + Skills
 
-## ⛔ GATES (7)
+## ⛔ GATES (8)
 | G | Check | Fix |
 |---|-------|-----|
-| 1 | No ◆ | Create TODO |
-| 2 | No skill | Load skill |
-| 3 | No START | Do START |
+| 0 | No knowledge/skills read | Read project_knowledge.json + skills/INDEX.md |
+| 1 | No ◆ | Use `manage_todo_list` tool, mark ◆ |
+| 2 | No skill | Load skill FIRST |
+| 3 | No START | Do full START (announce skills!) |
 | 4 | No END | Do END |
 | 5 | No verify | Check syntax |
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-## START
-1. Read `project_knowledge.json`, `skills/INDEX.md`
-2. Pre-load: frontend-react + backend-api
-3. Say: "AKIS v7.1 [complexity]. Ready."
+## START (⛔ MANDATORY)
+1. Read `project_knowledge.json` (G0: knowledge first)
+2. **Read `skills/INDEX.md`** → Identify skills to load
+3. Pre-load: frontend-react ⭐ + backend-api ⭐ (fullstack default)
+4. **Use `manage_todo_list` tool** → Create TODO with format: `○ Task [skill-name]`
+5. **Announce:** "AKIS v7.1 [complexity]. Skills: [list]. [N] tasks. Ready."
+
+⚠️ **Never skip steps 2, 4, 5** - These are G3 requirements
 
 ## WORK
 **◆ → Skill → Edit → Verify → ✓**

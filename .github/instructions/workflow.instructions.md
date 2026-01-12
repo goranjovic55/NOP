@@ -7,9 +7,15 @@ applyTo: "**"
 ## Phases
 | Phase | Actions |
 |-------|---------|
-| START | **Knowledge Query** → Skills → TODO → Announce |
+| START | **Knowledge Query** → **Read skills/INDEX.md** → **manage_todo_list** → **Announce skills** |
 | WORK | Knowledge → ◆ → Skill → Edit → Verify → ✓ |
 | END | Close ⊘ → **Create Log** → Scripts → Commit |
+
+## ⛔ START Requirements (G3)
+1. Read `project_knowledge.json` (G0)
+2. **Read `skills/INDEX.md`** - identify which skills to load
+3. **Use `manage_todo_list` tool** - NOT text TODOs
+4. **Announce:** "AKIS v7.1 [complexity]. Skills: [list]. [N] tasks. Ready."
 
 ## ⛔ G0: Knowledge First (BEFORE file reads)
 ```
@@ -27,6 +33,29 @@ applyTo: "**"
 2. **Annotate with skill:** `○ Task [skill-name]` when skill applies
 3. Mark ◆ BEFORE edit, ✓ AFTER verify
 4. Only ONE ◆ active
+
+## Complex Session Handling (6+ tasks)
+
+| Complexity | Strategy |
+|------------|----------|
+| Simple (<3) | Handle directly |
+| Medium (3-5) | Consider delegation |
+| Complex (6+) | **Delegate + phase grouping** |
+
+**Phase Grouping:**
+```
+## Phase 1: [domain] [skill]
+○ Task 1.1
+○ Task 1.2
+
+## Phase 2: [domain] [skill]
+○ Task 2.1
+```
+
+**Parallel Execution (G7):** For complex sessions, use pairs:
+- code + documentation (independent)
+- code + reviewer (sequential)
+- research + code (research first)
 
 ## Verification
 After EVERY edit:
@@ -143,7 +172,14 @@ Brief description.
 ## Workflow Phases
 | Phase | Skill | Action |
 |-------|-------|--------|
-| PLAN | planning | Analyze, design |
+| PLAN | planning | Analyze, design, research |
 | BUILD | frontend/backend | Implement |
 | VERIFY | testing/debugging | Test, check |
 | DOCUMENT | documentation | Update docs |
+
+## Fullstack Sessions
+When editing both frontend + backend:
+1. Pre-load BOTH skills: `frontend-react` + `backend-api`
+2. Group by domain in phases
+3. Coordinate: API changes → Types → UI → Test
+4. Check: trailing slashes, CORS, state sync

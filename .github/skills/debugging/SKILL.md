@@ -6,9 +6,18 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 # Debugging
 
 ## ⚠️ Critical Gotchas
-- **Docker restart ≠ rebuild:** Code changes need `--build`
-- **Container old code:** Use `docker compose up -d --build --force-recreate`
-- **Frontend 401:** Check authStore logout(), not API
+
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| Docker | restart ≠ rebuild | Code changes need `--build` |
+| Docker | Container old code | `docker compose up -d --build --force-recreate` |
+| API | 307 redirect | Add trailing slash to POST URLs |
+| API | 401 Unauthorized | Check token, POV headers, authStore |
+| State | JSONB not saving | Use `flag_modified(obj, 'field')` |
+| State | Persisted stale | Clear localStorage, version key |
+| Frontend | Component not updating | Check selector, use shallow compare |
+| CSS | Element invisible | Check z-index, overflow, parent |
+| Build | JSX syntax error | Use `{/* */}` for comments |
 
 ## Process
 1. **READ** error completely

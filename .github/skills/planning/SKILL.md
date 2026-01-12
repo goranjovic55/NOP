@@ -8,24 +8,24 @@
 
 ## ⚠️ Critical Gotchas
 - **Blueprint before code:** NEVER implement without design doc
-- **Research auto-chains:** Don't skip - improves resolution by 4.9%
+- **Research first:** Check docs/ + codebase BEFORE external (saves tokens)
 - **Scope creep:** Define boundaries in blueprint, stick to them
 - **Complexity check:** Complex (6+ files) → MUST use planning
 
-## Workflow
-1. **UNDERSTAND** - Clarify requirements, scope
-2. **RESEARCH** - ⚡ Auto-chain: Load [research skill](../research/SKILL.md)
-3. **DESIGN** - Create blueprint in `.project/blueprints/`
-4. **VALIDATE** - Review approach against research findings
-5. **HANDOFF** - Transition to BUILD phase
+## Workflow: UNDERSTAND → RESEARCH → DESIGN → HANDOFF
 
-## Research Integration
-```
-UNDERSTAND → research skill (GATHER→ANALYZE→SYNTHESIZE) → DESIGN
-```
-- Research skill runs automatically during phase 2
-- Findings inform DESIGN decisions
-- Skip research only if trivial change
+| Phase | Action |
+|-------|--------|
+| UNDERSTAND | Clarify requirements, scope |
+| RESEARCH | Local first: docs/, codebase, then external |
+| DESIGN | Create blueprint in `.project/` |
+| HANDOFF | Transition to BUILD phase |
+
+## Research (Integrated)
+1. **Local first:** grep/search docs/ + codebase
+2. **External:** Industry standards only if needed
+3. **Synthesize:** Document findings for reuse
+4. **Time box:** <5 min per topic
 
 ## Blueprint Template
 ```markdown
@@ -39,18 +39,13 @@ UNDERSTAND → research skill (GATHER→ANALYZE→SYNTHESIZE) → DESIGN
 ## Design
 - Approach:
 - Components:
-- Data flow:
 
 ## Tasks
 1. [ ] Task 1
 2. [ ] Task 2
-
-## Risks
--
 ```
 
 ## Rules
 - Create blueprint BEFORE implementing
-- Keep blueprints in `.project/blueprints/`
+- Keep blueprints in `.project/`
 - Update blueprint as design evolves
-- Reference blueprint in workflow log
