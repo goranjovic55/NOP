@@ -31,7 +31,31 @@ The NOP platform uses block-based automation flows for network operations (e.g.,
 
 ## Proposed Solution Architecture
 
-### 1. Execution Result Model
+### 1. Dual-State Model: Execution vs Interpretation
+
+A key insight is that blocks have **two distinct states**:
+
+1. **Execution State** (`executionState`): Did the block complete its operation?
+   - `completed` - Block finished executing (command ran, API responded, etc.)
+   - `failed` - Block could not execute (connection error, timeout, etc.)
+   - `pending` / `running` - Block hasn't started or is in progress
+
+2. **Interpreted Result** (`interpretedResult`): Based on the output, what is the pass/fail verdict?
+   - `passed` - Output meets the defined success criteria
+   - `failed` - Output does not meet success criteria
+   - `requires_review` - Needs human interpretation
+   - `not_applicable` - Block doesn't have pass/fail semantics
+
+**Example: Rep Ring Test**
+```
+Block: "Execute SSH Command: show rep ring"
+├── executionState: completed (command ran successfully)
+├── rawOutput: "Port Te1/0/1 is Open, Ring is OK"
+├── interpretedResult: passed (found "Ring is OK" in output)
+└── passCondition: { type: 'contains', value: 'Ring is OK' }
+```
+
+### 2. Execution Result Model
 
 ```typescript
 // Core execution result types
@@ -65,20 +89,41 @@ interface ExecutionNode {
   blockType: BlockType;
   blockName: string;
   
-  // Execution status
+  // DUAL STATE: Execution vs Interpretation
+  executionState: 'pending' | 'running' | 'completed' | 'failed';  // Did block execute?
+  interpretedResult: 'pending' | 'passed' | 'failed' | 'warning' | 'requires_review' | 'not_applicable';  // Pass/fail verdict
+  
+  // For backward compatibility, status combines both states
   status: 'pending' | 'running' | 'passed' | 'failed' | 'skipped' | 'warning';
+  
   startedAt?: string;
   completedAt?: string;
   duration?: number;
   
-  // Result data
+  // Result data with TWO outputs
   result?: {
-    success: boolean;
+    // Block output (raw data to pass to next block)
     output?: any;
-    error?: string;
+    rawOutput?: string;  // For command blocks, the raw text output
+    
+    // Execution state details
+    executionSuccess: boolean;  // Did block complete without errors?
+    executionError?: string;    // Error if execution failed
+    
+    // Interpretation details
+    interpretation?: {
+      passed: boolean;
+      reason: string;           // Why it passed/failed
+      matchedCondition?: string; // Which condition matched
+      extractedValue?: any;     // Value extracted from output
+    };
+    
     logs?: string[];
     metrics?: Record<string, number>;
   };
+  
+  // Pass condition for this block (defined when building workflow)
+  passCondition?: PassCondition;
   
   // Tree structure
   children: ExecutionNode[];
@@ -90,9 +135,38 @@ interface ExecutionNode {
   totalIterations?: number;
 }
 
+// Pass condition types for output interpretation
+interface PassCondition {
+  type: 'always'           // Always pass if execution completes
+       | 'contains'         // Output contains string
+       | 'not_contains'     // Output does not contain string
+       | 'regex'            // Output matches regex
+       | 'equals'           // Output equals value
+       | 'json_path'        // JSON path expression evaluates to truthy
+       | 'exit_code'        // Command exit code equals value
+       | 'comparison'       // Numeric comparison
+       | 'custom_script';   // Custom JavaScript/expression
+  
+  value?: string | number | RegExp;
+  
+  // For comparison type
+  operator?: '==' | '!=' | '>' | '<' | '>=' | '<=';
+  
+  // For json_path type
+  jsonPath?: string;
+  
+  // For custom_script type
+  script?: string;  // e.g., "output.includes('Ring is OK') && !output.includes('Error')"
+  
+  // Error message when condition fails
+  failureMessage?: string;
+}
+
 interface LoopIteration {
   index: number;
-  status: 'passed' | 'failed' | 'skipped';
+  executionState: 'completed' | 'failed';
+  interpretedResult: 'passed' | 'failed' | 'warning' | 'requires_review';
+  status: 'passed' | 'failed' | 'skipped';  // Combined status
   startedAt: string;
   completedAt?: string;
   duration?: number;
@@ -100,6 +174,73 @@ interface LoopIteration {
   children: ExecutionNode[]; // Steps within this iteration
   collapsed: boolean; // UI state for expand/collapse
 }
+```
+
+### 3. Output Interpreter Block
+
+For complex output parsing (like "show rep ring"), use an **Output Interpreter Block**:
+
+```typescript
+// New block type for parsing command outputs
+type BlockType = 
+  // ... existing types ...
+  | 'output_interpreter'  // Parse and interpret output from previous block
+```
+
+**Output Interpreter Block Properties:**
+```typescript
+interface OutputInterpreterConfig {
+  // Input: output from previous block
+  inputSource: string;  // Variable name or {{previous.output}}
+  
+  // Parsing rules
+  parseRules: ParseRule[];
+  
+  // Overall pass condition (all rules must pass by default)
+  aggregation: 'all' | 'any' | 'custom';
+  
+  // Extract values to pass to next blocks
+  extractedVariables: ExtractRule[];
+}
+
+interface ParseRule {
+  name: string;
+  description: string;
+  condition: PassCondition;
+  weight?: number;  // For weighted scoring
+}
+
+interface ExtractRule {
+  variableName: string;
+  extractMethod: 'regex' | 'json_path' | 'line_number' | 'between_markers';
+  pattern: string;
+}
+```
+
+**Example: Rep Ring Test Interpreter**
+```yaml
+block: output_interpreter
+name: "Parse Rep Ring Status"
+config:
+  inputSource: "{{ssh_command.rawOutput}}"
+  parseRules:
+    - name: "Ring Status OK"
+      condition:
+        type: contains
+        value: "Ring is OK"
+      failureMessage: "Ring status not OK - possible failure"
+    - name: "No Port Errors"
+      condition:
+        type: not_contains
+        value: "Port Down"
+    - name: "Topology Complete"
+      condition:
+        type: regex
+        value: "\\d+ ports in ring"
+  extractedVariables:
+    - variableName: "ring_port_count"
+      extractMethod: regex
+      pattern: "(\\d+) ports in ring"
 ```
 
 ### 2. Block Type Categories
@@ -287,9 +428,149 @@ Based on NOP's network operations platform, here are the proposed automation tem
 
 ---
 
-## 6. Implementation Components
+## 6. Complete Example: Rep Ring Test Workflow
 
-### 6.1 React Components
+This example shows the dual-state model in action for a REP ring test:
+
+### 6.1 Workflow Structure
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ REP RING TEST WORKFLOW                                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐                                               │
+│  │    START     │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                       │
+│  ┌──────▼───────┐                                               │
+│  │ Agent Login  │ executionState: completed/failed              │
+│  │ (SSH to SW)  │ interpretedResult: passed if connected        │
+│  └──────┬───────┘                                               │
+│         │                                                       │
+│  ┌──────▼───────┐                                               │
+│  │ Port Shutdown│ Shut down port to test ring failover          │
+│  │ (CLI cmd)    │ executionState: completed (command ran)       │
+│  └──────┬───────┘ interpretedResult: always pass                │
+│         │                                                       │
+│  ┌──────▼───────┐                                               │
+│  │ Show Rep Ring│ Get ring status after shutdown                │
+│  │ (CLI cmd)    │ executionState: completed (got output)        │
+│  └──────┬───────┘ rawOutput: "Ring is OK, 4 ports..."           │
+│         │                                                       │
+│  ┌──────▼───────────────┐                                       │
+│  │ Parse Ring Status    │ OUTPUT INTERPRETER block              │
+│  │ (output_interpreter) │ Parses rawOutput from previous block  │
+│  │ passCondition:       │                                       │
+│  │  - contains "Ring is │ interpretedResult: passed/failed      │
+│  │    OK"               │ based on parsing rules                │
+│  │  - not contains      │                                       │
+│  │    "Port Down"       │                                       │
+│  └──────┬───────────────┘                                       │
+│         │                                                       │
+│  ┌──────▼───────┐                                               │
+│  │ Port Enable  │ Re-enable the port                            │
+│  │ (CLI cmd)    │                                               │
+│  └──────┬───────┘                                               │
+│         │                                                       │
+│  ┌──────▼───────┐                                               │
+│  │     END      │                                               │
+│  └──────────────┘                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Execution Result Example
+
+```json
+{
+  "id": "exec-001",
+  "workflowName": "Rep Ring Test - Switch A",
+  "status": "completed",
+  "rootNode": {
+    "blockName": "Show Rep Ring",
+    "blockType": "ssh_command",
+    
+    "executionState": "completed",
+    "interpretedResult": "pending",
+    
+    "result": {
+      "executionSuccess": true,
+      "rawOutput": "REP Segment 1:\n  Port Te1/0/1: Open\n  Port Te1/0/2: Open\n  Ring is OK\n  4 ports in segment",
+      "commandResult": {
+        "exitCode": 0,
+        "stdout": "REP Segment 1:\n  Port Te1/0/1: Open\n...",
+        "stderr": "",
+        "executionTimeMs": 234
+      }
+    },
+    
+    "children": [{
+      "blockName": "Parse Ring Status",
+      "blockType": "output_interpreter",
+      
+      "executionState": "completed",
+      "interpretedResult": "passed",
+      
+      "passCondition": {
+        "type": "all",
+        "conditions": [
+          { "type": "contains", "value": "Ring is OK" },
+          { "type": "not_contains", "value": "Port Down" }
+        ]
+      },
+      
+      "result": {
+        "executionSuccess": true,
+        "interpretation": {
+          "passed": true,
+          "reason": "All conditions met: 'Ring is OK' found, 'Port Down' not found",
+          "matchedCondition": "all",
+          "extractedValue": { "ring_port_count": 4 }
+        }
+      }
+    }]
+  }
+}
+```
+
+### 6.3 UI Display with Dual State
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Rep Ring Test - Switch A                              PASSED ✓  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ✓ Agent Login                                                  │
+│  │  └─ [Executed ✓] [Interpretation: PASSED]                    │
+│  │     Connected to 192.168.1.1 as admin                        │
+│  │                                                              │
+│  ✓ Port Shutdown (Te1/0/1)                                      │
+│  │  └─ [Executed ✓] [Interpretation: N/A]                       │
+│  │     Command: shutdown                                        │
+│  │                                                              │
+│  ✓ Show Rep Ring                                                │
+│  │  └─ [Executed ✓] [Interpretation: PENDING → Next Block]      │
+│  │     Output: "REP Segment 1: Ring is OK, 4 ports..."          │
+│  │                                                              │
+│  ✓ Parse Ring Status                                     ← KEY  │
+│  │  └─ [Executed ✓] [Interpretation: PASSED]                    │
+│  │     ├─ ✓ Rule: "Ring is OK" found in output                  │
+│  │     ├─ ✓ Rule: "Port Down" NOT found                         │
+│  │     └─ Extracted: ring_port_count = 4                        │
+│  │                                                              │
+│  ✓ Port Enable (Te1/0/1)                                        │
+│  │  └─ [Executed ✓] [Interpretation: N/A]                       │
+│  │                                                              │
+│  ✓ End                                                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Implementation Components
+
+### 7.1 React Components
 
 ```
 frontend/src/components/workflow/
@@ -305,16 +586,17 @@ frontend/src/components/workflow/
 │   └── MetricsPanel.tsx            # Key metrics display
 ```
 
-### 6.2 Backend Services
+### 7.2 Backend Services
 
 ```
 backend/app/services/
 ├── workflow_executor.py           # Execute workflow blocks
 ├── workflow_compiler.py           # Compile workflow to DAG
+├── output_interpreter.py          # NEW: Parse and interpret block outputs
 └── execution_result_service.py    # NEW: Result aggregation & storage
 ```
 
-### 6.3 API Endpoints
+### 7.3 API Endpoints
 
 ```
 POST /api/v1/workflows/{id}/execute          # Start execution

@@ -52,9 +52,20 @@ export const ExecutionNode: React.FC<ExecutionNodeProps> = ({
   const getOutputPreview = (): string | null => {
     if (!node.result) return null;
     
+    // For interpretation results, show the interpretation
+    if (node.result.interpretation) {
+      return node.result.interpretation.reason;
+    }
+    
     // For assertions, show result message
     if (node.result.assertionResult) {
       return node.result.assertionResult.message;
+    }
+    
+    // For command results, show raw output snippet
+    if (node.result.rawOutput) {
+      const lines = node.result.rawOutput.split('\n');
+      return lines[0].substring(0, 50) + (lines.length > 1 ? '...' : '');
     }
     
     // For network results, show summary
@@ -69,8 +80,8 @@ export const ExecutionNode: React.FC<ExecutionNodeProps> = ({
     }
     
     // For errors, show error message
-    if (node.result.error) {
-      return `Error: ${node.result.error}`;
+    if (node.result.executionError) {
+      return `Error: ${node.result.executionError}`;
     }
     
     // For simple outputs, stringify
@@ -86,7 +97,38 @@ export const ExecutionNode: React.FC<ExecutionNodeProps> = ({
     return null;
   };
 
+  // Get dual-state badges
+  const getDualStateBadges = () => {
+    const execState = node.executionState;
+    const interpResult = node.interpretedResult;
+    
+    return { execState, interpResult };
+  };
+
+  const { execState, interpResult } = getDualStateBadges();
   const outputPreview = getOutputPreview();
+
+  // Determine execution state color
+  const getExecStateColor = (state: string): string => {
+    switch (state) {
+      case 'completed': return '#00ff88';
+      case 'failed': return '#ff0055';
+      case 'running': return '#00ccff';
+      default: return '#666666';
+    }
+  };
+
+  // Determine interpretation color
+  const getInterpColor = (result: string): string => {
+    switch (result) {
+      case 'passed': return '#00ff88';
+      case 'failed': return '#ff0055';
+      case 'warning': return '#ffcc00';
+      case 'requires_review': return '#ff8800';
+      case 'not_applicable': return '#888888';
+      default: return '#666666';
+    }
+  };
 
   return (
     <div
@@ -125,6 +167,38 @@ export const ExecutionNode: React.FC<ExecutionNodeProps> = ({
       <span className="text-gray-100 flex-1">
         {node.blockName}
       </span>
+
+      {/* Dual State Badges - Execution State + Interpretation */}
+      {execState && interpResult && (
+        <div className="flex items-center gap-1 text-xs">
+          <span
+            className="px-1 py-0.5 rounded border"
+            style={{ 
+              borderColor: getExecStateColor(execState),
+              color: getExecStateColor(execState),
+              backgroundColor: `${getExecStateColor(execState)}10`
+            }}
+            title={`Execution: ${execState}`}
+          >
+            {execState === 'completed' ? 'Exec ✓' : execState === 'failed' ? 'Exec ✗' : execState}
+          </span>
+          {interpResult !== 'not_applicable' && interpResult !== 'pending' && (
+            <span
+              className="px-1 py-0.5 rounded border"
+              style={{ 
+                borderColor: getInterpColor(interpResult),
+                color: getInterpColor(interpResult),
+                backgroundColor: `${getInterpColor(interpResult)}10`
+              }}
+              title={`Interpretation: ${interpResult}`}
+            >
+              {interpResult === 'passed' ? 'Interp ✓' : 
+               interpResult === 'failed' ? 'Interp ✗' : 
+               interpResult === 'requires_review' ? 'Review' : interpResult}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Block Type Badge */}
       <span

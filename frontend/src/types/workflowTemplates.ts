@@ -6,12 +6,169 @@
  * - Discovery (full, quick, passive)
  * - Security assessment (vulnerability, compliance)
  * - Monitoring (health checks, baselines)
+ * 
+ * KEY CONCEPT: Dual-State Model
+ * Each block has two distinct states:
+ * 1. executionState: Did the block complete? (completed/failed)
+ * 2. interpretedResult: What's the pass/fail verdict based on output?
  */
 
-import { WorkflowTemplate, BlockType } from './executionResults';
+import { WorkflowTemplate, BlockType, PassCondition, OutputInterpreterConfig, ParseRule } from './executionResults';
 
 /**
- * Template: Rep Ring Test
+ * Template: Rep Ring Test (Full)
+ * Complete REP ring redundancy test with output interpretation
+ * 
+ * This template demonstrates the dual-state model:
+ * - Login block: executionState=completed means connected, interpretedResult=passed
+ * - SSH command: executionState=completed means command ran, interpretedResult=pending (needs parsing)
+ * - Output interpreter: parses the SSH output and sets interpretedResult=passed/failed
+ */
+export const REP_RING_FULL_TEST_TEMPLATE: WorkflowTemplate = {
+  id: 'template-rep-ring-full',
+  name: 'Rep Ring Test (Full)',
+  description: 'Complete REP ring redundancy test with port shutdown, ring status check, and automatic output interpretation. Uses dual-state model for accurate pass/fail determination.',
+  category: 'network_testing',
+  icon: '🔄',
+  author: 'NOP Team',
+  version: '2.0.0',
+  createdAt: '2026-01-12T00:00:00Z',
+  updatedAt: '2026-01-12T00:00:00Z',
+  
+  requiredInputs: [
+    {
+      name: 'switch_ip',
+      type: 'string',
+      required: true,
+      description: 'IP address of the switch to test',
+      example: '192.168.1.1',
+    },
+    {
+      name: 'username',
+      type: 'string',
+      required: true,
+      description: 'SSH username',
+    },
+    {
+      name: 'password',
+      type: 'string',
+      required: true,
+      description: 'SSH password',
+    },
+    {
+      name: 'test_port',
+      type: 'string',
+      required: true,
+      description: 'Port to shutdown for testing (e.g., Te1/0/1)',
+      example: 'Te1/0/1',
+    },
+  ],
+  
+  expectedOutputs: ['ring_status', 'ring_port_count', 'test_passed'],
+  
+  workflow: {
+    nodes: [
+      { id: 'start', type: 'start', position: { x: 100, y: 50 }, data: { label: 'Start' } },
+      
+      // Login to switch
+      { id: 'login', type: 'agent_login', position: { x: 100, y: 130 }, data: { 
+        host: '{{switch_ip}}',
+        username: '{{username}}',
+        password: '{{password}}',
+        protocol: 'ssh',
+        // Pass condition: execution completed = login successful
+        passCondition: { type: 'always' }
+      }},
+      
+      // Shutdown test port
+      { id: 'port-shutdown', type: 'ssh_command', position: { x: 100, y: 210 }, data: { 
+        command: 'interface {{test_port}}\nshutdown\nexit',
+        // Pass condition: just needs to execute
+        passCondition: { type: 'always' }
+      }},
+      
+      // Wait for ring to reconverge
+      { id: 'wait', type: 'wait', position: { x: 100, y: 290 }, data: { 
+        duration: 5000,  // 5 seconds
+      }},
+      
+      // Show rep ring status
+      { id: 'show-rep-ring', type: 'ssh_command', position: { x: 100, y: 370 }, data: { 
+        command: 'show rep topology segment 1',
+        // Pass condition: pending - needs interpretation by next block
+        passCondition: { type: 'always' }  // Just check command executed
+      }},
+      
+      // INTERPRET THE OUTPUT - This is where we determine pass/fail
+      { id: 'parse-ring-status', type: 'output_interpreter', position: { x: 100, y: 450 }, data: { 
+        inputSource: '{{show-rep-ring.rawOutput}}',
+        aggregation: 'all',
+        parseRules: [
+          {
+            id: 'ring-ok',
+            name: 'Ring Status OK',
+            condition: { type: 'contains', value: 'Ring is OK' },
+            critical: true,
+            failureMessage: 'Ring status is not OK - failover may have failed'
+          },
+          {
+            id: 'no-unexpected-failure',
+            name: 'No Unexpected Failures',
+            // Use not_contains to check that "Failed" is not in output
+            condition: { type: 'not_contains', value: 'Failed' },
+            failureMessage: 'Found failure indication in output'
+          },
+          {
+            id: 'port-count',
+            name: 'Has Expected Ports',
+            condition: { type: 'regex', value: '\\d+ ports? in segment' },
+            failureMessage: 'Could not find port count in output'
+          }
+        ],
+        extractedVariables: [
+          {
+            variableName: 'ring_port_count',
+            extractMethod: 'regex',
+            pattern: '(\\d+) ports? in segment',
+            captureGroup: 1,
+            defaultValue: 0
+          }
+        ]
+      }},
+      
+      // Re-enable the port
+      { id: 'port-enable', type: 'ssh_command', position: { x: 100, y: 530 }, data: { 
+        command: 'interface {{test_port}}\nno shutdown\nexit',
+        passCondition: { type: 'always' }
+      }},
+      
+      // Generate report
+      { id: 'report', type: 'report', position: { x: 100, y: 610 }, data: {
+        title: 'REP Ring Test Report',
+        include: ['ring_status', 'ring_port_count', 'test_passed'],
+      }},
+      
+      { id: 'end', type: 'end', position: { x: 100, y: 690 }, data: { label: 'End' } },
+    ],
+    edges: [
+      { id: 'e1', source: 'start', target: 'login' },
+      { id: 'e2', source: 'login', target: 'port-shutdown' },
+      { id: 'e3', source: 'port-shutdown', target: 'wait' },
+      { id: 'e4', source: 'wait', target: 'show-rep-ring' },
+      { id: 'e5', source: 'show-rep-ring', target: 'parse-ring-status' },
+      { id: 'e6', source: 'parse-ring-status', target: 'port-enable' },
+      { id: 'e7', source: 'port-enable', target: 'report' },
+      { id: 'e8', source: 'report', target: 'end' },
+    ],
+    variables: {},
+  },
+  
+  estimatedDuration: '30 seconds - 1 minute',
+  complexity: 'moderate',
+};
+
+/**
+ * Template: Rep Ring Test (Simple)
  * Tests network ring redundancy by verifying connectivity across all nodes
  */
 export const REP_RING_TEST_TEMPLATE: WorkflowTemplate = {
@@ -528,6 +685,7 @@ export const QUICK_SCAN_TEMPLATE: WorkflowTemplate = {
  * All available templates
  */
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  REP_RING_FULL_TEST_TEMPLATE,
   REP_RING_TEST_TEMPLATE,
   FULL_DISCOVERY_TEMPLATE,
   PORT_CHECK_TEMPLATE,

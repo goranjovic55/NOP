@@ -27,6 +27,8 @@ export type BlockType =
   | 'traceroute'          // Network path tracing
   | 'bandwidth_test'      // Bandwidth measurement
   | 'dns_lookup'          // DNS resolution
+  | 'ssh_command'         // Execute SSH command on remote host
+  | 'rep_ring_test'       // REP ring redundancy test
   
   // Control Flow
   | 'condition'           // If/else branching
@@ -44,12 +46,14 @@ export type BlockType =
   | 'filter_data'         // Filter collection
   | 'aggregate'           // Aggregate results
   | 'http_request'        // HTTP API call
+  | 'output_interpreter'  // Parse and interpret output from previous block
   
   // Agent Operations
   | 'agent_command'       // Send command to agent
   | 'agent_file_transfer' // Upload/download files
   | 'agent_terminal'      // Execute terminal command
   | 'agent_discovery'     // Agent-based discovery
+  | 'agent_login'         // Login/authenticate to device via agent
   
   // Notification/Output
   | 'log'                 // Log message
@@ -82,21 +86,98 @@ export interface BlockDefinition {
   inputs: BlockParameter[];
   outputs: BlockOutput[];
   hasPassFailStatus: boolean;
+  
+  // Default pass condition for this block type
+  defaultPassCondition?: PassCondition;
 }
 
 export interface BlockParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'expression';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'expression' | 'previous_output';
   required: boolean;
   default?: any;
   description: string;
   options?: string[]; // For select/dropdown parameters
+  
+  // For 'previous_output' type - can reference output from another block
+  sourceBlockId?: string;
 }
 
 export interface BlockOutput {
   name: string;
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
   description: string;
+  
+  // Indicates this output can be used as input to next block
+  isPassable: boolean;
+}
+
+// =============================================================================
+// Output Interpreter Block Configuration
+// =============================================================================
+
+/**
+ * Configuration for the output_interpreter block type.
+ * Used to parse command outputs and determine pass/fail based on content.
+ * 
+ * Example use case: Parsing "show rep ring" output to check if ring is OK
+ */
+export interface OutputInterpreterConfig {
+  // Input source - reference to output from previous block
+  inputSource: string;  // e.g., "{{previous.rawOutput}}" or "{{ssh_command.stdout}}"
+  
+  // Parsing rules - conditions that must be met
+  parseRules: ParseRule[];
+  
+  // How to aggregate multiple rules
+  aggregation: 'all' | 'any' | 'weighted';
+  
+  // For weighted aggregation, minimum score to pass (0-100)
+  minPassScore?: number;
+  
+  // Extract values from output to pass to next blocks
+  extractedVariables?: ExtractRule[];
+}
+
+/**
+ * A single parsing rule within an output interpreter
+ */
+export interface ParseRule {
+  id: string;
+  name: string;
+  description?: string;
+  
+  // The condition to check
+  condition: PassCondition;
+  
+  // Weight for weighted aggregation (default: 1)
+  weight?: number;
+  
+  // If this rule fails, should it fail the entire block?
+  critical?: boolean;
+  
+  // Custom message if this rule fails
+  failureMessage?: string;
+}
+
+/**
+ * Rule for extracting values from output
+ */
+export interface ExtractRule {
+  // Variable name to store extracted value
+  variableName: string;
+  
+  // How to extract the value
+  extractMethod: 'regex' | 'json_path' | 'line_number' | 'between_markers' | 'split';
+  
+  // Pattern or expression for extraction
+  pattern: string;
+  
+  // For regex, which capture group to use (default: 1)
+  captureGroup?: number;
+  
+  // Default value if extraction fails
+  defaultValue?: any;
 }
 
 // =============================================================================
@@ -115,7 +196,27 @@ export type ExecutionStatus =
   | 'cancelled'; // User cancelled
 
 /**
- * Individual node/step status
+ * Block execution state - did the block complete its operation?
+ */
+export type BlockExecutionState =
+  | 'pending'    // Not yet started
+  | 'running'    // Currently executing
+  | 'completed'  // Block finished executing (regardless of output interpretation)
+  | 'failed';    // Block could not execute (connection error, timeout, etc.)
+
+/**
+ * Interpreted result - based on output, what is the pass/fail verdict?
+ */
+export type InterpretedResult =
+  | 'pending'          // Not yet interpreted
+  | 'passed'           // Output meets success criteria
+  | 'failed'           // Output does not meet success criteria
+  | 'warning'          // Completed with warnings
+  | 'requires_review'  // Needs human interpretation
+  | 'not_applicable';  // Block doesn't have pass/fail semantics
+
+/**
+ * Individual node/step status (combined view for backward compatibility)
  */
 export type NodeStatus =
   | 'pending'  // Not yet executed
@@ -205,6 +306,11 @@ export interface ExecutionError {
 
 /**
  * A single node in the execution tree
+ * 
+ * KEY CONCEPT: Dual-State Model
+ * - executionState: Did the block complete its operation?
+ * - interpretedResult: Based on output, what is the pass/fail verdict?
+ * - status: Combined view for UI display (backward compatible)
  */
 export interface ExecutionNode {
   id: string;
@@ -213,13 +319,20 @@ export interface ExecutionNode {
   blockName: string;
   blockCategory: BlockCategory;
   
-  // Execution status
+  // DUAL STATE MODEL
+  executionState: BlockExecutionState;  // Did block execute? (completed/failed)
+  interpretedResult: InterpretedResult; // Pass/fail verdict based on output interpretation
+  
+  // Combined status for backward compatibility and UI display
   status: NodeStatus;
   startedAt?: string;
   completedAt?: string;
   duration?: number;
   
-  // Result data
+  // Pass condition for this block (defined when building workflow)
+  passCondition?: PassCondition;
+  
+  // Result data with dual outputs
   result?: NodeResult;
   
   // Tree structure
@@ -243,13 +356,69 @@ export interface ExecutionNode {
 }
 
 /**
+ * Pass condition types for output interpretation
+ * Used to determine if block output meets success criteria
+ */
+export interface PassCondition {
+  type: PassConditionType;
+  
+  // Value to match against (for contains, regex, equals, etc.)
+  value?: string | number;
+  
+  // For comparison type
+  operator?: '==' | '!=' | '>' | '<' | '>=' | '<=';
+  
+  // For json_path type
+  jsonPath?: string;
+  
+  // For custom_script type
+  script?: string;  // e.g., "output.includes('Ring is OK') && !output.includes('Error')"
+  
+  // Error message when condition fails
+  failureMessage?: string;
+  
+  // For compound conditions
+  conditions?: PassCondition[];  // For 'all' or 'any' types
+}
+
+export type PassConditionType =
+  | 'always'           // Always pass if execution completes
+  | 'contains'         // Output contains string
+  | 'not_contains'     // Output does not contain string
+  | 'regex'            // Output matches regex
+  | 'equals'           // Output equals value
+  | 'json_path'        // JSON path expression evaluates to truthy
+  | 'exit_code'        // Command exit code equals value
+  | 'comparison'       // Numeric comparison
+  | 'custom_script'    // Custom JavaScript/expression
+  | 'all'              // All sub-conditions must pass
+  | 'any';             // Any sub-condition must pass
+
+/**
  * Result data for a single node execution
+ * 
+ * Contains TWO distinct outputs:
+ * 1. Execution output (raw data, for passing to next block)
+ * 2. Interpretation result (pass/fail verdict with reasoning)
  */
 export interface NodeResult {
-  success: boolean;
-  output?: any;
-  error?: string;
+  // === EXECUTION OUTPUT (for passing to next block) ===
+  output?: any;           // Structured output data
+  rawOutput?: string;     // Raw text output (for command blocks)
+  
+  // === EXECUTION STATE ===
+  executionSuccess: boolean;  // Did block complete without errors?
+  executionError?: string;    // Error if execution failed
   errorCode?: string;
+  
+  // === INTERPRETATION RESULT ===
+  interpretation?: {
+    passed: boolean;           // Final pass/fail verdict
+    reason: string;            // Human-readable explanation
+    matchedCondition?: string; // Which condition matched/failed
+    extractedValue?: any;      // Value extracted from output
+    confidence?: number;       // 0-100 confidence in interpretation
+  };
   
   // Execution logs
   logs?: LogEntry[];
@@ -275,6 +444,14 @@ export interface NodeResult {
     vulnerabilitiesFound?: number;
     latencyMs?: number;
     packetsLost?: number;
+  };
+  
+  // For SSH/command blocks
+  commandResult?: {
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    executionTimeMs: number;
   };
 }
 

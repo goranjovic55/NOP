@@ -133,6 +133,121 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ node, formatDuration, formatT
 
   return (
     <div className="space-y-6">
+      {/* Dual State Display */}
+      <Section title="Execution State">
+        <div className="grid grid-cols-2 gap-4">
+          {/* Execution State */}
+          <div className="p-3 rounded border border-gray-600 bg-gray-800/50">
+            <div className="text-xs text-gray-400 uppercase mb-1">Block Execution</div>
+            <div className={`text-lg font-bold ${
+              node.executionState === 'completed' ? 'text-green-400' :
+              node.executionState === 'failed' ? 'text-red-400' :
+              node.executionState === 'running' ? 'text-cyan-400' : 'text-gray-400'
+            }`}>
+              {node.executionState === 'completed' ? '✓ COMPLETED' :
+               node.executionState === 'failed' ? '✗ FAILED' :
+               node.executionState === 'running' ? '● RUNNING' : '○ PENDING'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Did the block execute its operation?
+            </div>
+          </div>
+          
+          {/* Interpretation Result */}
+          <div className="p-3 rounded border border-gray-600 bg-gray-800/50">
+            <div className="text-xs text-gray-400 uppercase mb-1">Result Interpretation</div>
+            <div className={`text-lg font-bold ${
+              node.interpretedResult === 'passed' ? 'text-green-400' :
+              node.interpretedResult === 'failed' ? 'text-red-400' :
+              node.interpretedResult === 'warning' ? 'text-yellow-400' :
+              node.interpretedResult === 'requires_review' ? 'text-orange-400' :
+              node.interpretedResult === 'not_applicable' ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              {node.interpretedResult === 'passed' ? '✓ PASSED' :
+               node.interpretedResult === 'failed' ? '✗ FAILED' :
+               node.interpretedResult === 'warning' ? '⚠ WARNING' :
+               node.interpretedResult === 'requires_review' ? '? REVIEW NEEDED' :
+               node.interpretedResult === 'not_applicable' ? '— N/A' : '○ PENDING'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Pass/fail verdict based on output
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Interpretation Details */}
+      {result?.interpretation && (
+        <Section 
+          title="Interpretation Details" 
+          className={result.interpretation.passed ? 'border-green-500/50' : 'border-red-500/50'}
+        >
+          <div className={`text-base font-semibold ${
+            result.interpretation.passed ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {result.interpretation.reason}
+          </div>
+          {result.interpretation.matchedCondition && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-400">Matched Condition:</span>
+              <span className="ml-2 text-cyan-400 font-mono">{result.interpretation.matchedCondition}</span>
+            </div>
+          )}
+          {result.interpretation.extractedValue !== undefined && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-400">Extracted Value:</span>
+              <pre className="mt-1 text-white bg-gray-800 p-2 rounded overflow-auto text-xs">
+                {JSON.stringify(result.interpretation.extractedValue, null, 2)}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* Pass Condition */}
+      {node.passCondition && (
+        <Section title="Pass Condition">
+          <div className="text-sm">
+            <span className="text-gray-400">Type:</span>
+            <span className="ml-2 text-cyan-400 font-mono">{node.passCondition.type}</span>
+          </div>
+          {node.passCondition.value && (
+            <div className="text-sm mt-1">
+              <span className="text-gray-400">Value:</span>
+              <span className="ml-2 text-white font-mono">{String(node.passCondition.value)}</span>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* Raw Output (for command blocks) */}
+      {result?.rawOutput && (
+        <Section title="Raw Output">
+          <pre className="text-xs text-gray-300 bg-gray-800 p-3 rounded overflow-auto max-h-40 whitespace-pre-wrap">
+            {result.rawOutput}
+          </pre>
+        </Section>
+      )}
+
+      {/* Command Result */}
+      {result?.commandResult && (
+        <Section title="Command Result">
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <InfoRow label="Exit Code" value={result.commandResult.exitCode} 
+              highlight={result.commandResult.exitCode !== 0} />
+            <InfoRow label="Execution Time" value={`${result.commandResult.executionTimeMs}ms`} />
+          </div>
+          {result.commandResult.stderr && (
+            <div className="mt-2">
+              <span className="text-xs text-red-400 uppercase">STDERR:</span>
+              <pre className="mt-1 text-xs text-red-300 bg-gray-800 p-2 rounded overflow-auto">
+                {result.commandResult.stderr}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
+
       {/* Timing Information */}
       <Section title="Timing">
         <InfoRow label="Started" value={formatTime(node.startedAt)} />
@@ -141,10 +256,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ node, formatDuration, formatT
       </Section>
 
       {/* Error Information */}
-      {result?.error && (
+      {result?.executionError && (
         <Section title="Error" className="border-red-500/50 bg-red-900/10">
           <div className="text-red-400 font-mono text-sm whitespace-pre-wrap">
-            {result.error}
+            {result.executionError}
           </div>
           {result.errorCode && (
             <div className="mt-2 text-xs text-red-300">
