@@ -14,6 +14,7 @@ export const CATEGORY_COLORS: Record<BlockCategory, string> = {
   scanning: '#f59e0b',    // amber
   agent: '#ff0040',       // cyber-red
   control: '#6b7280',     // gray
+  data: '#14b8a6',        // teal - New: Data processing blocks
 };
 
 // Cyberpunk category icons (Unicode symbols)
@@ -24,6 +25,7 @@ export const CATEGORY_ICONS: Record<BlockCategory, string> = {
   scanning: '◈',
   agent: '◆',
   control: '⚙',
+  data: '⟐',      // New: Data processing blocks
 };
 
 // Block definitions with cyberpunk icons - Complete Phase 3 Library
@@ -176,11 +178,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'connection',
     icon: '⬡',
     color: '#00d4ff',
-    description: 'Test SSH connectivity to a host',
+    description: 'Test SSH connectivity to a host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Success' },
-      { id: 'failure', type: 'output', label: 'Failure' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true, placeholder: '192.168.1.1' },
@@ -198,11 +201,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'connection',
     icon: '⬢',
     color: '#00d4ff',
-    description: 'Test RDP connectivity to Windows host',
+    description: 'Test RDP connectivity to Windows host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Success' },
-      { id: 'failure', type: 'output', label: 'Failure' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true, placeholder: '192.168.1.1' },
@@ -220,11 +224,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'connection',
     icon: '⬣',
     color: '#00d4ff',
-    description: 'Test VNC connectivity',
+    description: 'Test VNC connectivity - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Success' },
-      { id: 'failure', type: 'output', label: 'Failure' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -240,11 +245,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'connection',
     icon: '⬤',
     color: '#00d4ff',
-    description: 'Test FTP/SFTP connectivity',
+    description: 'Test FTP/SFTP connectivity - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Success' },
-      { id: 'failure', type: 'output', label: 'Failure' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -266,11 +272,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'connection',
     icon: '◎',
     color: '#00d4ff',
-    description: 'Test TCP port connectivity',
+    description: 'Test TCP port connectivity - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Open' },
-      { id: 'failure', type: 'output', label: 'Closed' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -289,11 +296,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'command',
     icon: '⬢',
     color: '#00ff88',
-    description: 'Execute command via SSH',
+    description: 'Execute command via SSH - outputs pass/fail/output for use with Code Block',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -312,11 +320,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'command',
     icon: '⌘',
     color: '#00ff88',
-    description: 'Get remote system information',
+    description: 'Get remote system information - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -339,9 +348,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'command',
     icon: '▤',
     color: '#00ff88',
-    description: 'List directory contents via FTP',
+    description: 'List directory contents via FTP - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
       { name: 'port', label: 'Port', type: 'number', default: 21 },
@@ -358,11 +371,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'command',
     icon: '⬇',
     color: '#00ff88',
-    description: 'Download file via FTP',
+    description: 'Download file via FTP - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -381,11 +395,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'command',
     icon: '⬆',
     color: '#00ff88',
-    description: 'Upload file via FTP',
+    description: 'Upload file via FTP - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -408,9 +423,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '◉',
     color: '#8b5cf6',
-    description: 'Start traffic capture on interface',
+    description: 'Start traffic capture on interface - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'interface', label: 'Interface', type: 'string', placeholder: 'eth0' },
       { name: 'filter', label: 'BPF Filter', type: 'string', placeholder: 'port 80 or port 443' },
@@ -424,9 +443,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '◌',
     color: '#8b5cf6',
-    description: 'Stop traffic capture',
+    description: 'Stop traffic capture - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'captureId', label: 'Capture ID', type: 'string', placeholder: '{{ $prev.captureId }}' },
     ],
@@ -438,9 +461,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '⊙',
     color: '#8b5cf6',
-    description: 'Capture traffic for short duration',
+    description: 'Capture traffic for short duration - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'interface', label: 'Interface', type: 'string', placeholder: 'eth0' },
       { name: 'duration_seconds', label: 'Duration (s)', type: 'number', default: 1, required: true },
@@ -454,9 +481,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '▦',
     color: '#8b5cf6',
-    description: 'Get traffic statistics',
+    description: 'Get traffic statistics - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'interface', label: 'Interface', type: 'string' },
       { name: 'period', label: 'Period', type: 'select', options: [
@@ -474,11 +505,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '≋',
     color: '#8b5cf6',
-    description: 'Ping a host',
+    description: 'Ping a host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'reachable', type: 'output', label: 'Reachable' },
-      { id: 'unreachable', type: 'output', label: 'Unreachable' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -493,11 +525,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '⦿',
     color: '#8b5cf6',
-    description: 'Ping with advanced options',
+    description: 'Ping with advanced options - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'reachable', type: 'output', label: 'Reachable' },
-      { id: 'unreachable', type: 'output', label: 'Unreachable' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -515,9 +548,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'traffic',
     icon: '≋',
     color: '#8b5cf6',
-    description: 'Generate broadcast storm for testing',
+    description: 'Generate broadcast storm for testing - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'interface', label: 'Interface', type: 'string', required: true },
       { name: 'type', label: 'Storm Type', type: 'select', options: [
@@ -540,11 +577,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '◈',
     color: '#f59e0b',
-    description: 'Detect service versions using nmap',
+    description: 'Detect service versions using nmap - outputs pass/fail/output for Code Block interpretation',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -560,11 +598,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '⬢',
     color: '#f59e0b',
-    description: 'Scan for open ports',
+    description: 'Scan for open ports - outputs pass/fail/output for Code Block interpretation',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
@@ -589,11 +628,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '◎',
     color: '#f59e0b',
-    description: 'Discover hosts on a network range',
+    description: 'Discover hosts on a network range - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'network', label: 'Network CIDR', type: 'string', required: true, placeholder: '192.168.1.0/24' },
@@ -613,11 +653,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '◇',
     color: '#f59e0b',
-    description: 'Comprehensive scan of a single host',
+    description: 'Comprehensive scan of a single host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Host IP', type: 'string', required: true, placeholder: '192.168.1.1' },
@@ -636,11 +677,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '≋',
     color: '#f59e0b',
-    description: 'Ping sweep to find live hosts',
+    description: 'Ping sweep to find live hosts - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'reachable', type: 'output', label: 'Reachable' },
-      { id: 'unreachable', type: 'output', label: 'Unreachable' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'target', label: 'Target', type: 'string', required: true, placeholder: '192.168.1.0/24 or 192.168.1.1' },
@@ -654,9 +696,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '⬡',
     color: '#f59e0b',
-    description: 'Scan for common services on a host',
+    description: 'Scan for common services on a host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'host', label: 'Host', type: 'string', required: true },
     ],
@@ -672,11 +718,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'agent',
     icon: '◆',
     color: '#ff0040',
-    description: 'Generate agent binary for target platform',
+    description: 'Generate agent binary for target platform - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'agent_id', label: 'Agent Template ID', type: 'string', required: true },
@@ -699,11 +746,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'agent',
     icon: '◇',
     color: '#ff0040',
-    description: 'Deploy agent to target host',
+    description: 'Deploy agent to target host - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
       { id: 'out', type: 'output', label: 'Output' },
-      { id: 'error', type: 'output', label: 'Error' },
     ],
     parameters: [
       { name: 'host', label: 'Target Host', type: 'string', required: true },
@@ -722,9 +770,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'agent',
     icon: '⊘',
     color: '#ff0040',
-    description: 'Terminate running agent',
+    description: 'Terminate running agent - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'agent_id', label: 'Agent ID', type: 'string', required: true },
       { name: 'force', label: 'Force Kill', type: 'boolean', default: false },
@@ -742,11 +794,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '⚠',
     color: '#f59e0b',
-    description: 'Lookup CVE information from NVD database',
+    description: 'Lookup CVE information from NVD database - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'found', type: 'output', label: 'Found' },
-      { id: 'not_found', type: 'output', label: 'Not Found' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'cve_id', label: 'CVE ID', type: 'string', placeholder: 'CVE-2023-1234' },
@@ -762,11 +815,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '⚡',
     color: '#f59e0b',
-    description: 'Get available exploit modules for a CVE',
+    description: 'Get available exploit modules for a CVE - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'found', type: 'output', label: 'Exploits Found' },
-      { id: 'not_found', type: 'output', label: 'No Exploits' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'cve_id', label: 'CVE ID', type: 'string', required: true, placeholder: 'CVE-2023-1234' },
@@ -779,11 +833,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'agent',
     icon: '⚔',
     color: '#ff0040',
-    description: 'Execute an exploit against a target',
+    description: 'Execute an exploit against a target - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'success', type: 'output', label: 'Success' },
-      { id: 'failure', type: 'output', label: 'Failure' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'target_ip', label: 'Target IP', type: 'string', required: true },
@@ -806,9 +861,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '▤',
     color: '#f59e0b',
-    description: 'Get list of discovered assets',
+    description: 'Get list of discovered assets - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [
       { name: 'search', label: 'Search', type: 'string', placeholder: 'Filter by IP or hostname' },
       { name: 'asset_type', label: 'Asset Type', type: 'select', options: [
@@ -836,11 +895,12 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '◉',
     color: '#f59e0b',
-    description: 'Get details of a specific asset',
+    description: 'Get details of a specific asset - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
     outputs: [
-      { id: 'found', type: 'output', label: 'Found' },
-      { id: 'not_found', type: 'output', label: 'Not Found' },
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
     ],
     parameters: [
       { name: 'asset_id', label: 'Asset ID', type: 'string', required: true },
@@ -853,11 +913,194 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'scanning',
     icon: '◊',
     color: '#f59e0b',
-    description: 'Get asset statistics',
+    description: 'Get asset statistics - outputs pass/fail/output',
     inputs: [{ id: 'in', type: 'input', label: 'Input' }],
-    outputs: [{ id: 'out', type: 'output', label: 'Output' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'out', type: 'output', label: 'Output' },
+    ],
     parameters: [],
     api: { method: 'GET', endpoint: '/api/v1/assets/stats' },
+  },
+
+  // ============================================
+  // === Data Processing Blocks (4 blocks) ===
+  // === 3-Output Model: pass/fail/output ===
+  // ============================================
+  {
+    type: 'data.code',
+    label: 'Code Block',
+    category: 'data',
+    icon: '⟐',
+    color: '#14b8a6',
+    description: 'JavaScript code for custom pass/fail logic and output transformation. Uses 3-output model: pass, fail, output.',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'output', type: 'output', label: 'Output' },
+    ],
+    parameters: [
+      { name: 'description', label: 'Description', type: 'string', placeholder: 'What does this code block do?' },
+      { 
+        name: 'passCode', 
+        label: 'Pass Condition (JavaScript)', 
+        type: 'textarea', 
+        required: true,
+        placeholder: '// Return true/false\nreturn /Ring is OK/i.test(context.input);',
+        description: 'JavaScript code that returns boolean. Input available as context.input',
+      },
+      { 
+        name: 'failCode', 
+        label: 'Fail Condition (optional)', 
+        type: 'textarea', 
+        placeholder: '// Optional: defaults to !pass\nreturn /Error|Failed/i.test(context.input);',
+        description: 'Optional: If not set, fail = !pass',
+      },
+      { 
+        name: 'outputCode', 
+        label: 'Output Transformation (JavaScript)', 
+        type: 'textarea', 
+        required: true,
+        placeholder: '// Return value for next block\nreturn { status: "OK", data: context.input };',
+        description: 'JavaScript code that returns the output value for the next block',
+      },
+    ],
+    hasPassFailOutputs: true,
+    api: { method: 'POST', endpoint: '/api/v1/workflows/block/code' },
+  },
+  {
+    type: 'data.output_interpreter',
+    label: 'Output Interpreter',
+    category: 'data',
+    icon: '⟑',
+    color: '#14b8a6',
+    description: 'Parse and interpret output from previous block using declarative rules. Determines pass/fail without writing code.',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+      { id: 'output', type: 'output', label: 'Output' },
+    ],
+    parameters: [
+      { name: 'inputSource', label: 'Input Source', type: 'string', default: '{{previous.output}}', placeholder: '{{previous.rawOutput}}' },
+      { 
+        name: 'aggregation', 
+        label: 'Rule Aggregation', 
+        type: 'select', 
+        default: 'all',
+        options: [
+          { label: 'All must pass', value: 'all' },
+          { label: 'Any must pass', value: 'any' },
+          { label: 'Weighted score', value: 'weighted' },
+        ],
+      },
+      { 
+        name: 'containsPass', 
+        label: 'Must Contain (Pass)', 
+        type: 'string', 
+        placeholder: 'Ring is OK',
+        description: 'Text that must be present in output to pass',
+      },
+      { 
+        name: 'notContainsFail', 
+        label: 'Must Not Contain (Fail)', 
+        type: 'string', 
+        placeholder: 'Error|Failed',
+        description: 'Text that must NOT be present (regex supported)',
+      },
+      { 
+        name: 'regexPattern', 
+        label: 'Regex Pattern', 
+        type: 'string', 
+        placeholder: '\\d+ ports? in segment',
+        description: 'Optional regex that must match for pass',
+      },
+      { 
+        name: 'extractVariable', 
+        label: 'Extract Variable', 
+        type: 'string', 
+        placeholder: 'portCount',
+        description: 'Variable name to store extracted value',
+      },
+      { 
+        name: 'extractPattern', 
+        label: 'Extract Pattern (Regex)', 
+        type: 'string', 
+        placeholder: '(\\d+) ports',
+        description: 'Regex with capture group for extraction',
+      },
+    ],
+    hasPassFailOutputs: true,
+    api: { method: 'POST', endpoint: '/api/v1/workflows/block/interpreter' },
+  },
+  {
+    type: 'data.assertion',
+    label: 'Assertion',
+    category: 'data',
+    icon: '✓',
+    color: '#14b8a6',
+    description: 'Simple pass/fail assertion based on a condition. Use for explicit workflow checkpoints.',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'fail', type: 'output', label: 'Fail' },
+    ],
+    parameters: [
+      { name: 'name', label: 'Assertion Name', type: 'string', required: true, placeholder: 'Check ring status' },
+      { 
+        name: 'condition', 
+        label: 'Condition Type', 
+        type: 'select', 
+        required: true,
+        options: [
+          { label: 'Contains', value: 'contains' },
+          { label: 'Not Contains', value: 'not_contains' },
+          { label: 'Equals', value: 'equals' },
+          { label: 'Regex Match', value: 'regex' },
+          { label: 'Expression', value: 'expression' },
+        ],
+      },
+      { name: 'value', label: 'Expected Value', type: 'string', required: true, placeholder: 'Ring is OK' },
+      { name: 'failMessage', label: 'Failure Message', type: 'string', placeholder: 'Ring status check failed!' },
+    ],
+    hasPassFailOutputs: true,
+    api: { method: 'POST', endpoint: '/api/v1/workflows/block/assertion' },
+  },
+  {
+    type: 'data.transform',
+    label: 'Transform',
+    category: 'data',
+    icon: '↹',
+    color: '#14b8a6',
+    description: 'Transform input data using a template or expression. Always passes, outputs transformed data.',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'pass', type: 'output', label: 'Pass' },
+      { id: 'output', type: 'output', label: 'Output' },
+    ],
+    parameters: [
+      { 
+        name: 'transformType', 
+        label: 'Transform Type', 
+        type: 'select', 
+        required: true,
+        options: [
+          { label: 'JSON Parse', value: 'json_parse' },
+          { label: 'JSON Stringify', value: 'json_stringify' },
+          { label: 'Extract Field', value: 'extract_field' },
+          { label: 'Template', value: 'template' },
+          { label: 'Split Lines', value: 'split_lines' },
+          { label: 'Filter Array', value: 'filter_array' },
+        ],
+      },
+      { name: 'field', label: 'Field Path', type: 'string', placeholder: 'data.results[0].value' },
+      { name: 'template', label: 'Template', type: 'textarea', placeholder: '{"status": "{{input.status}}", "count": {{input.count}}}' },
+      { name: 'filterExpression', label: 'Filter Expression', type: 'string', placeholder: 'item.active === true' },
+    ],
+    hasPassFailOutputs: true,
+    api: { method: 'POST', endpoint: '/api/v1/workflows/block/transform' },
   },
 ];
 
@@ -873,7 +1116,7 @@ export function getBlocksByCategory(category: BlockCategory): BlockDefinition[] 
 
 // Get all categories
 export function getAllCategories(): BlockCategory[] {
-  return ['control', 'connection', 'command', 'traffic', 'scanning', 'agent'];
+  return ['control', 'connection', 'command', 'traffic', 'scanning', 'agent', 'data'];
 }
 
 // Get block count by category

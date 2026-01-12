@@ -18,14 +18,15 @@ interface FlowTemplate {
 }
 
 // Practical automation flow templates based on real use cases
+// Updated with 3-OUTPUT MODEL: Every block can produce pass, fail, output
 const TEMPLATES: FlowTemplate[] = [
   // ============================================================================
-  // TRAFFIC DOMAIN FLOWS
+  // TRAFFIC DOMAIN FLOWS (with Code Blocks for output interpretation)
   // ============================================================================
   {
     id: 'multi-host-ping-monitor',
     name: 'Multi-Host Ping Monitor',
-    description: 'Ping multiple hosts and collect reachability results',
+    description: 'Ping multiple hosts and collect reachability results with pass/fail interpretation',
     category: 'traffic',
     icon: '≋',
     nodes: [
@@ -33,7 +34,12 @@ const TEMPLATES: FlowTemplate[] = [
       { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Define Hosts', type: 'control.variable_set', category: 'control', parameters: { name: 'hosts', value: '["192.168.1.1", "192.168.1.2", "192.168.1.3"]' } } },
       { type: 'block', position: { x: 100, y: 250 }, data: { label: 'For Each Host', type: 'control.loop', category: 'control', parameters: { mode: 'array', array: '{{hosts}}', variable: 'host' } } },
       { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Ping Host', type: 'traffic.ping', category: 'traffic', parameters: { host: '{{item}}', count: 3, timeout: 5 } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'Log Result', type: 'control.delay', category: 'control', parameters: { seconds: 1 } } },
+      { type: 'block', position: { x: 250, y: 350 }, data: { label: 'Parse Ping Result', type: 'data.code', category: 'data', parameters: { 
+        description: 'Interpret ping result and determine pass/fail',
+        passCode: 'return context.input && context.input.success === true && context.input.latency < 1000;',
+        failCode: 'return context.input && (context.input.success === false || context.input.latency > 5000);',
+        outputCode: 'return { host: context.variables.host, reachable: context.input?.success || false, latencyMs: context.input?.latency || null, status: context.input?.success ? "UP" : "DOWN" };'
+      } } },
       { type: 'block', position: { x: 100, y: 550 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
     ],
     edges: [
@@ -41,7 +47,7 @@ const TEMPLATES: FlowTemplate[] = [
       { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
       { source: '3', target: '4', sourceHandle: 'iteration', targetHandle: 'in' },
       { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '5', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '5', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
       { source: '3', target: '6', sourceHandle: 'complete', targetHandle: 'in' },
     ],
   },
@@ -97,26 +103,37 @@ const TEMPLATES: FlowTemplate[] = [
   {
     id: 'security-scan-pipeline',
     name: 'Security Scan Pipeline',
-    description: 'Port scan → Version detect → Vulnerability check',
+    description: 'Port scan → Version detect → Vulnerability check with Code Block to interpret results',
     category: 'scanning',
     icon: '◈',
     nodes: [
       { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: {} } },
       { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Target', type: 'control.variable_set', category: 'control', parameters: { name: 'target', value: '192.168.1.100' } } },
       { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Port Scan', type: 'scanning.port_scan', category: 'scanning', parameters: { host: '{{target}}', ports: '1-1000' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Has Open Ports?', type: 'control.condition', category: 'control', parameters: { expression: '{{$prev.ports.length > 0}}' } } },
+      { type: 'block', position: { x: 280, y: 250 }, data: { label: 'Parse Ports', type: 'data.code', category: 'data', parameters: { 
+        description: 'Check if open ports were found',
+        passCode: 'return context.input && context.input.ports && context.input.ports.length > 0;',
+        outputCode: 'return { openPorts: context.input?.ports || [], portCount: context.input?.ports?.length || 0, hasSSH: context.input?.ports?.includes(22), hasHTTP: context.input?.ports?.includes(80) || context.input?.ports?.includes(443) };'
+      } } },
       { type: 'block', position: { x: 50, y: 450 }, data: { label: 'Version Detection', type: 'scanning.version_detect', category: 'scanning', parameters: { host: '{{target}}' } } },
-      { type: 'block', position: { x: 250, y: 450 }, data: { label: 'No Services Found', type: 'control.delay', category: 'control', parameters: { seconds: 1 } } },
-      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
+      { type: 'block', position: { x: 280, y: 450 }, data: { label: 'Parse Services', type: 'data.code', category: 'data', parameters: { 
+        description: 'Check detected services for vulnerabilities',
+        passCode: 'const services = context.input?.services || []; return services.length > 0;',
+        failCode: 'return context.input?.error !== undefined;',
+        outputCode: 'const services = context.input?.services || []; return { serviceCount: services.length, services: services.map(s => s.name + " " + s.version).join(", "), hasVulnerable: services.some(s => s.vulnerable) };'
+      } } },
+      { type: 'block', position: { x: 250, y: 550 }, data: { label: 'No Services Found', type: 'control.delay', category: 'control', parameters: { seconds: 1 } } },
+      { type: 'block', position: { x: 100, y: 650 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
     ],
     edges: [
       { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
       { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
       { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'true', targetHandle: 'in' },
-      { source: '4', target: '6', sourceHandle: 'false', targetHandle: 'in' },
-      { source: '5', target: '7', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '6', target: '7', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '7', sourceHandle: 'fail', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '6', target: '8', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '7', target: '8', sourceHandle: 'out', targetHandle: 'in' },
     ],
   },
 
@@ -144,9 +161,9 @@ const TEMPLATES: FlowTemplate[] = [
       { source: '3', target: '4', sourceHandle: 'iteration', targetHandle: 'in' },
       { source: '3', target: '5', sourceHandle: 'iteration', targetHandle: 'in' },
       { source: '3', target: '6', sourceHandle: 'iteration', targetHandle: 'in' },
-      { source: '4', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '5', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '6', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '4', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
       { source: '3', target: '7', sourceHandle: 'complete', targetHandle: 'in' },
     ],
   },
@@ -166,16 +183,16 @@ const TEMPLATES: FlowTemplate[] = [
     ],
     edges: [
       { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'success', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '5', target: '6', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
     ],
   },
   {
     id: 'rep-ring-test',
     name: 'REP Ring Failover Test',
-    description: 'Test switch redundancy by disabling/enabling ports',
+    description: 'Test switch redundancy with Code Block to parse "show rep topology" output and determine pass/fail',
     category: 'access',
     icon: '◎',
     nodes: [
@@ -185,20 +202,27 @@ const TEMPLATES: FlowTemplate[] = [
       { type: 'block', position: { x: 100, y: 350 }, data: { label: 'SSH Connect', type: 'connection.ssh_test', category: 'connection', parameters: { host: '{{item}}', port: 22 } } },
       { type: 'block', position: { x: 100, y: 450 }, data: { label: 'Shutdown Port', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'conf t; int Gi0/1; shutdown; end' } } },
       { type: 'block', position: { x: 100, y: 550 }, data: { label: 'Wait 10s', type: 'control.delay', category: 'control', parameters: { seconds: 10 } } },
-      { type: 'block', position: { x: 100, y: 650 }, data: { label: 'Check REP Status', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'show rep topology' } } },
-      { type: 'block', position: { x: 100, y: 750 }, data: { label: 'Enable Port', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'conf t; int Gi0/1; no shutdown; end' } } },
-      { type: 'block', position: { x: 100, y: 850 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
+      { type: 'block', position: { x: 100, y: 650 }, data: { label: 'Show REP Status', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'show rep topology' } } },
+      { type: 'block', position: { x: 280, y: 650 }, data: { label: 'Parse REP Status', type: 'data.code', category: 'data', parameters: { 
+        description: 'Parse REP ring output to determine if ring is OK',
+        passCode: '// Check if ring status is OK\nconst output = context.input;\nreturn /Ring is OK/i.test(output);',
+        failCode: '// Fail if we see error messages\nconst output = context.input;\nreturn /Error|Failed|Ring is Down/i.test(output);',
+        outputCode: '// Extract ring status and port count\nconst output = context.input;\nconst portMatch = output.match(/(\\d+) ports? in segment/);\nconst ringOK = /Ring is OK/i.test(output);\nreturn {\n  ringStatus: ringOK ? "OK" : "FAILED",\n  portCount: portMatch ? parseInt(portMatch[1]) : 0,\n  rawOutput: output,\n  timestamp: new Date().toISOString()\n};'
+      } } },
+      { type: 'block', position: { x: 100, y: 850 }, data: { label: 'Enable Port', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'conf t; int Gi0/1; no shutdown; end' } } },
+      { type: 'block', position: { x: 100, y: 950 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
     ],
     edges: [
       { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
       { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
       { source: '3', target: '4', sourceHandle: 'iteration', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'success', targetHandle: 'in' },
-      { source: '5', target: '6', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
       { source: '6', target: '7', sourceHandle: 'out', targetHandle: 'in' },
       { source: '7', target: '8', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '8', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '9', sourceHandle: 'complete', targetHandle: 'in' },
+      { source: '8', target: '9', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '9', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '3', target: '10', sourceHandle: 'complete', targetHandle: 'in' },
     ],
   },
 
@@ -260,6 +284,141 @@ const TEMPLATES: FlowTemplate[] = [
       { source: '5', target: '7', sourceHandle: 'complete', targetHandle: 'in' },
     ],
   },
+
+  // ============================================================================
+  // DATA PROCESSING FLOWS (using new 3-output blocks)
+  // ============================================================================
+  {
+    id: 'service-health-check-with-assertions',
+    name: 'Service Health Check (Assertions)',
+    description: 'Check service health using Output Interpreter for pass/fail',
+    category: 'utility',
+    icon: '✓',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: {} } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Target', type: 'control.variable_set', category: 'control', parameters: { name: 'target', value: '192.168.1.100' } } },
+      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Get System Info', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{target}}', command: 'systemctl status nginx && df -h && free -m' } } },
+      { type: 'block', position: { x: 100, y: 350 }, data: { 
+        label: 'Check Nginx Running', 
+        type: 'data.output_interpreter', 
+        category: 'data', 
+        parameters: { 
+          inputSource: '{{previous.output}}',
+          aggregation: 'all',
+          containsPass: 'active (running)',
+          notContainsFail: 'inactive|failed|dead',
+          extractVariable: 'nginxStatus',
+          extractPattern: 'Active: (.+)'
+        } 
+      } },
+      { type: 'block', position: { x: 100, y: 450 }, data: { 
+        label: 'Assert Disk OK', 
+        type: 'data.assertion', 
+        category: 'data', 
+        parameters: { 
+          name: 'Disk Space Check',
+          condition: 'not_contains',
+          value: '100%',
+          failMessage: 'Disk is full!'
+        } 
+      } },
+      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+  {
+    id: 'network-device-config-audit',
+    name: 'Network Config Audit (Code Block)',
+    description: 'Audit network device configs with JavaScript parsing',
+    category: 'scanning',
+    icon: '⟐',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: {} } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Define Devices', type: 'control.variable_set', category: 'control', parameters: { name: 'devices', value: '["switch1", "switch2", "router1"]' } } },
+      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'For Each Device', type: 'control.loop', category: 'control', parameters: { mode: 'array', array: '{{devices}}', variable: 'device' } } },
+      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Get Running Config', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{item}}', command: 'show running-config' } } },
+      { type: 'block', position: { x: 100, y: 450 }, data: { 
+        label: 'Audit Config', 
+        type: 'data.code', 
+        category: 'data', 
+        parameters: { 
+          description: 'Check for security issues in running config',
+          passCode: `// Check for common security issues
+const config = context.input;
+const hasPasswordEncryption = /service password-encryption/i.test(config);
+const hasSSHv2 = /ip ssh version 2/i.test(config);
+const noTelnet = !/line vty.*transport input telnet/i.test(config);
+return hasPasswordEncryption && hasSSHv2 && noTelnet;`,
+          outputCode: `// Extract security audit results
+const config = context.input;
+return {
+  device: context.variables.device,
+  passwordEncryption: /service password-encryption/i.test(config),
+  sshv2: /ip ssh version 2/i.test(config),
+  telnetDisabled: !/line vty.*transport input telnet/i.test(config),
+  aclCount: (config.match(/access-list/g) || []).length,
+  timestamp: new Date().toISOString()
+};`
+        } 
+      } },
+      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'iteration', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '5', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '6', sourceHandle: 'complete', targetHandle: 'in' },
+    ],
+  },
+  {
+    id: 'data-transform-pipeline',
+    name: 'Data Transform Pipeline',
+    description: 'Transform and filter data between blocks',
+    category: 'utility',
+    icon: '↹',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: {} } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Get Assets', type: 'asset.list_assets', category: 'scanning', parameters: { status: 'online' } } },
+      { type: 'block', position: { x: 100, y: 250 }, data: { 
+        label: 'Filter Linux Only', 
+        type: 'data.transform', 
+        category: 'data', 
+        parameters: { 
+          transformType: 'filter_array',
+          filterExpression: 'item.os && item.os.toLowerCase().includes("linux")'
+        } 
+      } },
+      { type: 'block', position: { x: 100, y: 350 }, data: { 
+        label: 'Extract IPs', 
+        type: 'data.code', 
+        category: 'data', 
+        parameters: { 
+          passCode: 'return context.input.length > 0;',
+          outputCode: 'return context.input.map(asset => asset.ip_address);'
+        } 
+      } },
+      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'For Each IP', type: 'control.loop', category: 'control', parameters: { mode: 'array', array: '{{$prev.output}}', variable: 'ip' } } },
+      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'Ping', type: 'traffic.ping', category: 'traffic', parameters: { host: '{{item}}', count: 2 } } },
+      { type: 'block', position: { x: 100, y: 650 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'iteration', targetHandle: 'in' },
+      { source: '6', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '7', sourceHandle: 'complete', targetHandle: 'in' },
+    ],
+  },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -268,6 +427,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   traffic: 'border-cyber-purple bg-cyber-purple/10',
   agent: 'border-cyber-red bg-cyber-red/10',
   utility: 'border-cyber-gray bg-cyber-gray/10',
+  data: 'border-teal-400 bg-teal-400/10',
 };
 
 interface FlowTemplatesProps {
@@ -406,7 +566,7 @@ const FlowTemplates: React.FC<FlowTemplatesProps> = ({ isOpen, onClose, onInsert
 
       {/* Filter tabs */}
       <div className="p-2 border-b border-cyber-gray flex flex-wrap gap-1">
-        {['all', 'scanning', 'access', 'traffic', 'agent'].map(cat => (
+        {['all', 'scanning', 'access', 'traffic', 'agent', 'utility'].map(cat => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}

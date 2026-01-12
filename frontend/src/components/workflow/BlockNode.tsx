@@ -27,6 +27,12 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
   const executionStatus = (data as any).executionStatus as NodeExecutionStatus | undefined;
   const statusColor = executionStatus ? statusColors[executionStatus] : null;
 
+  // Calculate block height based on number of handles
+  const numOutputs = definition?.outputs?.length || 1;
+  const numInputs = definition?.inputs?.length || 1;
+  const maxHandles = Math.max(numOutputs, numInputs);
+  const minBlockHeight = Math.max(80, 40 + (maxHandles * 18));
+
   return (
     <div
       className={`
@@ -35,6 +41,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
         ${selected ? 'ring-2 ring-cyber-purple ring-offset-2 ring-offset-cyber-black scale-105 z-50' : ''}
       `}
       style={{ 
+        minHeight: `${minBlockHeight}px`,
         borderWidth: selected ? '2px' : '1px',
         borderStyle: 'solid',
         borderColor: selected ? '#a855f7' : (statusColor || categoryColor),

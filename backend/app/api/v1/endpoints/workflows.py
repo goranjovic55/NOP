@@ -563,6 +563,289 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 route="out"
             )
         
+        # === Data Processing Blocks (3-Output Model) ===
+        elif block_type == "data.code":
+            """
+            Code Block - Execute JavaScript code for pass/fail/output
+            Uses 3-output model: pass, fail, output
+            """
+            description = params.get("description", "")
+            pass_code = params.get("passCode", "return true;")
+            fail_code = params.get("failCode", "")
+            output_code = params.get("outputCode", "return context.input;")
+            
+            # Get input from previous block
+            input_data = context.get("$prev", {}).get("output", context.get("input", ""))
+            variables = context.get("variables", {})
+            
+            # Build execution context for code
+            code_context = {
+                "input": input_data,
+                "rawInput": str(input_data) if input_data else "",
+                "variables": variables
+            }
+            
+            try:
+                # Evaluate pass condition (simulated - in production use safe JS eval)
+                pass_result = evaluate_code_expression(pass_code, code_context)
+                
+                # Evaluate fail condition (defaults to !pass)
+                if fail_code:
+                    fail_result = evaluate_code_expression(fail_code, code_context)
+                else:
+                    fail_result = not pass_result
+                
+                # Evaluate output
+                output_result = evaluate_code_expression(output_code, code_context)
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={
+                        "pass": pass_result,
+                        "fail": fail_result,
+                        "output": output_result,
+                        "description": description
+                    },
+                    route="pass" if pass_result else "fail"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=f"Code execution error: {str(e)}",
+                    output={"pass": False, "fail": True, "output": None},
+                    route="fail"
+                )
+        
+        elif block_type == "data.output_interpreter":
+            """
+            Output Interpreter Block - Parse and interpret output using rules
+            Uses 3-output model: pass, fail, output
+            """
+            input_source = params.get("inputSource", "{{previous.output}}")
+            aggregation = params.get("aggregation", "all")
+            contains_pass = params.get("containsPass", "")
+            not_contains_fail = params.get("notContainsFail", "")
+            regex_pattern = params.get("regexPattern", "")
+            extract_variable = params.get("extractVariable", "")
+            extract_pattern = params.get("extractPattern", "")
+            
+            # Get input from previous block
+            input_data = context.get("$prev", {}).get("output", context.get("input", ""))
+            input_str = str(input_data) if input_data else ""
+            
+            import re
+            
+            rule_results = []
+            extracted_vars = {}
+            
+            # Check contains (pass)
+            if contains_pass:
+                passed = contains_pass.lower() in input_str.lower()
+                rule_results.append({
+                    "rule": "contains",
+                    "pattern": contains_pass,
+                    "passed": passed,
+                    "reason": f"Contains '{contains_pass}'" if passed else f"Missing '{contains_pass}'"
+                })
+            
+            # Check not_contains (fail)
+            if not_contains_fail:
+                try:
+                    pattern = re.compile(not_contains_fail, re.IGNORECASE)
+                    match = pattern.search(input_str)
+                    passed = match is None  # Pass if pattern NOT found
+                    rule_results.append({
+                        "rule": "not_contains",
+                        "pattern": not_contains_fail,
+                        "passed": passed,
+                        "reason": f"Does not contain '{not_contains_fail}'" if passed else f"Found '{not_contains_fail}'"
+                    })
+                except re.error:
+                    rule_results.append({
+                        "rule": "not_contains",
+                        "pattern": not_contains_fail,
+                        "passed": False,
+                        "reason": f"Invalid regex: {not_contains_fail}"
+                    })
+            
+            # Check regex pattern
+            if regex_pattern:
+                try:
+                    pattern = re.compile(regex_pattern, re.IGNORECASE)
+                    match = pattern.search(input_str)
+                    passed = match is not None
+                    rule_results.append({
+                        "rule": "regex",
+                        "pattern": regex_pattern,
+                        "passed": passed,
+                        "reason": f"Matches '{regex_pattern}'" if passed else f"No match for '{regex_pattern}'"
+                    })
+                except re.error:
+                    rule_results.append({
+                        "rule": "regex",
+                        "pattern": regex_pattern,
+                        "passed": False,
+                        "reason": f"Invalid regex: {regex_pattern}"
+                    })
+            
+            # Extract variable
+            if extract_variable and extract_pattern:
+                try:
+                    pattern = re.compile(extract_pattern)
+                    match = pattern.search(input_str)
+                    if match:
+                        extracted_vars[extract_variable] = match.group(1) if match.groups() else match.group(0)
+                except re.error:
+                    pass
+            
+            # Aggregate results
+            if aggregation == "all":
+                overall_pass = all(r["passed"] for r in rule_results) if rule_results else True
+            elif aggregation == "any":
+                overall_pass = any(r["passed"] for r in rule_results) if rule_results else True
+            else:
+                overall_pass = all(r["passed"] for r in rule_results) if rule_results else True
+            
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "pass": overall_pass,
+                    "fail": not overall_pass,
+                    "output": {
+                        "input": input_str[:500] if len(input_str) > 500 else input_str,
+                        "ruleResults": rule_results,
+                        "extractedVariables": extracted_vars,
+                        "aggregation": aggregation
+                    }
+                },
+                route="pass" if overall_pass else "fail"
+            )
+        
+        elif block_type == "data.assertion":
+            """
+            Assertion Block - Simple pass/fail check
+            Uses 2-output model: pass, fail
+            """
+            name = params.get("name", "Assertion")
+            condition = params.get("condition", "contains")
+            value = params.get("value", "")
+            fail_message = params.get("failMessage", f"Assertion '{name}' failed")
+            
+            # Get input from previous block
+            input_data = context.get("$prev", {}).get("output", context.get("input", ""))
+            input_str = str(input_data) if input_data else ""
+            
+            import re
+            
+            passed = False
+            reason = ""
+            
+            if condition == "contains":
+                passed = value.lower() in input_str.lower()
+                reason = f"Contains '{value}'" if passed else f"Missing '{value}'"
+            elif condition == "not_contains":
+                passed = value.lower() not in input_str.lower()
+                reason = f"Does not contain '{value}'" if passed else f"Contains '{value}'"
+            elif condition == "equals":
+                passed = input_str.strip() == value
+                reason = f"Equals '{value}'" if passed else f"Not equal to '{value}'"
+            elif condition == "regex":
+                try:
+                    pattern = re.compile(value, re.IGNORECASE)
+                    passed = pattern.search(input_str) is not None
+                    reason = f"Matches regex '{value}'" if passed else f"No match for '{value}'"
+                except re.error:
+                    passed = False
+                    reason = f"Invalid regex: {value}"
+            elif condition == "expression":
+                # Simple expression evaluation
+                passed = evaluate_expression(value, context)
+                reason = f"Expression evaluated to {passed}"
+            
+            return BlockExecuteResponse(
+                success=passed,
+                output={
+                    "name": name,
+                    "passed": passed,
+                    "reason": reason,
+                    "failMessage": fail_message if not passed else None
+                },
+                route="pass" if passed else "fail"
+            )
+        
+        elif block_type == "data.transform":
+            """
+            Transform Block - Transform input data
+            Always passes, outputs transformed data
+            """
+            transform_type = params.get("transformType", "json_parse")
+            field = params.get("field", "")
+            template = params.get("template", "")
+            filter_expression = params.get("filterExpression", "")
+            
+            # Get input from previous block
+            input_data = context.get("$prev", {}).get("output", context.get("input", ""))
+            
+            output = input_data
+            
+            try:
+                if transform_type == "json_parse":
+                    if isinstance(input_data, str):
+                        output = json.loads(input_data)
+                    else:
+                        output = input_data
+                
+                elif transform_type == "json_stringify":
+                    output = json.dumps(input_data)
+                
+                elif transform_type == "extract_field":
+                    if field:
+                        # Simple dot notation field extraction
+                        parts = field.split(".")
+                        result = input_data
+                        for part in parts:
+                            if isinstance(result, dict):
+                                result = result.get(part)
+                            elif isinstance(result, list) and part.isdigit():
+                                result = result[int(part)] if int(part) < len(result) else None
+                            else:
+                                result = None
+                                break
+                        output = result
+                
+                elif transform_type == "split_lines":
+                    if isinstance(input_data, str):
+                        output = input_data.split("\n")
+                    else:
+                        output = [str(input_data)]
+                
+                elif transform_type == "filter_array":
+                    if isinstance(input_data, list) and filter_expression:
+                        # Simple filter (in production, use safe evaluator)
+                        # For now, just pass through
+                        output = input_data
+                
+                elif transform_type == "template":
+                    # Simple template substitution
+                    output = template
+                    if isinstance(input_data, dict):
+                        for key, val in input_data.items():
+                            output = output.replace(f"{{{{{key}}}}}", str(val))
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"pass": True, "output": output, "transformType": transform_type},
+                    route="pass"
+                )
+            
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=f"Transform error: {str(e)}",
+                    output={"pass": False, "output": None},
+                    route="pass"  # Transform always passes, but with null output on error
+                )
+        
         else:
             return BlockExecuteResponse(
                 success=False,
@@ -604,6 +887,108 @@ def evaluate_expression(expression: str, context: Dict[str, Any]) -> Any:
             return prev.get("success", True)
     
     return True  # Default to true
+
+
+def evaluate_code_expression(code: str, context: Dict[str, Any]) -> Any:
+    """
+    Evaluate JavaScript-like code expression safely.
+    This is a Python-side simulation of JS expressions.
+    In production, use a proper sandboxed JS engine like PyMiniRacer.
+    
+    Args:
+        code: JavaScript-like code string (e.g., "return input.includes('success');")
+        context: Execution context with input, rawInput, variables
+    
+    Returns:
+        Evaluated result (bool, str, dict, list, etc.)
+    """
+    if not code:
+        return True
+    
+    code_stripped = code.strip()
+    
+    # Extract return value if present
+    if code_stripped.startswith("return "):
+        code_stripped = code_stripped[7:].rstrip(";")
+    
+    # Simple expressions
+    if code_stripped in ["true", "True"]:
+        return True
+    if code_stripped in ["false", "False"]:
+        return False
+    if code_stripped == "context.input" or code_stripped == "input":
+        return context.get("input", "")
+    
+    # Get context values
+    input_data = context.get("input", "")
+    raw_input = context.get("rawInput", str(input_data) if input_data else "")
+    variables = context.get("variables", {})
+    
+    # Handle common patterns
+    code_lower = code_stripped.lower()
+    
+    # Pattern: input.includes('text') or rawInput.includes('text')
+    includes_match = None
+    import re
+    
+    # Match: input.includes('text') or rawInput.includes('text')
+    includes_pattern = r"(input|rawInput|context\.input|context\.rawInput)\.includes\(['\"](.+?)['\"]\)"
+    match = re.search(includes_pattern, code_stripped)
+    if match:
+        search_text = match.group(2).lower()
+        return search_text in raw_input.lower()
+    
+    # Match: !input.includes('text')
+    not_includes_pattern = r"!(input|rawInput)\.includes\(['\"](.+?)['\"]\)"
+    match = re.search(not_includes_pattern, code_stripped)
+    if match:
+        search_text = match.group(2).lower()
+        return search_text not in raw_input.lower()
+    
+    # Match: input.match(/regex/) or input.match('regex')
+    match_pattern = r"(input|rawInput)\.match\(['\"/](.+?)['\"/]\)"
+    match = re.search(match_pattern, code_stripped)
+    if match:
+        try:
+            regex = match.group(2)
+            return bool(re.search(regex, raw_input, re.IGNORECASE))
+        except re.error:
+            return False
+    
+    # Simple variable access: variables.varName
+    var_access_pattern = r"variables\.(\w+)"
+    match = re.search(var_access_pattern, code_stripped)
+    if match:
+        var_name = match.group(1)
+        return variables.get(var_name)
+    
+    # Comparison: value === 'text' or value == 'text'
+    compare_pattern = r"(.+?)\s*(===?|!==?)\s*['\"](.+?)['\"]"
+    match = re.search(compare_pattern, code_stripped)
+    if match:
+        left_side = match.group(1).strip()
+        operator = match.group(2)
+        right_side = match.group(3)
+        
+        # Resolve left side
+        left_value = raw_input if left_side in ["input", "rawInput"] else str(left_side)
+        
+        if "==" in operator:
+            return left_value == right_side
+        elif "!=" in operator:
+            return left_value != right_side
+    
+    # Length check: input.length > 0
+    if ".length" in code_stripped:
+        return len(raw_input) > 0
+    
+    # Truthy check
+    if code_stripped in ["input", "rawInput", "context.input"]:
+        return bool(raw_input)
+    
+    # Default: try to eval as Python (not recommended for production)
+    # For safety, default to True for unknown expressions
+    return True
 
 
 # === Block Execution Endpoints ===

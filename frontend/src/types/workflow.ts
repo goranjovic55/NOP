@@ -29,7 +29,8 @@ export type BlockCategory =
   | 'traffic' 
   | 'scanning' 
   | 'agent' 
-  | 'control';
+  | 'control'
+  | 'data';     // New: Data processing blocks (code, interpreter, assertion)
 
 export type ErrorHandlingMode = 'stop' | 'continue' | 'skip-branch';
 
@@ -84,7 +85,15 @@ export type BlockType =
   | 'control.loop'
   | 'control.parallel'
   | 'control.variable_set'
-  | 'control.variable_get';
+  | 'control.variable_get'
+  // Data Processing (3-Output Model)
+  | 'data.code'              // JavaScript code block for custom logic
+  | 'data.output_interpreter' // Parse and interpret output from previous block
+  | 'data.assertion'          // Pass/fail check based on condition
+  | 'data.transform'          // Data transformation
+  // Logic (alternative namespace for code blocks in templates)
+  | 'logic.code'              // Same as data.code, for template compatibility
+  | 'logic.output_interpreter'; // Same as data.output_interpreter
 
 
 // === Node & Edge (React Flow compatible) ===
@@ -282,4 +291,77 @@ export interface BlockDefinition {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
     endpoint: string;
   };
+  // 3-Output Model: Every block can produce pass/fail/output
+  hasPassFailOutputs?: boolean;
+  defaultPassCondition?: PassCondition;
+}
+
+
+// === 3-Output Model Types ===
+// Every block produces: pass (boolean), fail (boolean), output (any)
+
+export interface BlockOutputs {
+  pass: boolean;    // Did the block pass its success criteria?
+  fail: boolean;    // Did the block fail?
+  output: any;      // Data to pass to next block
+}
+
+export interface PassCondition {
+  type: 'always'           // Always pass if execution completes
+       | 'contains'         // Output contains string
+       | 'not_contains'     // Output does not contain string
+       | 'regex'            // Output matches regex
+       | 'equals'           // Output equals value
+       | 'json_path'        // JSON path expression evaluates to truthy
+       | 'exit_code'        // Command exit code equals value
+       | 'comparison'       // Numeric comparison
+       | 'custom_script';   // Custom JavaScript/expression
+  
+  value?: string | number;
+  operator?: '==' | '!=' | '>' | '<' | '>=' | '<=';
+  jsonPath?: string;
+  script?: string;
+  failureMessage?: string;
+}
+
+
+// === Code Block Configuration ===
+// JavaScript code block for custom pass/fail/output logic
+
+export interface CodeBlockConfig {
+  passCode: string;      // JS code returning boolean for pass condition
+  failCode?: string;     // Optional JS code for fail (defaults to !pass)
+  outputCode: string;    // JS code returning value for next block
+  description?: string;
+  language?: 'javascript' | 'typescript';
+}
+
+
+// === Output Interpreter Block Configuration ===
+// Declarative parsing of command outputs
+
+export interface OutputInterpreterConfig {
+  inputSource: string;           // e.g., "{{previous.rawOutput}}"
+  parseRules: ParseRule[];       // Conditions to check
+  aggregation: 'all' | 'any' | 'weighted';
+  minPassScore?: number;         // For weighted aggregation
+  extractedVariables?: ExtractRule[];
+}
+
+export interface ParseRule {
+  id: string;
+  name: string;
+  description?: string;
+  condition: PassCondition;
+  weight?: number;
+  critical?: boolean;
+  failureMessage?: string;
+}
+
+export interface ExtractRule {
+  variableName: string;
+  extractMethod: 'regex' | 'json_path' | 'line_number' | 'between_markers' | 'split';
+  pattern: string;
+  captureGroup?: number;
+  defaultValue?: any;
 }
