@@ -1354,89 +1354,116 @@ def run_analyze() -> Dict[str, Any]:
 
 
 def run_update(dry_run: bool = False) -> Dict[str, Any]:
-    """Actually update knowledge based on current session."""
+    """Update knowledge by analyzing FULL codebase and merging with current session context.
+    
+    Unlike previous version that only looked at git diff files, this:
+    1. Analyzes full codebase to build complete entity graph
+    2. Rebuilds all relationships (imports, imported_by, etc.)
+    3. Populates domain_index properly
+    4. Generates gotchas from workflow logs
+    5. Boosts frecency for session-modified entities
+    """
     print("=" * 60)
-    print("AKIS Knowledge Update (Session Mode)")
+    print("AKIS Knowledge Update (Full Rebuild Mode)")
     print("=" * 60)
     
     root = Path.cwd()
     knowledge_path = root / 'project_knowledge.json'
     
-    # Get session files
+    # Get session files for frecency boost
     session_files = get_session_files()
-    print(f"\n📁 Session files: {len(session_files)}")
+    session_paths = set(session_files)
+    print(f"\n📁 Session files (frecency boost): {len(session_files)}")
     
-    # Load current knowledge
+    # Load current knowledge for comparison
     current = load_current_knowledge(root)
-    print(f"📚 Current knowledge entries: {len(current)}")
+    current_count = len(current.get('entities', [])) if current else 0
+    print(f"📚 Current knowledge entries: {current_count}")
     
-    # Analyze session files
+    # Analyze FULL codebase (not just session files)
+    print(f"\n🔍 Analyzing full codebase...")
     analyzer = CodeAnalyzer(root)
+    entities = analyzer.analyze_all()  # This builds bidirectional relationships
+    print(f"📊 Entities extracted: {len(entities)}")
+    print(f"📁 Files analyzed: {len(analyzer.files)}")
     
-    session_entities = []
-    for sf in session_files:
-        file_path = root / sf
-        if file_path.exists() and file_path.suffix == '.py':
-            entity = analyzer.analyze_python(file_path)
-            if entity:
-                session_entities.append(entity)
-        elif file_path.exists() and file_path.suffix in ('.ts', '.tsx'):
-            entity = analyzer.analyze_typescript(file_path)
-            if entity:
-                session_entities.append(entity)
+    # Read workflow logs for gotchas
+    workflow_dir = root / 'log' / 'workflow'
+    logs = read_workflow_logs(workflow_dir)
+    gotchas = extract_gotchas_from_logs(logs)
+    print(f"📂 Workflow logs: {len(logs)}")
+    print(f"⚠️ Gotchas extracted: {len(gotchas)}")
     
-    print(f"🔍 Session entities analyzed: {len(session_entities)}")
+    # Boost frecency for session-modified entities
+    for entity in entities:
+        if entity.path in session_paths:
+            entity.frecency_score += 10  # Boost for recent modification
     
-    # Build updates
-    updates = []
-    for entity in session_entities:
-        updates.append({
-            'name': entity.name,
-            'path': entity.path,
-            'type': entity.entity_type,
-            'exports': entity.exports[:5],
-            'updated_at': datetime.now().isoformat()
-        })
+    # Sort by frecency for hot_cache ranking
+    sorted_entities = sorted(entities, key=lambda e: e.frecency_score, reverse=True)
     
-    if not dry_run and updates:
-        # Actually update project_knowledge.json in JSONL format
-        knowledge = current if current else {
-            'version': '3.2',
-            'generated_at': datetime.now().isoformat(),
-            'hot_cache': {'top_entities': [], 'common_answers': [], 'quick_facts': []},
-            'domain_index': {'backend': [], 'frontend': []},
-            'gotchas': [],
-            'entities': []
-        }
-        
-        # Merge session entities into existing
-        existing_paths = {e.get('path') for e in knowledge.get('entities', [])}
-        for update in updates:
-            if update['path'] not in existing_paths:
-                knowledge.setdefault('entities', []).append(update)
-            else:
-                # Update existing entity
-                for i, e in enumerate(knowledge.get('entities', [])):
-                    if e.get('path') == update['path']:
-                        knowledge['entities'][i] = {**e, **update}
-                        break
-        
-        # Update hot_cache with recent entities
-        knowledge['hot_cache']['top_entities'] = [u['name'] for u in updates[:20]]
-        knowledge['last_updated'] = datetime.now().isoformat()
-        
+    # Build complete knowledge structure with relationships
+    knowledge = {
+        'version': '4.0',
+        'generated_at': datetime.now().isoformat(),
+        'hot_cache': {
+            'top_entities': [e.name for e in sorted_entities[:20]],
+            'common_answers': {},
+            'quick_facts': {
+                'total_entities': len(entities),
+                'backend_count': len([e for e in entities if e.domain == 'backend']),
+                'frontend_count': len([e for e in entities if e.domain == 'frontend']),
+                'total_relationships': sum(len(e.imported_by) for e in entities),
+            },
+        },
+        'domain_index': {
+            'backend': [e.path for e in entities if e.domain == 'backend'],
+            'frontend': [e.path for e in entities if e.domain == 'frontend'],
+        },
+        'gotchas': gotchas,
+        'entities': [
+            {
+                'name': e.name,
+                'type': e.entity_type,
+                'path': e.path,
+                'domain': e.domain,
+                'layer': e.layer,
+                'exports': e.exports[:10],
+                # Bidirectional relationships - CRITICAL for graph
+                'imports': e.imports[:15],
+                'imported_by': e.imported_by[:10],
+                'calls': e.calls[:10],
+                'called_by': e.called_by[:10],
+                'extends': e.extends,
+                'extended_by': e.extended_by[:5],
+                'frecency_score': e.frecency_score,
+                'details': getattr(e, 'details', {}),
+            }
+            for e in entities
+        ]
+    }
+    
+    if not dry_run:
         # Write as JSONL (one JSON object per line)
         write_knowledge_jsonl(knowledge_path, knowledge)
+        
+        # Count new entities
+        new_count = len(entities) - current_count
         print(f"\n✅ Knowledge updated (JSONL): {knowledge_path}")
-        print(f"   {len(updates)} entities merged")
-    elif dry_run:
-        print(f"\n🔍 Dry run - would update {len(updates)} entities")
+        print(f"   📊 {len(entities)} entities total")
+        print(f"   📊 {new_count:+d} entities vs previous")
+        print(f"   📊 {sum(len(e.imported_by) for e in entities)} relationships")
+    else:
+        print(f"\n🔍 Dry run - would update {len(entities)} entities")
     
     return {
         'mode': 'update',
         'session_files': len(session_files),
-        'entities_updated': len(updates),
-        'updates': updates,
+        'entities_total': len(entities),
+        'entities_with_relations': sum(1 for e in entities if e.imported_by),
+        'domain_backend': len([e for e in entities if e.domain == 'backend']),
+        'domain_frontend': len([e for e in entities if e.domain == 'frontend']),
+        'gotchas': len(gotchas),
     }
 
 
