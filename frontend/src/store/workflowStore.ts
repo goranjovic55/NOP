@@ -24,6 +24,17 @@ interface WorkflowTab {
   isDirty: boolean;
 }
 
+// Console log entry for execution tracking
+export interface ConsoleLogEntry {
+  id: string;
+  timestamp: Date;
+  nodeId: string;
+  nodeLabel?: string;
+  type: 'start' | 'success' | 'error' | 'output' | 'info' | 'single-block';
+  message: string;
+  data?: any;
+}
+
 interface WorkflowState {
   // Workflow list
   workflows: Workflow[];
@@ -48,6 +59,11 @@ interface WorkflowState {
   isConfigPanelOpen: boolean;
   isTemplatesOpen: boolean;
   zoom: number;
+  
+  // Console logs (shared between workflow execution and single block runs)
+  consoleLogs: ConsoleLogEntry[];
+  addConsoleLog: (log: Omit<ConsoleLogEntry, 'id' | 'timestamp'>) => void;
+  clearConsoleLogs: () => void;
   
   // Workflow CRUD
   loadWorkflows: () => Promise<void>;
@@ -125,6 +141,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       isConfigPanelOpen: false,
       isTemplatesOpen: false,
       zoom: 1,
+      consoleLogs: [],
 
       // Load workflows from API
       loadWorkflows: async () => {
@@ -528,6 +545,16 @@ export const useWorkflowStore = create<WorkflowState>()(
       toggleConfigPanel: () => set(state => ({ isConfigPanelOpen: !state.isConfigPanelOpen })),
       toggleTemplates: () => set(state => ({ isTemplatesOpen: !state.isTemplatesOpen })),
       setZoom: (zoom) => set({ zoom }),
+      
+      // Console log management
+      addConsoleLog: (log) => set(state => ({
+        consoleLogs: [...state.consoleLogs, {
+          ...log,
+          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          timestamp: new Date(),
+        }].slice(-500), // Keep last 500 entries
+      })),
+      clearConsoleLogs: () => set({ consoleLogs: [] }),
 
       // Get current workflow
       getCurrentWorkflow: () => {

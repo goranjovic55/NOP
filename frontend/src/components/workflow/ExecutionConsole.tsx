@@ -1,10 +1,12 @@
 /**
  * ExecutionConsole - Shows real-time output from workflow execution
  * Features: Always visible, minimizable, expandable block outputs
+ * Supports both workflow execution logs and single block execution logs
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { WorkflowExecution, NodeResult } from '../../types/workflow';
+import { useWorkflowStore, ConsoleLogEntry } from '../../store/workflowStore';
 import { CyberButton } from '../CyberUI';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -19,7 +21,7 @@ interface LogEntry {
   timestamp: Date;
   nodeId: string;
   nodeLabel?: string;
-  type: 'start' | 'success' | 'error' | 'output' | 'info';
+  type: 'start' | 'success' | 'error' | 'output' | 'info' | 'single-block';
   message: string;
   data?: any;
 }
@@ -29,11 +31,13 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
   isMinimized,
   onToggleMinimize,
 }) => {
+  const { consoleLogs, clearConsoleLogs } = useWorkflowStore();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const consoleRef = useRef<HTMLDivElement>(null);
   const prevResultsRef = useRef<Record<string, NodeResult>>({});
+  const prevConsoleLogsLengthRef = useRef<number>(0);
 
   // Toggle expanded state for a log entry
   const toggleExpanded = (logId: string) => {
@@ -102,6 +106,34 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
     prevResultsRef.current = { ...execution.nodeResults };
   }, [execution]);
 
+  // Watch for new console logs from store (single block executions)
+  useEffect(() => {
+    if (consoleLogs.length > prevConsoleLogsLengthRef.current) {
+      // Get new logs since last check
+      const newStoreLogs = consoleLogs.slice(prevConsoleLogsLengthRef.current);
+      const newLogs: LogEntry[] = newStoreLogs.map(log => ({
+        id: log.id,
+        timestamp: new Date(log.timestamp),
+        nodeId: log.nodeId,
+        nodeLabel: log.nodeLabel,
+        type: log.type,
+        message: log.message,
+        data: log.data,
+      }));
+      
+      if (newLogs.length > 0) {
+        setLogs(prev => [...prev, ...newLogs].slice(-500));
+        // Auto-expand logs with data
+        newLogs.forEach(log => {
+          if (log.data && Object.keys(log.data).length > 0) {
+            setExpandedLogs(prev => new Set(prev).add(log.id));
+          }
+        });
+      }
+    }
+    prevConsoleLogsLengthRef.current = consoleLogs.length;
+  }, [consoleLogs]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (autoScroll && consoleRef.current) {
@@ -130,6 +162,7 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
       case 'error': return 'text-cyber-red';
       case 'start': return 'text-cyber-blue';
       case 'output': return 'text-cyber-purple';
+      case 'single-block': return 'text-cyber-orange';
       default: return 'text-cyber-gray-light';
     }
   };
@@ -140,6 +173,7 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
       case 'error': return '✗';
       case 'start': return '▶';
       case 'output': return '◈';
+      case 'single-block': return '■';
       default: return '◇';
     }
   };
@@ -175,7 +209,9 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
   const clearLogs = () => {
     setLogs([]);
     prevResultsRef.current = {};
+    prevConsoleLogsLengthRef.current = consoleLogs.length; // Reset to current to avoid re-adding
     setExpandedLogs(new Set());
+    clearConsoleLogs(); // Also clear store logs
   };
 
   return (

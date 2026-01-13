@@ -48,7 +48,7 @@ interface ConfigPanelProps {
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
-  const { nodes, edges, updateNode, execution, saveCurrentWorkflow } = useWorkflowStore();
+  const { nodes, edges, updateNode, execution, saveCurrentWorkflow, addConsoleLog } = useWorkflowStore();
   const [localParams, setLocalParams] = useState<Record<string, any>>({});
   const [localLabel, setLocalLabel] = useState('');
   const [credentials, setCredentials] = useState<VaultCredential[]>([]);
@@ -129,6 +129,12 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         success: false,
         error: `Validation failed: ${result.errors.join(', ')}`,
       });
+      addConsoleLog({
+        nodeId: nodeId!,
+        nodeLabel: labelToUse,
+        type: 'error',
+        message: `Validation failed: ${result.errors.join(', ')}`,
+      });
       return;
     }
     
@@ -144,6 +150,15 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
     
     setIsRunningBlock(true);
     setBlockResult(null);
+    
+    // Log start
+    addConsoleLog({
+      nodeId: nodeId!,
+      nodeLabel: labelToUse,
+      type: 'single-block',
+      message: `Running block: ${labelToUse} (${blockType})`,
+      data: { parameters: paramsToUse },
+    });
     
     try {
       // Build context with injected input
@@ -169,11 +184,25 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         }
       }
       
+      // Get auth token from persisted auth store (same pattern as workflowStore)
+      const getAuthToken = (): string | null => {
+        try {
+          const authData = localStorage.getItem('nop-auth');
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            return parsed.state?.token || null;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+        return null;
+      };
+      
       const response = await fetch('/api/v1/workflows/block/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+          'Authorization': `Bearer ${getAuthToken() || ''}`,
         },
         body: JSON.stringify({
           block_type: blockType,
@@ -184,6 +213,17 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
       
       const result = await response.json();
       setBlockResult(result);
+      
+      // Log result to console
+      addConsoleLog({
+        nodeId: nodeId!,
+        nodeLabel: labelToUse,
+        type: result.success ? 'success' : 'error',
+        message: result.success 
+          ? `Completed in ${result.duration_ms || 0}ms`
+          : (result.error || 'Block execution failed'),
+        data: result.output,
+      });
       
       // Update node with execution result for visual feedback
       updateNode(nodeId!, {
@@ -196,9 +236,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
         }
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to execute block';
       setBlockResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to execute block',
+        error: errorMessage,
+      });
+      addConsoleLog({
+        nodeId: nodeId!,
+        nodeLabel: labelToUse,
+        type: 'error',
+        message: errorMessage,
       });
     } finally {
       setIsRunningBlock(false);
@@ -504,12 +551,17 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
             </span>
           </h4>
           
+          {/* Info: Block uses configured parameters */}
+          <p className="text-xs text-cyber-gray-light mb-2 font-mono">
+            Uses parameters configured above
+          </p>
+          
           {showInputInjection && (
             <div className="space-y-3 mb-3">
-              {/* Input Source Selection */}
+              {/* Context Injection Selection (optional) */}
               <div>
                 <label className="block text-xs text-cyber-gray-light mb-1 font-mono">
-                  INPUT SOURCE:
+                  INJECT CONTEXT (optional):
                 </label>
                 <div className="flex gap-1">
                   <button
@@ -546,6 +598,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                     MANUAL
                   </button>
                 </div>
+                <p className="text-[10px] text-cyber-gray mt-1 font-mono">
+                  Context is passed as input to the block (for chaining)
+                </p>
               </div>
               
               {/* Previous Block Output Preview */}
