@@ -1295,7 +1295,12 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
             os_guess = "Unknown"
             
             for host_info in result.get("hosts", []):
-                status = host_info.get("status", {}).get("state", "down")
+                host_status = host_info.get("status", {})
+                if isinstance(host_status, dict):
+                    status = host_status.get("state", "down")
+                else:
+                    status = str(host_status) if host_status else "down"
+                    
                 hostnames = host_info.get("hostnames", [])
                 if hostnames:
                     hostname = hostnames[0].get("name", host)
@@ -1303,6 +1308,10 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 for port_info in host_info.get("ports", []):
                     if port_info.get("state") == "open":
                         open_ports.append(int(port_info.get("portid", 0)))
+            
+            # If we found open ports, host is definitely up
+            if open_ports:
+                status = "up"
             
             return BlockExecuteResponse(
                 success=True,
