@@ -18,19 +18,27 @@ applyTo: "**"
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-## ⛔ G0 Enforcement: Knowledge First (CRITICAL)
-**Only 2.3% of sessions use G0 - target is 100%**
+## ⛔ G0 Enforcement: Knowledge Graph Query (CRITICAL)
+**Impact: -76.8% file reads | 71.3% cache hits**
 
-**BEFORE any file read or search:**
-1. Check `hot_cache` for entity/exports/paths
-2. Check `gotchas` for known bugs/solutions (75% debug acceleration)
-3. Check `domain_index` for file locations
-4. **ONLY read files if knowledge cache miss**
+**Read first 100 lines of project_knowledge.json:**
+```
+Lines 1-6:   Headers (hot_cache data, domain_index data, gotchas data)
+Lines 7-12:  Layer entities (KNOWLEDGE_GRAPH, HOT_CACHE, DOMAIN_INDEX, GOTCHAS...)
+Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads...)
+```
+
+**Graph Query Order:**
+1. HOT_CACHE `caches` → entity (top 20 instant lookup)
+2. GOTCHAS `has_gotcha` → entity (75% debug acceleration)
+3. DOMAIN_INDEX `indexes_backend/frontend` → entity (O(1) lookup)
+4. Code `imports` relations → entity dependencies
+5. **ONLY read file if graph miss (<15% of queries)**
 
 **100k Simulation Results:**
-- Token usage: -67.2% with G0
-- API calls: -64.8% with G0
-- Cache hit rate: 50% with knowledge layers
+- File reads: -76.8% with G0
+- Cache hit rate: 71.3% with G0
+- Relations: 570+ traversable connections
 
 ## Skill Triggers
 | Trigger | Skill | Applies To |

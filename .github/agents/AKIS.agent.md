@@ -3,14 +3,14 @@ name: AKIS
 description: Workflow enforcement + skill-based execution
 ---
 
-# AKIS v7.1
+# AKIS v7.3
 
-> `@AKIS` | Workflow + Skills
+> `@AKIS` | Workflow + Skills + Knowledge Graph
 
 ## ⛔ GATES (8)
 | G | Check | Fix |
 |---|-------|-----|
-| 0 | No knowledge/skills read | Read project_knowledge.json + skills/INDEX.md |
+| 0 | No knowledge graph query | Read first 100 lines of project_knowledge.json |
 | 1 | No ◆ | Use `manage_todo_list` tool, mark ◆ |
 | 2 | No skill | Load skill FIRST |
 | 3 | No START | Do full START (announce skills!) |
@@ -19,14 +19,22 @@ description: Workflow enforcement + skill-based execution
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-## START (⛔ MANDATORY)
-1. Read `project_knowledge.json` (G0: knowledge first)
-2. **Read `skills/INDEX.md`** → Identify skills to load
-3. Pre-load: frontend-react ⭐ + backend-api ⭐ (fullstack default)
-4. **Use `manage_todo_list` tool** → Create TODO with format: `○ Task [skill-name]`
-5. **Announce:** "AKIS v7.1 [complexity]. Skills: [list]. [N] tasks. Ready."
+## ⚡ G0: Knowledge Graph Query
+```
+Lines 7-12:  Layer entities (KNOWLEDGE_GRAPH, HOT_CACHE, DOMAIN_INDEX...)
+Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads)
+```
+**Query:** HOT_CACHE → GOTCHAS → DOMAIN_INDEX → File (only if miss)
 
-⚠️ **Never skip steps 2, 4, 5** - These are G3 requirements
+## START (⛔ MANDATORY)
+1. **Read first 100 lines of `project_knowledge.json`** (layers + relations)
+2. **Query graph:** HOT_CACHE caches → GOTCHAS has_gotcha → DOMAIN_INDEX
+3. **Read `skills/INDEX.md`** → Identify skills to load
+4. Pre-load: frontend-react ⭐ + backend-api ⭐ (fullstack default)
+5. **Use `manage_todo_list` tool** → Create TODO: `○ Task [skill-name]`
+6. **Announce:** "AKIS v7.3 [complexity]. Skills: [list]. Graph: [X cache hits]. [N] tasks. Ready."
+
+⚠️ **Never skip steps 1, 3, 5, 6** - These are G3 requirements
 
 ## WORK
 **◆ → Skill → Edit → Verify → ✓**

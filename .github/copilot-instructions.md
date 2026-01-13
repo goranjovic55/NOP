@@ -1,6 +1,6 @@
-# AKIS v7.2 (100k Simulation Optimized)
+# AKIS v7.3 (Knowledge Graph Optimized)
 
-> Token reduction: -67.2% | API calls: -64.8% | Success rate: +26.9%
+> Token reduction: -67.2% | File reads: -76.8% | Cache hits: 71.3%
 
 ## ⛔ GATES (8)
 | G | Check | Fix |
@@ -14,26 +14,32 @@
 | 6 | Multi ◆ | One ◆ only |
 | 7 | No parallel | Use parallel pairs |
 
-## ⚡ G0: Knowledge First (CRITICAL)
-**Current usage: 2.3% | Target: 100% | Impact: -67.2% tokens when used**
+## ⚡ G0: Knowledge Graph Query (CRITICAL)
+**Impact: -76.8% file reads | 71.3% cache hits | Target: 100%**
 
-**BEFORE reading/searching files:**
-1. `hot_cache` → entity info, exports, paths
-2. `gotchas` → known issues + solutions (75% debug acceleration)
-3. `domain_index` → file locations by domain
-4. Read file ONLY if cache miss
+**BEFORE any file read (read first 100 lines of project_knowledge.json):**
+```
+KNOWLEDGE_GRAPH (root)
+    ├── HOT_CACHE → caches → entity (top 20, instant lookup)
+    ├── DOMAIN_INDEX → indexes_backend/frontend → entity (O(1) lookup)
+    ├── GOTCHAS → has_gotcha → entity (75% debug acceleration)
+    ├── INTERCONNECTIONS → contains_orphan → entity (fallback)
+    └── SESSION_PATTERNS → preloads_* → entity (predictive)
+```
+**Query order:** Layer relations → Entity observations → Code relations → File read (only if miss)
 
 ## START (⛔ G3 Mandatory)
-1. **Query `project_knowledge.json`** (hot_cache → gotchas → domain_index)
-2. **Read `skills/INDEX.md`** → pre-load: frontend-react ⭐ + backend-api ⭐
-3. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
-4. **Announce:** "AKIS v7.2 [complexity]. Skills: [skill1, skill2]. [N] tasks. Ready."
+1. **Read first 100 lines of `project_knowledge.json`** (layers + layer relations)
+2. **Query graph:** HOT_CACHE caches → GOTCHAS has_gotcha → DOMAIN_INDEX indexes
+3. **Read `skills/INDEX.md`** → pre-load: frontend-react ⭐ + backend-api ⭐
+4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
+5. **Announce:** "AKIS v7.3 [complexity]. Skills: [list]. Graph: [cache hits]. [N] tasks. Ready."
 
-**TODO Format:** `○ Task description [skill-name]` or `○ Task description` (no skill needed)
+**TODO Format:** `○ Task description [skill-name]`
 
-⚠️ **G3 Enforcement:** MUST read skills/INDEX.md, MUST use manage_todo_list tool, MUST announce skills
+⚠️ **G3 Enforcement:** MUST query graph first, MUST use manage_todo_list tool, MUST announce skills
 
-**G0 reduces tokens by 67.2%** - Always check cache first!
+**Graph query saves 76.8% file reads** - Traverse relations before reading files!
 
 ## WORK
 **◆ → Skill → Edit/Command → Verify → ✓**

@@ -237,59 +237,198 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
         elif block_type == "connection.ssh_test":
             host = params.get("host", "")
             port = params.get("port", 22)
-            # Simulate SSH test (in production, actually test connection)
-            await asyncio.sleep(0.5)
-            success = bool(host)  # Simple check
-            return BlockExecuteResponse(
-                success=success,
-                output={"host": host, "port": port, "connected": success},
-                route="success" if success else "failure"
-            )
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    output={"host": host, "port": port, "connected": False},
+                    route="failure"
+                )
+            
+            # Real TCP connection test to SSH port
+            import socket
+            import time
+            start_time = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                duration_ms = int((time.time() - start_time) * 1000)
+                connected = result == 0
+                
+                return BlockExecuteResponse(
+                    success=connected,
+                    output={"host": host, "port": port, "connected": connected, "latency_ms": duration_ms},
+                    duration_ms=duration_ms,
+                    route="success" if connected else "failure"
+                )
+            except socket.error as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "port": port, "connected": False, "error": str(e)},
+                    route="failure"
+                )
         
         elif block_type == "connection.rdp_test":
             host = params.get("host", "")
             port = params.get("port", 3389)
-            await asyncio.sleep(0.5)
-            success = bool(host)
-            return BlockExecuteResponse(
-                success=success,
-                output={"host": host, "port": port, "protocol": "rdp", "connected": success},
-                route="success" if success else "failure"
-            )
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    output={"host": host, "port": port, "protocol": "rdp", "connected": False},
+                    route="failure"
+                )
+            
+            # Real TCP connection test to RDP port
+            import socket
+            import time
+            start_time = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                duration_ms = int((time.time() - start_time) * 1000)
+                connected = result == 0
+                
+                return BlockExecuteResponse(
+                    success=connected,
+                    output={"host": host, "port": port, "protocol": "rdp", "connected": connected, "latency_ms": duration_ms},
+                    duration_ms=duration_ms,
+                    route="success" if connected else "failure"
+                )
+            except socket.error as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "port": port, "protocol": "rdp", "connected": False, "error": str(e)},
+                    route="failure"
+                )
         
         elif block_type == "connection.vnc_test":
             host = params.get("host", "")
             port = params.get("port", 5900)
-            await asyncio.sleep(0.5)
-            success = bool(host)
-            return BlockExecuteResponse(
-                success=success,
-                output={"host": host, "port": port, "protocol": "vnc", "connected": success},
-                route="success" if success else "failure"
-            )
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    output={"host": host, "port": port, "protocol": "vnc", "connected": False},
+                    route="failure"
+                )
+            
+            # Real TCP connection test to VNC port
+            import socket
+            import time
+            start_time = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                duration_ms = int((time.time() - start_time) * 1000)
+                connected = result == 0
+                
+                return BlockExecuteResponse(
+                    success=connected,
+                    output={"host": host, "port": port, "protocol": "vnc", "connected": connected, "latency_ms": duration_ms},
+                    duration_ms=duration_ms,
+                    route="success" if connected else "failure"
+                )
+            except socket.error as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "port": port, "protocol": "vnc", "connected": False, "error": str(e)},
+                    route="failure"
+                )
         
         elif block_type == "connection.ftp_test":
             host = params.get("host", "")
             port = params.get("port", 21)
             protocol = params.get("protocol", "ftp")
-            await asyncio.sleep(0.5)
-            success = bool(host)
-            return BlockExecuteResponse(
-                success=success,
-                output={"host": host, "port": port, "protocol": protocol, "connected": success},
-                route="success" if success else "failure"
-            )
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    output={"host": host, "port": port, "protocol": protocol, "connected": False},
+                    route="failure"
+                )
+            
+            # Real TCP connection test to FTP port
+            import socket
+            import time
+            start_time = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                duration_ms = int((time.time() - start_time) * 1000)
+                connected = result == 0
+                
+                return BlockExecuteResponse(
+                    success=connected,
+                    output={"host": host, "port": port, "protocol": protocol, "connected": connected, "latency_ms": duration_ms},
+                    duration_ms=duration_ms,
+                    route="success" if connected else "failure"
+                )
+            except socket.error as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "port": port, "protocol": protocol, "connected": False, "error": str(e)},
+                    route="failure"
+                )
         
         elif block_type == "connection.tcp_test":
             host = params.get("host", "")
             port = params.get("port", 80)
-            await asyncio.sleep(0.3)
-            success = bool(host and port)
-            return BlockExecuteResponse(
-                success=success,
-                output={"host": host, "port": port, "open": success},
-                route="success" if success else "failure"
-            )
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    output={"host": host, "port": port, "open": False},
+                    route="failure"
+                )
+            
+            # Real TCP connection test
+            import socket
+            import time
+            start_time = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                duration_ms = int((time.time() - start_time) * 1000)
+                is_open = result == 0
+                
+                return BlockExecuteResponse(
+                    success=True,  # Block execution succeeded, port may or may not be open
+                    output={"host": host, "port": port, "open": is_open, "latency_ms": duration_ms},
+                    duration_ms=duration_ms,
+                    route="success" if is_open else "failure"
+                )
+            except socket.error as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "port": port, "open": False, "error": str(e)},
+                    route="failure"
+                )
         
         # === Command Blocks ===
         elif block_type == "command.ssh_execute":
@@ -559,16 +698,43 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                     route="fail"
                 )
             
+            # Parse the nmap result structure to extract open/closed/filtered ports
+            open_ports = []
+            closed_ports = 0
+            filtered_ports = 0
+            services = {}
+            
+            # Extract from hosts[].ports[] structure
+            for host_info in result.get("hosts", []):
+                for port_info in host_info.get("ports", []):
+                    port_id = int(port_info.get("portid", 0))
+                    state = port_info.get("state", "unknown")
+                    
+                    if state == "open":
+                        open_ports.append(port_id)
+                        # Extract service info if available
+                        if "service" in port_info:
+                            svc = port_info["service"]
+                            services[port_id] = {
+                                "name": svc.get("name"),
+                                "product": svc.get("product"),
+                                "version": svc.get("version")
+                            }
+                    elif state == "closed":
+                        closed_ports += 1
+                    elif state == "filtered":
+                        filtered_ports += 1
+            
             return BlockExecuteResponse(
                 success=True,
                 output={
                     "host": host,
                     "scan_type": scan_type,
                     "technique": technique,
-                    "open_ports": result.get("open_ports", []),
-                    "closed_ports": result.get("closed_ports", 0),
-                    "filtered_ports": result.get("filtered_ports", 0),
-                    "services": result.get("services", {}),
+                    "open_ports": open_ports,
+                    "closed_ports": closed_ports,
+                    "filtered_ports": filtered_ports,
+                    "services": services,
                 },
                 duration_ms=duration_ms,
                 route="out"
@@ -1025,68 +1191,256 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
         # === Scanning Blocks (Additional) ===
         elif block_type == "scanning.network_discovery":
             network = params.get("network", "192.168.1.0/24")
-            timeout = params.get("timeout", 5)
-            await asyncio.sleep(1.0)
-            return BlockExecuteResponse(
-                success=True,
-                output={
-                    "network": network,
-                    "hosts_found": 5,
-                    "hosts": [
-                        {"ip": "192.168.1.1", "status": "up", "type": "router"},
-                        {"ip": "192.168.1.10", "status": "up", "type": "workstation"},
-                        {"ip": "192.168.1.20", "status": "up", "type": "server"}
-                    ],
-                    "scan_time": timeout
-                },
-                route="out"
-            )
+            timeout = params.get("timeout", 30)
+            
+            # Use real nmap network discovery with service detection
+            import time
+            import subprocess
+            start_time = time.time()
+            
+            try:
+                # Quick scan with OS hints and service versions
+                result = subprocess.run(
+                    ["nmap", "-sn", "-oX", "-", network],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout
+                )
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                # Parse XML output
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(result.stdout)
+                
+                hosts = []
+                for host_elem in root.findall(".//host"):
+                    status = host_elem.find("status")
+                    if status is not None and status.get("state") == "up":
+                        addr = host_elem.find("address")
+                        if addr is not None:
+                            host_info = {
+                                "ip": addr.get("addr"),
+                                "status": "up",
+                                "type": "unknown"
+                            }
+                            
+                            # Get hostname if available
+                            hostname_elem = host_elem.find(".//hostname")
+                            if hostname_elem is not None:
+                                host_info["hostname"] = hostname_elem.get("name")
+                            
+                            # Get MAC if available
+                            mac_addr = host_elem.find(".//address[@addrtype='mac']")
+                            if mac_addr is not None:
+                                host_info["mac"] = mac_addr.get("addr")
+                                host_info["vendor"] = mac_addr.get("vendor", "")
+                            
+                            hosts.append(host_info)
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={
+                        "network": network,
+                        "hosts_found": len(hosts),
+                        "hosts": hosts,
+                        "scan_time": duration_ms / 1000
+                    },
+                    duration_ms=duration_ms,
+                    route="out"
+                )
+            except subprocess.TimeoutExpired:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Network discovery timed out",
+                    route="fail"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    route="fail"
+                )
         
         elif block_type == "scanning.host_scan":
             host = params.get("host", "")
-            await asyncio.sleep(0.8)
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    route="fail"
+                )
+            
+            # Use real nmap scan
+            import time
+            start_time = time.time()
+            scanner = NetworkScanner()
+            
+            # Do a quick port scan with OS detection
+            result = await scanner.port_scan(host, "22,80,443,21,23,25,53,110,143,3306,3389,5432,8080,8443")
+            duration_ms = int((time.time() - start_time) * 1000)
+            
+            if "error" in result:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=result["error"],
+                    duration_ms=duration_ms,
+                    route="fail"
+                )
+            
+            # Extract host info
+            open_ports = []
+            hostname = host
+            status = "down"
+            os_guess = "Unknown"
+            
+            for host_info in result.get("hosts", []):
+                status = host_info.get("status", {}).get("state", "down")
+                hostnames = host_info.get("hostnames", [])
+                if hostnames:
+                    hostname = hostnames[0].get("name", host)
+                
+                for port_info in host_info.get("ports", []):
+                    if port_info.get("state") == "open":
+                        open_ports.append(int(port_info.get("portid", 0)))
+            
             return BlockExecuteResponse(
                 success=True,
                 output={
                     "host": host,
-                    "status": "up",
-                    "ports": [22, 80, 443],
-                    "os_guess": "Linux 5.x",
-                    "hostname": host
+                    "status": status,
+                    "ports": open_ports,
+                    "os_guess": os_guess,
+                    "hostname": hostname
                 },
+                duration_ms=duration_ms,
                 route="out"
             )
         
         elif block_type == "scanning.ping_sweep":
             network = params.get("network", "192.168.1.0/24")
-            await asyncio.sleep(1.0)
-            return BlockExecuteResponse(
-                success=True,
-                output={
-                    "network": network,
-                    "alive_hosts": ["192.168.1.1", "192.168.1.10", "192.168.1.20"],
-                    "total_scanned": 254,
-                    "hosts_up": 3
-                },
-                route="out"
-            )
+            
+            # Use real nmap ping sweep
+            import time
+            import subprocess
+            start_time = time.time()
+            
+            try:
+                # nmap -sn for ping sweep (no port scan)
+                result = subprocess.run(
+                    ["nmap", "-sn", "-oX", "-", network],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                # Parse XML output
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(result.stdout)
+                
+                alive_hosts = []
+                for host_elem in root.findall(".//host"):
+                    status = host_elem.find("status")
+                    if status is not None and status.get("state") == "up":
+                        addr = host_elem.find("address")
+                        if addr is not None:
+                            alive_hosts.append(addr.get("addr"))
+                
+                # Get total scanned from runstats
+                runstats = root.find(".//runstats/hosts")
+                total_scanned = int(runstats.get("total", 0)) if runstats is not None else len(alive_hosts)
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={
+                        "network": network,
+                        "alive_hosts": alive_hosts,
+                        "total_scanned": total_scanned,
+                        "hosts_up": len(alive_hosts)
+                    },
+                    duration_ms=duration_ms,
+                    route="out"
+                )
+            except subprocess.TimeoutExpired:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Ping sweep timed out",
+                    route="fail"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    route="fail"
+                )
         
         elif block_type == "scanning.service_scan":
             host = params.get("host", "")
             ports = params.get("ports", "22,80,443")
-            await asyncio.sleep(1.5)
-            return BlockExecuteResponse(
-                success=True,
-                output={
-                    "host": host,
-                    "services": [
-                        {"port": 22, "service": "ssh", "state": "open"},
-                        {"port": 80, "service": "http", "state": "open"},
-                        {"port": 443, "service": "https", "state": "open"}
-                    ]
-                },
-                route="out"
-            )
+            
+            if not host:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Host is required",
+                    route="fail"
+                )
+            
+            # Use real nmap service scan with version detection
+            import time
+            import subprocess
+            start_time = time.time()
+            
+            try:
+                result = subprocess.run(
+                    ["nmap", "-sV", "-Pn", "-p", ports, "-oX", "-", host],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                # Parse XML output
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(result.stdout)
+                
+                services = []
+                for port_elem in root.findall(".//port"):
+                    state = port_elem.find("state")
+                    service = port_elem.find("service")
+                    
+                    port_id = int(port_elem.get("portid", 0))
+                    port_state = state.get("state", "unknown") if state is not None else "unknown"
+                    
+                    svc_info = {"port": port_id, "state": port_state}
+                    if service is not None:
+                        svc_info["service"] = service.get("name", "unknown")
+                        svc_info["product"] = service.get("product", "")
+                        svc_info["version"] = service.get("version", "")
+                    
+                    services.append(svc_info)
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={
+                        "host": host,
+                        "services": services
+                    },
+                    duration_ms=duration_ms,
+                    route="out"
+                )
+            except subprocess.TimeoutExpired:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Service scan timed out",
+                    route="fail"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    route="fail"
+                )
         
         # === Agent Blocks (Additional) ===
         elif block_type == "agent.list":
@@ -1198,20 +1552,46 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
         elif block_type == "assets.get_all":
             include_offline = params.get("includeOffline", True)
             limit = params.get("limit", 100)
-            # In production, fetch from database
-            await asyncio.sleep(0.2)
-            sample_assets = [
-                {"id": "1", "ip": "192.168.1.1", "hostname": "switch-01", "type": "switch", "status": "online", "discovery_method": "arp"},
-                {"id": "2", "ip": "192.168.1.10", "hostname": "server-01", "type": "server", "status": "online", "discovery_method": "manual"},
-                {"id": "3", "ip": "192.168.1.20", "hostname": "workstation-01", "type": "workstation", "status": "offline", "discovery_method": "ping"},
-            ]
-            if not include_offline:
-                sample_assets = [a for a in sample_assets if a["status"] == "online"]
-            return BlockExecuteResponse(
-                success=True,
-                output={"assets": sample_assets[:limit], "count": len(sample_assets)},
-                route="assets"
-            )
+            
+            # Fetch from database
+            from app.models.asset import Asset
+            from sqlalchemy import select
+            
+            try:
+                async with db.async_session() as session:
+                    query = select(Asset).limit(limit)
+                    if not include_offline:
+                        query = query.where(Asset.status == "online")
+                    
+                    result = await session.execute(query)
+                    db_assets = result.scalars().all()
+                    
+                    assets = []
+                    for asset in db_assets:
+                        assets.append({
+                            "id": str(asset.id),
+                            "ip": str(asset.ip_address),
+                            "hostname": asset.hostname,
+                            "type": asset.asset_type,
+                            "status": asset.status,
+                            "discovery_method": asset.discovery_method,
+                            "mac": asset.mac_address,
+                            "first_seen": asset.first_seen.isoformat() if asset.first_seen else None,
+                            "last_seen": asset.last_seen.isoformat() if asset.last_seen else None
+                        })
+                    
+                    return BlockExecuteResponse(
+                        success=True,
+                        output={"assets": assets, "count": len(assets)},
+                        route="assets"
+                    )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=f"Database error: {str(e)}",
+                    output={"assets": [], "count": 0},
+                    route="error"
+                )
         
         elif block_type == "assets.get_by_filter":
             asset_type = params.get("type", "")
@@ -1266,17 +1646,63 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
             subnet = params.get("subnet", "192.168.1.0/24")
             timeout = params.get("timeout", 1000)
             concurrent = params.get("concurrent", 50)
-            await asyncio.sleep(2.0)  # Simulate ping sweep
-            discovered = [
-                {"ip": "192.168.1.1", "latency_ms": 1.2, "discovery_method": "ping"},
-                {"ip": "192.168.1.10", "latency_ms": 0.8, "discovery_method": "ping"},
-                {"ip": "192.168.1.50", "latency_ms": 2.5, "discovery_method": "ping"},
-            ]
-            return BlockExecuteResponse(
-                success=True,
-                output={"discovered": discovered, "count": len(discovered), "subnet": subnet, "method": "ping"},
-                route="discovered"
-            )
+            
+            # Real ping sweep using nmap
+            import subprocess
+            import time
+            start_time = time.time()
+            
+            try:
+                result = subprocess.run(
+                    ["nmap", "-sn", "-oX", "-", subnet],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout / 1000 if timeout > 0 else 60
+                )
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                # Parse XML output
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(result.stdout)
+                
+                discovered = []
+                for host_elem in root.findall(".//host"):
+                    status = host_elem.find("status")
+                    if status is not None and status.get("state") == "up":
+                        addr = host_elem.find("address")
+                        if addr is not None:
+                            # Try to get latency from times
+                            times = host_elem.find("times")
+                            latency_ms = None
+                            if times is not None:
+                                srtt = times.get("srtt")
+                                if srtt:
+                                    latency_ms = float(srtt) / 1000  # Convert to ms
+                            
+                            discovered.append({
+                                "ip": addr.get("addr"),
+                                "latency_ms": latency_ms or 1.0,
+                                "discovery_method": "ping"
+                            })
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"discovered": discovered, "count": len(discovered), "subnet": subnet, "method": "ping"},
+                    duration_ms=duration_ms,
+                    route="discovered"
+                )
+            except subprocess.TimeoutExpired:
+                return BlockExecuteResponse(
+                    success=False,
+                    error="Ping discovery timed out",
+                    route="fail"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    route="fail"
+                )
         
         elif block_type == "assets.discover_passive":
             interface = params.get("interface", "eth0")
@@ -1302,21 +1728,73 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
             if not host:
                 return BlockExecuteResponse(success=False, error="Host is required", route="offline")
             
-            # Simulate online check
-            await asyncio.sleep(0.5)
-            is_online = True  # In production, actually ping/check
+            # Real online check using ping
+            import subprocess
+            import time
+            start_time = time.time()
             
-            if is_online:
+            try:
+                if method == "ping":
+                    result = subprocess.run(
+                        ["ping", "-c", "1", "-W", str(timeout), host],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout + 2
+                    )
+                    is_online = result.returncode == 0
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    
+                    # Extract latency from ping output
+                    latency_ms = None
+                    if is_online:
+                        import re
+                        match = re.search(r'time=(\d+\.\d+)', result.stdout)
+                        if match:
+                            latency_ms = float(match.group(1))
+                    
+                    if is_online:
+                        return BlockExecuteResponse(
+                            success=True,
+                            output={"host": host, "online": True, "method": method, "latency_ms": latency_ms},
+                            duration_ms=duration_ms,
+                            route="online"
+                        )
+                    return BlockExecuteResponse(
+                        success=True,
+                        output={"host": host, "online": False, "method": method},
+                        duration_ms=duration_ms,
+                        route="offline"
+                    )
+                elif method == "tcp":
+                    # TCP port check
+                    import socket
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(timeout)
+                    result = sock.connect_ex((host, port))
+                    sock.close()
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    is_online = result == 0
+                    
+                    if is_online:
+                        return BlockExecuteResponse(
+                            success=True,
+                            output={"host": host, "online": True, "method": "tcp", "port": port, "latency_ms": duration_ms},
+                            duration_ms=duration_ms,
+                            route="online"
+                        )
+                    return BlockExecuteResponse(
+                        success=True,
+                        output={"host": host, "online": False, "method": "tcp", "port": port},
+                        duration_ms=duration_ms,
+                        route="offline"
+                    )
+            except Exception as e:
                 return BlockExecuteResponse(
-                    success=True,
-                    output={"host": host, "online": True, "method": method, "latency_ms": 1.5},
-                    route="online"
+                    success=False,
+                    error=str(e),
+                    output={"host": host, "online": False, "method": method, "error": str(e)},
+                    route="offline"
                 )
-            return BlockExecuteResponse(
-                success=True,
-                output={"host": host, "online": False, "method": method},
-                route="offline"
-            )
         
         elif block_type == "assets.get_credentials":
             asset_id = params.get("assetId", "")

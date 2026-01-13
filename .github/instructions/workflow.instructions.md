@@ -12,18 +12,22 @@ applyTo: "**"
 | END | Close ⊘ → **Create Log** → Scripts → Commit |
 
 ## ⛔ START Requirements (G3)
-1. Read `project_knowledge.json` (G0)
-2. **Read `skills/INDEX.md`** - identify which skills to load
-3. **Use `manage_todo_list` tool** - NOT text TODOs
-4. **Announce:** "AKIS v7.1 [complexity]. Skills: [list]. [N] tasks. Ready."
+1. **Read first 100 lines of `project_knowledge.json`** (layers + layer relations)
+2. **Query graph:** HOT_CACHE → GOTCHAS → DOMAIN_INDEX (see G0)
+3. **Read `skills/INDEX.md`** - identify which skills to load
+4. **Use `manage_todo_list` tool** - NOT text TODOs
+5. **Announce:** "AKIS v7.3 [complexity]. Skills: [list]. Graph: [X cache hits]. [N] tasks. Ready."
 
-## ⛔ G0: Knowledge First (BEFORE file reads)
+## ⛔ G0: Knowledge Graph Query (BEFORE file reads)
 ```
-1. hot_cache   → Entity info, exports, paths
-2. gotchas     → Known issues + solutions
-3. domain_index → File locations by domain
-4. Read file   → ONLY if cache miss
+KNOWLEDGE_GRAPH (root, line 7)
+    ├── HOT_CACHE (line 8) ── caches → top 20 entities
+    ├── DOMAIN_INDEX (line 9) ── indexes_backend/frontend → files
+    ├── GOTCHAS (line 10) ── has_gotcha → issue solutions
+    ├── INTERCONNECTIONS (line 11) ── contains_orphan → fallback
+    └── SESSION_PATTERNS (line 12) ── preloads_* → predictive
 ```
+**Query order:** Layer relations (lines 13-93) → Code relations → File read (only if miss)
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated

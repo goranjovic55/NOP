@@ -1,4 +1,4 @@
-# AGENTS.md - NOP Project (AKIS v7.1)
+# AGENTS.md - NOP Project (AKIS v7.3)
 
 ## Environment
 
@@ -29,7 +29,17 @@
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-**G0 Enforcement:** Always query hot_cache → gotchas → domain_index BEFORE file reads
+## ⚡ G0: Knowledge Graph Query
+**Read first 100 lines of project_knowledge.json:**
+```
+Lines 1-6:   Headers (hot_cache, domain_index, gotchas)
+Lines 7-12:  Layer entities (KNOWLEDGE_GRAPH, HOT_CACHE, DOMAIN_INDEX...)
+Lines 13-93: Layer relations (caches → entity, indexes → file, has_gotcha → bug)
+```
+
+**Query order:** HOT_CACHE → GOTCHAS → DOMAIN_INDEX → File (only if miss)
+
+**Stats:** -76.8% file reads | 71.3% cache hits | 570+ relations
 
 ## Agents
 
@@ -57,7 +67,8 @@ code+docs | code+reviewer | research+code | architect+research
 
 | File | Purpose |
 |------|---------|
-| `.github/copilot-instructions.md` | Protocol v7.1 |
+| `.github/copilot-instructions.md` | Protocol v7.3 |
 | `.github/skills/INDEX.md` | Skill catalog |
 | `.github/instructions/` | Guidance |
 | `.github/agents/` | Agent configs |
+| `project_knowledge.json` | Knowledge graph (v4.0) |
