@@ -1669,6 +1669,223 @@ def run_suggest() -> Dict[str, Any]:
     }
 
 
+# ============================================================================
+# Query Functions (Fast Knowledge Navigation)
+# ============================================================================
+
+def load_knowledge() -> Dict[str, Any]:
+    """Load project_knowledge.json into memory."""
+    knowledge_path = Path(__file__).parent.parent.parent / 'project_knowledge.json'
+    if not knowledge_path.exists():
+        return {}
+    
+    data = {
+        'hot_cache': {},
+        'domain_index': {},
+        'gotchas': {},
+        'entities': {},
+        'relations': []
+    }
+    
+    with open(knowledge_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                obj_type = obj.get('type', '')
+                if obj_type == 'hot_cache':
+                    data['hot_cache'] = obj
+                elif obj_type == 'domain_index':
+                    data['domain_index'] = obj
+                elif obj_type == 'gotchas':
+                    data['gotchas'] = obj
+                elif obj_type == 'entity':
+                    data['entities'][obj.get('name', '')] = obj
+                elif obj_type == 'relation':
+                    data['relations'].append(obj)
+            except json.JSONDecodeError:
+                continue
+    
+    return data
+
+
+def run_query(query: str, domain: str = None, query_type: str = 'auto') -> Dict[str, Any]:
+    """
+    Fast knowledge graph query.
+    
+    Query types:
+    - entity: Find entity by name (partial match)
+    - domain: List entities in domain (backend/frontend)
+    - gotcha: Search gotchas for pattern
+    - path: Find entity by file path
+    - imports: Show what an entity imports
+    - hot: Show hot cache entities
+    - auto: Auto-detect query type
+    """
+    data = load_knowledge()
+    if not data:
+        print("❌ project_knowledge.json not found")
+        return {'error': 'Knowledge not found'}
+    
+    results = {
+        'query': query,
+        'type': query_type,
+        'matches': [],
+        'gotchas': [],
+        'relations': []
+    }
+    
+    query_lower = query.lower() if query else ''
+    
+    # Auto-detect query type
+    if query_type == 'auto':
+        if query_lower in ('hot', 'cache', 'top'):
+            query_type = 'hot'
+        elif query_lower in ('backend', 'frontend', 'shared'):
+            query_type = 'domain'
+            domain = query_lower
+        elif '/' in query or query.endswith(('.py', '.ts', '.tsx')):
+            query_type = 'path'
+        elif query_lower.startswith('gotcha:') or 'error' in query_lower or 'bug' in query_lower:
+            query_type = 'gotcha'
+            query = query.replace('gotcha:', '').strip()
+        else:
+            query_type = 'entity'
+    
+    # HOT CACHE query
+    if query_type == 'hot':
+        hot = data.get('hot_cache', {})
+        top = hot.get('top_entities', [])
+        refs = hot.get('entity_refs', {})
+        print(f"\n🔥 HOT CACHE ({len(top)} entities)")
+        print("-" * 50)
+        for i, name in enumerate(top[:20], 1):
+            path = refs.get(name, '')
+            print(f"  {i:2}. {name:40} → {path}")
+        results['matches'] = [{'name': n, 'path': refs.get(n, '')} for n in top]
+        return results
+    
+    # DOMAIN query
+    if query_type == 'domain' or domain:
+        domain = domain or query_lower
+        idx = data.get('domain_index', {})
+        
+        if domain == 'backend':
+            entities = idx.get('backend_entities', {})
+        elif domain == 'frontend':
+            entities = idx.get('frontend_entities', {})
+        else:
+            entities = {}
+        
+        print(f"\n📁 DOMAIN: {domain.upper()} ({len(entities)} entities)")
+        print("-" * 50)
+        
+        # Filter by query if provided
+        matches = []
+        for name, path in sorted(entities.items()):
+            if not query or query_lower in name.lower() or query_lower in path.lower():
+                matches.append({'name': name, 'path': path})
+        
+        for m in matches[:30]:
+            print(f"  {m['name']:40} → {m['path']}")
+        
+        if len(matches) > 30:
+            print(f"  ... and {len(matches) - 30} more")
+        
+        results['matches'] = matches
+        return results
+    
+    # GOTCHA query
+    if query_type == 'gotcha':
+        gotchas = data.get('gotchas', {}).get('issues', {})
+        print(f"\n⚠️  GOTCHAS matching '{query}'")
+        print("-" * 50)
+        
+        for problem, details in gotchas.items():
+            if query_lower in problem.lower() or query_lower in str(details.get('solution', '')).lower():
+                solution = details.get('solution', 'N/A')
+                source = details.get('source', '')
+                print(f"\n  Problem: {problem[:60]}...")
+                print(f"  Solution: {solution[:80]}...")
+                print(f"  Source: {source}")
+                results['gotchas'].append({
+                    'problem': problem,
+                    'solution': solution,
+                    'source': source
+                })
+        
+        if not results['gotchas']:
+            print("  No matching gotchas found.")
+        
+        return results
+    
+    # PATH query
+    if query_type == 'path':
+        print(f"\n📄 PATH matching '{query}'")
+        print("-" * 50)
+        
+        for name, entity in data.get('entities', {}).items():
+            obs = entity.get('observations', [])
+            for o in obs:
+                if 'Located at:' in o and query in o:
+                    path = o.replace('Located at:', '').strip()
+                    print(f"  {name:40} → {path}")
+                    results['matches'].append({'name': name, 'path': path})
+                    break
+        
+        return results
+    
+    # ENTITY query (default)
+    if query_type == 'entity':
+        print(f"\n🔍 ENTITY matching '{query}'")
+        print("-" * 50)
+        
+        entities = data.get('entities', {})
+        for name, entity in sorted(entities.items(), key=lambda x: x[1].get('weight', 0), reverse=True):
+            if query_lower in name.lower():
+                weight = entity.get('weight', 0)
+                etype = entity.get('entityType', '')
+                obs = entity.get('observations', [])
+                path = ''
+                for o in obs:
+                    if 'Located at:' in o:
+                        path = o.replace('Located at:', '').strip()
+                        break
+                
+                print(f"\n  📦 {name} (weight: {weight}, type: {etype})")
+                print(f"     Path: {path}")
+                
+                # Show imports
+                imports = [r for r in data.get('relations', []) 
+                          if r.get('from') == name and r.get('relationType') == 'imports']
+                if imports:
+                    print(f"     Imports: {', '.join(r['to'] for r in imports[:5])}")
+                
+                # Show imported by
+                imported_by = [r for r in data.get('relations', [])
+                              if r.get('to') == name and r.get('relationType') == 'imports']
+                if imported_by:
+                    print(f"     Imported by: {', '.join(r['from'] for r in imported_by[:5])}")
+                
+                results['matches'].append({
+                    'name': name,
+                    'path': path,
+                    'weight': weight,
+                    'type': etype,
+                    'imports': [r['to'] for r in imports],
+                    'imported_by': [r['from'] for r in imported_by]
+                })
+        
+        if not results['matches']:
+            print("  No matching entities found.")
+        
+        return results
+    
+    return results
+
+
 def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
     """Test precision/recall of knowledge suggestions with 100k sessions."""
     print("=" * 70)
@@ -1756,6 +1973,14 @@ Examples:
   python knowledge.py --suggest          # Suggest without applying
   python knowledge.py --precision        # Test precision/recall (100k sessions)
   python knowledge.py --dry-run          # Preview changes
+
+Query Examples (Fast Navigation):
+  python knowledge.py --query hot                    # Show hot cache (top 20)
+  python knowledge.py --query websocket              # Find entity by name
+  python knowledge.py --query backend                # List backend entities
+  python knowledge.py --query "401" --type gotcha    # Search gotchas
+  python knowledge.py --query store --domain frontend  # Frontend stores only
+  python knowledge.py --query .tsx --type path       # Find by file extension
         """
     )
     
@@ -1768,7 +1993,14 @@ Examples:
                            help='Suggest changes without applying')
     mode_group.add_argument('--precision', action='store_true',
                            help='Test precision/recall of knowledge suggestions')
+    mode_group.add_argument('--query', type=str, metavar='QUERY',
+                           help='Query knowledge graph (entity/domain/gotcha/path)')
     
+    parser.add_argument('--domain', type=str, choices=['backend', 'frontend', 'shared'],
+                       help='Filter query by domain')
+    parser.add_argument('--type', type=str, dest='query_type',
+                       choices=['entity', 'domain', 'gotcha', 'path', 'hot', 'imports', 'auto'],
+                       default='auto', help='Query type (default: auto-detect)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview changes without applying')
     parser.add_argument('--sessions', type=int, default=100000,
@@ -1779,7 +2011,9 @@ Examples:
     args = parser.parse_args()
     
     # Determine mode
-    if args.generate:
+    if args.query:
+        result = run_query(args.query, args.domain, args.query_type)
+    elif args.generate:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()

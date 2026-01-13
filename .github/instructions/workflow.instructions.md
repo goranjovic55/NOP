@@ -2,32 +2,37 @@
 applyTo: "**"
 ---
 
-# Workflow v7.1
+# Workflow v7.4 (Memory-First)
 
 ## Phases
 | Phase | Actions |
 |-------|---------|
-| START | **Knowledge Query** → **Read skills/INDEX.md** → **manage_todo_list** → **Announce skills** |
-| WORK | Knowledge → ◆ → Skill → Edit → Verify → ✓ |
+| START | **Load Knowledge (100 lines)** → **Read skills/INDEX.md** → **manage_todo_list** → **Announce** |
+| WORK | Use in-memory knowledge → ◆ → Skill → Edit → Verify → ✓ |
 | END | Close ⊘ → **Create Log** → Scripts → Commit |
 
 ## ⛔ START Requirements (G3)
-1. **Read first 100 lines of `project_knowledge.json`** (layers + layer relations)
-2. **Query graph:** HOT_CACHE → GOTCHAS → DOMAIN_INDEX (see G0)
-3. **Read `skills/INDEX.md`** - identify which skills to load
-4. **Use `manage_todo_list` tool** - NOT text TODOs
-5. **Announce:** "AKIS v7.3 [complexity]. Skills: [list]. Graph: [X cache hits]. [N] tasks. Ready."
+1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
+2. **Now you have:** hot_cache, domain_index, gotchas, relations (NO more queries needed)
+3. **Read `skills/INDEX.md`** → identify skills to load
+4. **Use `manage_todo_list` tool** → NOT text TODOs
+5. **Announce:** "AKIS v7.4 [complexity]. Skills: [list]. Knowledge loaded. [N] tasks. Ready."
 
-## ⛔ G0: Knowledge Graph Query (BEFORE file reads)
+## ⛔ G0: Knowledge in Memory
 ```
-KNOWLEDGE_GRAPH (root, line 7)
-    ├── HOT_CACHE (line 8) ── caches → top 20 entities
-    ├── DOMAIN_INDEX (line 9) ── indexes_backend/frontend → files
-    ├── GOTCHAS (line 10) ── has_gotcha → issue solutions
-    ├── INTERCONNECTIONS (line 11) ── contains_orphan → fallback
-    └── SESSION_PATTERNS (line 12) ── preloads_* → predictive
+First 100 lines give you:
+├── Line 1: HOT_CACHE → top 20 entities + paths
+├── Line 2: DOMAIN_INDEX → 81 backend, 71 frontend paths
+├── Line 4: GOTCHAS → 38 known issues + solutions
+├── Lines 7-12: Layer entities
+└── Lines 13-93: Layer relations (caches, indexes, has_gotcha)
 ```
-**Query order:** Layer relations (lines 13-93) → Code relations → File read (only if miss)
+
+**Use in-memory knowledge:**
+- Need file path? → Check domain_index (in memory)
+- Hit error? → Check gotchas (in memory)
+- Need entity? → Check hot_cache (in memory)
+- Need deep relations? → THEN use --query (rare)
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
@@ -110,9 +115,7 @@ Collect ALL suggestions from script output and present in table:
 | Script | Suggestion | Priority | Action |
 |--------|------------|----------|--------|
 | skills.py | Create new skill: authentication | Medium | Apply/Skip |
-| skills.py | Create new skill: performance | Low | Apply/Skip |
 | docs.py | Update docs/technical/API_rest_v1.md | High | Apply/Skip |
-| docs.py | Update docs/design/COMPONENTS.md | Medium | Apply/Skip |
 | agents.py | Enable documentation pre-loading | Low | Apply/Skip |
 | instructions.py | Add security_review instruction | High | Apply/Skip |
 

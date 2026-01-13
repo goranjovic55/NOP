@@ -1,4 +1,4 @@
-# AGENTS.md - NOP Project (AKIS v7.3)
+# AGENTS.md - NOP Project (AKIS v7.4)
 
 ## Environment
 
@@ -20,7 +20,7 @@
 
 | G | Check | Fix |
 |---|-------|-----|
-| 0 | No knowledge query | Query project_knowledge.json FIRST |
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
 | 1 | No ◆ | Create TODO |
 | 2 | No skill | Load skill |
 | 3 | No START | Do START |
@@ -29,17 +29,22 @@
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-## ⚡ G0: Knowledge Graph Query
-**Read first 100 lines of project_knowledge.json:**
+## ⚡ G0: Knowledge in Memory
+**Read first 100 lines of project_knowledge.json ONCE at START:**
 ```
-Lines 1-6:   Headers (hot_cache, domain_index, gotchas)
-Lines 7-12:  Layer entities (KNOWLEDGE_GRAPH, HOT_CACHE, DOMAIN_INDEX...)
-Lines 13-93: Layer relations (caches → entity, indexes → file, has_gotcha → bug)
+Line 1:     HOT_CACHE (top 20 entities + paths)
+Line 2:     DOMAIN_INDEX (81 backend, 71 frontend file paths)
+Line 4:     GOTCHAS (38 known issues + solutions)
+Lines 7-12: Layer entities
+Lines 13-93: Layer relations
 ```
 
-**Query order:** HOT_CACHE → GOTCHAS → DOMAIN_INDEX → File (only if miss)
-
-**Stats:** -76.8% file reads | 71.3% cache hits | 570+ relations
+**Anti-Pattern:**
+```
+❌ Run --query 5 times to gather info
+❌ grep knowledge.json multiple times
+✓ Read first 100 lines ONCE, use that context
+```
 
 ## Agents
 
@@ -67,8 +72,8 @@ code+docs | code+reviewer | research+code | architect+research
 
 | File | Purpose |
 |------|---------|
-| `.github/copilot-instructions.md` | Protocol v7.3 |
+| `.github/copilot-instructions.md` | Protocol v7.4 |
 | `.github/skills/INDEX.md` | Skill catalog |
 | `.github/instructions/` | Guidance |
 | `.github/agents/` | Agent configs |
-| `project_knowledge.json` | Knowledge graph (v4.0) |
+| `project_knowledge.json` | Knowledge graph (v4.2) |

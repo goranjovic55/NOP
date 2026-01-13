@@ -2,14 +2,14 @@
 applyTo: "**"
 ---
 
-# Protocols v7.2
+# Protocols v7.4 (Memory-First)
 
 > Based on 100k simulation: G0 reduces file reads by 85%, tokens by 67.2%
 
 ## Gates (8)
 | G | Check | Fix |
 |---|-------|-----|
-| 0 | No knowledge query | Query project_knowledge.json FIRST |
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
 | 1 | No ◆ | Create TODO |
 | 2 | No skill for edit/command | Load skill FIRST |
 | 3 | No START | Do START |
@@ -18,22 +18,34 @@ applyTo: "**"
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
 
-## ⛔ G0 Enforcement: Knowledge Graph Query (CRITICAL)
-**Impact: -76.8% file reads | 71.3% cache hits**
+## ⛔ G0: Knowledge in Memory (CRITICAL)
+**Read first 100 lines of project_knowledge.json ONCE at START. Keep in memory.**
 
-**Read first 100 lines of project_knowledge.json:**
-```
-Lines 1-6:   Headers (hot_cache data, domain_index data, gotchas data)
-Lines 7-12:  Layer entities (KNOWLEDGE_GRAPH, HOT_CACHE, DOMAIN_INDEX, GOTCHAS...)
-Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads...)
+```bash
+head -100 project_knowledge.json  # Do this ONCE, keep in context
 ```
 
-**Graph Query Order:**
-1. HOT_CACHE `caches` → entity (top 20 instant lookup)
-2. GOTCHAS `has_gotcha` → entity (75% debug acceleration)
-3. DOMAIN_INDEX `indexes_backend/frontend` → entity (O(1) lookup)
-4. Code `imports` relations → entity dependencies
-5. **ONLY read file if graph miss (<15% of queries)**
+**After loading, you have IN MEMORY:**
+| Line | Contains | Use For |
+|------|----------|---------|
+| 1 | HOT_CACHE | Top 20 entities + paths |
+| 2 | DOMAIN_INDEX | 81 backend, 71 frontend paths |
+| 4 | GOTCHAS | 38 known issues + solutions |
+| 7-12 | Layer entities | Graph structure |
+| 13-93 | Layer relations | Traversal paths |
+
+**Anti-Pattern:**
+```
+❌ WRONG: Run --query 5 times to gather info
+❌ WRONG: grep/search knowledge repeatedly
+❌ WRONG: Read knowledge file multiple times
+✓ RIGHT: Read first 100 lines ONCE, use that context
+```
+
+**Use in-memory knowledge before:**
+- Reading any file → Check domain_index first
+- Debugging errors → Check gotchas first
+- Looking for entity → Check hot_cache first
 
 **100k Simulation Results:**
 - File reads: -76.8% with G0

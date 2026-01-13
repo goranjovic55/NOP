@@ -1,54 +1,68 @@
-# AKIS v7.3 (Knowledge Graph Optimized)
+# AKIS v7.4 (Memory-First Knowledge)
 
-> Token reduction: -67.2% | File reads: -76.8% | Cache hits: 71.3%
+> Token reduction: -67.2% | File reads: -76.8% | Knowledge in memory: 100%
 
 ## ⛔ GATES (8)
 | G | Check | Fix |
 |---|-------|-----|
-| 0 | No knowledge check | Query project_knowledge.json FIRST |
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
 | 1 | No ◆ | Create TODO, mark ◆ |
-| 2 | No skill for edit OR command | Load skill FIRST |
+| 2 | No skill for edit/command | Load skill FIRST |
 | 3 | No START | Do START |
 | 4 | No END | Do END |
 | 5 | No verify | Syntax/test check |
 | 6 | Multi ◆ | One ◆ only |
 | 7 | No parallel | Use parallel pairs |
 
-## ⚡ G0: Knowledge Graph Query (CRITICAL)
-**Impact: -76.8% file reads | 71.3% cache hits | Target: 100%**
+## ⚡ G0: Knowledge in Memory (CRITICAL)
+**Read first 100 lines of project_knowledge.json ONCE at START. Keep in memory.**
 
-**BEFORE any file read (read first 100 lines of project_knowledge.json):**
+```bash
+head -100 project_knowledge.json  # Do this ONCE
 ```
-KNOWLEDGE_GRAPH (root)
-    ├── HOT_CACHE → caches → entity (top 20, instant lookup)
-    ├── DOMAIN_INDEX → indexes_backend/frontend → entity (O(1) lookup)
-    ├── GOTCHAS → has_gotcha → entity (75% debug acceleration)
-    ├── INTERCONNECTIONS → contains_orphan → entity (fallback)
-    └── SESSION_PATTERNS → preloads_* → entity (predictive)
+
+**After loading, you have IN MEMORY:**
+- Line 1: HOT_CACHE → top 20 entities + paths
+- Line 2: DOMAIN_INDEX → 81 backend, 71 frontend file paths
+- Line 4: GOTCHAS → 38 known issues + solutions
+- Lines 7-12: Layer entities
+- Lines 13-93: Layer relations
+
+**Anti-Pattern:**
 ```
-**Query order:** Layer relations → Entity observations → Code relations → File read (only if miss)
+❌ WRONG: Run --query 5 times to gather info
+❌ WRONG: grep/search knowledge repeatedly
+✓ RIGHT: Read first 100 lines ONCE, use that context
+```
 
 ## START (⛔ G3 Mandatory)
-1. **Read first 100 lines of `project_knowledge.json`** (layers + layer relations)
-2. **Query graph:** HOT_CACHE caches → GOTCHAS has_gotcha → DOMAIN_INDEX indexes
-3. **Read `skills/INDEX.md`** → pre-load: frontend-react ⭐ + backend-api ⭐
+1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
+2. **Now you have:** hot_cache, domain_index, gotchas, relations (no more queries needed)
+3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
 4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
-5. **Announce:** "AKIS v7.3 [complexity]. Skills: [list]. Graph: [cache hits]. [N] tasks. Ready."
+5. **Announce:** "AKIS v7.4 [complexity]. Skills: [list]. Knowledge loaded. [N] tasks. Ready."
 
 **TODO Format:** `○ Task description [skill-name]`
 
-⚠️ **G3 Enforcement:** MUST query graph first, MUST use manage_todo_list tool, MUST announce skills
+⚠️ **G3 Enforcement:** Knowledge MUST be in memory before any file operations
 
-**Graph query saves 76.8% file reads** - Traverse relations before reading files!
+## WORK (Using In-Memory Knowledge)
+**Before reading ANY file, check your loaded knowledge:**
 
-## WORK
+| Need | Check (in memory) | Only if miss |
+|------|-------------------|--------------|
+| File path | domain_index.backend/frontend_entities | list_dir |
+| Entity info | hot_cache.entity_refs | read_file |
+| Known bug | gotchas.issues | debugging |
+| Deep relations | (use --query) | grep |
+
 **◆ → Skill → Edit/Command → Verify → ✓**
 
 | Trigger | Skill | Applies To |
 |---------|-------|------------|
 | .tsx .jsx components/ | frontend-react ⭐ | edits |
 | .py backend/ api/ | backend-api ⭐ | edits |
-| docker compose build restart | docker | commands |
+| docker compose build | docker | commands |
 | Dockerfile docker-compose.yml | docker | edits |
 | .github/workflows/* | ci-cd | edits |
 | .md docs/ | documentation | edits |
@@ -58,8 +72,6 @@ KNOWLEDGE_GRAPH (root)
 | new feature, design | planning | analysis |
 
 ⭐ Pre-load fullstack
-
-⚠️ **G2 Enforcement:** Load skill BEFORE edits AND domain commands (docker, npm, pytest, etc.)
 
 ## Workflow Phases
 | Phase | Action | Skill |
@@ -73,32 +85,12 @@ KNOWLEDGE_GRAPH (root)
 1. Close ⊘ orphans
 2. Verify all edits
 3. **Create workflow log FIRST** (YAML front matter format)
-4. Run: `knowledge.py --update`, `skills.py --suggest`, `docs.py --suggest`, `agents.py --suggest`, `instructions.py --suggest`
-5. Present END Summary Table (metrics + script results)
-6. **Present Script Suggestions Table** (REQUIRED - show ALL actual suggestions)
-7. ASK before applying script suggestions
-8. ASK before `git push`
-
-**Script Suggestions Table (show actual output):**
-| Script | Suggestion | Priority | Action |
-|--------|------------|----------|--------|
-| skills.py | Create skill: authentication | Medium | Apply/Skip |
-| docs.py | Update API_rest_v1.md | High | Apply/Skip |
-| agents.py | Enable doc pre-loading | Low | Apply/Skip |
-| instructions.py | Add security_review | High | Apply/Skip |
+4. Run scripts, present results table
+5. ASK before applying suggestions
+6. ASK before `git push`
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
-
-## TODO Skill Annotation
-```
-○ Create FlowConfigService [backend-api]
-○ Add DynamicDropdown component [frontend-react]
-○ Update docker-compose [docker]
-○ Write unit tests [testing]
-○ Simple task (no skill needed)
-```
-When creating TODOs, annotate each with `[skill-name]` if skill applies.
 
 ## Delegation
 | Complexity | Strategy |
@@ -118,24 +110,16 @@ When creating TODOs, annotate each with `[skill-name]` if skill applies.
 | devops | deploy, docker |
 
 ## Parallel (G7)
-| Pair 1 | Pair 2 |
-|--------|--------|
-| code | documentation |
-| code | reviewer |
-| research | code |
-| architect | research |
-
-**Sequential:** architect→code→debugger→reviewer
+code+docs | code+reviewer | research+code | architect+research
 
 ## Recovery
 `git status` → Find ◆/⊘ → Continue
 
-## ⚡ Optimizations
+## ⚡ Memory-First Optimizations
 
-| Optimization | Method |
-|--------------|--------|
-| Batch reads | Read 50+ lines, parallel reads |
-| Batch edits | Use multi_replace for multiple changes |
-| Pre-load docs | Read INDEX.md for structure awareness |
-| Test-aware | Check tests exist before debugging |
-| Knowledge first | G0: Cache before file reads |
+| Before | After (v7.4) |
+|--------|--------------|
+| Query 5 times | Read once, use memory |
+| grep knowledge.json | Check loaded gotchas |
+| list_dir for paths | Check domain_index |
+| Search for entity | Check hot_cache |
