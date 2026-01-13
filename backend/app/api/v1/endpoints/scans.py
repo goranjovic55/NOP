@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.services.version_detection import VersionDetectionService
+from app.services.scanner import NetworkScanner
 
 router = APIRouter()
 
@@ -26,6 +27,22 @@ class VersionDetectionResponse(BaseModel):
     scanned_ports: int
 
 
+class PortScanRequest(BaseModel):
+    """Request for port scan"""
+    host: str
+    scanType: str = "standard"  # quick, standard, full, custom
+    ports: Optional[str] = None  # For custom port ranges
+    technique: str = "connect"  # syn, connect, udp
+
+
+class PortScanResponse(BaseModel):
+    """Response for port scan"""
+    host: str
+    open_ports: List[dict]
+    scanned_ports: int
+    scan_type: str
+
+
 @router.get("/")
 async def get_scans(db: AsyncSession = Depends(get_db)):
     """Get list of scans"""
@@ -36,6 +53,56 @@ async def get_scans(db: AsyncSession = Depends(get_db)):
 async def create_scan(db: AsyncSession = Depends(get_db)):
     """Create a new scan"""
     return {"message": "Scan created", "scan_id": "placeholder"}
+
+
+@router.post("/{scan_id}/port-scan", response_model=PortScanResponse)
+async def run_port_scan(
+    scan_id: str,
+    request: PortScanRequest,
+    db: AsyncSession = Depends(get_db)
+) -> PortScanResponse:
+    """
+    Run port scan on a host
+    
+    Args:
+        scan_id: Scan identifier (for tracking)
+        request: Port scan parameters
+        
+    Returns:
+        List of open ports with service info
+    """
+    try:
+        scanner = NetworkScanner()
+        
+        # Determine port range based on scan type
+        if request.scanType == "quick":
+            ports = "21,22,23,25,53,80,110,143,443,3306,3389,5432,8080"
+        elif request.scanType == "standard":
+            ports = "1-1000"
+        elif request.scanType == "full":
+            ports = "1-65535"
+        elif request.scanType == "custom" and request.ports:
+            ports = request.ports
+        else:
+            ports = "1-1000"
+        
+        # Run port scan
+        result = await scanner.port_scan(request.host, ports, request.technique)
+        
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return PortScanResponse(
+            host=request.host,
+            open_ports=result.get("open_ports", []),
+            scanned_ports=result.get("scanned_ports", 0),
+            scan_type=request.scanType
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Port scan failed: {str(e)}")
 
 
 @router.post("/{scan_id}/version-detection", response_model=VersionDetectionResponse)

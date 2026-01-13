@@ -16,6 +16,7 @@ import ReactFlow, {
   applyEdgeChanges,
   BackgroundVariant,
   Node,
+  Edge,
   SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -39,6 +40,7 @@ const WorkflowCanvasInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set());
   
   const { 
     nodes, 
@@ -48,16 +50,17 @@ const WorkflowCanvasInner: React.FC = () => {
     addNode,
     addEdge: storeAddEdge,
     removeNode,
+    removeEdge,
     selectedNodeId,
     selectNode,
   } = useWorkflowStore();
 
-  // Handle keyboard events for Ctrl (selection mode) and Delete (remove nodes)
+  // Handle keyboard events for Ctrl (selection mode) and Delete (remove nodes/edges)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Control') setIsCtrlPressed(true);
       
-      // Delete key - remove selected nodes
+      // Delete key - remove selected nodes and edges
       if (e.key === 'Delete' || e.key === 'Backspace') {
         // Don't delete if focus is on an input element
         const activeElement = document.activeElement;
@@ -70,6 +73,15 @@ const WorkflowCanvasInner: React.FC = () => {
         }
         
         e.preventDefault();
+        
+        // Delete selected edges first
+        if (selectedEdgeIds.size > 0) {
+          selectedEdgeIds.forEach(edgeId => {
+            removeEdge(edgeId);
+          });
+          setSelectedEdgeIds(new Set());
+          return; // Only delete edges if edges are selected
+        }
         
         // Get all selected nodes from flowNodes
         const selectedNodes = nodes.filter(n => n.selected || n.id === selectedNodeId);
@@ -101,7 +113,7 @@ const WorkflowCanvasInner: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [nodes, selectedNodeId, removeNode, selectNode]);
+  }, [nodes, edges, selectedNodeId, selectedEdgeIds, removeNode, removeEdge, selectNode]);
 
   // Convert store nodes to React Flow format - keep original data
   const flowNodes = useMemo(() => {
@@ -117,10 +129,33 @@ const WorkflowCanvasInner: React.FC = () => {
     if (!Array.isArray(edges)) return [];
     return edges.map(edge => ({
       ...edge,
-      animated: edge.selected || false,
-      style: cyberEdgeStyle,
+      animated: selectedEdgeIds.has(edge.id),
+      selected: selectedEdgeIds.has(edge.id),
+      style: selectedEdgeIds.has(edge.id) 
+        ? { stroke: '#f43f5e', strokeWidth: 3 } // Red highlight when selected
+        : cyberEdgeStyle,
     }));
-  }, [edges]);
+  }, [edges, selectedEdgeIds]);
+
+  // Handle edge click - select for deletion
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: Edge) => {
+      // Toggle selection
+      setSelectedEdgeIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(edge.id)) {
+          newSet.delete(edge.id);
+        } else {
+          newSet.clear(); // Single selection only
+          newSet.add(edge.id);
+        }
+        return newSet;
+      });
+      // Clear node selection when selecting edge
+      selectNode(null);
+    },
+    [selectNode]
+  );
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -201,6 +236,7 @@ const WorkflowCanvasInner: React.FC = () => {
 
   const onPaneClick = useCallback(() => {
     selectNode(null);
+    setSelectedEdgeIds(new Set()); // Clear edge selection too
   }, [selectNode]);
 
   const onNodeDoubleClick = useCallback(
@@ -218,6 +254,7 @@ const WorkflowCanvasInner: React.FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onEdgeClick={onEdgeClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
@@ -231,6 +268,7 @@ const WorkflowCanvasInner: React.FC = () => {
         panOnDrag={!isCtrlPressed}
         zoomOnScroll={!isCtrlPressed}
         panOnScroll={isCtrlPressed}
+        deleteKeyCode={null}
         defaultEdgeOptions={{
           style: cyberEdgeStyle,
           type: 'smoothstep',

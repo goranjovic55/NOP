@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional, Dict, Any
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 import asyncio
 from datetime import datetime
@@ -61,9 +61,30 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
     try:
         # === Control Blocks ===
         if block_type == "control.start":
+            # Support loop input - get iteration from context if connected to a loop
+            loop_input = context.get("loop_input", {})
+            iteration = loop_input.get("iteration", 0)
+            item = loop_input.get("item", params.get("initialValue", 0))
+            max_iterations = params.get("maxIterations", 100)
+            
+            # Safety check for max iterations
+            if iteration >= max_iterations:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=f"Max iterations ({max_iterations}) reached",
+                    output={"iteration": iteration, "max_exceeded": True},
+                    route="error"
+                )
+            
             return BlockExecuteResponse(
                 success=True,
-                output={"started": True, "timestamp": datetime.utcnow().isoformat()},
+                output={
+                    "started": True,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "iteration": iteration,
+                    "item": item,
+                    "from_loop": bool(loop_input)
+                },
                 route="out"
             )
         
@@ -109,13 +130,13 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 current_index = loop_state.get(loop_id, 0)
                 
                 if current_index >= count:
-                    # Loop complete - reset state and exit
+                    # Loop complete - reset state and exit via "done" handle
                     loop_state[loop_id] = 0
                     context["loop_state"] = loop_state
                     return BlockExecuteResponse(
                         success=True,
                         output={"mode": "count", "completed": True, "total_iterations": count},
-                        route="complete"
+                        route="done"  # Match "done" output handle
                     )
                 
                 # Increment for next iteration
@@ -129,7 +150,7 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 return BlockExecuteResponse(
                     success=True,
                     output={"mode": "count", "iteration": current_index + 1, "of": count, "item": current_index},
-                    route="iteration"
+                    route="loop"  # Match "loop" output handle
                 )
             else:
                 # Array mode
@@ -141,13 +162,13 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 current_index = loop_state.get(loop_id, 0)
                 
                 if current_index >= len(items):
-                    # Loop complete - reset state and exit
+                    # Loop complete - reset state and exit via "done" handle
                     loop_state[loop_id] = 0
                     context["loop_state"] = loop_state
                     return BlockExecuteResponse(
                         success=True,
                         output={"mode": "array", "completed": True, "total_items": len(items)},
-                        route="complete"
+                        route="done"  # Match "done" output handle
                     )
                 
                 # Get current item and increment
@@ -166,7 +187,7 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                 return BlockExecuteResponse(
                     success=True,
                     output={"mode": "array", "iteration": current_index + 1, "of": len(items), "item": current_item},
-                    route="iteration"
+                    route="loop"  # Match "loop" output handle
                 )
         
         elif block_type == "control.parallel":
@@ -649,6 +670,7 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
             """
             Output Interpreter Block - Parse and interpret output using rules
             Uses 3-output model: pass, fail, output
+            Enhanced with port detection and status checking
             """
             input_source = params.get("inputSource", "{{previous.output}}")
             aggregation = params.get("aggregation", "all")
@@ -657,15 +679,30 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
             regex_pattern = params.get("regexPattern", "")
             extract_variable = params.get("extractVariable", "")
             extract_pattern = params.get("extractPattern", "")
+            port_check = params.get("portCheck", "")
+            port_check_mode = params.get("portCheckMode", "any")
+            status_check = params.get("statusCheck", "")
             
             # Get input from previous block
             input_data = context.get("$prev", {}).get("output", context.get("input", ""))
             input_str = str(input_data) if input_data else ""
             
             import re
+            import json as json_module
             
             rule_results = []
             extracted_vars = {}
+            detected_ports = {"open": [], "closed": [], "filtered": []}
+            
+            # Parse input if it's JSON
+            parsed_input = None
+            if isinstance(input_data, dict):
+                parsed_input = input_data
+            elif isinstance(input_data, str):
+                try:
+                    parsed_input = json_module.loads(input_data)
+                except:
+                    parsed_input = None
             
             # Check contains (pass)
             if contains_pass:
@@ -717,6 +754,115 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                         "reason": f"Invalid regex: {regex_pattern}"
                     })
             
+            # Port detection - check for open ports in scan results
+            if port_check:
+                target_ports = [int(p.strip()) for p in port_check.split(",") if p.strip().isdigit()]
+                found_open = []
+                
+                # Check various formats of port data
+                if parsed_input:
+                    # Format: {"open_ports": [22, 80, 443]}
+                    if "open_ports" in parsed_input:
+                        open_ports = parsed_input.get("open_ports", [])
+                        for p in target_ports:
+                            if p in open_ports:
+                                found_open.append(p)
+                                detected_ports["open"].append(p)
+                    
+                    # Format: {"services": [{"port": 22, "state": "open"}, ...]}
+                    if "services" in parsed_input:
+                        services = parsed_input.get("services", [])
+                        for svc in services:
+                            if isinstance(svc, dict):
+                                port = svc.get("port")
+                                state = svc.get("state", svc.get("status", ""))
+                                if port in target_ports and str(state).lower() in ["open", "up", "running"]:
+                                    found_open.append(port)
+                                    detected_ports["open"].append(port)
+                    
+                    # Format: {"ports": {"22": "open", "80": "open"}}
+                    if "ports" in parsed_input and isinstance(parsed_input["ports"], dict):
+                        for port_str, state in parsed_input["ports"].items():
+                            try:
+                                port = int(port_str)
+                                if port in target_ports and str(state).lower() in ["open", "up"]:
+                                    found_open.append(port)
+                                    detected_ports["open"].append(port)
+                            except:
+                                pass
+                
+                # Also check in raw text format: "22/tcp open ssh"
+                port_pattern = r"(\d+)/(tcp|udp)\s+(open|closed|filtered)"
+                for match in re.finditer(port_pattern, input_str, re.IGNORECASE):
+                    port = int(match.group(1))
+                    state = match.group(3).lower()
+                    if port in target_ports:
+                        if state == "open":
+                            found_open.append(port)
+                            detected_ports["open"].append(port)
+                        elif state == "closed":
+                            detected_ports["closed"].append(port)
+                        else:
+                            detected_ports["filtered"].append(port)
+                
+                # Deduplicate
+                found_open = list(set(found_open))
+                detected_ports["open"] = list(set(detected_ports["open"]))
+                
+                # Determine pass based on mode
+                if port_check_mode == "any":
+                    passed = len(found_open) > 0
+                    reason = f"Found {len(found_open)} open port(s): {found_open}" if passed else f"None of ports {target_ports} are open"
+                elif port_check_mode == "all":
+                    passed = set(target_ports).issubset(set(found_open))
+                    missing = set(target_ports) - set(found_open)
+                    reason = f"All ports {target_ports} are open" if passed else f"Missing open ports: {list(missing)}"
+                else:  # specific
+                    passed = len(found_open) > 0
+                    reason = f"Port(s) {found_open} open" if passed else f"Target ports not open"
+                
+                rule_results.append({
+                    "rule": "port_check",
+                    "target_ports": target_ports,
+                    "found_open": found_open,
+                    "mode": port_check_mode,
+                    "passed": passed,
+                    "reason": reason
+                })
+                
+                # Auto-extract port info
+                extracted_vars["detected_ports"] = detected_ports
+                extracted_vars["open_ports"] = found_open
+            
+            # Status check - look for status fields
+            if status_check and parsed_input:
+                try:
+                    pattern = re.compile(status_check, re.IGNORECASE)
+                    status_fields = ["status", "state", "result", "success"]
+                    status_found = False
+                    status_value = None
+                    
+                    for field in status_fields:
+                        if field in parsed_input:
+                            status_value = str(parsed_input[field])
+                            if pattern.search(status_value):
+                                status_found = True
+                                break
+                    
+                    rule_results.append({
+                        "rule": "status_check",
+                        "pattern": status_check,
+                        "passed": status_found,
+                        "reason": f"Status '{status_value}' matches '{status_check}'" if status_found else f"Status doesn't match '{status_check}'"
+                    })
+                except re.error:
+                    rule_results.append({
+                        "rule": "status_check",
+                        "pattern": status_check,
+                        "passed": False,
+                        "reason": f"Invalid regex: {status_check}"
+                    })
+            
             # Extract variable
             if extract_variable and extract_pattern:
                 try:
@@ -744,6 +890,7 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                         "input": input_str[:500] if len(input_str) > 500 else input_str,
                         "ruleResults": rule_results,
                         "extractedVariables": extracted_vars,
+                        "detectedPorts": detected_ports,
                         "aggregation": aggregation
                     }
                 },
@@ -874,6 +1021,323 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
                     output={"pass": False, "output": None},
                     route="pass"  # Transform always passes, but with null output on error
                 )
+        
+        # === Scanning Blocks (Additional) ===
+        elif block_type == "scanning.network_discovery":
+            network = params.get("network", "192.168.1.0/24")
+            timeout = params.get("timeout", 5)
+            await asyncio.sleep(1.0)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "network": network,
+                    "hosts_found": 5,
+                    "hosts": [
+                        {"ip": "192.168.1.1", "status": "up", "type": "router"},
+                        {"ip": "192.168.1.10", "status": "up", "type": "workstation"},
+                        {"ip": "192.168.1.20", "status": "up", "type": "server"}
+                    ],
+                    "scan_time": timeout
+                },
+                route="out"
+            )
+        
+        elif block_type == "scanning.host_scan":
+            host = params.get("host", "")
+            await asyncio.sleep(0.8)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "status": "up",
+                    "ports": [22, 80, 443],
+                    "os_guess": "Linux 5.x",
+                    "hostname": host
+                },
+                route="out"
+            )
+        
+        elif block_type == "scanning.ping_sweep":
+            network = params.get("network", "192.168.1.0/24")
+            await asyncio.sleep(1.0)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "network": network,
+                    "alive_hosts": ["192.168.1.1", "192.168.1.10", "192.168.1.20"],
+                    "total_scanned": 254,
+                    "hosts_up": 3
+                },
+                route="out"
+            )
+        
+        elif block_type == "scanning.service_scan":
+            host = params.get("host", "")
+            ports = params.get("ports", "22,80,443")
+            await asyncio.sleep(1.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "host": host,
+                    "services": [
+                        {"port": 22, "service": "ssh", "state": "open"},
+                        {"port": 80, "service": "http", "state": "open"},
+                        {"port": 443, "service": "https", "state": "open"}
+                    ]
+                },
+                route="out"
+            )
+        
+        # === Agent Blocks (Additional) ===
+        elif block_type == "agent.list":
+            await asyncio.sleep(0.3)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "agents": [
+                        {"id": "agent-001", "name": "Agent 1", "status": "online", "os": "linux"},
+                        {"id": "agent-002", "name": "Agent 2", "status": "offline", "os": "windows"}
+                    ],
+                    "total": 2,
+                    "online": 1
+                },
+                route="out"
+            )
+        
+        elif block_type == "agent.create":
+            name = params.get("name", "NewAgent")
+            os_type = params.get("os", "linux")
+            await asyncio.sleep(0.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "agent_id": f"agent-{datetime.utcnow().timestamp():.0f}",
+                    "name": name,
+                    "os": os_type,
+                    "status": "created",
+                    "connection_url": "wss://localhost:12001/ws/agent"
+                },
+                route="out"
+            )
+        
+        # === Data Blocks (Additional) ===
+        elif block_type == "data.http_request":
+            url = params.get("url", "")
+            method = params.get("method", "GET")
+            headers = params.get("headers", {})
+            body = params.get("body", "")
+            
+            import httpx
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.request(method, url, headers=headers, content=body if body else None)
+                    return BlockExecuteResponse(
+                        success=response.status_code < 400,
+                        output={
+                            "status_code": response.status_code,
+                            "headers": dict(response.headers),
+                            "body": response.text[:2000]
+                        },
+                        route="pass" if response.status_code < 400 else "fail"
+                    )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"error": str(e)},
+                    route="fail"
+                )
+        
+        elif block_type == "data.json_transform":
+            input_data = params.get("input", context.get("input", ""))
+            expression = params.get("expression", "$")
+            
+            try:
+                if isinstance(input_data, str):
+                    data = json.loads(input_data)
+                else:
+                    data = input_data
+                
+                # Simple JSONPath-like extraction
+                if expression.startswith("$."):
+                    key = expression[2:]
+                    result = data.get(key, data) if isinstance(data, dict) else data
+                else:
+                    result = data
+                
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"result": result, "expression": expression},
+                    route="pass"
+                )
+            except Exception as e:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=str(e),
+                    output={"error": str(e)},
+                    route="fail"
+                )
+        
+        elif block_type == "data.database_query":
+            connection_string = params.get("connectionString", "")
+            query = params.get("query", "SELECT 1")
+            await asyncio.sleep(0.5)
+            return BlockExecuteResponse(
+                success=True,
+                output={
+                    "query": query,
+                    "rows": [{"column1": 1}],
+                    "row_count": 1
+                },
+                route="pass"
+            )
+        
+        # ============================================
+        # === ASSETS Blocks ===
+        # ============================================
+        elif block_type == "assets.get_all":
+            include_offline = params.get("includeOffline", True)
+            limit = params.get("limit", 100)
+            # In production, fetch from database
+            await asyncio.sleep(0.2)
+            sample_assets = [
+                {"id": "1", "ip": "192.168.1.1", "hostname": "switch-01", "type": "switch", "status": "online", "discovery_method": "arp"},
+                {"id": "2", "ip": "192.168.1.10", "hostname": "server-01", "type": "server", "status": "online", "discovery_method": "manual"},
+                {"id": "3", "ip": "192.168.1.20", "hostname": "workstation-01", "type": "workstation", "status": "offline", "discovery_method": "ping"},
+            ]
+            if not include_offline:
+                sample_assets = [a for a in sample_assets if a["status"] == "online"]
+            return BlockExecuteResponse(
+                success=True,
+                output={"assets": sample_assets[:limit], "count": len(sample_assets)},
+                route="assets"
+            )
+        
+        elif block_type == "assets.get_by_filter":
+            asset_type = params.get("type", "")
+            subnet = params.get("subnet", "")
+            tag = params.get("tag", "")
+            status = params.get("status", "")
+            discovery_method = params.get("discoveryMethod", "")
+            await asyncio.sleep(0.2)
+            # In production, query database with filters
+            sample_assets = [
+                {"id": "1", "ip": "192.168.1.1", "hostname": "switch-01", "type": "switch", "status": "online", "discovery_method": "arp"},
+                {"id": "2", "ip": "192.168.1.10", "hostname": "server-01", "type": "server", "status": "online", "discovery_method": "manual"},
+            ]
+            return BlockExecuteResponse(
+                success=True,
+                output={"assets": sample_assets, "count": len(sample_assets), "filter": {"type": asset_type, "status": status}},
+                route="assets"
+            )
+        
+        elif block_type == "assets.get_single":
+            identifier = params.get("identifier", "")
+            await asyncio.sleep(0.1)
+            if identifier:
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"asset": {"id": "1", "ip": identifier, "hostname": f"host-{identifier}", "type": "server", "status": "online"}},
+                    route="found"
+                )
+            return BlockExecuteResponse(
+                success=False,
+                error=f"Asset not found: {identifier}",
+                route="not_found"
+            )
+        
+        elif block_type == "assets.discover_arp":
+            subnet = params.get("subnet", "192.168.1.0/24")
+            interface = params.get("interface", "eth0")
+            timeout = params.get("timeout", 10)
+            auto_add = params.get("autoAdd", True)
+            await asyncio.sleep(1.0)  # Simulate ARP scan
+            discovered = [
+                {"ip": "192.168.1.1", "mac": "00:11:22:33:44:55", "vendor": "Cisco", "discovery_method": "arp"},
+                {"ip": "192.168.1.100", "mac": "AA:BB:CC:DD:EE:FF", "vendor": "Dell", "discovery_method": "arp"},
+            ]
+            return BlockExecuteResponse(
+                success=True,
+                output={"discovered": discovered, "count": len(discovered), "subnet": subnet, "method": "arp"},
+                route="discovered"
+            )
+        
+        elif block_type == "assets.discover_ping":
+            subnet = params.get("subnet", "192.168.1.0/24")
+            timeout = params.get("timeout", 1000)
+            concurrent = params.get("concurrent", 50)
+            await asyncio.sleep(2.0)  # Simulate ping sweep
+            discovered = [
+                {"ip": "192.168.1.1", "latency_ms": 1.2, "discovery_method": "ping"},
+                {"ip": "192.168.1.10", "latency_ms": 0.8, "discovery_method": "ping"},
+                {"ip": "192.168.1.50", "latency_ms": 2.5, "discovery_method": "ping"},
+            ]
+            return BlockExecuteResponse(
+                success=True,
+                output={"discovered": discovered, "count": len(discovered), "subnet": subnet, "method": "ping"},
+                route="discovered"
+            )
+        
+        elif block_type == "assets.discover_passive":
+            interface = params.get("interface", "eth0")
+            duration = params.get("duration", 60)
+            protocols = params.get("protocols", ["arp", "dhcp"])
+            await asyncio.sleep(min(duration, 5))  # Simulate passive monitoring
+            discovered = [
+                {"ip": "192.168.1.25", "mac": "11:22:33:44:55:66", "protocol": "arp", "discovery_method": "passive"},
+                {"ip": "192.168.1.30", "hostname": "laptop-01", "protocol": "dhcp", "discovery_method": "passive"},
+            ]
+            return BlockExecuteResponse(
+                success=True,
+                output={"discovered": discovered, "count": len(discovered), "method": "passive", "protocols": protocols},
+                route="discovered"
+            )
+        
+        elif block_type == "assets.check_online":
+            host = params.get("host", "")
+            method = params.get("method", "ping")
+            port = params.get("port", 22)
+            timeout = params.get("timeout", 5)
+            
+            if not host:
+                return BlockExecuteResponse(success=False, error="Host is required", route="offline")
+            
+            # Simulate online check
+            await asyncio.sleep(0.5)
+            is_online = True  # In production, actually ping/check
+            
+            if is_online:
+                return BlockExecuteResponse(
+                    success=True,
+                    output={"host": host, "online": True, "method": method, "latency_ms": 1.5},
+                    route="online"
+                )
+            return BlockExecuteResponse(
+                success=True,
+                output={"host": host, "online": False, "method": method},
+                route="offline"
+            )
+        
+        elif block_type == "assets.get_credentials":
+            asset_id = params.get("assetId", "")
+            cred_type = params.get("credentialType", "")
+            
+            if not asset_id:
+                return BlockExecuteResponse(success=False, error="Asset ID is required", route="not_found")
+            
+            await asyncio.sleep(0.1)
+            # In production, fetch from credential vault
+            credentials = {
+                "username": "admin",
+                "password": "********",  # Would be actual password from vault
+                "type": cred_type or "ssh",
+                "asset_id": asset_id
+            }
+            return BlockExecuteResponse(
+                success=True,
+                output={"credentials": credentials},
+                route="found"
+            )
         
         else:
             return BlockExecuteResponse(
@@ -1049,6 +1513,70 @@ async def execute_delay(
         duration_ms=request.seconds * 1000,
         route="out"
     )
+
+
+class CodeBlockRequest(BaseModel):
+    """Request for code block execution"""
+    context: Dict = Field(default_factory=dict, description="Context with input data")
+    passCode: str = Field(..., description="JavaScript code for pass condition")
+    failCode: Optional[str] = Field(default=None, description="JavaScript code for fail condition")
+    outputCode: str = Field(..., description="JavaScript code for output transformation")
+
+@router.post("/block/code", response_model=BlockExecuteResponse)
+async def execute_code_block(
+    request: CodeBlockRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Execute code block with pass/fail logic"""
+    import time
+    start_time = time.time()
+    
+    try:
+        raw_input = request.context.get("input", "")
+        
+        # Evaluate pass condition
+        pass_result = evaluate_code_expression(request.passCode, raw_input)
+        
+        # Evaluate fail condition (defaults to !pass)
+        if request.failCode:
+            fail_result = evaluate_code_expression(request.failCode, raw_input)
+        else:
+            fail_result = not pass_result
+        
+        # Evaluate output transformation
+        output_value = raw_input  # Default to input
+        if request.outputCode:
+            try:
+                # Simple output transformation support
+                if "context.input" in request.outputCode:
+                    output_value = {"input": raw_input, "pass": pass_result, "fail": fail_result}
+            except:
+                pass
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Determine route based on pass/fail
+        route = "pass" if pass_result else "fail"
+        
+        return BlockExecuteResponse(
+            success=True,
+            output={
+                "pass": pass_result,
+                "fail": fail_result,
+                "output": output_value,
+                "route": route
+            },
+            duration_ms=duration_ms,
+            route=route
+        )
+    except Exception as e:
+        return BlockExecuteResponse(
+            success=False,
+            output={"error": str(e)},
+            duration_ms=int((time.time() - start_time) * 1000),
+            route="fail",
+            error=str(e)
+        )
 
 
 # === CRUD Endpoints ===
@@ -1450,7 +1978,7 @@ async def run_workflow_execution(execution_id: UUID, workflow, db: AsyncSession)
                         iterations = existing_result.get("iterations", [])
                         
                         # Only add iteration result if we're iterating (not completing)
-                        if block_result.route == "iteration":
+                        if block_result.route == "loop":
                             iteration_num = len(iterations) + 1
                             iterations.append({
                                 "iteration": iteration_num,
@@ -1494,7 +2022,7 @@ async def run_workflow_execution(execution_id: UUID, workflow, db: AsyncSession)
                     # Add iteration info for loop nodes
                     if block_type == 'control.loop':
                         ws_data["iterations"] = execution.node_results[node_id].get("iterations", [])
-                        ws_data["isIteration"] = block_result.route == "iteration"
+                        ws_data["isIteration"] = block_result.route == "loop"
                     
                     await send_ws_event("node_completed", ws_data)
                     

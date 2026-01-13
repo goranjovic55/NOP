@@ -24,6 +24,7 @@ export type NodeExecutionStatus =
   | 'skipped';
 
 export type BlockCategory = 
+  | 'assets'      // Asset management - get hosts, filter, discover
   | 'connection' 
   | 'command' 
   | 'traffic' 
@@ -38,6 +39,15 @@ export type ErrorHandlingMode = 'stop' | 'continue' | 'skip-branch';
 // === Block Types ===
 
 export type BlockType =
+  // Assets - Get and manage network assets
+  | 'assets.get_all'
+  | 'assets.get_by_filter'
+  | 'assets.get_single'
+  | 'assets.discover_arp'
+  | 'assets.discover_ping'
+  | 'assets.discover_passive'
+  | 'assets.check_online'
+  | 'assets.get_credentials'
   // Connection
   | 'connection.ssh_test'
   | 'connection.rdp_test'
@@ -267,7 +277,7 @@ export interface CompileResult {
 export interface ParameterDefinition {
   name: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | 'select' | 'textarea' | 'password' | 'credential';
+  type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'textarea' | 'password' | 'credential';
   required?: boolean;
   default?: any;
   options?: { label: string; value: any }[];
@@ -280,6 +290,7 @@ export interface HandleDefinition {
   type: 'input' | 'output';
   label: string;
   handleType?: 'source' | 'target';
+  optional?: boolean;
 }
 
 export interface BlockDefinition {

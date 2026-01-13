@@ -8,28 +8,236 @@ import { BlockDefinition, BlockCategory } from './workflow';
 
 // Cyberpunk category colors
 export const CATEGORY_COLORS: Record<BlockCategory, string> = {
+  assets: '#22d3ee',      // cyan - Asset management
   connection: '#00d4ff',  // cyber-blue
   command: '#00ff88',     // cyber-green
   traffic: '#8b5cf6',     // cyber-purple
   scanning: '#f59e0b',    // amber
   agent: '#ff0040',       // cyber-red
   control: '#6b7280',     // gray
-  data: '#14b8a6',        // teal - New: Data processing blocks
+  data: '#14b8a6',        // teal - Data processing blocks
 };
 
 // Cyberpunk category icons (Unicode symbols)
 export const CATEGORY_ICONS: Record<BlockCategory, string> = {
+  assets: '◉',       // Asset management
   connection: '◎',
   command: '⬢',
   traffic: '≋',
   scanning: '◈',
   agent: '◆',
   control: '⚙',
-  data: '⟐',      // New: Data processing blocks
+  data: '⟐',      // Data processing blocks
 };
 
 // Block definitions with cyberpunk icons - Complete Phase 3 Library
 export const BLOCK_DEFINITIONS: BlockDefinition[] = [
+  // ============================================
+  // === ASSETS Blocks (8 blocks) ===
+  // ============================================
+  // These are the natural starting point for automation workflows
+  // Get assets first, then work with them (scan, connect, exploit)
+  {
+    type: 'assets.get_all',
+    label: 'Get All Assets',
+    category: 'assets',
+    icon: '◉',
+    color: '#22d3ee',
+    description: 'Retrieve all assets from inventory - use as workflow starting point',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'assets', type: 'output', label: 'Assets List' },
+      { id: 'count', type: 'output', label: 'Count' },
+    ],
+    parameters: [
+      { name: 'includeOffline', label: 'Include Offline', type: 'boolean', default: true },
+      { name: 'limit', label: 'Max Results', type: 'number', default: 100 },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/assets' },
+  },
+  {
+    type: 'assets.get_by_filter',
+    label: 'Filter Assets',
+    category: 'assets',
+    icon: '◎',
+    color: '#22d3ee',
+    description: 'Get assets matching filter criteria (type, subnet, tag, status)',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'assets', type: 'output', label: 'Filtered Assets' },
+      { id: 'count', type: 'output', label: 'Count' },
+    ],
+    parameters: [
+      { name: 'type', label: 'Asset Type', type: 'select', options: [
+        { label: 'All', value: '' },
+        { label: 'Server', value: 'server' },
+        { label: 'Switch', value: 'switch' },
+        { label: 'Router', value: 'router' },
+        { label: 'Firewall', value: 'firewall' },
+        { label: 'Workstation', value: 'workstation' },
+        { label: 'IoT Device', value: 'iot' },
+        { label: 'Printer', value: 'printer' },
+        { label: 'Camera', value: 'camera' },
+      ]},
+      { name: 'subnet', label: 'Subnet', type: 'string', placeholder: '192.168.1.0/24' },
+      { name: 'tag', label: 'Tag', type: 'string', placeholder: 'production' },
+      { name: 'status', label: 'Status', type: 'select', options: [
+        { label: 'All', value: '' },
+        { label: 'Online', value: 'online' },
+        { label: 'Offline', value: 'offline' },
+        { label: 'Unknown', value: 'unknown' },
+      ]},
+      { name: 'discoveryMethod', label: 'Discovery Method', type: 'select', options: [
+        { label: 'All', value: '' },
+        { label: 'ARP Scan', value: 'arp' },
+        { label: 'Ping Sweep', value: 'ping' },
+        { label: 'Passive', value: 'passive' },
+        { label: 'Manual', value: 'manual' },
+        { label: 'SNMP', value: 'snmp' },
+      ]},
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/assets' },
+  },
+  {
+    type: 'assets.get_single',
+    label: 'Get Asset',
+    category: 'assets',
+    icon: '○',
+    color: '#22d3ee',
+    description: 'Get single asset by IP, hostname, or ID',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'asset', type: 'output', label: 'Asset' },
+      { id: 'found', type: 'output', label: 'Found' },
+      { id: 'not_found', type: 'output', label: 'Not Found' },
+    ],
+    parameters: [
+      { name: 'identifier', label: 'IP/Hostname/ID', type: 'string', required: true, placeholder: '192.168.1.1 or switch-01' },
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/assets/{id}' },
+  },
+  {
+    type: 'assets.discover_arp',
+    label: 'ARP Discovery',
+    category: 'assets',
+    icon: '⚡',
+    color: '#22d3ee',
+    description: 'Discover assets via ARP scan - fast, layer 2, local subnet only',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'discovered', type: 'output', label: 'Discovered' },
+      { id: 'count', type: 'output', label: 'Count' },
+    ],
+    parameters: [
+      { name: 'subnet', label: 'Subnet', type: 'string', required: true, placeholder: '192.168.1.0/24' },
+      { name: 'interface', label: 'Network Interface', type: 'string', placeholder: 'eth0 (auto-detect if empty)' },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 10 },
+      { name: 'autoAdd', label: 'Auto-add to Inventory', type: 'boolean', default: true },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/arp' },
+  },
+  {
+    type: 'assets.discover_ping',
+    label: 'Ping Sweep',
+    category: 'assets',
+    icon: '◈',
+    color: '#22d3ee',
+    description: 'Discover assets via ICMP ping sweep - works across subnets',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'discovered', type: 'output', label: 'Discovered' },
+      { id: 'count', type: 'output', label: 'Count' },
+    ],
+    parameters: [
+      { name: 'subnet', label: 'Subnet/Range', type: 'string', required: true, placeholder: '192.168.1.0/24 or 192.168.1.1-254' },
+      { name: 'timeout', label: 'Timeout per Host (ms)', type: 'number', default: 1000 },
+      { name: 'concurrent', label: 'Concurrent Pings', type: 'number', default: 50 },
+      { name: 'retries', label: 'Retries', type: 'number', default: 1 },
+      { name: 'autoAdd', label: 'Auto-add to Inventory', type: 'boolean', default: true },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/ping' },
+  },
+  {
+    type: 'assets.discover_passive',
+    label: 'Passive Discovery',
+    category: 'assets',
+    icon: '◇',
+    color: '#22d3ee',
+    description: 'Discover assets by monitoring network traffic - stealthy, no probes',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'discovered', type: 'output', label: 'Discovered' },
+      { id: 'count', type: 'output', label: 'Count' },
+    ],
+    parameters: [
+      { name: 'interface', label: 'Capture Interface', type: 'string', placeholder: 'eth0' },
+      { name: 'duration', label: 'Monitor Duration (s)', type: 'number', default: 60, description: 'How long to passively listen' },
+      { name: 'protocols', label: 'Protocols to Watch', type: 'multiselect', options: [
+        { label: 'ARP', value: 'arp' },
+        { label: 'DHCP', value: 'dhcp' },
+        { label: 'DNS', value: 'dns' },
+        { label: 'LLDP', value: 'lldp' },
+        { label: 'CDP', value: 'cdp' },
+        { label: 'mDNS', value: 'mdns' },
+      ]},
+      { name: 'autoAdd', label: 'Auto-add to Inventory', type: 'boolean', default: true },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/discovery/passive' },
+  },
+  {
+    type: 'assets.check_online',
+    label: 'Check Online Status',
+    category: 'assets',
+    icon: '●',
+    color: '#22d3ee',
+    description: 'Check if asset is online/reachable - ping + optional port check',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'online', type: 'output', label: 'Online' },
+      { id: 'offline', type: 'output', label: 'Offline' },
+      { id: 'status', type: 'output', label: 'Status Details' },
+    ],
+    parameters: [
+      { name: 'host', label: 'Host/IP', type: 'string', required: true, placeholder: '{{asset.ip}}' },
+      { name: 'method', label: 'Check Method', type: 'select', options: [
+        { label: 'Ping (ICMP)', value: 'ping' },
+        { label: 'TCP Port', value: 'tcp' },
+        { label: 'ARP', value: 'arp' },
+        { label: 'All Methods', value: 'all' },
+      ]},
+      { name: 'port', label: 'TCP Port (if TCP method)', type: 'number', default: 22 },
+      { name: 'timeout', label: 'Timeout (s)', type: 'number', default: 5 },
+      { name: 'updateInventory', label: 'Update Inventory Status', type: 'boolean', default: true },
+    ],
+    api: { method: 'POST', endpoint: '/api/v1/assets/check-online' },
+  },
+  {
+    type: 'assets.get_credentials',
+    label: 'Get Asset Credentials',
+    category: 'assets',
+    icon: '🔑',
+    color: '#22d3ee',
+    description: 'Retrieve stored credentials for an asset from vault',
+    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    outputs: [
+      { id: 'credentials', type: 'output', label: 'Credentials' },
+      { id: 'found', type: 'output', label: 'Found' },
+      { id: 'not_found', type: 'output', label: 'Not Found' },
+    ],
+    parameters: [
+      { name: 'assetId', label: 'Asset ID/IP', type: 'string', required: true, placeholder: '{{asset.id}} or {{asset.ip}}' },
+      { name: 'credentialType', label: 'Credential Type', type: 'select', options: [
+        { label: 'SSH', value: 'ssh' },
+        { label: 'RDP', value: 'rdp' },
+        { label: 'SNMP', value: 'snmp' },
+        { label: 'HTTP/API', value: 'http' },
+        { label: 'Database', value: 'database' },
+        { label: 'Any', value: '' },
+      ]},
+    ],
+    api: { method: 'GET', endpoint: '/api/v1/credentials/asset/{id}' },
+  },
+
   // ============================================
   // === Control Blocks (7 blocks) ===
   // ============================================
@@ -39,11 +247,13 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'control',
     icon: '▶',
     color: '#00ff88',
-    description: 'Workflow entry point - execution begins here',
-    inputs: [],
+    description: 'Workflow entry point - can receive input from loops for iteration',
+    inputs: [{ id: 'loop_in', type: 'input', label: 'Loop Input', optional: true }],
     outputs: [{ id: 'out', type: 'output', label: 'Output' }],
     parameters: [
       { name: 'name', label: 'Workflow Name', type: 'string', placeholder: 'My Workflow' },
+      { name: 'initialValue', label: 'Initial Value', type: 'string', placeholder: '{{ $vars.startIndex || 0 }}', description: 'Starting value for loops (overridden by loop input)' },
+      { name: 'maxIterations', label: 'Max Iterations', type: 'number', default: 100, description: 'Safety limit to prevent infinite loops' },
     ],
   },
   {
@@ -100,11 +310,14 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     category: 'control',
     icon: '⟳',
     color: '#6b7280',
-    description: 'Iterate over items or count',
-    inputs: [{ id: 'in', type: 'input', label: 'Input' }],
+    description: 'Iterate over items or count with feedback loop',
+    inputs: [
+      { id: 'in', type: 'input', label: 'Input' },
+      { id: 'next', type: 'input', label: 'Next (feedback)' },
+    ],
     outputs: [
-      { id: 'iteration', type: 'output', label: 'Each Iteration' },
-      { id: 'complete', type: 'output', label: 'Complete' },
+      { id: 'loop', type: 'output', label: 'Loop (item)' },
+      { id: 'done', type: 'output', label: 'Done' },
     ],
     parameters: [
       { name: 'mode', label: 'Mode', type: 'select', required: true, options: [
@@ -112,7 +325,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
         { label: 'Array', value: 'array' },
       ]},
       { name: 'count', label: 'Count', type: 'number', default: 5 },
-      { name: 'array', label: 'Array Expression', type: 'string', placeholder: '{{ $vars.hosts }}' },
+      { name: 'items', label: 'Items Array', type: 'string', placeholder: '["host1", "host2", "host3"]' },
       { name: 'variable', label: 'Item Variable', type: 'string', default: 'item' },
     ],
   },
@@ -1031,6 +1244,31 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
         placeholder: '(\\d+) ports',
         description: 'Regex with capture group for extraction',
       },
+      {
+        name: 'portCheck',
+        label: 'Port Open Check',
+        type: 'string',
+        placeholder: '22,80,443',
+        description: 'Comma-separated ports to check if open (pass if ANY found open)',
+      },
+      {
+        name: 'portCheckMode',
+        label: 'Port Check Mode',
+        type: 'select',
+        default: 'any',
+        options: [
+          { label: 'Any port open', value: 'any' },
+          { label: 'All ports open', value: 'all' },
+          { label: 'Specific port open', value: 'specific' },
+        ],
+      },
+      {
+        name: 'statusCheck',
+        label: 'Status Field Check',
+        type: 'string',
+        placeholder: 'open|up|success',
+        description: 'Regex to match in status/state fields',
+      },
     ],
     hasPassFailOutputs: true,
     api: { method: 'POST', endpoint: '/api/v1/workflows/block/interpreter' },
@@ -1116,7 +1354,7 @@ export function getBlocksByCategory(category: BlockCategory): BlockDefinition[] 
 
 // Get all categories
 export function getAllCategories(): BlockCategory[] {
-  return ['control', 'connection', 'command', 'traffic', 'scanning', 'agent', 'data'];
+  return ['assets', 'control', 'connection', 'command', 'traffic', 'scanning', 'agent', 'data'];
 }
 
 // Get block count by category

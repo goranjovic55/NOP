@@ -42,3 +42,12 @@ applyTo: "**"
 | Terminal | Line wrapping corrupts | Limit line length, handle overflow |
 | Undo/Redo | Deep state breaks | Use immutable update patterns |
 | Credentials | Params missing | Validate block config completeness |
+| Auth | localStorage returns null | Check `nop-auth` key, not `auth_token` |
+| State | React state stale in async | Use callback/ref patterns |
+| State | ConfigPanel save lost | Persist to backend, not just Zustand |
+| Mock | Block executor mock data | Check mock vs real implementation |
+| JSONB | Nested object not updating | Use `flag_modified()` after update |
+| Workflow | Progress stuck at 3/4 | Set 100% on `execution_completed` event |
+| Workflow | Black screen on switch | Call `reset()` to clear execution state |
+| Context | Connection menu hidden | Check DOM ordering, z-index, pointer-events |
+| Cache | Same skill reloaded | Load skill ONCE per domain, cache list |

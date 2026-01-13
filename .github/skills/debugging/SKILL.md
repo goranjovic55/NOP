@@ -1,74 +1,63 @@
 ---
 name: debugging
-description: Load when encountering errors, exceptions, tracebacks, bugs, or failed operations. Provides systematic troubleshooting methodology for build, runtime, and infrastructure issues.
+description: Load when encountering errors, tracebacks, or investigating bugs. Provides systematic debugging patterns and common gotchas from 131 workflow logs.
 ---
 
-# Debugging
+# Debugging Skill
 
-> 100k simulation: Check gotchas FIRST for 75% debug acceleration
-
-## ⚠️ Critical Gotchas
+## ⚠️ Critical Gotchas (from 131 logs)
 
 | Category | Pattern | Solution |
 |----------|---------|----------|
-| Docker | restart ≠ rebuild | Code changes need `--build` |
-| Docker | Container old code | `docker compose up -d --build --force-recreate` |
-| API | 307 redirect | Add trailing slash to POST URLs |
-| API | 401 Unauthorized | Check token, POV headers, authStore |
-| State | JSONB not saving | Use `flag_modified(obj, 'field')` |
-| State | Persisted stale | Clear localStorage, version key |
-| Frontend | Component not updating | Check selector, use shallow compare |
-| CSS | Element invisible | Check z-index, overflow, parent |
-| Build | JSX syntax error | Use `{/* */}` for comments |
+| API | 307 redirect on POST | Add trailing slash to URL |
+| API | 401 on valid token | Check auth headers, token expiry |
+| Auth | localStorage returns null | Check `nop-auth` key, not `auth_token` |
+| State | Persisted state stale | Version storage key, clear cache |
+| State | Nested object not updating | Use immutable update or flag_modified |
+| State | React state stale in async | Use callback/ref patterns |
+| State | ConfigPanel save lost | Persist to backend, not just Zustand |
+| Build | Changes not visible | Rebuild with `--no-cache` |
+| Build | Container old code | Use `--build --force-recreate` |
+| Syntax | JSX comment error | Use `{/* */}` not `//` in JSX |
+| CSS | Element hidden | Check z-index, overflow, position |
+| Frontend | Dropdown flickering | Memoize options with useMemo |
+| Frontend | Black screen | Add error boundary/try-catch |
+| Mock | Block executor mock data | Check mock vs real implementation |
+| JSONB | Nested object not updating | Use `flag_modified()` after update |
+| Workflow | Progress stuck at 3/4 | Set 100% on `execution_completed` event |
+| Workflow | Black screen on switch | Call `reset()` to clear execution state |
+| Context | Connection menu hidden | Check DOM ordering, z-index, pointer-events |
+| Cache | Same skill reloaded | Load skill ONCE per domain, cache list |
+| Scripts | Parse fails | Create log BEFORE running scripts |
+| Workflow | END scripts fail | Create workflow log FIRST |
+| Terminal | Line wrapping corrupts | Limit line length, handle overflow |
+| Undo/Redo | Deep state breaks | Use immutable update patterns |
+| Credentials | Params missing | Validate block config completeness |
 
-## Session Gotchas (from 128 workflow logs)
+## Debug Protocol
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| END scripts not reading data | Scripts ran before workflow log created | Create workflow log FIRST in END phase |
-| Dropdown flickering | Options recalculated on every render | Wrap options with `useMemo(() => options, [deps])` |
-| Black screen on click | Unhandled exception in click handler | Add try/catch block and error boundary |
-| Terminal line wrapping | Buffer doesn't handle long lines | Use `\r\n` and limit line length to terminal width |
-| Credential params missing | Block config validation incomplete | Add Zod/yup schema validation for block params |
-| Undo/redo broken | Direct state mutation | Use `{...state, field: newValue}` immutable pattern |
+1. **CHECK gotchas table FIRST** (75% are known issues)
+2. READ full error/traceback
+3. ANALYZE root cause (not symptoms)
+4. PLAN fix before implementing
+5. VERIFY fix resolves issue
+6. DOCUMENT in workflow log
 
-## Process
-1. **CHECK** gotchas table FIRST (75% are known issues)
-2. **READ** error completely
-3. **IDENTIFY** type (build/runtime/network/type)
-4. **LOCATE** source (file:line)
-5. **FIX** with targeted change
-6. **VERIFY** error resolved
-7. **DOCUMENT** root cause in workflow log
+## Common Patterns
 
-## Avoid
+| Error Type | First Check |
+|------------|-------------|
+| 401/403 | Auth token, headers, expiry |
+| 307 redirect | Missing trailing slash |
+| Black screen | Error boundary, console errors |
+| State not updating | Immutable patterns, flag_modified |
+| Changes not visible | Container rebuild |
 
-| ❌ Bad | ✅ Good |
-|--------|---------|
-| Ignoring stack trace | Read every line |
-| Random changes | Targeted fix |
-| "It works now" | Understand why |
+## Commands
 
-## Quick Fixes
-
-```bash
-# Container issues (MOST COMMON)
-docker logs container-name --tail 50
-docker compose up -d --build --force-recreate backend
-
-# Python
-python -m py_compile file.py   # Syntax check
-pip list | grep package        # Check installed
-
-# Port conflict
-lsof -i :8000 && kill <PID>
-```
-
-```python
-# Null safety
-value = data.get('property', 'default')
-
-# JSONB not saving?
-flag_modified(item, 'metadata')
-await db.commit()
-```
+| Issue | Command |
+|-------|---------|
+| Backend logs | `docker compose logs -f backend` |
+| Frontend logs | `docker compose logs -f frontend` |
+| Rebuild | `docker compose build --no-cache` |
+| Full reset | `docker compose down && docker compose up -d --build` |
