@@ -962,7 +962,71 @@ Authorization: Bearer {access_token}
 
 ---
 
-## 12. Error Responses
+## 12. Workflows
+
+### 12.1 Execute Single Block
+
+Execute a workflow block independently for testing.
+
+```http
+POST /api/v1/workflows/block/execute
+```
+
+**Request Body:**
+```json
+{
+  "block_type": "scanning.port_scan",
+  "parameters": {
+    "host": "172.21.0.10",
+    "scanType": "quick",
+    "technique": "tcp_syn"
+  },
+  "context": {
+    "previous": { "output": {} },
+    "input": {}
+  }
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "output": {
+    "host": "172.21.0.10",
+    "scan_type": "quick",
+    "open_ports": [22, 80],
+    "closed_ports": 12,
+    "filtered_ports": 0
+  },
+  "duration_ms": 2543,
+  "route": "out"
+}
+```
+
+### 12.2 Execute Workflow
+
+```http
+POST /api/v1/workflows/{workflow_id}/execute
+```
+
+### 12.3 Save Workflow
+
+```http
+PUT /api/v1/workflows/{workflow_id}
+```
+
+**Request Body:**
+```json
+{
+  "nodes": [...],
+  "edges": [...]
+}
+```
+
+---
+
+## 13. Error Responses
 
 **Standard Error Format:**
 ```json

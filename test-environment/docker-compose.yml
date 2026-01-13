@@ -124,7 +124,7 @@ services:
     restart: unless-stopped
 
   apache-server:
-    image: httpd:2.4.18  # Old Apache with CVE-2017-7668, CVE-2017-7679
+    image: httpd:2.4-alpine  # Updated Apache image
     container_name: vulnerable-apache
     hostname: apache-server
     networks:

@@ -3,6 +3,7 @@
  * Phase 3: Added credential selector support
  * Phase 4: Added execution results display with loop iteration tracking
  * Phase 5: Added dynamic dropdowns for IPs, ports, and credentials from NOP data
+ * Phase 6: Added "Run Single Block" with manual input injection
  */
 
 import React, { useState, useEffect } from 'react';
@@ -33,18 +34,33 @@ interface VaultCredential {
   username: string;
 }
 
+interface BlockExecuteResponse {
+  success: boolean;
+  output?: any;
+  error?: string;
+  duration_ms?: number;
+  route?: string;
+}
+
 interface ConfigPanelProps {
   nodeId: string | null;
   onClose: () => void;
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
-  const { nodes, updateNode, execution } = useWorkflowStore();
+  const { nodes, edges, updateNode, execution, saveCurrentWorkflow } = useWorkflowStore();
   const [localParams, setLocalParams] = useState<Record<string, any>>({});
   const [localLabel, setLocalLabel] = useState('');
   const [credentials, setCredentials] = useState<VaultCredential[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(true);
+  
+  // Single block execution state
+  const [isRunningBlock, setIsRunningBlock] = useState(false);
+  const [blockResult, setBlockResult] = useState<BlockExecuteResponse | null>(null);
+  const [showInputInjection, setShowInputInjection] = useState(false);
+  const [injectedInput, setInjectedInput] = useState<string>('');
+  const [inputSource, setInputSource] = useState<'none' | 'previous' | 'manual'>('none');
 
   const node = nodes.find(n => n.id === nodeId);
   const definition = node ? getBlockDefinition(node.data.type) : null;
@@ -53,6 +69,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
   // Get execution result for this node
   const nodeResult = execution?.nodeResults?.[nodeId || ''] as ExtendedNodeResult | undefined;
   const nodeStatus = execution?.nodeStatuses?.[nodeId || ''];
+  
+  // Find previous block(s) connected to this node
+  const getPreviousBlocks = () => {
+    if (!nodeId) return [];
+    const incomingEdges = edges.filter(e => e.target === nodeId);
+    return incomingEdges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const sourceResult = execution?.nodeResults?.[edge.source];
+      return {
+        nodeId: edge.source,
+        label: sourceNode?.data.label || 'Unknown',
+        output: sourceResult?.output,
+        hasOutput: !!sourceResult?.output
+      };
+    });
+  };
+  
+  const previousBlocks = getPreviousBlocks();
 
   // Load credentials from localStorage
   useEffect(() => {
@@ -72,8 +106,104 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
       setLocalParams(node.data.parameters || {});
       setLocalLabel(node.data.label);
       setValidationErrors([]);
+      setBlockResult(null);
+      setInjectedInput('');
+      setInputSource('none');
     }
   }, [node]);
+
+  // Run single block with optional input injection
+  const runSingleBlock = async () => {
+    if (!node) return;
+    
+    // Capture current parameters BEFORE any async operations or state updates
+    const paramsToUse = { ...localParams };
+    const labelToUse = localLabel;
+    const blockType = node.data.type;
+    
+    // Validate before running
+    const result = validateBlockParameters(blockType, paramsToUse);
+    if (!result.valid) {
+      setValidationErrors(result.errors);
+      setBlockResult({
+        success: false,
+        error: `Validation failed: ${result.errors.join(', ')}`,
+      });
+      return;
+    }
+    
+    // Auto-save current parameters before execution
+    updateNode(nodeId!, {
+      data: {
+        ...node.data,
+        label: labelToUse,
+        parameters: paramsToUse,
+      },
+    });
+    setValidationErrors([]);
+    
+    setIsRunningBlock(true);
+    setBlockResult(null);
+    
+    try {
+      // Build context with injected input
+      let context: Record<string, any> = {};
+      
+      if (inputSource === 'previous' && previousBlocks.length > 0) {
+        // Use output from previous block
+        const prevBlock = previousBlocks[0];
+        if (prevBlock.output) {
+          context = { 
+            previous: { output: prevBlock.output },
+            input: prevBlock.output 
+          };
+        }
+      } else if (inputSource === 'manual' && injectedInput.trim()) {
+        // Parse manual input as JSON
+        try {
+          const parsed = JSON.parse(injectedInput);
+          context = { previous: { output: parsed }, input: parsed };
+        } catch {
+          // If not valid JSON, use as string
+          context = { previous: { output: injectedInput }, input: injectedInput };
+        }
+      }
+      
+      const response = await fetch('/api/v1/workflows/block/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+        },
+        body: JSON.stringify({
+          block_type: blockType,
+          parameters: paramsToUse,
+          context: context,
+        }),
+      });
+      
+      const result = await response.json();
+      setBlockResult(result);
+      
+      // Update node with execution result for visual feedback
+      updateNode(nodeId!, {
+        data: {
+          ...node.data,
+          executionStatus: result.success ? 'completed' : 'failed',
+          executionOutput: result.output,
+          executionError: result.error,
+          executionDuration: result.duration_ms,
+        }
+      });
+    } catch (error) {
+      setBlockResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to execute block',
+      });
+    } finally {
+      setIsRunningBlock(false);
+    }
+  };
 
   if (!nodeId || !node || !definition) {
     return (
@@ -94,7 +224,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate before saving
     const result = validateBlockParameters(node.data.type, localParams);
     if (!result.valid) {
@@ -102,6 +232,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
       return;
     }
     
+    // Update node in store
     updateNode(nodeId, {
       data: {
         ...node.data,
@@ -110,6 +241,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
       },
     });
     setValidationErrors([]);
+    
+    // Also persist to backend
+    try {
+      await saveCurrentWorkflow();
+    } catch (error) {
+      console.error('Failed to save workflow to backend:', error);
+    }
   };
 
   const handleLabelChange = (value: string) => {
@@ -351,6 +489,141 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
             )}
           </div>
         )}
+
+        {/* Run Single Block Section */}
+        <div className="pt-4 border-t border-cyber-gray">
+          <h4 
+            className="text-sm font-mono text-cyber-orange mb-2 flex items-center justify-between cursor-pointer"
+            onClick={() => setShowInputInjection(!showInputInjection)}
+          >
+            <span className="flex items-center gap-2">
+              <span>▶</span> RUN SINGLE BLOCK
+            </span>
+            <span className="text-cyber-gray-light text-xs">
+              {showInputInjection ? '▼' : '▶'}
+            </span>
+          </h4>
+          
+          {showInputInjection && (
+            <div className="space-y-3 mb-3">
+              {/* Input Source Selection */}
+              <div>
+                <label className="block text-xs text-cyber-gray-light mb-1 font-mono">
+                  INPUT SOURCE:
+                </label>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setInputSource('none')}
+                    className={`flex-1 px-2 py-1 text-xs font-mono transition-colors ${
+                      inputSource === 'none'
+                        ? 'bg-cyber-purple text-white'
+                        : 'bg-cyber-darker text-cyber-gray-light hover:bg-cyber-gray/20 border border-cyber-gray'
+                    }`}
+                  >
+                    NONE
+                  </button>
+                  <button
+                    onClick={() => setInputSource('previous')}
+                    disabled={previousBlocks.length === 0 || !previousBlocks.some(p => p.hasOutput)}
+                    className={`flex-1 px-2 py-1 text-xs font-mono transition-colors ${
+                      inputSource === 'previous'
+                        ? 'bg-cyber-purple text-white'
+                        : previousBlocks.length === 0 || !previousBlocks.some(p => p.hasOutput)
+                          ? 'bg-cyber-darker text-cyber-gray/50 border border-cyber-gray/30 cursor-not-allowed'
+                          : 'bg-cyber-darker text-cyber-gray-light hover:bg-cyber-gray/20 border border-cyber-gray'
+                    }`}
+                  >
+                    PREVIOUS
+                  </button>
+                  <button
+                    onClick={() => setInputSource('manual')}
+                    className={`flex-1 px-2 py-1 text-xs font-mono transition-colors ${
+                      inputSource === 'manual'
+                        ? 'bg-cyber-purple text-white'
+                        : 'bg-cyber-darker text-cyber-gray-light hover:bg-cyber-gray/20 border border-cyber-gray'
+                    }`}
+                  >
+                    MANUAL
+                  </button>
+                </div>
+              </div>
+              
+              {/* Previous Block Output Preview */}
+              {inputSource === 'previous' && previousBlocks.length > 0 && (
+                <div>
+                  <label className="block text-xs text-cyber-gray-light mb-1 font-mono">
+                    FROM: {previousBlocks[0].label}
+                  </label>
+                  <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-blue/30 max-h-24 overflow-y-auto cyber-scrollbar">
+                    <pre className="text-cyber-blue whitespace-pre-wrap break-words">
+                      {previousBlocks[0].output 
+                        ? JSON.stringify(previousBlocks[0].output, null, 2)
+                        : '(no output yet - run previous block first)'
+                      }
+                    </pre>
+                  </div>
+                </div>
+              )}
+              
+              {/* Manual Input */}
+              {inputSource === 'manual' && (
+                <div>
+                  <label className="block text-xs text-cyber-gray-light mb-1 font-mono">
+                    INJECT INPUT (JSON or text):
+                  </label>
+                  <textarea
+                    value={injectedInput}
+                    onChange={(e) => setInjectedInput(e.target.value)}
+                    placeholder='{"host": "192.168.1.1", "port": 22}'
+                    className="w-full h-20 px-2 py-1 text-xs font-mono bg-cyber-dark border border-cyber-gray rounded text-cyber-gray-light focus:border-cyber-purple focus:outline-none resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Run Button */}
+          <CyberButton
+            variant="green"
+            className="w-full"
+            onClick={runSingleBlock}
+            disabled={isRunningBlock}
+          >
+            {isRunningBlock ? '◎ RUNNING...' : '▶ RUN THIS BLOCK'}
+          </CyberButton>
+          
+          {/* Single Block Result */}
+          {blockResult && (
+            <div className={`mt-3 p-2 rounded border ${
+              blockResult.success 
+                ? 'bg-cyber-green/10 border-cyber-green/30' 
+                : 'bg-cyber-red/10 border-cyber-red/30'
+            }`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-xs font-mono ${blockResult.success ? 'text-cyber-green' : 'text-cyber-red'}`}>
+                  {blockResult.success ? '✓ PASSED' : '✗ FAILED'}
+                </span>
+                {blockResult.duration_ms && (
+                  <span className="text-xs text-cyber-gray-light font-mono">
+                    {blockResult.duration_ms}ms
+                  </span>
+                )}
+              </div>
+              {blockResult.output && (
+                <div className="text-xs font-mono bg-cyber-darker p-1 rounded max-h-24 overflow-y-auto cyber-scrollbar">
+                  <pre className="text-cyber-green whitespace-pre-wrap break-words">
+                    {JSON.stringify(blockResult.output, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {blockResult.error && (
+                <div className="text-xs font-mono text-cyber-red mt-1">
+                  {blockResult.error}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer with Save */}

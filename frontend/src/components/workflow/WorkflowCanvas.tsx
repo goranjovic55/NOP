@@ -1,12 +1,11 @@
 /**
- * WorkflowCanvas - Cyberpunk-styled React Flow canvas component
+ * WorkflowCanvas - React Flow canvas with debugging
  */
 
 import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   Connection,
@@ -23,7 +22,7 @@ import 'reactflow/dist/style.css';
 
 import BlockNode from './BlockNode';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { WorkflowNode, WorkflowEdge, NodeData } from '../../types/workflow';
+import { WorkflowNode, WorkflowEdge } from '../../types/workflow';
 
 // Define custom node types
 const nodeTypes = {
@@ -36,33 +35,61 @@ const cyberEdgeStyle = {
   strokeWidth: 2,
 };
 
-// Selected edge styling - more prominent
-const selectedEdgeStyle = {
-  stroke: '#a855f7',
-  strokeWidth: 4,
-  filter: 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.8))',
-};
-
-interface WorkflowCanvasProps {
-  onNodeSelect: (nodeId: string | null) => void;
-}
-
-const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) => {
+const WorkflowCanvasInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  
-  // Track Ctrl key state for pan/selection mode switching
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
   
-  // Listen for Ctrl key press/release
+  const { 
+    nodes, 
+    edges, 
+    setNodes, 
+    setEdges, 
+    addNode,
+    addEdge: storeAddEdge,
+    removeNode,
+    selectedNodeId,
+    selectNode,
+  } = useWorkflowStore();
+
+  // Handle keyboard events for Ctrl (selection mode) and Delete (remove nodes)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Control') setIsCtrlPressed(true);
+      
+      // Delete key - remove selected nodes
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't delete if focus is on an input element
+        const activeElement = document.activeElement;
+        if (activeElement && (
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' ||
+          (activeElement as HTMLElement).isContentEditable
+        )) {
+          return;
+        }
+        
+        e.preventDefault();
+        
+        // Get all selected nodes from flowNodes
+        const selectedNodes = nodes.filter(n => n.selected || n.id === selectedNodeId);
+        
+        if (selectedNodes.length > 0) {
+          // Remove all selected nodes
+          selectedNodes.forEach(node => {
+            removeNode(node.id);
+          });
+          selectNode(null);
+        } else if (selectedNodeId) {
+          // Fallback: remove the single selected node
+          removeNode(selectedNodeId);
+          selectNode(null);
+        }
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Control') setIsCtrlPressed(false);
     };
-    // Also reset on blur (user switches windows while holding Ctrl)
     const handleBlur = () => setIsCtrlPressed(false);
     
     window.addEventListener('keydown', handleKeyDown);
@@ -74,56 +101,41 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, []);
+  }, [nodes, selectedNodeId, removeNode, selectNode]);
 
-  const { 
-    nodes, 
-    edges, 
-    setNodes, 
-    setEdges, 
-    addNode,
-    addEdge: storeAddEdge,
-    selectedNodeId,
-    selectNode,
-  } = useWorkflowStore();
-
-  // Convert store nodes to React Flow format
-  const flowNodes = useMemo(() => 
-    nodes.map(node => ({
+  // Convert store nodes to React Flow format - keep original data
+  const flowNodes = useMemo(() => {
+    if (!Array.isArray(nodes)) return [];
+    return nodes.map(node => ({
       ...node,
       type: 'block',
       selected: node.id === selectedNodeId,
-    })),
-    [nodes, selectedNodeId]
-  );
+    }));
+  }, [nodes, selectedNodeId]);
 
-  const flowEdges = useMemo(() => 
-    edges.map(edge => ({
+  const flowEdges = useMemo(() => {
+    if (!Array.isArray(edges)) return [];
+    return edges.map(edge => ({
       ...edge,
       animated: edge.selected || false,
-      style: edge.selected ? selectedEdgeStyle : cyberEdgeStyle,
-    })),
-    [edges]
-  );
+      style: cyberEdgeStyle,
+    }));
+  }, [edges]);
 
-  // Handle node changes (drag, select, remove)
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
       const updatedNodes = applyNodeChanges(changes, flowNodes);
       setNodes(updatedNodes as WorkflowNode[]);
       
-      // Handle selection - single click should open config panel
       changes.forEach(change => {
         if (change.type === 'select' && change.selected) {
           selectNode(change.id);
-          onNodeSelect(change.id);
         }
       });
     },
-    [flowNodes, setNodes, onNodeSelect, selectNode]
+    [flowNodes, setNodes, selectNode]
   );
 
-  // Handle edge changes
   const onEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
       const updatedEdges = applyEdgeChanges(changes, flowEdges);
@@ -132,7 +144,6 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
     [flowEdges, setEdges]
   );
 
-  // Handle new connections
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target) {
@@ -149,7 +160,6 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
     [storeAddEdge]
   );
 
-  // Handle drop from palette
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -158,7 +168,6 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-
       const data = event.dataTransfer.getData('application/reactflow');
       if (!data) return;
 
@@ -174,15 +183,14 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
           type: 'block',
           position,
           data: {
-            label: blockData.label,
-            type: blockData.type,
-            category: blockData.category,
+            label: blockData.label || 'New Block',
+            type: blockData.type || 'control.start',
+            category: blockData.category || 'control',
             parameters: {},
             icon: blockData.icon,
             color: blockData.color,
           },
         };
-
         addNode(newNode);
       } catch (error) {
         console.error('Failed to parse dropped block:', error);
@@ -191,19 +199,15 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
     [screenToFlowPosition, addNode]
   );
 
-  // Handle pane click (deselect)
   const onPaneClick = useCallback(() => {
     selectNode(null);
-    onNodeSelect(null);
-  }, [selectNode, onNodeSelect]);
+  }, [selectNode]);
 
-  // Handle node double-click (open config panel)
   const onNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       selectNode(node.id);
-      onNodeSelect(node.id);
     },
-    [selectNode, onNodeSelect]
+    [selectNode]
   );
 
   return (
@@ -222,7 +226,6 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
         fitView
         snapToGrid
         snapGrid={[15, 15]}
-        // Default: pan + zoom, Ctrl held: box selection
         selectionOnDrag={isCtrlPressed}
         selectionMode={SelectionMode.Partial}
         panOnDrag={!isCtrlPressed}
@@ -246,24 +249,16 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onNodeSelect }) =>
           showFitView
           showInteractive={false}
         />
-        <MiniMap 
-          className="!bg-cyber-darker !border !border-cyber-gray !rounded"
-          nodeColor={(node) => {
-            const data = node.data as NodeData;
-            return data?.color || '#8b5cf6';
-          }}
-          maskColor="rgba(10, 10, 10, 0.9)"
-        />
       </ReactFlow>
     </div>
   );
 };
 
-// Wrap with ReactFlowProvider
-const WorkflowCanvas: React.FC<WorkflowCanvasProps> = (props) => {
+// Wrap with ReactFlowProvider - no props needed
+const WorkflowCanvas: React.FC = () => {
   return (
     <ReactFlowProvider>
-      <WorkflowCanvasInner {...props} />
+      <WorkflowCanvasInner />
     </ReactFlowProvider>
   );
 };

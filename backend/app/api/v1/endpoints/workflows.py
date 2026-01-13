@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user, get_optional_user
 from app.models.user import User
 from app.models.workflow import Workflow, WorkflowExecution, WorkflowStatus as DBWorkflowStatus, ExecutionStatus as DBExecutionStatus
+from app.services.scanner import NetworkScanner
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowUpdate, WorkflowResponse, WorkflowListResponse,
     ExecutionOptions, ExecutionResponse, ExecutionDetailResponse,
@@ -511,16 +512,44 @@ async def execute_block(block_type: str, params: Dict[str, Any], context: Dict[s
         elif block_type == "scanning.port_scan":
             host = params.get("host", "")
             scan_type = params.get("scanType", "quick")
-            await asyncio.sleep(1.5)
+            custom_ports = params.get("customPorts", "")
+            technique = params.get("technique", "tcp_syn")
+            
+            # Determine port range based on scan type
+            if scan_type == "full":
+                ports = "1-65535"
+            elif scan_type == "custom" and custom_ports:
+                ports = custom_ports
+            else:  # quick
+                ports = "22,80,443,21,23,25,53,110,143,3306,3389,5432,8080,8443"
+            
+            # Use real scanner service
+            import time
+            start_time = time.time()
+            scanner = NetworkScanner()
+            result = await scanner.port_scan(host, ports)
+            duration_ms = int((time.time() - start_time) * 1000)
+            
+            if "error" in result:
+                return BlockExecuteResponse(
+                    success=False,
+                    error=result["error"],
+                    duration_ms=duration_ms,
+                    route="fail"
+                )
+            
             return BlockExecuteResponse(
                 success=True,
                 output={
                     "host": host,
                     "scan_type": scan_type,
-                    "open_ports": [22, 80, 443, 3306, 8080],
-                    "closed_ports": 995,
-                    "filtered_ports": 0
+                    "technique": technique,
+                    "open_ports": result.get("open_ports", []),
+                    "closed_ports": result.get("closed_ports", 0),
+                    "filtered_ports": result.get("filtered_ports", 0),
+                    "services": result.get("services", {}),
                 },
+                duration_ms=duration_ms,
                 route="out"
             )
         

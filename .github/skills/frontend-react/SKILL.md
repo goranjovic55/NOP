@@ -18,6 +18,9 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 - **Stale closures:** Add all deps to useEffect dependency array
 - **State persistence:** Use localStorage for settings that survive page refresh
 - **Zustand subscriptions:** Clean up selectors to avoid memory leaks
+- **Auth token key:** Use `localStorage.getItem('auth_token')` not `'token'`
+- **Async race condition:** Capture state with `{ ...localState }` BEFORE any `updateNode()` or async calls
+- **ConfigPanel save:** Must call `saveCurrentWorkflow()` after `updateNode()` to persist to backend
 
 ## Rules
 - **Keys in lists:** Always `key={item.id}`

@@ -110,6 +110,11 @@ export interface NodeData {
   parameters: Record<string, any>;
   icon?: string;
   color?: string;
+  // Execution state (set by useWorkflowExecution hook)
+  executionStatus?: string;
+  executionOutput?: any;
+  executionError?: any;
+  executionDuration?: number;
 }
 
 export interface WorkflowNode {

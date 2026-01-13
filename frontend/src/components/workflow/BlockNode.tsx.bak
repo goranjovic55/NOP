@@ -2,7 +2,6 @@
  * BlockNode - Cyberpunk-styled custom React Flow node for workflow blocks
  * 
  * Features:
- * - 3-Output Model: pass (green), fail (red), output (blue)
  * - Execution status shown via border color glow (running=cyan, completed=green, failed=red)
  * - Status text displayed inside block after execution
  * - Hover tooltip shows: input, output, status, time, execution count
@@ -53,7 +52,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
     return <div className="bg-red-500 p-2 text-white">ERROR: No data</div>;
   }
   
-  // Ensure all values are strings/primitives - prevents React Error #185
+  // Ensure all values are strings/primitives
   const safeLabel = typeof data.label === 'string' ? data.label : String(data.label || 'Unknown');
   const safeType = typeof data.type === 'string' ? data.type : String(data.type || '');
   const safeCategory = typeof data.category === 'string' ? data.category : String(data.category || 'control');
@@ -208,29 +207,13 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
           );
         })}
 
-        {/* Fallback input handle if no definition */}
-        {!definition && (
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="in"
-            className="!w-2.5 !h-2.5 !border !rounded-sm"
-            style={{ 
-              top: '50%',
-              backgroundColor: '#0a0a0a',
-              borderColor: '#00d4ff',
-            }}
-          />
-        )}
-
-        {/* Output Handles - 3-output model: pass (green), fail (red), out (blue) */}
+        {/* Output Handles */}
         {definition?.outputs.map((output, idx) => {
           const outputCount = definition.outputs.length;
           const handleTop = outputCount === 1 ? '50%' 
             : outputCount === 2 ? `${35 + (idx * 30)}%`
             : `${25 + (idx * 25)}%`;
           
-          // Color coding: pass=green, fail=red, output/out=blue
           const handleColor = output.id === 'pass' ? '#00ff88' 
             : output.id === 'fail' ? '#ff0040' 
             : '#00d4ff';
@@ -248,7 +231,6 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
                   borderColor: handleColor,
                 }}
               />
-              {/* Output labels for multi-output blocks */}
               {outputCount > 1 && (
                 <div
                   className="absolute text-[8px] font-mono uppercase pointer-events-none"
@@ -266,21 +248,6 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
             </React.Fragment>
           );
         })}
-
-        {/* Fallback output handle if no definition */}
-        {!definition && (
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="out"
-            className="!w-2.5 !h-2.5 !border !rounded-sm"
-            style={{ 
-              top: '50%',
-              backgroundColor: '#0a0a0a',
-              borderColor: '#00ff88',
-            }}
-          />
-        )}
 
         {/* Corner accent */}
         <div 
