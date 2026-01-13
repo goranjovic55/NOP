@@ -28,11 +28,15 @@ Components are reusable UI elements used across pages.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `BlockNode` | `frontend/src/components/workflow/BlockNode.tsx` | Custom React Flow node for workflow blocks with selection highlighting |
+| `BlockNode` | `frontend/src/components/workflow/BlockNode.tsx` | Custom React Flow node with execution visualization (border glow, status text, hover tooltip) |
+| `BlockDetailsPanel` | `frontend/src/components/workflow/BlockDetailsPanel.tsx` | Side panel for block execution details and output |
+| `BlockPalette` | `frontend/src/components/workflow/BlockPalette.tsx` | Draggable block palette with categories |
+| `ConfigPanel` | `frontend/src/components/workflow/ConfigPanel.tsx` | Node configuration and execution results panel |
 | `ExecutionConsole` | `frontend/src/components/workflow/ExecutionConsole.tsx` | Real-time execution output with expandable rows |
-| `ExecutionOverlay` | `frontend/src/components/workflow/ExecutionOverlay.tsx` | Cyberpunk-styled execution status popup overlay |
+| `ExecutionOverlay` | `frontend/src/components/workflow/ExecutionOverlay.tsx` | Execution status popup with progress, Reset Display button |
 | `FlowTabs` | `frontend/src/components/workflow/FlowTabs.tsx` | Tab management for multiple workflow flows |
-| `FlowTemplates` | `frontend/src/components/workflow/FlowTemplates.tsx` | Shift+click template selection sidebar |
+| `FlowTemplates` | `frontend/src/components/workflow/FlowTemplates.tsx` | UI Testing templates (Ping Monitor, SSH Audit, Config Validation) |
 | `WorkflowCanvas` | `frontend/src/components/workflow/WorkflowCanvas.tsx` | React Flow canvas with custom edge styling |
+| `WorkflowExecutionTree` | `frontend/src/components/workflow/WorkflowExecutionTree.tsx` | Collapsible tree view of execution log |
 | `WorkflowSidebar` | `frontend/src/components/workflow/WorkflowSidebar.tsx` | Block palette and templates sidebar |
 

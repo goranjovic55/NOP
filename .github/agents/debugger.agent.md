@@ -38,6 +38,11 @@ print(f"[DEBUG] EXIT func | result: {result}")
 - Check `project_knowledge.json` gotchas FIRST
 - Reproduce before debugging | Minimal logs | Clean up after
 
+## ⚙️ Optimizations
+- **Test-aware mode**: Check existing tests before debugging, run tests to reproduce
+- **Browser console first**: For frontend issues, check DevTools console for exact error
+- **Knowledge-first**: Check gotchas in project_knowledge.json before file reads
+
 ## Orchestration
 | From | To | Call |
 |------|----|------|

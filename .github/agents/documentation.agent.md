@@ -35,6 +35,11 @@ description: Update docs, READMEs, comments. Returns trace to AKIS.
 - Check docs/INDEX.md | Match existing style
 - Update INDEX.md if adding new docs
 
+## ⚙️ Optimizations
+- **Pre-load docs/INDEX.md**: Understand doc structure before updates
+- **Batch updates**: Group related doc changes together
+- **Auto-generate tables**: Use consistent markdown table format
+
 ## Orchestration
 | From | To |
 |------|----|

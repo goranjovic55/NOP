@@ -3,10 +3,11 @@
  * Cyberpunk themed popup with glowing effects
  */
 
-import React from 'react';
-import { Play, Pause, Square, AlertTriangle, CheckCircle, XCircle, Loader2, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, Square, AlertTriangle, CheckCircle, XCircle, Loader2, Clock, ChevronDown } from 'lucide-react';
 import { WorkflowExecution, ExecutionStatus } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
+import WorkflowExecutionTree from './WorkflowExecutionTree';
 
 interface ExecutionOverlayProps {
   execution: WorkflowExecution | null;
@@ -16,6 +17,7 @@ interface ExecutionOverlayProps {
   onResume: () => void;
   onCancel: () => void;
   onClose: () => void;
+  onReset?: () => void;  // Reset execution display on nodes
 }
 
 const statusConfig: Record<ExecutionStatus, { color: string; glowColor: string; icon: React.ReactNode; label: string }> = {
@@ -65,7 +67,10 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
   onResume,
   onCancel,
   onClose,
+  onReset,
 }) => {
+  const [showExecutionTree, setShowExecutionTree] = useState(false);
+  
   if (!execution && !isExecuting) {
     return null;
   }
@@ -195,6 +200,29 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
           </div>
         )}
 
+        {/* Execution Tree Toggle */}
+        {execution && (
+          <div className="mb-4 border-t border-cyber-gray/30 pt-4">
+            <button
+              onClick={() => setShowExecutionTree(!showExecutionTree)}
+              className="flex items-center justify-between w-full p-2 hover:bg-cyber-purple/10 rounded transition-colors"
+            >
+              <span className="text-xs uppercase tracking-wider text-cyber-purple font-bold">
+                Execution Tree
+              </span>
+              <ChevronDown 
+                className={`w-4 h-4 text-cyber-purple transition-transform ${showExecutionTree ? 'rotate-180' : ''}`} 
+              />
+            </button>
+            
+            {showExecutionTree && (
+              <div className="mt-3 max-h-80 overflow-y-auto bg-cyber-darker/50 rounded border border-cyber-gray/30 p-3">
+                <WorkflowExecutionTree execution={execution} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex items-center justify-center gap-3 pt-2 border-t border-cyber-gray/30">
           {!isExecuting && status !== 'running' && (
@@ -231,10 +259,24 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
           )}
 
           {(status === 'completed' || status === 'failed' || status === 'cancelled') && (
-            <CyberButton variant="purple" size="sm" onClick={onStart}>
-              <Play className="w-4 h-4 mr-1" />
-              RUN AGAIN
-            </CyberButton>
+            <>
+              <CyberButton variant="purple" size="sm" onClick={onStart}>
+                <Play className="w-4 h-4 mr-1" />
+                RUN AGAIN
+              </CyberButton>
+              {onReset && (
+                <CyberButton 
+                  variant="gray" 
+                  size="sm" 
+                  onClick={() => {
+                    onReset();
+                    onClose();
+                  }}
+                >
+                  CLEAR
+                </CyberButton>
+              )}
+            </>
           )}
           
           <CyberButton variant="gray" size="sm" onClick={onClose}>

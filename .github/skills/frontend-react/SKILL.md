@@ -45,4 +45,20 @@ const Card: FC<{item: Item}> = ({ item }) => <div key={item.id}>{item.name}</div
 export const useStore = create<State>()(persist((set) => ({
   items: [], addItem: (i) => set((s) => ({ items: [...s.items, i] }))
 }), { name: 'store' }));
+
+// Execution visualization in node component
+const executionStatus = (data as any).executionStatus as NodeExecutionStatus;
+const borderColor = executionStatus ? statusColors[executionStatus] : categoryColor;
+const isExecuting = executionStatus === 'running';
+
+// Pass execution data via node.data
+updateNode(nodeId, { data: { ...node.data, executionStatus, executionOutput, executionDuration }});
 ```
+
+## Execution Visualization
+| Status | Border Color | Effect |
+|--------|-------------|--------|
+| running | cyan | animate-pulse + glow |
+| completed | green | static glow |
+| failed | red | static glow |
+| pending | gray | default |

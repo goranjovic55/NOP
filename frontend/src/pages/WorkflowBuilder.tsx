@@ -235,14 +235,34 @@ const WorkflowBuilder: React.FC = () => {
     }
   }, [currentWorkflowId, nodes, edges, saveUndoState, setNodes, setEdges, createWorkflow]);
 
+  // Track execution counts per node
+  const nodeExecutionCounts = React.useRef<Record<string, number>>({});
+
   // Execution hook with node status callbacks
-  const onNodeStatusChange = useCallback((nodeId: string, status: NodeExecutionStatus) => {
-    updateNode(nodeId, { 
-      data: { 
-        ...nodes.find(n => n.id === nodeId)?.data,
-        executionStatus: status 
-      } as any
-    });
+  const onNodeStatusChange = useCallback((nodeId: string, status: NodeExecutionStatus, result?: any) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    // Track execution count
+    if (status === 'running') {
+      nodeExecutionCounts.current[nodeId] = (nodeExecutionCounts.current[nodeId] || 0) + 1;
+    }
+
+    const executionData: any = {
+      ...node.data,
+      executionStatus: status,
+      executionCount: nodeExecutionCounts.current[nodeId] || 1,
+    };
+
+    // Add result data when execution completes
+    if (result) {
+      executionData.executionResult = result;
+      executionData.executionDuration = result.duration || result.durationMs;
+      executionData.executionOutput = result.output;
+      executionData.executionInput = result.input;
+    }
+
+    updateNode(nodeId, { data: executionData as any });
   }, [nodes, updateNode]);
 
   const {
@@ -256,24 +276,37 @@ const WorkflowBuilder: React.FC = () => {
   } = useWorkflowExecution({
     onNodeStatusChange,
     onComplete: () => {
-      // Clear node execution statuses after completion
-      setTimeout(() => {
-        nodes.forEach(node => {
-          updateNode(node.id, {
-            data: { ...node.data, executionStatus: undefined } as any
-          });
-        });
-      }, 3000);
+      // Keep statuses visible - don't clear immediately
+      // User can click "Reset" to clear
     },
   });
 
   const currentWorkflow = getCurrentWorkflow();
 
+  // Clear execution display from all nodes
+  const clearNodeExecutionStates = useCallback(() => {
+    nodes.forEach(node => {
+      updateNode(node.id, {
+        data: {
+          ...node.data,
+          executionStatus: undefined,
+          executionCount: undefined,
+          executionDuration: undefined,
+          executionResult: undefined,
+          executionOutput: undefined,
+          executionInput: undefined,
+        } as any
+      });
+    });
+    nodeExecutionCounts.current = {};
+  }, [nodes, updateNode]);
+
   // Reset execution state when switching workflows
   useEffect(() => {
     resetExecution();
+    clearNodeExecutionStates();
     setShowExecutionOverlay(false);
-  }, [currentWorkflowId, resetExecution]);
+  }, [currentWorkflowId, resetExecution, clearNodeExecutionStates]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -604,6 +637,7 @@ const WorkflowBuilder: React.FC = () => {
                   onResume={handleResume}
                   onCancel={handleCancel}
                   onClose={() => setShowExecutionOverlay(false)}
+                  onReset={clearNodeExecutionStates}
                 />
               )}
 

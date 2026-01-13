@@ -76,6 +76,17 @@ The application uses Zustand for state management.
 | `setSelectedEdges(ids)` | Update edge selection |
 | `saveWorkflow()` | Persist current workflow to backend |
 | `loadWorkflows()` | Fetch all workflows from API |
+| `updateNode(id, data)` | Update node data including execution state |
 
 **Features:** Multi-select with Shift+click, edge selection styling, persistent storage via API.
+
+**Execution Tracking (via WorkflowBuilder):**
+| State | Type | Description |
+|-------|------|-------------|
+| `nodeExecutionData` | `Record<string, ExecutionData>` | Per-node execution input/output/status/count |
+
+| Callback | Description |
+|----------|-------------|
+| `onNodeStatusChange(nodeId, status, result)` | Updates node.data with execution status and result |
+| `clearNodeExecutionStates()` | Reset all execution display states |
 

@@ -19,7 +19,7 @@ interface ExecutionEvent {
 
 interface UseWorkflowExecutionOptions {
   onEvent?: (event: ExecutionEvent) => void;
-  onNodeStatusChange?: (nodeId: string, status: NodeExecutionStatus) => void;
+  onNodeStatusChange?: (nodeId: string, status: NodeExecutionStatus, result?: any) => void;
   onComplete?: (execution: WorkflowExecution) => void;
   onError?: (error: string) => void;
 }
@@ -121,7 +121,14 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
           case 'node_completed':
             if (options.onNodeStatusChange) {
               const status: NodeExecutionStatus = data.status === 'success' ? 'completed' : 'failed';
-              options.onNodeStatusChange(data.nodeId, status);
+              const result = {
+                success: data.status === 'success',
+                output: data.output,
+                input: data.input,
+                error: data.error,
+                duration: data.durationMs,
+              };
+              options.onNodeStatusChange(data.nodeId, status, result);
             }
             setExecution(prev => prev ? {
               ...prev,
@@ -135,6 +142,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
                   nodeId: data.nodeId,
                   success: data.status === 'success',
                   output: data.output,
+                  input: data.input,
                   error: data.error,
                   duration: data.durationMs,
                 },

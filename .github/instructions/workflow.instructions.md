@@ -118,7 +118,11 @@ Collect ALL suggestions from script output and present in table:
 - Show actual suggestion text from output
 - ASK user: "Apply any suggestions?" before implementing
 
-**Step 6: Commit & Push**
+**Step 6: Cleanup (Optional)**
+- Remove temporary files: `/tmp/*.py`, `/tmp/*.json`
+- Clean build artifacts if needed
+
+**Step 7: Commit & Push**
 - ⚠️ Always ASK user before `git push`. Never auto-push.
 
 ## Workflow Log Format (YAML Front Matter)
