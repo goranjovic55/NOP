@@ -1,0 +1,74 @@
+{
+  "mode": "ingest-all",
+  "logs_found": 128,
+  "logs_parsed": 128,
+  "agents_delegated": {},
+  "complexities": {
+    "complex": 51,
+    "medium": 24,
+    "simple": 53
+  },
+  "domains": {
+    "backend_only": 24,
+    "fullstack": 84,
+    "frontend_only": 20
+  },
+  "gate_violations": {},
+  "root_causes_count": 13,
+  "suggestions": [
+    {
+      "type": "review",
+      "agent": "research",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "documentation",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "reviewer",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "code",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "debugger",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "architect",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "agent": "devops",
+      "reason": "Agent never delegated to - verify triggers or remove",
+      "priority": "Low"
+    },
+    {
+      "type": "optimize",
+      "agent": "AKIS",
+      "reason": "51 complex sessions but low delegation rate - increase parallel usage",
+      "priority": "High"
+    },
+    {
+      "type": "update",
+      "agent": "debugger",
+      "reason": "Add 13 root causes to debugger knowledge base",
+      "priority": "Medium"
+    }
+  ]
+}

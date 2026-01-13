@@ -1,0 +1,56 @@
+{
+  "mode": "ingest-all",
+  "logs_found": 128,
+  "logs_parsed": 128,
+  "gate_violations": {},
+  "gates_passed": {
+    "G1": 128,
+    "G2": 128,
+    "G3": 128,
+    "G4": 128,
+    "G5": 128,
+    "G6": 128,
+    "G0": 3,
+    "G7": 1
+  },
+  "complexities": {
+    "complex": 51,
+    "medium": 24,
+    "simple": 53
+  },
+  "domains": {
+    "backend_only": 24,
+    "fullstack": 84,
+    "frontend_only": 20
+  },
+  "skills_loaded": {
+    "backend-api": 91,
+    "documentation": 71,
+    "akis-development": 114,
+    "frontend-react": 86,
+    "docker": 59,
+    "testing": 85,
+    "debugging": 97
+  },
+  "gotchas_count": 16,
+  "suggestions": [
+    {
+      "type": "create",
+      "target": "fullstack.instructions.md",
+      "reason": "66% sessions are fullstack - needs dedicated instructions",
+      "priority": "Medium"
+    },
+    {
+      "type": "update",
+      "target": "workflow.instructions.md",
+      "reason": "40% sessions are complex - add complexity handling guidance",
+      "priority": "Medium"
+    },
+    {
+      "type": "update",
+      "target": "quality.instructions.md",
+      "reason": "Add 16 gotchas to quality checklist",
+      "priority": "High"
+    }
+  ]
+}
