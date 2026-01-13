@@ -1,0 +1,68 @@
+{
+  "mode": "ingest-all",
+  "logs_found": 128,
+  "logs_parsed": 128,
+  "skills_loaded": {
+    "backend-api": 94.0,
+    "documentation": 74.0,
+    "akis-development": 117.0,
+    "frontend-react": 87.0,
+    "docker": 60.0,
+    "testing": 86.0,
+    "debugging": 97.0
+  },
+  "skills_suggested": {
+    "testing": 5.0
+  },
+  "domains": {
+    "backend_only": 24,
+    "fullstack": 84,
+    "frontend_only": 20
+  },
+  "complexities": {
+    "complex": 51,
+    "medium": 24,
+    "simple": 53
+  },
+  "file_types": {
+    "md": 218,
+    "py": 121,
+    "ts": 34,
+    "tsx": 108,
+    "yml": 2
+  },
+  "gotchas_count": 16,
+  "root_causes_count": 13,
+  "suggestions": [
+    {
+      "type": "review",
+      "skill": "research",
+      "reason": "Existing skill rarely used - consider merging or removing",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "skill": "ci-cd",
+      "reason": "Existing skill rarely used - consider merging or removing",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "skill": "knowledge",
+      "reason": "Existing skill rarely used - consider merging or removing",
+      "priority": "Low"
+    },
+    {
+      "type": "review",
+      "skill": "planning",
+      "reason": "Existing skill rarely used - consider merging or removing",
+      "priority": "Low"
+    },
+    {
+      "type": "update",
+      "skill": "debugging",
+      "reason": "Add 16 gotchas to debugging skill",
+      "priority": "Medium"
+    }
+  ]
+}
