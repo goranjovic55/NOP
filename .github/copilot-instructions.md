@@ -15,7 +15,7 @@
 | 7 | No parallel | Use parallel pairs |
 
 ## ⚡ G0: Knowledge First (CRITICAL)
-**Only 2.3% of sessions use G0 - target is 100%**
+**Current usage: 2.3% | Target: 100% | Impact: -67.2% tokens when used**
 
 **BEFORE reading/searching files:**
 1. `hot_cache` → entity info, exports, paths

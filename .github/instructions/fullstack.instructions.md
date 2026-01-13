@@ -30,17 +30,19 @@ frontend-react ⭐ + backend-api ⭐
 
 | Issue | Solution |
 |-------|----------|
-| 307 redirect on POST | Add trailing slash to URL |
-| CORS errors | Check FastAPI CORS config |
-| State not syncing | Use WebSocket or polling |
-| Type mismatch | Regenerate TypeScript types |
+| 307 redirect on POST | Add trailing slash to URL: `/api/endpoint/` |
+| CORS errors | Check FastAPI CORS origins in `app/main.py` |
+| State not syncing | Use WebSocket or polling with `useEffect` |
+| Type mismatch | Regenerate types: `npm run generate-types` |
+| 401 Unauthorized | Check token expiry, refresh if needed |
+| Create button not working | Verify onClick handler is connected |
 
 ## Verification
 After fullstack changes:
-1. Check API response (backend logs)
-2. Check network tab (frontend)
+1. Check API response (backend logs): `docker compose logs -f backend`
+2. Check network tab (frontend): DevTools → Network
 3. Test end-to-end flow
-4. Verify state persistence
+4. Verify state persistence: Check localStorage/sessionStorage
 
 ## Token Optimization
 - Use domain_index for O(1) file lookup

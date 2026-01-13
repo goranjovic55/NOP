@@ -21,16 +21,16 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 | CSS | Element invisible | Check z-index, overflow, parent |
 | Build | JSX syntax error | Use `{/* */}` for comments |
 
-## Session Gotchas (from workflow logs)
+## Session Gotchas (from 128 workflow logs)
 
 | Issue | Root Cause | Fix |
 |-------|-----------|-----|
-| END scripts not reading data | Scripts ran before workflow log | Create log FIRST |
-| Dropdown flickering | Re-render on every state change | Memoize options |
-| Black screen on click | Missing error boundary | Add try/catch |
-| Terminal line wrapping | Buffer overflow | Limit line length |
-| Credential params missing | Block config incomplete | Add validation |
-| Undo/redo broken | Deep state mutation | Use immutable update |
+| END scripts not reading data | Scripts ran before workflow log created | Create workflow log FIRST in END phase |
+| Dropdown flickering | Options recalculated on every render | Wrap options with `useMemo(() => options, [deps])` |
+| Black screen on click | Unhandled exception in click handler | Add try/catch block and error boundary |
+| Terminal line wrapping | Buffer doesn't handle long lines | Use `\r\n` and limit line length to terminal width |
+| Credential params missing | Block config validation incomplete | Add Zod/yup schema validation for block params |
+| Undo/redo broken | Direct state mutation | Use `{...state, field: newValue}` immutable pattern |
 
 ## Process
 1. **CHECK** gotchas table FIRST (75% are known issues)
