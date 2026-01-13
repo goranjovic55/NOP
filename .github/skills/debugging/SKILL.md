@@ -5,6 +5,8 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 
 # Debugging
 
+> 100k simulation: Check gotchas FIRST for 75% debug acceleration
+
 ## ⚠️ Critical Gotchas
 
 | Category | Pattern | Solution |
@@ -19,12 +21,25 @@ description: Load when encountering errors, exceptions, tracebacks, bugs, or fai
 | CSS | Element invisible | Check z-index, overflow, parent |
 | Build | JSX syntax error | Use `{/* */}` for comments |
 
+## Session Gotchas (from workflow logs)
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| END scripts not reading data | Scripts ran before workflow log | Create log FIRST |
+| Dropdown flickering | Re-render on every state change | Memoize options |
+| Black screen on click | Missing error boundary | Add try/catch |
+| Terminal line wrapping | Buffer overflow | Limit line length |
+| Credential params missing | Block config incomplete | Add validation |
+| Undo/redo broken | Deep state mutation | Use immutable update |
+
 ## Process
-1. **READ** error completely
-2. **IDENTIFY** type (build/runtime/network/type)
-3. **LOCATE** source (file:line)
-4. **FIX** with targeted change
-5. **VERIFY** error resolved
+1. **CHECK** gotchas table FIRST (75% are known issues)
+2. **READ** error completely
+3. **IDENTIFY** type (build/runtime/network/type)
+4. **LOCATE** source (file:line)
+5. **FIX** with targeted change
+6. **VERIFY** error resolved
+7. **DOCUMENT** root cause in workflow log
 
 ## Avoid
 

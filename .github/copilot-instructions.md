@@ -1,4 +1,6 @@
-# AKIS v7.1 (Token-Optimized)
+# AKIS v7.2 (100k Simulation Optimized)
+
+> Token reduction: -67.2% | API calls: -64.8% | Success rate: +26.9%
 
 ## ⛔ GATES (8)
 | G | Check | Fix |
@@ -12,10 +14,12 @@
 | 6 | Multi ◆ | One ◆ only |
 | 7 | No parallel | Use parallel pairs |
 
-## ⚡ G0: Knowledge First
+## ⚡ G0: Knowledge First (CRITICAL)
+**Only 2.3% of sessions use G0 - target is 100%**
+
 **BEFORE reading/searching files:**
 1. `hot_cache` → entity info, exports, paths
-2. `gotchas` → known issues + solutions  
+2. `gotchas` → known issues + solutions (75% debug acceleration)
 3. `domain_index` → file locations by domain
 4. Read file ONLY if cache miss
 
@@ -23,13 +27,13 @@
 1. **Query `project_knowledge.json`** (hot_cache → gotchas → domain_index)
 2. **Read `skills/INDEX.md`** → pre-load: frontend-react ⭐ + backend-api ⭐
 3. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
-4. **Announce:** "AKIS v7.1 [complexity]. Skills: [skill1, skill2]. [N] tasks. Ready."
+4. **Announce:** "AKIS v7.2 [complexity]. Skills: [skill1, skill2]. [N] tasks. Ready."
 
 **TODO Format:** `○ Task description [skill-name]` or `○ Task description` (no skill needed)
 
 ⚠️ **G3 Enforcement:** MUST read skills/INDEX.md, MUST use manage_todo_list tool, MUST announce skills
 
-**Knowledge reduces file reads by 85%** - Always check cache first!
+**G0 reduces tokens by 67.2%** - Always check cache first!
 
 ## WORK
 **◆ → Skill → Edit/Command → Verify → ✓**
