@@ -1,5 +1,14 @@
+---
+title: System Architecture
+type: explanation
+category: architecture
+version: "1.0"
+last_updated: 2026-01-14
+---
+
 # Network Observatory Platform - System Architecture
-## Technical Architecture Document v1.0
+
+> Technical Architecture Document v1.0
 
 ---
 

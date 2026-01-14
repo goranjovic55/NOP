@@ -140,6 +140,133 @@ def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
 
 
 # ============================================================================
+# Instruction File Parsing (Template-Aware)
+# ============================================================================
+
+def parse_instruction_yaml_frontmatter(content: str) -> Optional[Dict[str, str]]:
+    """Parse YAML frontmatter from instruction files.
+    
+    Expected format:
+    ---
+    applyTo: 'glob pattern'
+    description: 'Brief description'
+    ---
+    """
+    if not content.startswith('---'):
+        return None
+    
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    
+    for line in yaml_content.split('\n'):
+        if ':' in line:
+            key, value = line.split(':', 1)
+            result[key.strip()] = value.strip().strip('"').strip("'")
+    
+    return result
+
+
+def load_instructions_from_files(root: Path) -> Dict[str, Dict[str, Any]]:
+    """Load instruction definitions from actual .instructions.md files.
+    
+    Reads .github/instructions/*.instructions.md and extracts:
+    - name: from filename
+    - applyTo: glob pattern from frontmatter
+    - description: from frontmatter
+    - keywords: extracted from content
+    """
+    instructions_dir = root / '.github' / 'instructions'
+    instructions = {}
+    
+    if not instructions_dir.exists():
+        return instructions
+    
+    for inst_file in instructions_dir.glob('*.instructions.md'):
+        try:
+            content = inst_file.read_text(encoding='utf-8')
+            frontmatter = parse_instruction_yaml_frontmatter(content)
+            
+            if not frontmatter:
+                continue
+            
+            name = inst_file.stem.replace('.instructions', '')
+            apply_to = frontmatter.get('applyTo', '**')
+            description = frontmatter.get('description', '')
+            
+            # Extract keywords from content
+            keywords = []
+            content_lower = content.lower()
+            
+            # Common instruction keywords
+            keyword_patterns = [
+                'start', 'work', 'end', 'todo', 'skill', 'knowledge', 'verify',
+                'syntax', 'error', 'debug', 'test', 'commit', 'push', 'git',
+                'workflow', 'protocol', 'gate', 'quality', 'gotcha', 'pattern',
+                'docker', 'compose', 'build', 'deploy', 'frontend', 'backend',
+                'fullstack', 'api', 'component', 'state', 'zustand', 'react',
+            ]
+            for kw in keyword_patterns:
+                if kw in content_lower:
+                    keywords.append(kw)
+            
+            # Determine category from name/content
+            category = 'work'
+            if 'start' in name or 'start' in content_lower[:500]:
+                category = 'start'
+            elif 'end' in name or 'workflow' in name:
+                category = 'end'
+            elif 'quality' in name or 'gotcha' in content_lower:
+                category = 'quality'
+            elif 'protocol' in name or 'gate' in content_lower:
+                category = 'protocol'
+            
+            instructions[name] = {
+                'applyTo': apply_to,
+                'description': description,
+                'keywords': keywords,
+                'category': category,
+                'path': str(inst_file),
+            }
+            
+        except Exception:
+            continue
+    
+    return instructions
+
+
+def get_instruction_patterns(root: Path = None) -> List['InstructionPattern']:
+    """Get instruction patterns - from files if available, fallback to hardcoded."""
+    if root is None:
+        root = Path.cwd()
+    
+    # Try loading from actual files first
+    instructions = load_instructions_from_files(root)
+    
+    if instructions:
+        # Convert to InstructionPattern objects
+        patterns = []
+        for name, data in instructions.items():
+            patterns.append(InstructionPattern(
+                name=name,
+                description=data.get('description', ''),
+                category=data.get('category', 'work'),
+                triggers=[data.get('applyTo', '**')],
+                expected_behavior=f"Follow {name} instruction",
+                failure_mode=f"Ignoring {name} guidance",
+                keywords=data.get('keywords', []),
+                severity='medium',
+            ))
+        return patterns
+    
+    # Fallback to hardcoded patterns
+    return FALLBACK_INSTRUCTION_PATTERNS
+
+
+# ============================================================================
 # Configuration from Workflow Log Analysis
 # ============================================================================
 
@@ -187,7 +314,11 @@ class InstructionPattern:
     covered_by: str = ""
 
 
-KNOWN_INSTRUCTION_PATTERNS = [
+# ============================================================================
+# Fallback Instruction Patterns (used if files can't be parsed)
+# ============================================================================
+
+FALLBACK_INSTRUCTION_PATTERNS = [
     InstructionPattern(
         name="knowledge_loading",
         description="Load project_knowledge.json at session start",
@@ -363,14 +494,15 @@ def read_workflow_logs(workflow_dir: Path) -> List[Dict[str, Any]]:
     return logs
 
 
-def extract_patterns_from_logs(logs: List[Dict]) -> Dict[str, int]:
+def extract_patterns_from_logs(logs: List[Dict], root: Path = None) -> Dict[str, int]:
     """Extract pattern frequencies from workflow logs."""
     pattern_counts = defaultdict(int)
+    instruction_patterns = get_instruction_patterns()
     
     for log in logs:
         content = log['content'].lower()
         
-        for pattern in KNOWN_INSTRUCTION_PATTERNS:
+        for pattern in instruction_patterns:
             for keyword in pattern.keywords:
                 if keyword.lower() in content:
                     pattern_counts[pattern.name] += 1
@@ -428,7 +560,7 @@ def simulate_sessions(n: int, instructions_effectiveness: float = 0.9) -> List[S
         )
         
         # Simulate pattern compliance
-        for pattern in KNOWN_INSTRUCTION_PATTERNS:
+        for pattern in get_instruction_patterns():
             if pattern.category == "start":
                 # Start patterns more likely with good instructions
                 if random.random() < instructions_effectiveness:
@@ -474,7 +606,7 @@ def calculate_metrics(sessions: List[SimulatedSession]) -> Dict[str, Any]:
             pattern_deviations[d] += 1
     
     # Compliance rate
-    total_patterns = total * len(KNOWN_INSTRUCTION_PATTERNS)
+    total_patterns = total * len(get_instruction_patterns())
     completed = sum(len(s.completed_patterns) for s in sessions)
     compliance = completed / total_patterns if total_patterns > 0 else 0
     
@@ -502,7 +634,7 @@ def analyze_instruction_files(root: Path) -> Dict[str, Any]:
         for inst_file in instructions_dir.glob('*.md'):
             content = inst_file.read_text(encoding='utf-8')
             
-            for pattern in KNOWN_INSTRUCTION_PATTERNS:
+            for pattern in get_instruction_patterns():
                 covered = False
                 for keyword in pattern.keywords:
                     if keyword.lower() in content.lower():
@@ -551,7 +683,7 @@ def run_analyze() -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"✅ Covered patterns: {len([c for c in coverage.values() if c])}")
     print(f"❌ Gaps: {len(gaps)}")
@@ -607,7 +739,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"✅ Covered patterns: {len([c for c in coverage.values() if c])}")
     print(f"❌ Gaps: {len(gaps)}")
@@ -654,7 +786,7 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
     covered = len([c for c in coverage.values() if c])
-    total = len(KNOWN_INSTRUCTION_PATTERNS)
+    total = len(get_instruction_patterns())
     print(f"📋 Current coverage: {covered}/{total} ({100*covered/total:.1f}%)")
     
     # Simulate with CURRENT instructions
@@ -686,7 +818,7 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     print(f"  Deviations: {100*deviation_delta:.1f}%")
     
     # Generate suggestions
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     suggestions = generate_suggestions(gaps)
     
     if not dry_run:
@@ -719,10 +851,10 @@ def run_suggest() -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"\n📋 Pattern Analysis:")
-    print(f"  Total patterns: {len(KNOWN_INSTRUCTION_PATTERNS)}")
+    print(f"  Total patterns: {len(get_instruction_patterns())}")
     print(f"  Covered: {len([c for c in coverage.values() if c])}")
     print(f"  Gaps: {len(gaps)}")
     

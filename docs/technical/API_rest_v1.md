@@ -1,29 +1,11 @@
-# Network Observatory Platform - API Specification
+---
+title: REST API Reference
+type: reference
+version: "1.0"
+last_updated: 2026-01-14
+---
 
-
-## Services
-
-
-## Endpoints
-
-
-
-- **SnifferService.py**: `SnifferService` (2026-01-08)
-
-
-### traffic.py (2026-01-09)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/interfaces` | Auto-documented |
-| POST | `/burst-capture` | Auto-documented |
-| POST | `/export` | Auto-documented |
-| GET | `/flows` | Auto-documented |
-| GET | `/stats` | Auto-documented |
-
-- **SnifferService.py**: `SnifferService` (2026-01-09)
-
-## REST API Documentation v1.0
+# Network Observatory Platform - REST API Reference
 
 **Base URL:** `https://nop.local/api/v1`  
 **Authentication:** Bearer JWT Token  
@@ -31,16 +13,6 @@
 
 ---
 
-
-### traffic.py (2026-01-08)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/interfaces` | Auto-documented |
-| POST | `/burst-capture` | Auto-documented |
-| POST | `/export` | Auto-documented |
-| GET | `/flows` | Auto-documented |
-| GET | `/stats` | Auto-documented |
 ## 1. Authentication
 
 ### 1.1 Register User

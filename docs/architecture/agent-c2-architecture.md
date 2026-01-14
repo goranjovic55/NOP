@@ -1,6 +1,14 @@
+---
+title: Agent C2 Architecture
+type: explanation
+category: architecture
+last_updated: 2026-01-14
+---
+
 # Agent C2 Architecture Plan
 
 ## Overview
+
 Transform NOP into a C2 (Command & Control) platform where agents deployed on remote networks relay data back to the main NOP instance. Users can view data from any agent's perspective (POV).
 
 ## Architecture

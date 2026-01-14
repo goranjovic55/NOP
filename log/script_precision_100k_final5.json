@@ -1,0 +1,106 @@
+{
+  "simulation": {
+    "total_sessions": 100000,
+    "session_distribution": {
+      "fullstack": 39848,
+      "frontend_only": 24125,
+      "docker_heavy": 9950,
+      "framework": 10088,
+      "docs_only": 6051,
+      "backend_only": 9938
+    },
+    "timestamp": "2026-01-14T01:13:50.547282"
+  },
+  "metrics": {
+    "skills": {
+      "name": "skills.py",
+      "true_positives": 174788,
+      "false_positives": 0,
+      "true_negatives": 925212,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "accuracy": 100.0,
+      "dynamic_loads": 11,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "instructions": {
+      "name": "instructions.py",
+      "true_positives": 233797,
+      "false_positives": 0,
+      "true_negatives": 366203,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "accuracy": 100.0,
+      "dynamic_loads": 6,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "agents": {
+      "name": "agents.py",
+      "true_positives": 124990,
+      "false_positives": 0,
+      "true_negatives": 675010,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "accuracy": 100.0,
+      "dynamic_loads": 8,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "docs": {
+      "name": "docs.py",
+      "true_positives": 187898,
+      "false_positives": 0,
+      "true_negatives": 442228,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "accuracy": 100.0,
+      "dynamic_loads": 7,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    }
+  },
+  "calibration": {
+    "skills": {
+      "script": "skills.py",
+      "current_precision": 100.0,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": []
+    },
+    "instructions": {
+      "script": "instructions.py",
+      "current_precision": 100.0,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": []
+    },
+    "agents": {
+      "script": "agents.py",
+      "current_precision": 100.0,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": []
+    },
+    "docs": {
+      "script": "docs.py",
+      "current_precision": 100.0,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": []
+    }
+  }
+}

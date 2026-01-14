@@ -1,3 +1,10 @@
+---
+title: SOCKS Relay Testing
+type: guide
+category: testing
+last_updated: 2026-01-14
+---
+
 # SOCKS Relay Testing Guide
 
 ## Current Status

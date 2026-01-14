@@ -1,7 +1,16 @@
+---
+title: AKIS v7 Framework Audit
+type: analysis
+date: 2026-01-10
+author: Automated
+status: final
+scope: Before/after comparison of 100k sessions
+last_updated: 2026-01-14
+---
+
 # AKIS v7.0 Framework Audit - 100k Session Analysis
 
-> Generated: 2026-01-10
-> Simulation: 100,000 sessions (baseline vs optimized)
+> **Simulation:** 100,000 sessions (baseline vs optimized)
 
 ## Executive Summary
 

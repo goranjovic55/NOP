@@ -1,6 +1,12 @@
-# Automation Scripts
+---
+title: Automation Scripts
+type: reference
+category: development
+auto_generated: true
+last_updated: 2026-01-14
+---
 
-**Category**: development | **Auto-generated**: yes
+# Automation Scripts
 
 ## Overview
 

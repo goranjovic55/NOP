@@ -1,10 +1,16 @@
 ---
-applyTo: "**"
+applyTo: 'frontend/**,backend/**'
+description: 'Coordination patterns for fullstack changes spanning frontend and backend.'
 ---
 
-# Fullstack Sessions v1.0
+# Fullstack Sessions
 
 > Based on 100k simulation: 65.6% of sessions are fullstack
+
+## When This Applies
+- Editing both frontend and backend in same session
+- Adding new API endpoints with UI
+- Debugging cross-layer issues
 
 ## Pre-Load Skills
 When editing both frontend + backend:

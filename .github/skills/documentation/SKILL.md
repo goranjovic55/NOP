@@ -102,6 +102,16 @@ Creates a new resource.
 | 401 | Unauthorized |
 ```
 
+## Templates (Diátaxis Framework)
+
+| Template | Type | Use For | Location |
+|----------|------|---------|----------|
+| `.github/templates/doc_tutorial.md` | Tutorial | Learning-oriented guides | `docs/guides/` |
+| `.github/templates/doc_guide.md` | How-To | Task-oriented instructions | `docs/guides/` |
+| `.github/templates/doc_reference.md` | Reference | API specs, config lookup | `docs/technical/` |
+| `.github/templates/doc_explanation.md` | Explanation | Architecture, concepts | `docs/architecture/` |
+| `.github/templates/doc_analysis.md` | Analysis | Reports, audits, metrics | `docs/analysis/` |
+
 ## Structure
 
 | Content Type | Location | Purpose |
@@ -110,8 +120,10 @@ Creates a new resource.
 | Feature docs | `docs/features/` | Feature explanations |
 | API reference | `docs/technical/` | API specs, schemas |
 | Architecture | `docs/architecture/` | Design decisions |
+| Analysis/Reports | `docs/analysis/` | Audits, metrics, reports |
 | Quick start | `README.md` | Getting started |
 | Navigation | `docs/INDEX.md` | Doc discovery |
+| Standards | `docs/contributing/` | Style guide, conventions |
 
 ## Commands
 

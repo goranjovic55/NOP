@@ -1,3 +1,10 @@
+---
+title: Agent & C2 System
+type: explanation
+category: concepts
+last_updated: 2026-01-14
+---
+
 # Agent & Command-and-Control (C2) System
 
 **Deploy and manage headless NOP agents for remote network monitoring**

@@ -1,6 +1,12 @@
-# React Components
+---
+title: React Components
+type: reference
+category: design
+auto_generated: true
+last_updated: 2026-01-14
+---
 
-**Category**: design | **Auto-generated**: yes
+# React Components
 
 ## Overview
 

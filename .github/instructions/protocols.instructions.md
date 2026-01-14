@@ -1,10 +1,16 @@
 ---
-applyTo: "**"
+applyTo: '**'
+description: 'AKIS protocol gates and enforcement rules. 8 gates for quality control.'
 ---
 
-# Protocols v7.4 (Memory-First)
+# Protocols (Memory-First)
 
 > Based on 100k simulation: G0 reduces file reads by 85%, tokens by 67.2%
+
+## When This Applies
+- Every coding session (behavioral guidance)
+- Skill selection decisions
+- Task delegation choices
 
 ## Gates (8)
 | G | Check | Fix |
@@ -99,6 +105,30 @@ code+docs | code+reviewer | research+code | architect+research
 
 ## Verification
 After edit: Syntax → Imports → Tests → ✓
+
+## ⛔ Pre-Commit Gate (G5 Enforcement)
+Before `git commit`, ALL must pass:
+1. ✓ Syntax check passed (no red squiggles)
+2. ✓ Build successful (if applicable)
+3. ✓ Tests pass (if edited test files)
+4. ✓ Workflow log created (for sessions >15 min)
+
+**Block commit if any check fails.** Do NOT proceed until resolved.
+
+## Parallel Execution Target (G7)
+**Goal: 60%+ of complex sessions should use parallel execution**
+
+| Session Type | Parallel Strategy |
+|--------------|-------------------|
+| Fullstack (frontend + backend) | code + documentation |
+| Bug fix + docs | debugger + documentation |
+| New feature | architect + research → code |
+| Refactor | code + reviewer |
+
+**When to parallelize:**
+- Tasks are independent (no data dependency)
+- Different domains (frontend vs backend)
+- Documentation can run alongside code
 
 ⚠️ **Git Push:** ASK before push. Never auto-push.
 ⚠️ **END Phase:** ASK user confirmation before END. Never auto-END.

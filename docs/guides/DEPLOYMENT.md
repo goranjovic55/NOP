@@ -1,7 +1,14 @@
-# Network Observatory Platform - Deployment Guide
-## Installation & Configuration Manual v2.0
+---
+title: Deployment Guide
+type: guide
+category: deployment
+version: "2.0"
+last_updated: 2026-01-14
+---
 
-**Last Updated**: 2026-01-04
+# Network Observatory Platform - Deployment Guide
+
+> Installation & Configuration Manual v2.0
 
 ---
 

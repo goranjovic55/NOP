@@ -1,3 +1,10 @@
+---
+title: Implemented Features
+type: reference
+category: features
+last_updated: 2026-01-14
+---
+
 # Implemented Features
 
 Complete feature list for Network Observatory Platform.

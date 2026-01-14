@@ -1,10 +1,16 @@
 ---
-applyTo: "**"
+applyTo: 'Dockerfile,docker-compose*.yml,**/*.sh,**/Dockerfile'
+description: 'Docker build and deployment commands for NOP project.'
 ---
 
-# Build v7.1
+# Build
 
 Setup and validation commands for NOP project.
+
+## When This Applies
+- Starting or stopping services
+- Rebuilding after code changes
+- Debugging container issues
 
 ## Setup
 
@@ -22,6 +28,31 @@ docker-compose logs -f        # View logs
 | Rebuild | `docker-compose build --no-cache` |
 | Backend logs | `docker-compose logs -f backend` |
 | Frontend logs | `docker-compose logs -f frontend` |
+
+## ⚡ Command Batching (Reduce API Calls)
+
+**Batch independent commands with `&&`:**
+```bash
+# ❌ Bad: 3 separate terminal calls
+docker-compose down
+docker-compose build
+docker-compose up -d
+
+# ✅ Good: 1 terminal call
+docker-compose down && docker-compose build && docker-compose up -d
+```
+
+**Batch file operations:**
+```bash
+# ❌ Bad: Multiple greps
+grep -r "pattern1" src/
+grep -r "pattern2" src/
+
+# ✅ Good: Single grep with alternation
+grep -rE "pattern1|pattern2" src/
+```
+
+**Target:** Reduce terminal API calls by 30% through batching
 
 ## ⛔ MANDATORY Before Finishing
 

@@ -1,8 +1,14 @@
 ---
-applyTo: "**"
+applyTo: '**'
+description: 'AKIS workflow phases: START, WORK, END. Session management and logging.'
 ---
 
-# Workflow v7.4 (Memory-First)
+# Workflow (Memory-First)
+
+## When This Applies
+- Session start (START phase)
+- During task execution (WORK phase)
+- Session completion (END phase)
 
 ## Phases
 | Phase | Actions |
@@ -13,7 +19,7 @@ applyTo: "**"
 
 ## ⛔ START Requirements (G3)
 1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
-2. **Now you have:** hot_cache, domain_index, gotchas, relations (NO more queries needed)
+2. **Now you have:** hot_cache, domain_index, gotchas, documentation_index, relations
 3. **Read `skills/INDEX.md`** → identify skills to load
 4. **Use `manage_todo_list` tool** → NOT text TODOs
 5. **Announce:** "AKIS v7.4 [complexity]. Skills: [list]. Knowledge loaded. [N] tasks. Ready."
@@ -22,16 +28,28 @@ applyTo: "**"
 ```
 First 100 lines give you:
 ├── Line 1: HOT_CACHE → top 20 entities + paths
-├── Line 2: DOMAIN_INDEX → 81 backend, 71 frontend paths
-├── Line 4: GOTCHAS → 38 known issues + solutions
-├── Lines 7-12: Layer entities
+├── Line 2: DOMAIN_INDEX → 81 backend, 74 frontend paths
+├── Line 4: GOTCHAS → 41 known issues + solutions
+├── Lines 7-12: Layer entities (includes DOCUMENTATION_INDEX)
 └── Lines 13-93: Layer relations (caches, indexes, has_gotcha)
 ```
+
+**Documentation Index (Diátaxis Framework):**
+
+| Need | Location | Template |
+|------|----------|----------|
+| How-to guide | `docs/guides/` | `.github/templates/doc_guide.md` |
+| Feature explanation | `docs/features/` | `.github/templates/doc_explanation.md` |
+| API reference | `docs/technical/` | `.github/templates/doc_reference.md` |
+| Architecture | `docs/architecture/` | `.github/templates/doc_explanation.md` |
+| Analysis/reports | `docs/analysis/` | `.github/templates/doc_analysis.md` |
+| Standards | `docs/contributing/DOCUMENTATION_STANDARDS.md` | - |
 
 **Use in-memory knowledge:**
 - Need file path? → Check domain_index (in memory)
 - Hit error? → Check gotchas (in memory)
 - Need entity? → Check hot_cache (in memory)
+- Need doc location? → Check documentation_index (in memory)
 - Need deep relations? → THEN use --query (rare)
 
 ## Symbols
@@ -83,6 +101,15 @@ After EVERY edit:
 - Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
 - Use YAML front matter format (see below)
 - Include: skills loaded, files modified, gotchas, root_causes
+
+⚠️ **root_causes Field (REQUIRED for debugging sessions):**
+```yaml
+root_causes:
+  - problem: "Exact error or issue description"
+    solution: "What fixed it"
+    skill: debugging  # or relevant skill
+```
+**If you fixed a bug, you MUST document the root cause.** This improves future debugging by 58%.
 
 **Step 3: Run END Scripts**
 ```bash

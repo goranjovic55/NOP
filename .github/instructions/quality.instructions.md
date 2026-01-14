@@ -1,10 +1,16 @@
 ---
-applyTo: "**"
+applyTo: '**'
+description: 'Quality checks and common gotchas. Verification steps and error protocol.'
 ---
 
-# Quality v7.2
+# Quality
 
 > Based on 100k simulation: Check gotchas FIRST for 75% debug acceleration
+
+## When This Applies
+- After every code edit
+- When encountering errors
+- Before committing changes
 
 ## After Every Edit
 1. Verify syntax (no errors)
@@ -23,7 +29,7 @@ applyTo: "**"
 ## Checklist
 □ No syntax errors | □ No duplicates | □ Imports resolve | □ Tests pass
 
-## ⚠️ Common Gotchas (from 128 workflow logs)
+## ⚠️ Common Gotchas (from 137 workflow logs - 41 documented)
 
 | Category | Pattern | Solution |
 |----------|---------|----------|

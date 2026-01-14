@@ -1,3 +1,11 @@
+---
+title: UI/UX Specification
+type: reference
+category: design
+auto_generated: true
+last_updated: 2026-01-14
+---
+
 # Network Observatory Platform - UI/UX Mockups
 
 ## Pages

@@ -23,10 +23,24 @@ head -100 project_knowledge.json  # Do this ONCE
 
 **After loading, you have IN MEMORY:**
 - Line 1: HOT_CACHE → top 20 entities + paths
-- Line 2: DOMAIN_INDEX → 81 backend, 71 frontend file paths
-- Line 4: GOTCHAS → 38 known issues + solutions
+- Line 2: DOMAIN_INDEX → 81 backend, 74 frontend file paths
+- Line 4: GOTCHAS → 41 known issues + solutions
 - Lines 7-12: Layer entities
 - Lines 13-93: Layer relations
+
+**Documentation Index (Diátaxis Framework):**
+
+| Need | Location | Template |
+|------|----------|----------|
+| How-to guide | `docs/guides/` | `.github/templates/doc_guide.md` |
+| Feature explanation | `docs/features/` | `.github/templates/doc_explanation.md` |
+| API/config reference | `docs/technical/` | `.github/templates/doc_reference.md` |
+| Architecture concepts | `docs/architecture/` | `.github/templates/doc_explanation.md` |
+| Analysis/reports | `docs/analysis/` | `.github/templates/doc_analysis.md` |
+| Standards | `docs/contributing/DOCUMENTATION_STANDARDS.md` | - |
+| Doc navigation | `docs/INDEX.md` | - |
+
+**Context Budget:** 3,000 tokens max per skill (reduced for efficiency)
 
 **Anti-Pattern:**
 ```
@@ -36,15 +50,26 @@ head -100 project_knowledge.json  # Do this ONCE
 ```
 
 ## START (⛔ G3 Mandatory)
+
+### LOAD Phase (G0+G1+G2 Consolidated)
 1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
-2. **Now you have:** hot_cache, domain_index, gotchas, relations (no more queries needed)
+2. **Now you have:** hot_cache, domain_index (81 backend, 74 frontend), 41 gotchas, relations
 3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
 4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
-5. **Announce:** "AKIS v7.4 [complexity]. Skills: [list]. Knowledge loaded. [N] tasks. Ready."
+
+### ANNOUNCE Phase (⛔ REQUIRED - Do NOT skip)
+5. **Announce (MANDATORY):**
+   ```
+   AKIS v7.4 [simple|medium|complex]. 
+   Skills: [loaded-list]. 
+   Knowledge: [N] cache hits, [N] gotchas checked. 
+   Tasks: [N]. Ready.
+   ```
+   ⚠️ **Do NOT proceed to WORK without this announcement**
 
 **TODO Format:** `○ Task description [skill-name]`
 
-⚠️ **G3 Enforcement:** Knowledge MUST be in memory before any file operations
+⚠️ **G3 Enforcement:** LOAD + ANNOUNCE must complete before any file operations
 
 ## WORK (Using In-Memory Knowledge)
 **Before reading ANY file, check your loaded knowledge:**

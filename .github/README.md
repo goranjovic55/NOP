@@ -1,4 +1,4 @@
-# AKIS v4 - Agent Knowledge & Instruction System
+# AKIS v7.4 - Agent Knowledge & Instruction System
 
 AI coding agent framework: **A**gent • **K**nowledge • **I**nstructions • **S**kills
 
@@ -9,12 +9,15 @@ AI coding agent framework: **A**gent • **K**nowledge • **I**nstructions • 
 | File | Purpose |
 |------|--------|
 | `copilot-instructions.md` | Terse rules (START→WORK→END) |
-| `instructions/protocols.instructions.md` | Detailed procedures |
-| `instructions/structure.instructions.md` | File organization rules |
+| `instructions/protocols.instructions.md` | Gates, skill triggers, delegation |
+| `instructions/architecture.instructions.md` | Project structure & file placement |
+| `instructions/workflow.instructions.md` | Phases, TODO, END steps |
+| `instructions/quality.instructions.md` | Verification, gotchas |
 | `skills/INDEX.md` | Domain→skill lookup |
 | `skills/*/SKILL.md` | Agent Skills (per-domain) |
+| `agents/*.agent.md` | Custom agents (8 total) |
 | `scripts/*.py` | Codemap, skill suggestions |
-| `templates/*.md` | Workflow log, skill templates |
+| `templates/*.md` | Workflow log, skill, agent templates |
 
 ## Key Scripts
 

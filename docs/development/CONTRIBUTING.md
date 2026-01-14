@@ -1,3 +1,10 @@
+---
+title: Contributing to NOP
+type: guide
+category: development
+last_updated: 2026-01-14
+---
+
 # Contributing to NOP
 
 Thank you for your interest in contributing to the Network Observatory Platform! This document provides guidelines and information for contributors.

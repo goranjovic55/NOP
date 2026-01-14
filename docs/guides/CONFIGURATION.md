@@ -1,5 +1,14 @@
+---
+title: Configuration Reference
+type: reference
+category: configuration
+version: "1.0"
+last_updated: 2026-01-14
+---
+
 # Network Observatory Platform - Configuration Reference
-## Complete Configuration Guide v1.0
+
+> Complete Configuration Guide v1.0
 
 ---
 

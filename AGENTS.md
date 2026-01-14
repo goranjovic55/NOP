@@ -33,11 +33,13 @@
 **Read first 100 lines of project_knowledge.json ONCE at START:**
 ```
 Line 1:     HOT_CACHE (top 20 entities + paths)
-Line 2:     DOMAIN_INDEX (81 backend, 71 frontend file paths)
-Line 4:     GOTCHAS (38 known issues + solutions)
+Line 2:     DOMAIN_INDEX (81 backend, 74 frontend file paths)
+Line 4:     GOTCHAS (41 known issues + solutions)
 Lines 7-12: Layer entities
 Lines 13-93: Layer relations
 ```
+
+**Context Budget:** 3,000 tokens max per skill
 
 **Anti-Pattern:**
 ```
@@ -63,10 +65,20 @@ Lines 13-93: Layer relations
 |------------|----------|
 | Simple (<3) | Direct or delegate |
 | Medium (3-5) | Smart delegate |
-| Complex (6+) | Delegate |
+| Complex (6+) | **Auto-prompt delegation** |
+
+**6+ Tasks Auto-Prompt:** Show delegation suggestion before proceeding.
 
 ## Parallel (G7)
-code+docs | code+reviewer | research+code | architect+research
+**Target: 60% of complex sessions**
+
+| Pair | Use Case |
+|------|----------|
+| code+docs | Fullstack |
+| code+reviewer | Refactor |
+| research+code | New feature |
+| architect+research | Design |
+| debugger+docs | Bug fix |
 
 ## AKIS Files
 

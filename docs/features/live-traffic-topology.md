@@ -1,3 +1,10 @@
+---
+title: Live Traffic Topology
+type: explanation
+category: concepts
+last_updated: 2026-01-14
+---
+
 # Live Traffic Topology View
 
 ## Overview

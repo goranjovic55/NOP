@@ -1,6 +1,22 @@
+---
+title: Analysis Reports
+type: index
+category: analysis
+last_updated: 2026-01-14
+---
+
 # AKIS Analysis Reports
 
 This directory contains periodic analysis reports for the AKIS (Agents, Knowledge, Instructions, Skills) framework.
+
+## Quick Navigation
+
+| Report | Description | Status |
+|--------|-------------|--------|
+| [Comprehensive Analysis](AKIS_COMPREHENSIVE_ANALYSIS_100K.md) | Full framework metrics | Final |
+| [V7 Framework Audit](AKIS_V7_FRAMEWORK_AUDIT.md) | Before/after comparison | Final |
+| [100k Simulation Results](SIMULATION_100K_RESULTS.md) | Simulation metrics | Final |
+| [Compliance Audit](AKIS_COMPLIANCE_AUDIT_100K.md) | Compliance metrics | Final |
 
 ## Running Analysis
 

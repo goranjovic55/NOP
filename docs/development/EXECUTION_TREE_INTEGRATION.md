@@ -1,6 +1,14 @@
+---
+title: Execution Tree Integration
+type: reference
+category: development
+last_updated: 2026-01-14
+---
+
 # Execution Tree Integration - Summary
 
 ## Overview
+
 This document summarizes the implementation of the Workflow Execution Tree visualization system and its integration into the NOP workflow execution framework.
 
 ## Changes Made

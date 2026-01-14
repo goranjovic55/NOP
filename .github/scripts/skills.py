@@ -142,8 +142,160 @@ def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
 
 
 # ============================================================================
-# Existing skill triggers - optimized via 100k simulation (96.0% accuracy)
-EXISTING_SKILL_TRIGGERS = {
+# Skill File Parsing (Template-Aware)
+# ============================================================================
+
+def parse_skill_yaml_frontmatter(content: str) -> Optional[Dict[str, str]]:
+    """Parse YAML frontmatter from SKILL.md files.
+    
+    Expected format:
+    ---
+    name: skill-name
+    description: Load when... Provides...
+    ---
+    """
+    if not content.startswith('---'):
+        return None
+    
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    
+    for line in yaml_content.split('\n'):
+        if ':' in line:
+            key, value = line.split(':', 1)
+            result[key.strip()] = value.strip().strip('"').strip("'")
+    
+    return result
+
+
+def load_skills_from_files(root: Path) -> Dict[str, Dict[str, Any]]:
+    """Load skill definitions from actual SKILL.md files with YAML frontmatter.
+    
+    Reads .github/skills/*/SKILL.md and extracts:
+    - name: from frontmatter
+    - description: from frontmatter (contains triggers like "Load when editing .tsx")
+    - file_patterns: extracted from description
+    - patterns: extracted from description keywords
+    """
+    skills_dir = root / '.github' / 'skills'
+    skills = {}
+    
+    if not skills_dir.exists():
+        return skills
+    
+    # Pattern extraction from descriptions
+    file_pattern_map = {
+        '.tsx': r'\.tsx$',
+        '.jsx': r'\.jsx$',
+        '.ts': r'\.ts$',
+        '.py': r'\.py$',
+        'backend/': r'backend/',
+        'frontend/': r'frontend/',
+        'components/': r'components/',
+        'pages/': r'pages/',
+        'store/': r'store/',
+        'hooks/': r'hooks/',
+        'services/': r'services/',
+        'models/': r'models/',
+        'api/': r'api/',
+        'Dockerfile': r'Dockerfile',
+        'docker-compose': r'docker-compose.*\.yml$',
+        '.github/workflows': r'\.github/workflows/.*\.yml$',
+        'test_': r'test_.*\.py$',
+        '_test.py': r'.*_test\.py$',
+        '.test.ts': r'\.test\.(ts|tsx)$',
+        '.md': r'\.md$',
+        'docs/': r'docs/',
+        '.github/skills': r'\.github/skills/',
+        '.github/agents': r'\.github/agents/',
+        '.github/instructions': r'\.github/instructions/',
+        'project_knowledge.json': r'project_knowledge\.json$',
+        'alembic/': r'alembic/',
+    }
+    
+    for skill_dir in skills_dir.iterdir():
+        if not skill_dir.is_dir() or skill_dir.name == '__pycache__':
+            continue
+        
+        skill_file = skill_dir / 'SKILL.md'
+        if not skill_file.exists():
+            continue
+        
+        try:
+            content = skill_file.read_text(encoding='utf-8')
+            frontmatter = parse_skill_yaml_frontmatter(content)
+            
+            if not frontmatter:
+                continue
+            
+            name = frontmatter.get('name', skill_dir.name)
+            description = frontmatter.get('description', '')
+            desc_lower = description.lower()
+            
+            # Extract file patterns from description
+            file_patterns = []
+            for trigger, pattern in file_pattern_map.items():
+                if trigger.lower() in desc_lower:
+                    file_patterns.append(pattern)
+            
+            # Extract keyword patterns from description
+            patterns = []
+            keyword_triggers = [
+                'react', 'component', 'frontend', 'backend', 'api', 'endpoint',
+                'docker', 'container', 'compose', 'workflow', 'deploy', 'ci', 'cd',
+                'test', 'pytest', 'jest', 'debug', 'error', 'bug', 'traceback',
+                'doc', 'readme', 'markdown', 'akis', 'skill', 'instruction', 'agent',
+                'knowledge', 'context', 'cache', 'websocket', 'async', 'database',
+                'migration', 'alembic', 'model', 'service', 'auth', 'state', 'store',
+                'hook', 'page', 'zustand', 'typescript', 'fastapi', 'sqlalchemy',
+                'plan', 'design', 'research', 'standard', 'best practice',
+            ]
+            for kw in keyword_triggers:
+                if kw in desc_lower:
+                    patterns.append(kw)
+            
+            # Determine auto_chain from content
+            auto_chain = []
+            if 'planning' in name and 'research' in content.lower():
+                auto_chain = ['research']
+            
+            skills[name] = {
+                'file_patterns': file_patterns,
+                'patterns': patterns,
+                'when_helpful': patterns[:5],  # Top 5 patterns
+                'auto_chain': auto_chain,
+                'description': description,
+                'path': str(skill_file),
+            }
+            
+        except Exception:
+            continue
+    
+    return skills
+
+
+def get_skill_triggers(root: Path = None) -> Dict[str, Dict[str, Any]]:
+    """Get skill triggers - from files if available, fallback to hardcoded."""
+    if root is None:
+        root = Path.cwd()
+    
+    # Try loading from actual files first
+    skills = load_skills_from_files(root)
+    
+    if skills:
+        return skills
+    
+    # Fallback to hardcoded triggers
+    return FALLBACK_SKILL_TRIGGERS
+
+
+# ============================================================================
+# Fallback skill triggers (used if files can't be parsed)
+FALLBACK_SKILL_TRIGGERS = {
     'planning': {
         'file_patterns': [r'\.project/', r'blueprints/', r'design/'],
         'patterns': ['new feature', 'implement', 'add functionality', 'design', 'architect', 'plan', 'blueprint', 'structure'],
@@ -272,12 +424,15 @@ def get_git_diff() -> str:
     return ""
 
 
-def detect_existing_skills(files: List[str], diff: str) -> List[SkillSuggestion]:
+def detect_existing_skills(files: List[str], diff: str, root: Path = None) -> List[SkillSuggestion]:
     """Detect which existing skills would be helpful."""
     detected = []
     diff_lower = diff.lower()
     
-    for skill_name, triggers in EXISTING_SKILL_TRIGGERS.items():
+    # Load skills dynamically from SKILL.md files
+    skill_triggers = get_skill_triggers(root)
+    
+    for skill_name, triggers in skill_triggers.items():
         score = 0
         evidence = []
         
@@ -307,7 +462,7 @@ def detect_existing_skills(files: List[str], diff: str) -> List[SkillSuggestion]
     # Handle auto-chain: if planning detected, add research
     skill_names = [s.skill_name for s in detected]
     for skill in detected[:]:
-        auto_chain = EXISTING_SKILL_TRIGGERS.get(skill.skill_name, {}).get('auto_chain', [])
+        auto_chain = skill_triggers.get(skill.skill_name, {}).get('auto_chain', [])
         for chained_skill in auto_chain:
             if chained_skill not in skill_names:
                 detected.append(SkillSuggestion(
@@ -723,10 +878,11 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     print(f"\n📂 Workflow logs analyzed: {len(logs)}")
     
     # Analyze skill usage in workflows
+    skill_triggers = get_skill_triggers(root)
     skill_usage = defaultdict(int)
     for log in logs:
         content = log['content'].lower()
-        for skill_name in EXISTING_SKILL_TRIGGERS.keys():
+        for skill_name in skill_triggers.keys():
             if skill_name in content or skill_name.replace('-', ' ') in content:
                 skill_usage[skill_name] += 1
     
@@ -1101,7 +1257,8 @@ def run_ingest_all() -> Dict[str, Any]:
     suggestions = []
     
     # Check for skill gaps: frequently used but no dedicated skill
-    skill_set = set(EXISTING_SKILL_TRIGGERS.keys())
+    skill_triggers = get_skill_triggers(root)
+    skill_set = set(skill_triggers.keys())
     for skill, score in all_skills_loaded.items():
         if skill and skill not in skill_set and score >= 5.0:
             suggestions.append({

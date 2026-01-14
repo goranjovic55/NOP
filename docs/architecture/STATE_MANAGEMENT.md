@@ -1,6 +1,12 @@
-# State Management
+---
+title: State Management
+type: reference
+category: architecture
+auto_generated: true
+last_updated: 2026-01-14
+---
 
-**Category**: architecture | **Auto-generated**: yes
+# State Management
 
 ## Overview
 

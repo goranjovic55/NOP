@@ -1,3 +1,10 @@
+---
+title: Storm Feature
+type: explanation
+category: concepts
+last_updated: 2026-01-14
+---
+
 # Storm Functionality
 
 Real-time network traffic generation for testing storm protection mechanisms.

@@ -1,3 +1,10 @@
+---
+title: Feature Proposals
+type: explanation
+category: planning
+last_updated: 2026-01-14
+---
+
 # Feature Proposals
 
 Proposed enhancements for Network Observatory Platform.
