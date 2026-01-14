@@ -107,11 +107,58 @@ const WorkflowBuilder: React.FC = () => {
     }
   };
 
-  const handleInsertTemplate = (nodes: any[], edges: any[]) => {
-    // Template logic would go here
-    console.log('Insert template:', nodes, edges);
+  const handleInsertTemplate = useCallback((templateNodes: any[], templateEdges: any[]) => {
+    if (!currentWorkflowId) {
+      console.warn('No workflow selected');
+      return;
+    }
+    
+    // Generate unique IDs for nodes and edges
+    const timestamp = Date.now();
+    const nodeIdMap = new Map<string, string>();
+    
+    // Create new nodes with unique IDs
+    const newNodes = templateNodes.map((node, index) => {
+      const oldId = node.id || `${index + 1}`;
+      const newId = `node-${timestamp}-${index}`;
+      nodeIdMap.set(oldId, newId);
+      
+      return {
+        id: newId,
+        type: node.type || 'block',
+        position: node.position || { x: 100, y: 50 + index * 100 },
+        data: {
+          ...node.data,
+          label: node.data?.label || 'Block',
+          type: node.data?.type || 'control.start',
+          category: node.data?.category || 'control',
+          parameters: node.data?.parameters || {},
+        },
+      };
+    });
+    
+    // Create new edges with remapped IDs
+    const newEdges = templateEdges.map((edge, index) => {
+      const sourceId = nodeIdMap.get(edge.source) || edge.source;
+      const targetId = nodeIdMap.get(edge.target) || edge.target;
+      
+      return {
+        id: `edge-${timestamp}-${index}`,
+        source: sourceId,
+        target: targetId,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+      };
+    });
+    
+    // Add nodes and edges to the store
+    const store = useWorkflowStore.getState();
+    newNodes.forEach(node => store.addNode(node));
+    newEdges.forEach(edge => store.addEdge(edge));
+    
+    console.log('Inserted template:', newNodes.length, 'nodes,', newEdges.length, 'edges');
     setShowTemplates(false);
-  };
+  }, [currentWorkflowId]);
 
   const handleStartExecution = async () => {
     if (currentWorkflowId) {

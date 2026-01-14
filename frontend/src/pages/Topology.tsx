@@ -1020,7 +1020,6 @@ const Topology: React.FC = () => {
           width={dimensions.width}
           height={dimensions.height}
           graphData={graphData}
-          enablePointerInteraction={true}
           cooldownTicks={simulationCompleteRef.current ? 0 : 200}
           cooldownTime={simulationCompleteRef.current ? 0 : 10000}
           warmupTicks={simulationCompleteRef.current ? 0 : 100}
@@ -1137,7 +1136,6 @@ const Topology: React.FC = () => {
             if (link.bidirectional) return '#00ff41'; // Green particles
             return '#ffffff'; // White particles
           }}
-          linkCanvasObjectMode="replace"
           linkCanvasObject={(link: any, ctx, globalScale) => {
             // Custom link rendering with curved lines to reduce overlapping
             const start = link.source;
@@ -1148,16 +1146,15 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
-            // Check if this link is selected or hovered
+            // Check if this link is selected
             const isSelected = selectedLink && 
               ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
               ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
             
+            // Check if this link is hovered
             const isHovered = hoveredLink && 
               ((typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source) === start.id) &&
               ((typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target) === end.id);
-            
-            const isHighlighted = isSelected || isHovered;
             
             // Calculate curvature based on node IDs for consistent curves
             const curvature = calculateLinkCurvature(start.id, end.id);
@@ -1166,7 +1163,7 @@ const Topology: React.FC = () => {
             const baseWidth = calculateLinkWidth(totalTraffic);
             // Scale with zoom - thinner when zoomed out, thicker when zoomed in
             const zoomScale = Math.max(0.3, Math.min(1.5, globalScale));
-            const width = (isHighlighted ? baseWidth * 1.5 : baseWidth) * zoomScale;
+            const width = (isSelected ? baseWidth * 2 : baseWidth) * zoomScale;
             const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
             // Apply opacity based on recency and traffic activity - more visible fading
             const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
@@ -1189,17 +1186,28 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw glow for selected or hovered links
-            if (isHighlighted) {
+            // Draw subtle hover highlight (outer edge only, low intensity)
+            if (isHovered && !isSelected) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              // Selected = bright green, Hovered = cyan glow
-              const glowColor = isSelected ? '#00ff41' : '#00f0ff';
-              ctx.strokeStyle = glowColor;
-              ctx.lineWidth = width + (isSelected ? 4 : 2);
-              ctx.shadowBlur = isSelected ? 20 : 12;
-              ctx.shadowColor = glowColor;
+              ctx.strokeStyle = 'rgba(100, 200, 255, 0.4)'; // Faint cyan glow
+              ctx.lineWidth = width + 4;
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw selection glow first (behind the curve) - green glow to match asset highlighting
+            if (isSelected) {
+              ctx.beginPath();
+              ctx.moveTo(start.x, start.y);
+              ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
+              ctx.strokeStyle = '#00ff41';
+              ctx.lineWidth = width + 4;
+              ctx.shadowBlur = 20;
+              ctx.shadowColor = '#00ff41';
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
@@ -1210,8 +1218,8 @@ const Topology: React.FC = () => {
             ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
             ctx.lineWidth = width;
-            if (isHighlighted) {
-              ctx.shadowBlur = isSelected ? 10 : 6;
+            if (isSelected) {
+              ctx.shadowBlur = 10;
               ctx.shadowColor = color;
             }
             ctx.stroke();
@@ -1264,13 +1272,12 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw thick curved hit area - use lineCap round and wide stroke
+            // Draw thick curved hit area
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
             ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
-            ctx.lineCap = 'round';
-            ctx.lineWidth = 15; // Even wider hit area for easier clicking
+            ctx.lineWidth = 10; // Wide hit area for easier clicking
             ctx.stroke();
           }}
           dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
@@ -1282,22 +1289,8 @@ const Topology: React.FC = () => {
             setSelectedLink(null);
             setContextMenuPosition({ x: event.clientX, y: event.clientY });
           }}
-          onNodeRightClick={(node: any, event: MouseEvent) => {
-            // Right-click also opens context menu (workaround for Teams screen sharing)
-            event.preventDefault();
-            setSelectedNode(node);
-            setSelectedLink(null);
-            setContextMenuPosition({ x: event.clientX, y: event.clientY });
-          }}
           onLinkClick={(link: any, event: MouseEvent) => {
             // Open context menu for connection
-            setSelectedLink(link);
-            setSelectedNode(null);
-            setContextMenuPosition({ x: event.clientX, y: event.clientY });
-          }}
-          onLinkRightClick={(link: any, event: MouseEvent) => {
-            // Right-click also opens context menu (workaround for Teams screen sharing)
-            event.preventDefault();
             setSelectedLink(link);
             setSelectedNode(null);
             setContextMenuPosition({ x: event.clientX, y: event.clientY });
@@ -1307,9 +1300,8 @@ const Topology: React.FC = () => {
             setHoveredNode(node || null);
           }}
           onLinkHover={(link: any) => {
-            // Change cursor and track hovered link for glow effect
-            document.body.style.cursor = link ? 'pointer' : 'default';
             setHoveredLink(link || null);
+            document.body.style.cursor = link ? 'pointer' : 'default';
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const label = node.name;
@@ -1431,7 +1423,7 @@ const Topology: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg pointer-events-none">
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg">
           <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px]">Nodes</div>
           <div className="flex items-center space-x-2 mb-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-cyber-green shadow-[0_0_5px_#00ff41]"></span>
@@ -1487,19 +1479,7 @@ const Topology: React.FC = () => {
           </div>
         </div>
 
-        {/* Click backdrop to close context menus - MUST be rendered BEFORE menus for proper z-ordering */}
-        {(selectedNode || selectedLink) && (
-          <div 
-            className="absolute inset-0 z-40" 
-            onClick={() => {
-              setSelectedNode(null);
-              setSelectedLink(null);
-              setContextMenuPosition(null);
-            }}
-          />
-        )}
-
-        {/* Context menus inside container for fullscreen support - rendered AFTER backdrop so they appear on top */}
+        {/* Context menus inside container for fullscreen support */}
         {/* Host Context Menu */}
         {selectedNode && contextMenuPosition && (
           <HostContextMenu
@@ -1531,6 +1511,18 @@ const Topology: React.FC = () => {
             }}
             position={contextMenuPosition}
             onClose={() => {
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }}
+          />
+        )}
+
+        {/* Click backdrop to close context menus */}
+        {(selectedNode || selectedLink) && (
+          <div 
+            className="absolute inset-0 z-40" 
+            onClick={() => {
+              setSelectedNode(null);
               setSelectedLink(null);
               setContextMenuPosition(null);
             }}

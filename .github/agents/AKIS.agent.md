@@ -1,7 +1,7 @@
 ---
 name: AKIS
 description: 'Workflow enforcement agent with 8-gate quality control, skill-based execution, and knowledge graph integration. Orchestrates all other agents.'
-tools: ['read', 'edit', 'search', 'execute']
+tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'copilot-container-tools/*', 'todo']
 ---
 
 # AKIS v7.4
