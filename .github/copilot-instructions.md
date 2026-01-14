@@ -68,7 +68,7 @@ head -100 project_knowledge.json  # Do this ONCE
 | .md docs/ | documentation | edits |
 | error traceback | debugging | analysis |
 | test_* pytest jest | testing | edits + commands |
-| .github/skills/* agents/* | akis-development | edits |
+| .github/skills/* agents/* | akis-dev | edits |
 | new feature, design | planning | analysis |
 
 ⭐ Pre-load fullstack

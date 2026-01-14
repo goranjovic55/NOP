@@ -13,6 +13,7 @@ import ExecutionConsole from '../components/workflow/ExecutionConsole';
 import ConfigPanel from '../components/workflow/ConfigPanel';
 import FlowTemplates from '../components/workflow/FlowTemplates';
 import ExecutionOverlay from '../components/workflow/ExecutionOverlay';
+import WorkflowSettingsModal from '../components/workflow/WorkflowSettingsModal';
 
 interface FlowTab {
   workflowId: string;
@@ -37,6 +38,7 @@ const WorkflowBuilder: React.FC = () => {
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showExecutionOverlay, setShowExecutionOverlay] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   // Use the execution hook for proper WebSocket/polling support
@@ -223,6 +225,16 @@ const WorkflowBuilder: React.FC = () => {
           >
             ✓ VALIDATE
           </CyberButton>
+          <div className="w-px h-5 bg-cyber-gray/30" />
+          <CyberButton 
+            variant="purple" 
+            size="sm"
+            onClick={() => setShowSettings(true)}
+            disabled={!currentWorkflowId}
+            title="Workflow Settings & Variables"
+          >
+            ⚙ SETTINGS
+          </CyberButton>
         </div>
 
         {/* Center - Execution status */}
@@ -324,6 +336,15 @@ const WorkflowBuilder: React.FC = () => {
           onResume={() => setIsPaused(false)}
           onCancel={handleCancelExecution}
           onClose={() => setShowExecutionOverlay(false)}
+        />
+      )}
+
+      {/* Workflow Settings Modal */}
+      {currentWorkflowId && (
+        <WorkflowSettingsModal
+          workflowId={currentWorkflowId}
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
         />
       )}
     </div>

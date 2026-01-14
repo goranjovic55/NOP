@@ -304,7 +304,7 @@ class WorkflowPatternExtractor:
         # Only match known skill names to avoid false positives
         known_skills = [
             'frontend-react', 'backend-api', 'docker', 'debugging', 
-            'documentation', 'testing', 'ci-cd', 'akis-development',
+            'documentation', 'testing', 'ci-cd', 'akis-dev',
             'planning', 'research', 'knowledge'
         ]
         found_skills = []
@@ -769,7 +769,7 @@ class MixedScenarioSimulator:
         if any('test' in f.lower() for f in files):
             skills.append('testing')
         if any('.github/skills' in f or '.github/instructions' in f for f in files):
-            skills.append('akis-development')
+            skills.append('akis-dev')
         
         return skills or ['debugging']
     

@@ -14,7 +14,7 @@
 | error traceback bug fix | [debugging](debugging/SKILL.md) | | 74% |
 | .md docs/ README | [documentation](documentation/SKILL.md) | | 54% |
 | test_* *_test.py *.test.ts | [testing](testing/SKILL.md) | | 65% |
-| .github/skills/* agents/* | [akis-development](akis-development/SKILL.md) | | 87% |
+| .github/skills/* agents/* | [akis-dev](akis-dev/SKILL.md) | | 87% |
 | project_knowledge.json | [knowledge](knowledge/SKILL.md) | | 3% |
 
 ⭐ Pre-load for fullstack (65.6% of sessions)

@@ -1,0 +1,17 @@
+# Simple test targets for NOP workflow testing
+# Credentials: root:toor OR testuser:test123
+
+services:
+  ssh-target:
+    build: ./test-environment/ssh-server
+    container_name: nop-ssh-target
+    hostname: ssh-target
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.100
+    restart: unless-stopped
+
+networks:
+  nop-internal:
+    external: true
+    name: docker_nop-internal

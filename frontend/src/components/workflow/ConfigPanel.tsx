@@ -4,6 +4,7 @@
  * Phase 4: Added execution results display with loop iteration tracking
  * Phase 5: Added dynamic dropdowns for IPs, ports, and credentials from NOP data
  * Phase 6: Added "Run Single Block" with manual input injection
+ * Phase 7: Added Variable Picker for block-to-block parameter passing
  */
 
 import React, { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { getBlockDefinition, CATEGORY_COLORS, validateBlockParameters } from '..
 import { ParameterDefinition, NodeResult } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
 import DynamicDropdown from './DynamicDropdown';
+import VariableInput from './VariableInput';
 
 // Extended result type for loop iterations
 interface IterationResult {
@@ -360,6 +362,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
           <div className="space-y-3">
             <h4 className="text-sm font-mono text-cyber-blue flex items-center gap-2">
               <span>◈</span> PARAMETERS
+              <span className="text-[10px] text-cyber-gray-light ml-auto">use {'{{ }}'} for variables</span>
             </h4>
             {definition.parameters.map(param => (
               <ParameterField
@@ -371,6 +374,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                 onApplyCredential={applyCredential}
                 allParams={localParams}
                 blockType={node.data.type}
+                nodeId={nodeId}
               />
             ))}
           </div>
@@ -703,6 +707,7 @@ interface ParameterFieldProps {
   onApplyCredential: (credentialId: string) => void;
   allParams: Record<string, any>;  // Access to all params for context-aware dropdowns
   blockType: string;  // Block type for determining dropdown behavior
+  nodeId: string | null;  // For variable picker context
 }
 
 const ParameterField: React.FC<ParameterFieldProps> = ({ 
@@ -713,13 +718,22 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
   onApplyCredential,
   allParams,
   blockType,
+  nodeId,
 }) => {
   const { name, label, type, required, placeholder, options, description } = definition;
+  
+  // Track whether to show variable input vs dropdown for dynamic fields
+  const [useVariableMode, setUseVariableMode] = useState(false);
+  
+  // Check if value contains variable expression - auto-switch to variable mode
+  const hasVariableExpression = typeof value === 'string' && value.includes('{{');
+  const effectiveVariableMode = useVariableMode || hasVariableExpression;
 
   const inputClasses = "cyber-input w-full";
 
   // Determine if this field should use a dynamic dropdown
   const isDynamicHost = name === 'host' && type === 'string';
+  const isDynamicTarget = name === 'target' && type === 'string';
   const isDynamicPort = name === 'port' && type === 'number';
   const isDynamicInterface = name === 'interface' && type === 'string';
 
@@ -731,6 +745,22 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
     if (blockType.includes('ftp')) return 'ftp';
     return undefined;
   };
+  
+  // Render mode toggle button for fields that support both dropdown and variable modes
+  const renderModeToggle = () => (
+    <button
+      type="button"
+      onClick={() => setUseVariableMode(!effectiveVariableMode)}
+      className={`ml-2 px-2 py-0.5 text-xs font-mono rounded transition-colors ${
+        effectiveVariableMode
+          ? 'bg-cyber-purple/30 text-cyber-purple border border-cyber-purple/50'
+          : 'bg-cyber-gray/20 text-cyber-gray-light border border-cyber-gray/30 hover:bg-cyber-purple/20 hover:text-cyber-purple'
+      }`}
+      title={effectiveVariableMode ? 'Switch to dropdown' : 'Switch to variable mode'}
+    >
+      {effectiveVariableMode ? '◇ VAR' : '{ }'}
+    </button>
+  );
 
   // Handle credential type with DynamicDropdown
   if (type === 'credential') {
@@ -759,21 +789,33 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
     );
   }
 
-  // Handle host field with DynamicDropdown (discovered IPs)
-  if (isDynamicHost) {
+  // Handle host field with DynamicDropdown (discovered IPs) or VariableInput
+  if (isDynamicHost || isDynamicTarget) {
     return (
       <div>
-        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
-          {label}
-          {required && <span className="text-cyber-red ml-1">*</span>}
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono flex items-center">
+          <span>
+            {label}
+            {required && <span className="text-cyber-red ml-1">*</span>}
+          </span>
+          {nodeId && renderModeToggle()}
         </label>
-        <DynamicDropdown
-          type="ip"
-          value={value ?? ''}
-          onChange={onChange}
-          placeholder={placeholder || 'Select or enter IP address...'}
-          allowCustom={true}
-        />
+        {effectiveVariableMode && nodeId ? (
+          <VariableInput
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder || 'e.g., {{ $prev.output.ip }} or {{ $loop.item }}'}
+            nodeId={nodeId}
+          />
+        ) : (
+          <DynamicDropdown
+            type="ip"
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder || 'Select or enter IP address...'}
+            allowCustom={true}
+          />
+        )}
         {description && (
           <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
         )}
@@ -781,23 +823,35 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
     );
   }
 
-  // Handle port field with DynamicDropdown (discovered ports)
+  // Handle port field with DynamicDropdown (discovered ports) or VariableInput
   if (isDynamicPort) {
     return (
       <div>
-        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
-          {label}
-          {required && <span className="text-cyber-red ml-1">*</span>}
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono flex items-center">
+          <span>
+            {label}
+            {required && <span className="text-cyber-red ml-1">*</span>}
+          </span>
+          {nodeId && renderModeToggle()}
         </label>
-        <DynamicDropdown
-          type="port"
-          value={value?.toString() ?? ''}
-          onChange={(val) => onChange(val ? Number(val) : undefined)}
-          placeholder={placeholder || 'Select or enter port...'}
-          hostFilter={allParams.host}  // Filter ports by selected host
-          serviceFilter={getServiceFilter()}
-          allowCustom={true}
-        />
+        {effectiveVariableMode && nodeId ? (
+          <VariableInput
+            value={value?.toString() ?? ''}
+            onChange={(val) => onChange(val.includes('{{') ? val : (val ? Number(val) : undefined))}
+            placeholder={placeholder || 'e.g., {{ $prev.output.port }}'}
+            nodeId={nodeId}
+          />
+        ) : (
+          <DynamicDropdown
+            type="port"
+            value={value?.toString() ?? ''}
+            onChange={(val) => onChange(val ? Number(val) : undefined)}
+            placeholder={placeholder || 'Select or enter port...'}
+            hostFilter={allParams.host}  // Filter ports by selected host
+            serviceFilter={getServiceFilter()}
+            allowCustom={true}
+          />
+        )}
         {description && (
           <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
         )}
@@ -805,21 +859,33 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
     );
   }
 
-  // Handle interface field with DynamicDropdown
+  // Handle interface field with DynamicDropdown or VariableInput
   if (isDynamicInterface) {
     return (
       <div>
-        <label className="block text-sm text-cyber-gray-light mb-1 font-mono">
-          {label}
-          {required && <span className="text-cyber-red ml-1">*</span>}
+        <label className="block text-sm text-cyber-gray-light mb-1 font-mono flex items-center">
+          <span>
+            {label}
+            {required && <span className="text-cyber-red ml-1">*</span>}
+          </span>
+          {nodeId && renderModeToggle()}
         </label>
-        <DynamicDropdown
-          type="interface"
-          value={value ?? ''}
-          onChange={onChange}
-          placeholder={placeholder || 'Select network interface...'}
-          allowCustom={true}
-        />
+        {effectiveVariableMode && nodeId ? (
+          <VariableInput
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder || 'e.g., {{ $prev.output.interface }}'}
+            nodeId={nodeId}
+          />
+        ) : (
+          <DynamicDropdown
+            type="interface"
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder || 'Select network interface...'}
+            allowCustom={true}
+          />
+        )}
         {description && (
           <p className="text-xs text-cyber-gray-light mt-1 font-mono">{description}</p>
         )}
@@ -848,13 +914,24 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
           ))}
         </select>
       ) : type === 'textarea' ? (
-        <textarea
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={3}
-          className={inputClasses + ' resize-none'}
-        />
+        nodeId ? (
+          <VariableInput
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder}
+            nodeId={nodeId}
+            multiline={true}
+            rows={3}
+          />
+        ) : (
+          <textarea
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={3}
+            className={inputClasses + ' resize-none'}
+          />
+        )
       ) : type === 'boolean' ? (
         <label className="flex items-center gap-2 cursor-pointer group">
           <input
@@ -882,6 +959,13 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={inputClasses}
+        />
+      ) : nodeId ? (
+        <VariableInput
+          value={value ?? ''}
+          onChange={onChange}
+          placeholder={placeholder}
+          nodeId={nodeId}
         />
       ) : (
         <input

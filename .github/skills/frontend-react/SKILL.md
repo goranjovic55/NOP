@@ -13,55 +13,100 @@ description: Load when editing .tsx, .jsx files or working in components/, pages
 - **websocket-realtime**: WebSocket client, reconnection, message handling
 
 ## ⚠️ Critical Gotchas
-- **401 errors:** Call `logout()` from authStore, don't show page-level error UI
-- **JSX comments:** Must use `{/* comment */}` not `//`
-- **Stale closures:** Add all deps to useEffect dependency array
-- **State persistence:** Use localStorage for settings that survive page refresh
-- **Zustand subscriptions:** Clean up selectors to avoid memory leaks
-- **Auth token key:** Use `localStorage.getItem('auth_token')` not `'token'`
-- **Async race condition:** Capture state with `{ ...localState }` BEFORE any `updateNode()` or async calls
-- **ConfigPanel save:** Must call `saveCurrentWorkflow()` after `updateNode()` to persist to backend
+
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| Auth | 401 errors | Call `logout()` from authStore, don't show page-level error |
+| JSX | Comment syntax error | Use `{/* comment */}` not `//` |
+| Hooks | Stale closures | Add all deps to useEffect dependency array |
+| State | Settings lost on refresh | Use localStorage for persistent settings |
+| Zustand | Memory leaks | Clean up selectors/subscriptions |
+| Auth | Wrong storage key | Use `localStorage.getItem('nop-auth')` not `'token'` |
+| Async | State stale in callback | Capture with `{ ...localState }` BEFORE async calls |
+| ConfigPanel | Save lost | Call `saveCurrentWorkflow()` after `updateNode()` |
 
 ## Rules
-- **Keys in lists:** Always `key={item.id}`
-- **Dependency arrays:** Include all deps
-- **Async in effects:** Never async callback directly
-- **State management:** Zustand for global, useState for local
+
+| Rule | Pattern |
+|------|---------|
+| Keys in lists | Always `key={item.id}` |
+| Dependency arrays | Include all dependencies |
+| Async in effects | Use wrapper function, never async callback |
+| State management | Zustand for global, useState for local |
+| Auth handling | Redirect on 401, don't show error page |
 
 ## Avoid
 
 | ❌ Bad | ✅ Good |
 |--------|---------|
-| Prop drilling | Context/Zustand |
-| `useEffect(async)` | Wrapper function |
+| Prop drilling | Context or Zustand |
+| `useEffect(async () => ...)` | Wrapper function inside |
 | Missing keys | `key={id}` |
 | Page-level 401 UI | `logout()` redirect |
+| `// comment` in JSX | `{/* comment */}` |
 
 ## Patterns
 
 ```tsx
-// Component + Zustand selector
+// Pattern 1: Component with Zustand selector
 const items = useStore((s) => s.items);
-const Card: FC<{item: Item}> = ({ item }) => <div key={item.id}>{item.name}</div>;
+const Card: FC<{item: Item}> = ({ item }) => (
+  <div key={item.id}>{item.name}</div>
+);
 
-// Store with persistence
-export const useStore = create<State>()(persist((set) => ({
-  items: [], addItem: (i) => set((s) => ({ items: [...s.items, i] }))
-}), { name: 'store' }));
+// Pattern 2: Store with persistence
+export const useStore = create<State>()(
+  persist(
+    (set) => ({
+      items: [],
+      addItem: (i) => set((s) => ({ items: [...s.items, i] }))
+    }),
+    { name: 'store-key' }
+  )
+);
 
-// Execution visualization in node component
+// Pattern 3: Async state capture (CRITICAL)
+const handleSave = async () => {
+  const capturedParams = { ...localParams };  // Capture BEFORE async
+  await updateNode(nodeId, { data: { ...node.data, ...capturedParams }});
+  await saveCurrentWorkflow();  // Persist to backend
+};
+
+// Pattern 4: Execution visualization in BlockNode
 const executionStatus = (data as any).executionStatus as NodeExecutionStatus;
 const borderColor = executionStatus ? statusColors[executionStatus] : categoryColor;
 const isExecuting = executionStatus === 'running';
 
-// Pass execution data via node.data
-updateNode(nodeId, { data: { ...node.data, executionStatus, executionOutput, executionDuration }});
+// Pattern 5: Auth-aware API call
+const fetchData = async () => {
+  try {
+    const response = await api.get('/resource');
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      logout();  // Redirect, don't show error
+      return;
+    }
+    throw error;
+  }
+};
 ```
 
 ## Execution Visualization
+
 | Status | Border Color | Effect |
 |--------|-------------|--------|
 | running | cyan | animate-pulse + glow |
 | completed | green | static glow |
 | failed | red | static glow |
 | pending | gray | default |
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Start dev | `cd frontend && npm start` |
+| Run tests | `cd frontend && npm test` |
+| Build | `cd frontend && npm run build` |
+| Type check | `cd frontend && npx tsc --noEmit` |
+| Lint | `cd frontend && npm run lint` |

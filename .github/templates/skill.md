@@ -5,29 +5,40 @@ description: {What the skill does AND when to use it. Be specific about capabili
 
 # {Skill Title}
 
+## Merged Skills
+{Optional: List consolidated capabilities if this skill combines multiple domains}
+- **{sub-skill}**: {What it covers}
+
 ## ⚠️ Critical Gotchas
-- **Gotcha 1:** {Most common mistake and how to avoid it}
-- **Gotcha 2:** {Second most common issue}
-- **Gotcha 3:** {Third common pitfall}
+
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| {Category} | {What goes wrong} | {How to fix} |
 
 ## Rules
-- **Rule 1:** {Most important rule}
-- **Rule 2:** {Second important rule}
+
+| Rule | Pattern |
+|------|---------|
+| {Rule name} | {How to apply it} |
 
 ## Avoid
 
 | ❌ Bad | ✅ Good |
-|--------|--------|
+|--------|---------|
 | {Anti-pattern} | {Correct approach} |
 
 ## Patterns
 
 ```{language}
-{code example - essential pattern only}
+# Pattern 1: {name}
+{code example}
+
+# Pattern 2: {name}
+{another example}
 ```
 
-## Common Errors
+## Commands
 
-| Error | Fix |
-|-------|-----|
-| {Error} | {How to fix} |
+| Task | Command |
+|------|---------|
+| {Common task} | `{command}` |

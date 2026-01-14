@@ -1,51 +1,83 @@
-# Planning Skill v7.1
+---
+name: planning
+description: Load for new features, design tasks, and architecture decisions. Provides structured workflow for UNDERSTAND → RESEARCH → DESIGN → HANDOFF phases.
+---
 
-> For new features, design tasks, and architecture
+# Planning
 
-## Triggers
-- "new feature", "implement", "add functionality"
-- "design", "architect", "plan"
+## Merged Skills
+- **requirements**: Clarifying scope, boundaries, acceptance criteria
+- **architecture**: High-level design decisions, component structure
 
 ## ⚠️ Critical Gotchas
-- **Blueprint before code:** NEVER implement without design doc
-- **Research first:** Check docs/ + codebase BEFORE external (saves tokens)
-- **Scope creep:** Define boundaries in blueprint, stick to them
-- **Complexity check:** Complex (6+ files) → MUST use planning
 
-## Workflow: UNDERSTAND → RESEARCH → DESIGN → HANDOFF
-
-| Phase | Action |
-|-------|--------|
-| UNDERSTAND | Clarify requirements, scope |
-| RESEARCH | Local first: docs/, codebase, then external |
-| DESIGN | Create blueprint in `.project/` |
-| HANDOFF | Transition to BUILD phase |
-
-## Research (Integrated)
-1. **Local first:** grep/search docs/ + codebase
-2. **External:** Industry standards only if needed
-3. **Synthesize:** Document findings for reuse
-4. **Time box:** <5 min per topic
-
-## Blueprint Template
-```markdown
-# Feature: {name}
-
-## Scope
-- Goal:
-- Files:
-- Dependencies:
-
-## Design
-- Approach:
-- Components:
-
-## Tasks
-1. [ ] Task 1
-2. [ ] Task 2
-```
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| Premature code | Implementing without design | Create blueprint FIRST in `.project/` |
+| External first | Searching web before local | Check docs/ + codebase BEFORE external |
+| Scope creep | Expanding beyond boundaries | Define scope in blueprint, stick to it |
+| Complexity | Underestimating 6+ file changes | Complex tasks MUST use planning phase |
+| Handoff | No clear transition to BUILD | End planning with task list + skill annotations |
 
 ## Rules
-- Create blueprint BEFORE implementing
-- Keep blueprints in `.project/`
-- Update blueprint as design evolves
+
+| Rule | Pattern |
+|------|---------|
+| Blueprint first | Create `.project/{feature}.md` before any code |
+| Local research | grep docs/ + codebase before external search |
+| Scope boundaries | Define what's IN and OUT in blueprint |
+| Task decomposition | Break into <3 file tasks where possible |
+| Skill annotation | Tag tasks with `[skill-name]` for BUILD phase |
+
+## Avoid
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| Start coding immediately | Create blueprint first |
+| Research externally first | Check local docs/ first |
+| Undefined scope | Explicit IN/OUT boundaries |
+| Monolithic tasks | Decomposed to <3 files each |
+| Untracked design changes | Update blueprint as design evolves |
+
+## Patterns
+
+```markdown
+# Blueprint: {Feature Name}
+
+## Scope
+- **Goal:** One sentence describing outcome
+- **IN:** What this feature includes
+- **OUT:** What this feature excludes
+- **Files:** Estimated file count and locations
+
+## Design
+- **Approach:** High-level solution strategy
+- **Components:** Key parts and their responsibilities
+- **Dependencies:** External services, libraries, other features
+
+## Tasks
+1. [ ] Task description [backend-api]
+2. [ ] Task description [frontend-react]
+3. [ ] Task description [testing]
+
+## Research Notes
+- {Finding 1}
+- {Finding 2}
+```
+
+## Workflow
+
+| Phase | Action | Output |
+|-------|--------|--------|
+| UNDERSTAND | Clarify requirements, ask questions | Clear scope statement |
+| RESEARCH | Local first, then external | Research notes in blueprint |
+| DESIGN | Create blueprint with approach | `.project/{feature}.md` |
+| HANDOFF | Transition to BUILD phase | Task list with skills |
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Create blueprint | `touch .project/{feature}.md` |
+| Find existing patterns | `grep -r "pattern" docs/ backend/ frontend/` |
+| Check similar features | `ls .project/` |

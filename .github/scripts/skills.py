@@ -198,7 +198,7 @@ EXISTING_SKILL_TRIGGERS = {
         'when_helpful': ['doc', 'readme', 'documentation', 'update docs'],
         'auto_chain': [],
     },
-    'akis-development': {
+    'akis-dev': {
         'file_patterns': [r'\.github/instructions/', r'\.github/skills/', r'copilot-instructions'],
         'patterns': ['akis', 'instruction', 'skill', 'copilot'],
         'when_helpful': ['instruction', 'skill', 'akis', 'copilot'],
@@ -517,7 +517,7 @@ def simulate_sessions(n: int, detection_accuracy: float = 0.96, with_planning_re
         elif session_type == 'docker_heavy':
             needed_skills = ['docker']
         elif session_type == 'framework':
-            needed_skills = ['akis-development']
+            needed_skills = ['akis-dev']
         elif session_type == 'docs_only':
             needed_skills = ['documentation']
         
@@ -907,7 +907,7 @@ def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
         'backend_only': {'backend-api': 0.96, 'debugging': 0.88},
         'fullstack': {'frontend-react': 0.94, 'backend-api': 0.94, 'debugging': 0.82},
         'docker_heavy': {'docker': 0.97, 'ci-cd': 0.85},
-        'framework': {'akis-development': 0.92, 'documentation': 0.88},
+        'framework': {'akis-dev': 0.92, 'documentation': 0.88},
         'docs_only': {'documentation': 0.98},
     }
     

@@ -3,7 +3,11 @@ name: debugging
 description: Load when encountering errors, tracebacks, or investigating bugs. Provides systematic debugging patterns and common gotchas from 131 workflow logs.
 ---
 
-# Debugging Skill
+# Debugging
+
+## Merged Skills
+- **error-analysis**: Reading tracebacks, identifying root cause
+- **gotcha-lookup**: Known issues from project history
 
 ## ⚠️ Critical Gotchas (from 131 logs)
 
@@ -34,24 +38,69 @@ description: Load when encountering errors, tracebacks, or investigating bugs. P
 | Undo/Redo | Deep state breaks | Use immutable update patterns |
 | Credentials | Params missing | Validate block config completeness |
 
+## Rules
+
+| Rule | Pattern |
+|------|---------|
+| Check gotchas first | 75% of issues are known - check table above |
+| Read full traceback | Don't stop at first error line |
+| Root cause focus | Fix cause, not symptoms |
+| Plan before fix | Understand problem before coding |
+| Verify fix works | Test that issue is actually resolved |
+| Document findings | Add new gotchas to workflow log |
+
+## Avoid
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| Fix symptoms | Find root cause |
+| Ignore traceback | Read entire error |
+| Skip gotcha check | Check known issues first |
+| Assume fix works | Verify with test |
+| Undocumented fix | Add to gotchas if new |
+
+## Patterns
+
+```python
+# Pattern 1: JSONB mutation fix (SQLAlchemy)
+from sqlalchemy.orm.attributes import flag_modified
+
+agent.agent_metadata['key'] = value
+flag_modified(agent, 'agent_metadata')  # CRITICAL
+await db.commit()
+
+# Pattern 2: Async state capture (React)
+const handleClick = async () => {
+  const capturedState = { ...localState };  // Capture BEFORE async
+  await updateNode(nodeId, capturedState);
+  await saveCurrentWorkflow();
+};
+```
+
+```tsx
+// Pattern 3: Error boundary wrapper
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <RiskyComponent />
+</ErrorBoundary>
+```
+
+```bash
+# Pattern 4: Container debugging
+docker compose logs -f backend --tail 100
+docker exec -it nop-backend bash
+docker compose down && docker compose up -d --build
+```
+
 ## Debug Protocol
 
-1. **CHECK gotchas table FIRST** (75% are known issues)
-2. READ full error/traceback
-3. ANALYZE root cause (not symptoms)
-4. PLAN fix before implementing
-5. VERIFY fix resolves issue
-6. DOCUMENT in workflow log
-
-## Common Patterns
-
-| Error Type | First Check |
-|------------|-------------|
-| 401/403 | Auth token, headers, expiry |
-| 307 redirect | Missing trailing slash |
-| Black screen | Error boundary, console errors |
-| State not updating | Immutable patterns, flag_modified |
-| Changes not visible | Container rebuild |
+| Step | Action |
+|------|--------|
+| 1 | **CHECK gotchas table** (75% are known) |
+| 2 | READ full error/traceback |
+| 3 | ANALYZE root cause (not symptoms) |
+| 4 | PLAN fix before implementing |
+| 5 | VERIFY fix resolves issue |
+| 6 | DOCUMENT in workflow log |
 
 ## Commands
 
@@ -59,5 +108,7 @@ description: Load when encountering errors, tracebacks, or investigating bugs. P
 |-------|---------|
 | Backend logs | `docker compose logs -f backend` |
 | Frontend logs | `docker compose logs -f frontend` |
-| Rebuild | `docker compose build --no-cache` |
+| Rebuild clean | `docker compose build --no-cache` |
 | Full reset | `docker compose down && docker compose up -d --build` |
+| Check processes | `docker compose ps` |
+| Enter container | `docker exec -it nop-backend bash` |
