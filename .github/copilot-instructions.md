@@ -55,7 +55,7 @@ head -100 project_knowledge.json  # Do this ONCE
 1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
 2. **Now you have:** hot_cache, domain_index (82 backend, 74 frontend), 30 gotchas, relations
 3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
-4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
+4. **Use `manage_todo_list` tool** → Create TODO with metadata (NOT text TODOs)
 
 ### ANNOUNCE Phase (⛔ REQUIRED - Do NOT skip)
 5. **Announce (MANDATORY):**
@@ -68,6 +68,21 @@ head -100 project_knowledge.json  # Do this ONCE
    ⚠️ **Do NOT proceed to WORK without this announcement**
 
 **TODO Format:** `○ Task description [skill-name]`
+
+**TODO Metadata (optional but recommended):**
+```python
+manage_todo_list(
+    action="add",
+    task="Implement feature X",
+    metadata={
+        "id": "uuid",            # Task ID for tracking
+        "assigned_to": "code",   # Agent for delegation
+        "skill": "backend-api",  # Required skill
+        "dependencies": [],      # Task IDs that must complete first
+        "parallel_group": "pg1"  # For parallel execution
+    }
+)
+```
 
 ⚠️ **G3 Enforcement:** LOAD + ANNOUNCE must complete before any file operations
 
@@ -125,13 +140,36 @@ head -100 project_knowledge.json  # Do this ONCE
 | Complex (6+) | **MANDATORY** | **MUST use runSubagent** |
 
 ### runSubagent Usage (⛔ REQUIRED)
-**When tasks ≥ 6, you MUST invoke `runSubagent` tool:**
-```
-runSubagent(
-  agentName: "code",
-  prompt: "Implement [specific task]. Context: [files]. Return: [expected output]",
-  description: "[3-5 word summary]"
+**When tasks ≥ 6, you MUST invoke `runSubagent` tool with delegation context:**
+```python
+# Mark task as delegated first
+manage_todo_list(
+    action="delegate",
+    task_id="abc-123",
+    metadata={"assigned_to": "code", "delegation_depth": 1}
 )
+
+# Pass delegation context to subagent
+runSubagent(
+    agentName="code",
+    prompt="""Implement [specific task].
+    
+    [DELEGATION_CONTEXT]
+    parent_task_id: abc-123
+    delegation_depth: 1
+    parent_agent: AKIS
+    skill_required: backend-api
+    """,
+    description="[3-5 word summary]"
+)
+
+# Subagent returns (expected format):
+{
+    "status": "success",
+    "result": "Implemented feature X",
+    "artifacts": ["file1.py", "file2.py"],
+    "tokens_used": 15000
+}
 ```
 
 | Agent | Triggers | Use For |
@@ -151,6 +189,24 @@ runSubagent(
 | Bug fix | debugger → code |
 | Docs | documentation (parallel with code) |
 | Infra | architect → devops → code |
+
+### Delegation Metadata Protocol
+**Context TO delegated agent:**
+| Field | Required | Description |
+|-------|----------|-------------|
+| parent_task_id | ✓ | UUID of parent task |
+| delegation_depth | ✓ | 0=root, increments per level |
+| parent_agent | | Agent that delegated |
+| skill_required | | Skill needed for task |
+| delegation_chain | | Full chain for traceability |
+
+**Result FROM delegated agent:**
+| Field | Required | Description |
+|-------|----------|-------------|
+| status | ✓ | success/failure/partial |
+| result | ✓ | What was accomplished |
+| artifacts | | Files created/modified |
+| tokens_used | | Token consumption |
 
 ## ⛔ Parallel (G7 - 60% Target)
 **Goal: 60%+ of complex sessions MUST use parallel delegation**
