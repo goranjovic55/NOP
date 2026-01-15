@@ -1,14 +1,15 @@
 /**
  * FlowTemplates - Predefined workflow templates for network operations
  * Production-ready templates for automation scenarios
- * Supports shift+click selection for copying content to clipboard
+ * Supports right-click selection for copying content to clipboard
+ * Smart layout optimization to prevent connection intersections
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { WorkflowNode, WorkflowEdge } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
 
-interface FlowTemplate {
+export interface FlowTemplate {
   id: string;
   name: string;
   description: string;
@@ -16,6 +17,7 @@ interface FlowTemplate {
   icon: string;
   nodes: Partial<WorkflowNode>[];
   edges: Partial<WorkflowEdge>[];
+  isUserTemplate?: boolean;  // Flag for user-created templates
 }
 
 // Production workflow templates
@@ -394,30 +396,184 @@ interface FlowTemplatesProps {
   isOpen: boolean;
   onClose: () => void;
   onInsertTemplate: (nodes: Partial<WorkflowNode>[], edges: Partial<WorkflowEdge>[]) => void;
+  onSaveAsTemplate?: (name: string, description: string, category: FlowTemplate['category']) => void;
+  canSaveTemplate?: boolean;
 }
 
-const FlowTemplates: React.FC<FlowTemplatesProps> = ({ isOpen, onClose, onInsertTemplate }) => {
+// Smart layout algorithm to optimize block positions and prevent connection intersections
+const optimizeTemplateLayout = (nodes: Partial<WorkflowNode>[], edges: Partial<WorkflowEdge>[]): Partial<WorkflowNode>[] => {
+  if (nodes.length === 0) return nodes;
+  
+  // Calculate node dependencies
+  const nodeIdToIndex = new Map<string, number>();
+  nodes.forEach((node, idx) => {
+    const nodeId = node.id || `${idx + 1}`;
+    nodeIdToIndex.set(nodeId, idx);
+  });
+  
+  // Build adjacency list for topological sort
+  const outgoing = new Map<number, number[]>();
+  const incoming = new Map<number, number[]>();
+  nodes.forEach((_, idx) => {
+    outgoing.set(idx, []);
+    incoming.set(idx, []);
+  });
+  
+  edges.forEach(edge => {
+    const srcIdx = nodeIdToIndex.get(edge.source || '');
+    const tgtIdx = nodeIdToIndex.get(edge.target || '');
+    if (srcIdx !== undefined && tgtIdx !== undefined) {
+      outgoing.get(srcIdx)?.push(tgtIdx);
+      incoming.get(tgtIdx)?.push(srcIdx);
+    }
+  });
+  
+  // Calculate levels using BFS (longest path for better layout)
+  const levels = new Map<number, number>();
+  const queue: number[] = [];
+  
+  // Find root nodes (no incoming edges)
+  nodes.forEach((_, idx) => {
+    if ((incoming.get(idx)?.length || 0) === 0) {
+      levels.set(idx, 0);
+      queue.push(idx);
+    }
+  });
+  
+  // BFS to assign levels
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const currentLevel = levels.get(current) || 0;
+    
+    outgoing.get(current)?.forEach(next => {
+      const existingLevel = levels.get(next);
+      const newLevel = currentLevel + 1;
+      if (existingLevel === undefined || newLevel > existingLevel) {
+        levels.set(next, newLevel);
+        queue.push(next);
+      }
+    });
+  }
+  
+  // Group nodes by level
+  const levelNodes = new Map<number, number[]>();
+  nodes.forEach((_, idx) => {
+    const level = levels.get(idx) || 0;
+    if (!levelNodes.has(level)) {
+      levelNodes.set(level, []);
+    }
+    levelNodes.get(level)!.push(idx);
+  });
+  
+  // Calculate positions with optimized spacing
+  const HORIZONTAL_SPACING = 250;  // Space between columns
+  const VERTICAL_SPACING = 140;    // Space between rows
+  const START_X = 100;
+  const START_Y = 50;
+  
+  const optimizedNodes = nodes.map((node, idx) => {
+    const level = levels.get(idx) || 0;
+    const nodesAtLevel = levelNodes.get(level) || [idx];
+    const positionInLevel = nodesAtLevel.indexOf(idx);
+    
+    // Center nodes vertically within their level
+    const totalHeight = (nodesAtLevel.length - 1) * VERTICAL_SPACING;
+    const startY = START_Y + (positionInLevel * VERTICAL_SPACING);
+    
+    return {
+      ...node,
+      position: {
+        x: START_X + (level * HORIZONTAL_SPACING),
+        y: startY,
+      },
+    };
+  });
+  
+  return optimizedNodes;
+};
+
+const FlowTemplates: React.FC<FlowTemplatesProps> = ({ 
+  isOpen, 
+  onClose, 
+  onInsertTemplate,
+  onSaveAsTemplate,
+  canSaveTemplate = false,
+}) => {
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<string>('all');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateDesc, setNewTemplateDesc] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState<FlowTemplate['category']>('utility');
+  const [userTemplates, setUserTemplates] = useState<FlowTemplate[]>([]);
 
-  // Handle template click with shift+select support
-  const handleTemplateClick = useCallback((template: FlowTemplate, e: React.MouseEvent) => {
-    if (e.shiftKey) {
-      // Shift+click: Toggle selection for copy
-      setSelectedTemplateIds(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(template.id)) {
-          newSet.delete(template.id);
-        } else {
-          newSet.add(template.id);
-        }
-        return newSet;
-      });
-    } else {
-      // Normal click: Insert template
-      onInsertTemplate(template.nodes, template.edges);
+  // Load user templates from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('nop-user-templates');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUserTemplates(parsed.map((t: FlowTemplate) => ({ ...t, isUserTemplate: true })));
+      }
+    } catch (e) {
+      console.error('Failed to load user templates:', e);
     }
+  }, []);
+
+  // Save user templates to localStorage
+  const saveUserTemplates = useCallback((templates: FlowTemplate[]) => {
+    try {
+      localStorage.setItem('nop-user-templates', JSON.stringify(templates));
+      setUserTemplates(templates);
+    } catch (e) {
+      console.error('Failed to save user templates:', e);
+    }
+  }, []);
+
+  // Delete a user template
+  const handleDeleteUserTemplate = useCallback((templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const updated = userTemplates.filter(t => t.id !== templateId);
+    saveUserTemplates(updated);
+  }, [userTemplates, saveUserTemplates]);
+
+  // All templates (built-in + user)
+  const allTemplates = useMemo(() => [...TEMPLATES, ...userTemplates], [userTemplates]);
+
+  // Handle template click - normal click inserts with optimized layout
+  const handleTemplateClick = useCallback((template: FlowTemplate, e: React.MouseEvent) => {
+    e.preventDefault();
+    // Optimize layout before inserting
+    const optimizedNodes = optimizeTemplateLayout(template.nodes, template.edges);
+    onInsertTemplate(optimizedNodes, template.edges);
   }, [onInsertTemplate]);
+
+  // Handle right-click for selection (copy to clipboard)
+  const handleTemplateRightClick = useCallback((template: FlowTemplate, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Toggle selection for copy
+    setSelectedTemplateIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(template.id)) {
+        newSet.delete(template.id);
+      } else {
+        newSet.add(template.id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Handle save as template
+  const handleSaveTemplate = useCallback(() => {
+    if (onSaveAsTemplate && newTemplateName.trim()) {
+      onSaveAsTemplate(newTemplateName.trim(), newTemplateDesc.trim(), newTemplateCategory);
+      setShowSaveDialog(false);
+      setNewTemplateName('');
+      setNewTemplateDesc('');
+    }
+  }, [onSaveAsTemplate, newTemplateName, newTemplateDesc, newTemplateCategory]);
 
   // Copy selected templates to clipboard
   const handleCopySelected = useCallback(async () => {
@@ -495,10 +651,64 @@ const FlowTemplates: React.FC<FlowTemplatesProps> = ({ isOpen, onClose, onInsert
         </div>
       )}
 
+      {/* Save as Template button */}
+      {canSaveTemplate && (
+        <div className="p-2 border-b border-cyber-gray">
+          <CyberButton 
+            variant="green" 
+            size="sm" 
+            onClick={() => setShowSaveDialog(true)}
+            className="w-full"
+          >
+            + SAVE CURRENT AS TEMPLATE
+          </CyberButton>
+        </div>
+      )}
+
+      {/* Save Template Dialog */}
+      {showSaveDialog && (
+        <div className="p-3 border-b border-cyber-gray bg-cyber-darker/80 space-y-2">
+          <input
+            type="text"
+            placeholder="Template name..."
+            value={newTemplateName}
+            onChange={(e) => setNewTemplateName(e.target.value)}
+            className="w-full px-2 py-1 bg-cyber-black border border-cyber-gray text-cyber-gray-light text-sm font-mono"
+            autoFocus
+          />
+          <textarea
+            placeholder="Description..."
+            value={newTemplateDesc}
+            onChange={(e) => setNewTemplateDesc(e.target.value)}
+            className="w-full px-2 py-1 bg-cyber-black border border-cyber-gray text-cyber-gray-light text-sm font-mono resize-none"
+            rows={2}
+          />
+          <select
+            value={newTemplateCategory}
+            onChange={(e) => setNewTemplateCategory(e.target.value as FlowTemplate['category'])}
+            className="w-full px-2 py-1 bg-cyber-black border border-cyber-gray text-cyber-gray-light text-sm font-mono"
+          >
+            <option value="scanning">Scanning</option>
+            <option value="access">Access</option>
+            <option value="traffic">Traffic</option>
+            <option value="agent">Agent</option>
+            <option value="utility">Utility</option>
+          </select>
+          <div className="flex gap-2">
+            <CyberButton variant="green" size="sm" onClick={handleSaveTemplate} className="flex-1">
+              SAVE
+            </CyberButton>
+            <CyberButton variant="gray" size="sm" onClick={() => setShowSaveDialog(false)} className="flex-1">
+              CANCEL
+            </CyberButton>
+          </div>
+        </div>
+      )}
+
       {/* Instructions */}
       <div className="px-3 py-2 bg-cyber-darker/50 text-cyber-gray-light text-xs">
         <span className="text-cyber-blue">Click</span> to insert • 
-        <span className="text-cyber-purple ml-1">Shift+Click</span> to select
+        <span className="text-cyber-purple ml-1">Right-click</span> to select
       </div>
 
       {/* Template list */}
@@ -507,6 +717,7 @@ const FlowTemplates: React.FC<FlowTemplatesProps> = ({ isOpen, onClose, onInsert
           <div
             key={template.id}
             onClick={(e) => handleTemplateClick(template, e)}
+            onContextMenu={(e) => handleTemplateRightClick(template, e)}
             className={`
               p-3 border cursor-pointer transition-all
               ${selectedTemplateIds.has(template.id)

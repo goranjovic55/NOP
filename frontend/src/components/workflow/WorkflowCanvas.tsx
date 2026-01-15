@@ -39,8 +39,9 @@ const cyberEdgeStyle = {
 const WorkflowCanvasInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  const [isRightClickSelecting, setIsRightClickSelecting] = useState(false);
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set());
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   
   const { 
     nodes, 
@@ -56,11 +57,9 @@ const WorkflowCanvasInner: React.FC = () => {
     execution, // Get execution state for node status highlighting
   } = useWorkflowStore();
 
-  // Handle keyboard events for Ctrl (selection mode) and Delete (remove nodes/edges)
+  // Handle keyboard events for Delete (remove nodes/edges)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Control') setIsCtrlPressed(true);
-      
       // Delete key - remove selected nodes and edges
       if (e.key === 'Delete' || e.key === 'Backspace') {
         // Don't delete if focus is on an input element
@@ -100,19 +99,11 @@ const WorkflowCanvasInner: React.FC = () => {
         }
       }
     };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Control') setIsCtrlPressed(false);
-    };
-    const handleBlur = () => setIsCtrlPressed(false);
     
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleBlur);
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleBlur);
     };
   }, [nodes, edges, selectedNodeId, selectedEdgeIds, removeNode, removeEdge, selectNode]);
 
@@ -267,6 +258,41 @@ const WorkflowCanvasInner: React.FC = () => {
     setSelectedEdgeIds(new Set()); // Clear edge selection too
   }, [selectNode]);
 
+  // Handle right-click on pane - start selection mode
+  const onPaneContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsRightClickSelecting(true);
+    setSelectionStart({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  // Handle right-click on node - toggle multi-select
+  const onNodeContextMenu = useCallback(
+    (e: React.MouseEvent, node: Node) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Toggle selection on right-click
+      const currentNodes = nodes;
+      const isCurrentlySelected = node.selected || node.id === selectedNodeId;
+      
+      if (isCurrentlySelected) {
+        // Deselect
+        setNodes(currentNodes.map(n => 
+          n.id === node.id ? { ...n, selected: false } : n
+        ) as WorkflowNode[]);
+        if (selectedNodeId === node.id) {
+          selectNode(null);
+        }
+      } else {
+        // Add to selection (multi-select)
+        setNodes(currentNodes.map(n => 
+          n.id === node.id ? { ...n, selected: true } : n
+        ) as WorkflowNode[]);
+        selectNode(node.id);
+      }
+    },
+    [nodes, selectedNodeId, setNodes, selectNode]
+  );
+
   const onNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       selectNode(node.id);
@@ -286,16 +312,18 @@ const WorkflowCanvasInner: React.FC = () => {
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
+        onPaneContextMenu={onPaneContextMenu}
         onNodeDoubleClick={onNodeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
         nodeTypes={nodeTypes}
         fitView
         snapToGrid
         snapGrid={[15, 15]}
-        selectionOnDrag={isCtrlPressed}
+        selectionOnDrag={isRightClickSelecting}
         selectionMode={SelectionMode.Partial}
-        panOnDrag={!isCtrlPressed}
-        zoomOnScroll={!isCtrlPressed}
-        panOnScroll={isCtrlPressed}
+        panOnDrag={true}
+        zoomOnScroll={true}
+        panOnScroll={false}
         deleteKeyCode={null}
         defaultEdgeOptions={{
           style: cyberEdgeStyle,
