@@ -2,7 +2,7 @@
 title: Analysis Reports
 type: index
 category: analysis
-last_updated: 2026-01-14
+last_updated: 2026-01-15
 ---
 
 # AKIS Analysis Reports
@@ -17,6 +17,7 @@ This directory contains periodic analysis reports for the AKIS (Agents, Knowledg
 | [V7 Framework Audit](AKIS_V7_FRAMEWORK_AUDIT.md) | Before/after comparison | Final |
 | [100k Simulation Results](SIMULATION_100K_RESULTS.md) | Simulation metrics | Final |
 | [Compliance Audit](AKIS_COMPLIANCE_AUDIT_100K.md) | Compliance metrics | Final |
+| [session.json Proposal](session_json_proposal_analysis.md) | ⛔ **NOT RECOMMENDED** (129:1 cost/benefit) | Final |
 
 ## Running Analysis
 
