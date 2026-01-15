@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import { Play, Pause, Square, AlertTriangle, CheckCircle, XCircle, Loader2, Clock, ChevronDown } from 'lucide-react';
 import { WorkflowExecution, ExecutionStatus } from '../../types/workflow';
 import { CyberButton } from '../CyberUI';
 import WorkflowExecutionTree from './WorkflowExecutionTree';
@@ -20,41 +19,41 @@ interface ExecutionOverlayProps {
   onReset?: () => void;  // Reset execution display on nodes
 }
 
-const statusConfig: Record<ExecutionStatus, { color: string; glowColor: string; icon: React.ReactNode; label: string }> = {
+const statusConfig: Record<ExecutionStatus, { color: string; glowColor: string; icon: string; label: string }> = {
   pending: { 
     color: 'text-cyber-gray-light', 
     glowColor: 'shadow-cyber-gray/30',
-    icon: <Clock className="w-5 h-5" />,
+    icon: '⌚',
     label: 'PENDING'
   },
   running: { 
     color: 'text-cyber-blue', 
     glowColor: 'shadow-cyber-blue/50',
-    icon: <Loader2 className="w-5 h-5 animate-spin" />,
+    icon: '◉',
     label: 'RUNNING'
   },
   paused: { 
     color: 'text-cyber-yellow', 
     glowColor: 'shadow-yellow-500/30',
-    icon: <Pause className="w-5 h-5" />,
+    icon: '⏸',
     label: 'PAUSED'
   },
   completed: { 
     color: 'text-cyber-green', 
     glowColor: 'shadow-cyber-green/50',
-    icon: <CheckCircle className="w-5 h-5" />,
+    icon: '✓',
     label: 'COMPLETED'
   },
   failed: { 
     color: 'text-cyber-red', 
     glowColor: 'shadow-cyber-red/50',
-    icon: <XCircle className="w-5 h-5" />,
+    icon: '✗',
     label: 'FAILED'
   },
   cancelled: { 
     color: 'text-cyber-gray', 
     glowColor: 'shadow-cyber-gray/30',
-    icon: <Square className="w-5 h-5" />,
+    icon: '■',
     label: 'CANCELLED'
   },
 };
@@ -107,7 +106,7 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
                 {config.label}
               </span>
               {execution && (
-                <div className="text-[10px] text-cyber-gray-light">
+               <div className="text-xs text-cyber-gray-light">
                   ID: {execution.id.slice(0, 8)}...
                 </div>
               )}
@@ -115,9 +114,9 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-cyber-gray hover:text-cyber-purple transition-colors p-1 hover:bg-cyber-purple/20 rounded"
+            className="text-cyber-gray hover:text-cyber-purple transition-colors p-1 hover:bg-cyber-purple/20 rounded text-lg"
           >
-            <XCircle className="w-5 h-5" />
+            ✕
           </button>
         </div>
 
@@ -172,14 +171,14 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
         {execution && (
           <div className="flex items-center gap-4 mb-4 p-2 bg-cyber-darker/80 rounded border border-cyber-gray/30">
             <div className="flex-1">
-              <div className="text-[10px] uppercase tracking-wider text-cyber-gray-light">Level</div>
+              <div className="text-xs uppercase tracking-wider text-cyber-gray-light">Level</div>
               <div className="text-cyber-purple font-bold">
                 {(execution.currentLevel ?? 0) + 1} <span className="text-cyber-gray-light font-normal">/ {execution.totalLevels ?? 1}</span>
               </div>
             </div>
             <div className="w-px h-8 bg-cyber-gray/30" />
             <div className="flex-1">
-              <div className="text-[10px] uppercase tracking-wider text-cyber-gray-light">Time</div>
+              <div className="text-xs uppercase tracking-wider text-cyber-gray-light">Time</div>
               <div className="text-cyber-blue font-bold">
                 {execution.startedAt 
                   ? `${Math.round((Date.now() - new Date(execution.startedAt).getTime()) / 1000)}s`
@@ -194,7 +193,7 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
         {execution?.errors && execution.errors.length > 0 && (
           <div className="mb-4 p-3 bg-cyber-red/10 border border-cyber-red/40 rounded">
             <div className="flex items-start gap-2 text-cyber-red text-xs">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="shrink-0 mt-0.5">⚠</span>
               <span className="font-mono">{execution.errors[0].message}</span>
             </div>
           </div>
@@ -210,9 +209,9 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
               <span className="text-xs uppercase tracking-wider text-cyber-purple font-bold">
                 Execution Tree
               </span>
-              <ChevronDown 
-                className={`w-4 h-4 text-cyber-purple transition-transform ${showExecutionTree ? 'rotate-180' : ''}`} 
-              />
+              <span className={`text-cyber-purple transition-transform text-sm ${showExecutionTree ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
             </button>
             
             {showExecutionTree && (
@@ -227,20 +226,17 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
         <div className="flex items-center justify-center gap-3 pt-2 border-t border-cyber-gray/30">
           {!isExecuting && status !== 'running' && (
             <CyberButton variant="purple" size="sm" onClick={onStart}>
-              <Play className="w-4 h-4 mr-1" />
-              RUN
+              ▶ RUN
             </CyberButton>
           )}
 
           {status === 'running' && (
             <>
               <CyberButton variant="gray" size="sm" onClick={onPause}>
-                <Pause className="w-4 h-4 mr-1" />
-                PAUSE
+                ⏸ PAUSE
               </CyberButton>
               <CyberButton variant="red" size="sm" onClick={onCancel}>
-                <Square className="w-4 h-4 mr-1" />
-                STOP
+                ■ STOP
               </CyberButton>
             </>
           )}
@@ -248,12 +244,10 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
           {status === 'paused' && (
             <>
               <CyberButton variant="green" size="sm" onClick={onResume}>
-                <Play className="w-4 h-4 mr-1" />
-                RESUME
+                ▶ RESUME
               </CyberButton>
               <CyberButton variant="red" size="sm" onClick={onCancel}>
-                <Square className="w-4 h-4 mr-1" />
-                STOP
+                ■ STOP
               </CyberButton>
             </>
           )}
@@ -261,8 +255,7 @@ const ExecutionOverlay: React.FC<ExecutionOverlayProps> = ({
           {(status === 'completed' || status === 'failed' || status === 'cancelled') && (
             <>
               <CyberButton variant="purple" size="sm" onClick={onStart}>
-                <Play className="w-4 h-4 mr-1" />
-                RUN AGAIN
+                ▶ RUN AGAIN
               </CyberButton>
               {onReset && (
                 <CyberButton 

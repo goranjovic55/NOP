@@ -50,7 +50,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
   // SAFETY: Ensure data exists and has required fields
   if (!data) {
     console.error('BlockNode: data is null/undefined');
-    return <div className="bg-red-500 p-2 text-white">ERROR: No data</div>;
+    return <div className="bg-cyber-red p-2 text-cyber-gray-light">ERROR: No data</div>;
   }
   
   // Ensure all values are strings/primitives - prevents React Error #185
@@ -129,13 +129,13 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
           }}
         >
           <span className="text-base">{(typeof data.icon === 'string' ? data.icon : '') || definition?.icon || '◈'}</span>
-          <span className="text-xs font-mono text-white truncate uppercase tracking-wide flex-1">
+          <span className="text-xs font-mono text-cyber-gray-light truncate uppercase tracking-wide flex-1">
             {safeLabel}
           </span>
           {/* Execution count badge */}
           {executionCount > 1 && (
             <span 
-              className="px-1.5 py-0.5 text-[10px] font-mono rounded"
+              className="px-1.5 py-0.5 text-xs font-mono rounded"
               style={{ 
                 backgroundColor: `${borderColor}30`,
                 color: borderColor,
@@ -256,7 +256,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
               {/* Output labels for multi-output blocks */}
               {outputCount > 1 && (
                 <div
-                  className="absolute text-[8px] font-mono uppercase pointer-events-none"
+                  className="absolute text-xs font-mono uppercase pointer-events-none"
                   style={{
                     right: '12px',
                     top: handleTop,
@@ -315,7 +315,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
             <span>{statusLabels[executionStatus!]}</span>
             <span className="ml-auto opacity-70">{formatDuration(executionDuration)}</span>
             {executionCount > 1 && (
-              <span className="px-1 py-0.5 bg-cyber-darker rounded text-[10px]">
+              <span className="px-1 py-0.5 bg-cyber-darker rounded text-xs">
                 ×{executionCount}
               </span>
             )}
@@ -326,7 +326,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
             {/* Input */}
             {executionInput !== undefined && (
               <div>
-                <div className="text-cyber-gray uppercase text-[10px] mb-1">INPUT</div>
+                <div className="text-cyber-gray uppercase text-xs mb-1">INPUT</div>
                 <div className="text-cyber-blue bg-cyber-darker p-1.5 rounded max-h-16 overflow-auto">
                   {typeof executionInput === 'string' 
                     ? executionInput.substring(0, 100) + (executionInput.length > 100 ? '...' : '')
@@ -338,7 +338,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
             {/* Output */}
             {executionOutput !== undefined && (
               <div>
-                <div className="text-cyber-gray uppercase text-[10px] mb-1">OUTPUT</div>
+                <div className="text-cyber-gray uppercase text-xs mb-1">OUTPUT</div>
                 <div 
                   className="p-1.5 rounded max-h-16 overflow-auto"
                   style={{ 
@@ -354,7 +354,7 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
             )}
 
             {/* Click hint */}
-            <div className="text-cyber-gray-light text-[10px] text-center pt-1 border-t border-cyber-gray/30">
+            <div className="text-cyber-gray-light text-xs text-center pt-1 border-t border-cyber-gray/30">
               Click block for full details
             </div>
           </div>
@@ -367,11 +367,11 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
           className="absolute left-full ml-3 top-0 z-[100] w-48 bg-cyber-black border border-cyber-gray rounded shadow-lg pointer-events-none p-2"
         >
           <div className="text-xs font-mono text-cyber-gray-light">
-            <div className="text-cyber-gray uppercase text-[10px] mb-1">BLOCK TYPE</div>
-            <div className="text-white mb-2">{safeType}</div>
+            <div className="text-cyber-gray uppercase text-xs mb-1">BLOCK TYPE</div>
+            <div className="text-cyber-gray-light mb-2">{safeType}</div>
             {Object.keys(data.parameters || {}).length > 0 && (
               <>
-                <div className="text-cyber-gray uppercase text-[10px] mb-1">PARAMETERS</div>
+                <div className="text-cyber-gray uppercase text-xs mb-1">PARAMETERS</div>
                 <div className="text-cyber-purple">{Object.keys(data.parameters || {}).length} configured</div>
               </>
             )}

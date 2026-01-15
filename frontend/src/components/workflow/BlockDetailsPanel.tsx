@@ -136,7 +136,7 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
               borderColor: `${statusColor}40`
             }}
           >
-            <div className="text-white font-mono text-sm font-bold mb-1">
+            <div className="text-cyber-gray-light font-mono text-sm font-bold mb-1">
               {selectedBlock.label}
             </div>
             <div className="text-cyber-gray text-xs font-mono">
@@ -163,7 +163,7 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
             {exec?.duration && (
               <div className="flex items-center justify-between mb-2">
                 <span className="text-cyber-gray text-xs font-mono uppercase">Duration</span>
-                <span className="text-white text-xs font-mono">
+                <span className="text-cyber-gray-light text-xs font-mono">
                   {formatDuration(exec.duration)}
                 </span>
               </div>
@@ -182,13 +182,13 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-cyber-gray text-xs font-mono uppercase">Pass/Fail</span>
                 <div className="flex gap-2">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                    exec.pass ? 'bg-green-900/50 text-green-400 border border-green-600' : 'bg-gray-800 text-gray-500'
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${
+                    exec.pass ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green/50' : 'bg-cyber-gray/20 text-cyber-gray border border-cyber-gray/30'
                   }`}>
                     PASS: {exec.pass ? '✓' : '-'}
                   </span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                    exec.fail ? 'bg-red-900/50 text-red-400 border border-red-600' : 'bg-gray-800 text-gray-500'
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${
+                    exec.fail ? 'bg-cyber-red/20 text-cyber-red border border-cyber-red/50' : 'bg-cyber-gray/20 text-cyber-gray border border-cyber-gray/30'
                   }`}>
                     FAIL: {exec.fail ? '✓' : '-'}
                   </span>
@@ -294,8 +294,8 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
                   <div 
                     className={`p-2 rounded text-xs font-mono ${
                       exec.interpretation.passed 
-                        ? 'bg-green-900/30 text-green-400 border border-green-600/50'
-                        : 'bg-red-900/30 text-red-400 border border-red-600/50'
+                        ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green/50'
+                        : 'bg-cyber-red/20 text-cyber-red border border-cyber-red/50'
                     }`}
                   >
                     {exec.interpretation.reason}
@@ -307,13 +307,13 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
                       key={idx}
                       className={`p-2 rounded text-xs font-mono ${
                         rule.passed 
-                          ? 'bg-cyber-darker text-green-400'
-                          : 'bg-cyber-darker text-red-400'
+                          ? 'bg-cyber-darker text-cyber-green'
+                          : 'bg-cyber-darker text-cyber-red'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>{rule.passed ? '✓' : '✗'}</span>
-                        <span className="text-cyber-gray uppercase text-[10px]">{rule.rule}</span>
+                        <span className="text-cyber-gray uppercase text-xs">{rule.rule}</span>
                       </div>
                       <div className="mt-1 text-cyber-gray-light">{rule.reason}</div>
                     </div>
@@ -339,7 +339,7 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
               </button>
               {expandedSections.has('error') && (
                 <div className="px-3 pb-3">
-                  <pre className="bg-red-900/20 border border-red-600/50 p-2 rounded text-xs text-red-400 font-mono whitespace-pre-wrap max-h-40 overflow-auto">
+                  <pre className="bg-cyber-red/10 border border-cyber-red/50 p-2 rounded text-xs text-cyber-red font-mono whitespace-pre-wrap max-h-40 overflow-auto">
                     {exec.error}
                   </pre>
                 </div>
@@ -366,7 +366,7 @@ const BlockDetailsPanel: React.FC<BlockDetailsPanelProps> = ({
                   {Object.entries(selectedBlock.parameters).map(([key, value]) => (
                     <div key={key} className="flex justify-between text-xs font-mono">
                       <span className="text-cyber-gray">{key}:</span>
-                      <span className="text-white truncate max-w-[150px]">
+                      <span className="text-cyber-gray-light truncate max-w-[150px]">
                         {typeof value === 'string' ? value : JSON.stringify(value)}
                       </span>
                     </div>
