@@ -1,3 +1,31 @@
+---
+session:
+  id: "2026-01-09_suggest_instructions_script"
+  date: "2026-01-09"
+  complexity: medium
+  domain: backend_only
+
+skills:
+  loaded: [backend-api, testing, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "unknown", type: md, domain: docs}
+  types: {md: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Add suggest_instructions.py Script | 2026-01-09 | ~15min
 
 ## Summary

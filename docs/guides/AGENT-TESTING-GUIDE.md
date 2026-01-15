@@ -1,6 +1,13 @@
-# 🧪 Agent Testing Guide
+---
+title: Agent Testing Guide
+type: guide
+category: testing
+last_updated: 2026-01-14
+---
 
-## ✅ Test Host Ready!
+# Agent Testing Guide
+
+## Test Host Ready!
 
 Container `nop-agent-test` is running and ready to test Python agents.
 

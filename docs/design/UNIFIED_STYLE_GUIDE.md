@@ -1,6 +1,11 @@
-# Unified Style Guide - NOP Frontend
+---
+title: Unified Style Guide
+type: reference
+category: design
+last_updated: 2026-01-14
+---
 
-**Last Updated:** 2026-01-02
+# Unified Style Guide - NOP Frontend
 
 ## Overview
 

@@ -228,6 +228,7 @@ const Topology: React.FC = () => {
     return saved ? parseInt(saved, 10) : 5000;
   });
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const fgRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -1150,6 +1151,11 @@ const Topology: React.FC = () => {
               ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
               ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
             
+            // Check if this link is hovered
+            const isHovered = hoveredLink && 
+              ((typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source) === start.id) &&
+              ((typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target) === end.id);
+            
             // Calculate curvature based on node IDs for consistent curves
             const curvature = calculateLinkCurvature(start.id, end.id);
             
@@ -1179,6 +1185,19 @@ const Topology: React.FC = () => {
             const offset = curvature * linkLength;
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
+            
+            // Draw subtle hover highlight (outer edge only, low intensity)
+            if (isHovered && !isSelected) {
+              ctx.beginPath();
+              ctx.moveTo(start.x, start.y);
+              ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
+              ctx.strokeStyle = 'rgba(100, 200, 255, 0.4)'; // Faint cyan glow
+              ctx.lineWidth = width + 4;
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
             
             // Draw selection glow first (behind the curve) - green glow to match asset highlighting
             if (isSelected) {
@@ -1281,8 +1300,7 @@ const Topology: React.FC = () => {
             setHoveredNode(node || null);
           }}
           onLinkHover={(link: any) => {
-            // Only change cursor on link hover - no visual highlighting
-            // Details box shows on click via ConnectionContextMenu
+            setHoveredLink(link || null);
             document.body.style.cursor = link ? 'pointer' : 'default';
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {

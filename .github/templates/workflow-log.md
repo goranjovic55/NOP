@@ -1,57 +1,71 @@
-````markdown
-# {TASK_NAME} | {YYYY-MM-DD} | ~{N}min | {complexity}
+---
+session:
+  id: "{YYYY-MM-DD}_{task_name}"
+  date: "{YYYY-MM-DD}"
+  complexity: medium  # simple | medium | complex
+  domain: fullstack   # frontend_only | backend_only | fullstack | docker_heavy
 
-## Metrics
-| Tasks | Files | Skills | Delegations | Scripts |
-|-------|-------|--------|-------------|---------|
-| {done}/{total} | {N} modified | {N} loaded | {N} agents | knowledge✓ skills✓ docs✓ |
+skills:
+  loaded: [{skill1}, {skill2}]
+  suggested: []
 
-## Worktree
-```
-<MAIN> ✓ {Original request}
-├─ <WORK> ✓ {Task 1}
-├─ <DELEGATE> ✓ → {agent-name}: {task description}
-├─ <WORK> ✓ {Task 2}
-└─ <END> ✓ Review and commit
-```
+files:
+  modified:
+    - {path: "path/to/file.tsx", type: tsx, domain: frontend}
+    - {path: "path/to/file.py", type: py, domain: backend}
+  types: {tsx: 1, py: 1}
+
+agents:
+  delegated: []  # or [{name: code, task: "desc", result: success}]
+
+commands:
+  - {cmd: "docker-compose up -d", domain: docker, success: true}
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes:
+  - problem: "Description of problem"
+    solution: "How it was fixed"
+    skill: debugging
+
+gotchas:
+  - pattern: "Pattern that caused issue"
+    warning: "What can go wrong"
+    solution: "How to avoid/fix"
+    applies_to: [skill-name]
+---
+
+# Session Log: {TASK_NAME}
+
+**Date:** {YYYY-MM-DD}
+**Duration:** ~{N} min
+**Complexity:** {simple|medium|complex}
 
 ## Summary
 {Brief description of what was accomplished - 2-3 sentences max}
 
-## Changes
-| File | Change |
-|------|--------|
-| `path/file.ext` | Created/Modified - brief description |
+## Tasks Completed
+- ✓ {Task 1}
+- ✓ {Task 2}
+- ✓ {Task 3}
 
-## Script Output
-```
-knowledge.py: {N} entities updated
-skills.py: {N} existing, {N} candidates ({list})
-instructions.py: {N} patterns, {N} gaps
-cleanup.py: {N} items cleaned
-docs.py: {N} updates needed
-```
+## Files Modified
+| File | Changes |
+|------|---------|
+| `path/file.ext` | Brief description |
 
-## Skills Used
-- `{skill1}` → file1.py, file2.py
-- `{skill2}` → Dockerfile
-
-## Delegations
-{Omit if none}
-| Agent | Task | Result |
-|-------|------|--------|
-| `{agent-name}` | {delegated task} | {outcome} |
-
-## Skill Suggestions
-{From skills.py --suggest or "None"}
-
-## Problems & Solutions
-{Omit if none}
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| {what} | {why} | {fix} |
+## Script Results
+| Script | Output |
+|--------|--------|
+| knowledge.py | X entities merged |
+| skills.py | X suggestions |
+| docs.py | X suggestions |
+| agents.py | X suggestions |
+| instructions.py | X suggestions |
 
 ## Verification
-{Commands/tests run to verify}
-
-````
+- ✓ Syntax check passed
+- ✓ Build successful
+- ✓ Tests passed

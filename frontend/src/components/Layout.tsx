@@ -35,10 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '▣', symbol: '◉' },
     { name: 'Assets', href: '/assets', icon: '⬢', symbol: '◈' },
-    { name: 'Topology', href: '/topology', icon: '◎', symbol: '⬟' },
+    { name: 'Topology', href: '/topology', icon: '◎', symbol: '⟐' },
     { name: 'Traffic', href: '/traffic', icon: '≋', symbol: '⟐' },
     { name: 'Scans', href: '/scans', icon: '◈', symbol: '⬢' },
     { name: 'ACCESS', href: '/access', icon: '⬡', symbol: '◉' },
+    { name: 'Flows', href: '/flows', icon: '◇', symbol: '◆' },
     { name: 'Agents', href: '/agents', icon: '◆', symbol: '◇' },
     { name: 'Host', href: '/host', icon: '◐', symbol: '⎔' },
     { name: 'Settings', href: '/settings', icon: '⚙', symbol: '⬢' },

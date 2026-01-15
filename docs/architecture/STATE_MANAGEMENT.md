@@ -1,6 +1,12 @@
-# State Management
+---
+title: State Management
+type: reference
+category: architecture
+auto_generated: true
+last_updated: 2026-01-14
+---
 
-**Category**: architecture | **Auto-generated**: yes
+# State Management
 
 ## Overview
 
@@ -52,4 +58,41 @@ The application uses Zustand for state management.
 
 ### discoveryStore
 **File**: `frontend/src/store/discoveryStore.ts` | **Updated**: 2026-01-09
+
+
+### workflowStore
+**File**: `frontend/src/store/workflowStore.ts` | **Updated**: 2026-01-11
+
+| State | Type | Description |
+|-------|------|-------------|
+| `workflows` | `Workflow[]` | List of all workflows/flows |
+| `currentWorkflowId` | `string \| null` | Currently selected workflow ID |
+| `nodes` | `Node[]` | React Flow nodes for current workflow |
+| `edges` | `Edge[]` | React Flow edges for current workflow |
+| `selectedNodes` | `string[]` | Currently selected node IDs |
+| `selectedEdges` | `string[]` | Currently selected edge IDs |
+
+| Action | Description |
+|--------|-------------|
+| `setCurrentWorkflow(id)` | Switch to different workflow |
+| `addNode(node)` | Add new block to canvas |
+| `updateNode(id, changes)` | Update existing node |
+| `addEdge(edge)` | Connect two nodes |
+| `setSelectedNodes(ids)` | Update node selection |
+| `setSelectedEdges(ids)` | Update edge selection |
+| `saveWorkflow()` | Persist current workflow to backend |
+| `loadWorkflows()` | Fetch all workflows from API |
+| `updateNode(id, data)` | Update node data including execution state |
+
+**Features:** Multi-select with Shift+click, edge selection styling, persistent storage via API.
+
+**Execution Tracking (via WorkflowBuilder):**
+| State | Type | Description |
+|-------|------|-------------|
+| `nodeExecutionData` | `Record<string, ExecutionData>` | Per-node execution input/output/status/count |
+
+| Callback | Description |
+|----------|-------------|
+| `onNodeStatusChange(nodeId, status, result)` | Updates node.data with execution status and result |
+| `clearNodeExecutionStates()` | Reset all execution display states |
 

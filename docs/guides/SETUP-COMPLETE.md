@@ -1,6 +1,13 @@
+---
+title: Test Environment Setup
+type: guide
+category: setup
+last_updated: 2026-01-14
+---
+
 # Agent Test Environment - Summary
 
-## ✅ What's Been Set Up
+## What's Been Set Up
 
 ### 1. Test Host Container
 - **Name**: `nop-agent-test`

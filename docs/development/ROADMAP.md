@@ -1,5 +1,14 @@
+---
+title: Development Roadmap
+type: explanation
+category: development
+version: "1.0"
+last_updated: 2026-01-14
+---
+
 # Network Observatory Platform - Development Roadmap
-## Phased Implementation Plan v1.0
+
+> Phased Implementation Plan v1.0
 
 ---
 

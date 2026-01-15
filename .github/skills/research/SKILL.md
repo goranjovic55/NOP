@@ -1,66 +1,94 @@
-# Research Skill v7.1
+---
+name: research
+description: Load for investigating standards, comparing approaches, or gathering best practices. Provides GATHER → ANALYZE → SYNTHESIZE workflow with local-first strategy.
+---
 
-> Gather industry/community standards before design
+# Research
 
-## Triggers
-- "research", "investigate", "compare", "best practice"
-- Auto-chain from planning skill (RESEARCH phase)
-- External standards needed
+## Merged Skills
+- **standards**: Industry best practices, conventions
+- **comparison**: Evaluating alternatives, trade-offs
 
 ## ⚠️ Critical Gotchas
-- **Local first:** Always check docs/ + codebase BEFORE external (saves tokens)
-- **Time box:** Keep research <5 min per topic
-- **Cache findings:** Update project_knowledge.json with discoveries
-- **Cite sources:** Document where standards came from
 
-## Sources (Priority Order)
-1. **Local docs/** - Project documentation
-2. **Codebase** - Existing patterns, implementations
-3. **External** - Industry standards, community practices
-
-## Workflow: GATHER→ANALYZE→SYNTHESIZE
-
-### 1. GATHER
-```
-Local:  grep/semantic_search docs/ + codebase
-External: fetch industry patterns, community standards
-```
-
-### 2. ANALYZE
-| Source | Check |
-|--------|-------|
-| Local | Existing patterns, conventions |
-| Industry | Standards (REST, OAuth, WCAG) |
-| Community | Best practices, common pitfalls |
-
-### 3. SYNTHESIZE
-Return to caller with:
-- Applicable standards
-- Recommended patterns
-- Gotchas to avoid
-
-## Research Template
-```markdown
-## Research: {topic}
-
-### Local Patterns
-- Found:
-- Gaps:
-
-### Industry Standards
-- Applicable:
-- Compliance:
-
-### Community Practices
-- Recommended:
-- Avoid:
-
-### Recommendation
--
-```
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| External first | Searching web before local | Check docs/ + codebase FIRST (saves 80% tokens) |
+| Time sink | Research taking >5 min per topic | Time box strictly, move on with best available |
+| Lost findings | Research not documented | Cache findings in blueprint or knowledge |
+| No sources | Recommendations without citations | Always document where standards came from |
+| Over-research | Researching solved problems | Check if pattern exists in codebase first |
 
 ## Rules
-- Check local FIRST (saves tokens)
-- Document findings for reuse
-- Update project_knowledge.json with discoveries
-- Keep research <5 min per topic
+
+| Rule | Pattern |
+|------|---------|
+| Local first | grep docs/ + codebase before any external search |
+| Time box | Keep research <5 min per topic |
+| Cache findings | Document in blueprint or update knowledge file |
+| Cite sources | Note where standards/patterns came from |
+| Synthesize | Return actionable recommendation, not just data |
+
+## Avoid
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| Search web first | grep local docs first |
+| Open-ended research | Time-boxed to 5 min |
+| Undocumented findings | Cached in blueprint |
+| Raw data dump | Synthesized recommendation |
+| Re-researching | Check knowledge cache first |
+
+## Patterns
+
+```markdown
+# Research Output Format
+
+## Research: {Topic}
+
+### Local Findings
+- Pattern found in: `backend/app/services/example.py`
+- Existing implementation: {description}
+
+### Standards (if external needed)
+- Source: {URL or reference}
+- Key points: {summary}
+
+### Recommendation
+- **Action:** {what to do}
+- **Rationale:** {why this approach}
+- **Trade-offs:** {what we're giving up}
+```
+
+```bash
+# Local research commands
+grep -r "pattern" docs/
+grep -r "similar_feature" backend/ frontend/
+cat docs/technical/relevant.md
+```
+
+## Sources (Priority Order)
+
+| Priority | Source | When to Use |
+|----------|--------|-------------|
+| 1 | Project docs/ | Always check first |
+| 2 | Codebase patterns | Existing implementations |
+| 3 | project_knowledge.json | Cached gotchas, patterns |
+| 4 | External standards | Only if local insufficient |
+
+## Workflow
+
+| Phase | Action | Output |
+|-------|--------|--------|
+| GATHER | grep local, then external if needed | Raw findings |
+| ANALYZE | Compare patterns, check standards | Evaluated options |
+| SYNTHESIZE | Return recommendation + rationale | Actionable advice |
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Search docs | `grep -r "topic" docs/` |
+| Find patterns | `grep -r "pattern" backend/ frontend/` |
+| Check knowledge | `head -100 project_knowledge.json` |
+| Search gotchas | `grep "error_pattern" project_knowledge.json` |

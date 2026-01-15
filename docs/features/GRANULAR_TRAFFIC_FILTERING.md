@@ -1,3 +1,10 @@
+---
+title: Granular Traffic Filtering
+type: explanation
+category: concepts
+last_updated: 2026-01-14
+---
+
 # Granular Traffic Filtering
 
 Advanced filtering controls for passive network discovery.

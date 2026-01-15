@@ -1,0 +1,178 @@
+# E2E Test Environment for NOP Workflow Scenarios
+# 
+# This docker-compose file creates test hosts for all 10 automation scenarios:
+# 1. Asset Discovery & Inventory
+# 2. Vulnerability Assessment Chain
+# 3. Credential Validation Sweep
+# 4. SSH Command Execution Campaign
+# 5. Network Traffic Analysis
+# 6. Exploit Discovery & Mapping
+# 7. FTP File Operations
+# 8. Multi-Host Ping Health Check
+# 9. Agent Deployment Chain
+# 10. Traffic Storm Testing
+#
+# Usage:
+#   docker compose -f docker/test-environment/docker-compose.e2e.yml up -d
+#
+# Test Credentials:
+#   SSH Server: root:toor OR testuser:test123
+#   FTP Server: ftpuser:ftp123
+#   Vuln Server: root:vuln123
+
+services:
+  # ==========================================================================
+  # SSH Target - For scenarios 3, 4, 9
+  # Testing: SSH Test, SSH Execute, Agent Deploy
+  # ==========================================================================
+  ssh-target:
+    build:
+      context: ./ssh-server
+      dockerfile: Dockerfile
+    container_name: nop-e2e-ssh
+    hostname: ssh-target
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.100
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=3,4,9"
+
+  # ==========================================================================
+  # FTP Target - For scenario 7
+  # Testing: FTP Test, FTP List, FTP Download, FTP Upload
+  # ==========================================================================
+  ftp-target:
+    build:
+      context: ./ftp-server
+      dockerfile: Dockerfile
+    container_name: nop-e2e-ftp
+    hostname: ftp-target
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.105
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=7"
+
+  # ==========================================================================
+  # Vulnerability Server - For scenarios 2, 6
+  # Testing: Version Detection, CVE Lookup, Exploit Discovery
+  # Services: HTTP (Apache 2.4.49), MySQL (5.7.31), SSH
+  # ==========================================================================
+  vuln-target:
+    build:
+      context: ./vuln-server
+      dockerfile: Dockerfile
+    container_name: nop-e2e-vuln
+    hostname: vuln-target
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.106
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=2,6"
+
+  # ==========================================================================
+  # Web Server - For scenarios 1, 5, 8
+  # Testing: Asset Discovery, Traffic Capture, Ping Checks
+  # ==========================================================================
+  web-target:
+    image: nginx:alpine
+    container_name: nop-e2e-web
+    hostname: web-target
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.101
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=1,5,8"
+
+  # ==========================================================================
+  # Traffic Generator Client 1 - For scenarios 5, 10
+  # Generates traffic for capture and analysis
+  # ==========================================================================
+  traffic-client-1:
+    image: alpine:3.19
+    container_name: nop-e2e-traffic1
+    hostname: traffic-client-1
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.102
+    command: |
+      sh -c "apk add --no-cache curl && while true; do
+        curl -s http://172.29.0.101 > /dev/null
+        ping -c 2 172.29.0.100 > /dev/null
+        ping -c 2 172.29.0.101 > /dev/null
+        sleep 5
+      done"
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=5,10"
+
+  # ==========================================================================
+  # Traffic Generator Client 2 - For scenarios 5, 10
+  # Different traffic pattern for diversity
+  # ==========================================================================
+  traffic-client-2:
+    image: alpine:3.19
+    container_name: nop-e2e-traffic2
+    hostname: traffic-client-2
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.103
+    command: |
+      sh -c "apk add --no-cache curl netcat-openbsd && while true; do
+        curl -s http://172.29.0.101 > /dev/null
+        nc -zv 172.29.0.100 22 2>&1 > /dev/null
+        nc -zv 172.29.0.105 21 2>&1 > /dev/null
+        ping -c 1 172.29.0.102 > /dev/null
+        sleep 7
+      done"
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=5,10"
+
+  # ==========================================================================
+  # Additional Host 1 - For scenarios 1, 8
+  # Extra host for discovery and ping sweeps
+  # ==========================================================================
+  extra-host-1:
+    image: alpine:3.19
+    container_name: nop-e2e-host1
+    hostname: extra-host-1
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.107
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=1,8"
+
+  # ==========================================================================
+  # Additional Host 2 - For scenarios 1, 8
+  # Extra host for discovery and ping sweeps
+  # ==========================================================================
+  extra-host-2:
+    image: alpine:3.19
+    container_name: nop-e2e-host2
+    hostname: extra-host-2
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.108
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    labels:
+      - "nop.test=e2e"
+      - "nop.scenarios=1,8"
+
+networks:
+  docker_nop-internal:
+    external: true

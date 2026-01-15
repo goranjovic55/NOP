@@ -73,6 +73,28 @@ class FTPUploadRequest(BaseModel):
     path: str = Field(..., description="File path")
     content: str = Field(..., description="File content (base64 encoded if binary)")
     is_binary: bool = Field(default=False, description="Is binary content")
+
+class VNCConnectionTest(BaseModel):
+    """VNC connection test request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=5900, description="VNC port")
+    password: Optional[str] = Field(default=None, description="VNC password")
+
+class FTPConnectionTest(BaseModel):
+    """FTP connection test request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    port: int = Field(default=21, description="FTP port")
+    username: Optional[str] = Field(default="anonymous", description="FTP username")
+    password: Optional[str] = Field(default="", description="FTP password")
+    protocol: str = Field(default="ftp", description="Protocol: ftp, sftp, ftps")
+
+class SystemInfoRequest(BaseModel):
+    """System info request"""
+    host: str = Field(..., description="Target host IP or hostname")
+    username: str = Field(..., description="SSH username")
+    password: Optional[str] = Field(default=None, description="SSH password")
+    infoType: str = Field(default="all", description="Type of info to retrieve")
+
 @router.get("/status")
 async def get_access_hub_status():
     """Get access hub status"""
@@ -145,6 +167,75 @@ async def test_rdp_connection(request: RDPConnectionRequest):
                 "username": request.username,
                 "message": "RDP port is open and reachable"
             }
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test/vnc")
+async def test_vnc_connection(request: VNCConnectionTest):
+    """Test VNC connection to a remote host"""
+    try:
+        # Use TCP check to VNC port
+        result = await access_hub.test_tcp_connection(
+            host=request.host,
+            port=request.port,
+            timeout=5
+        )
+        if result["success"]:
+            return {
+                "success": True,
+                "host": request.host,
+                "port": request.port,
+                "message": "VNC port is open and reachable"
+            }
+        return {
+            "success": False,
+            "host": request.host,
+            "port": request.port,
+            "message": "VNC port is not reachable"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test/ftp")
+async def test_ftp_connection(request: FTPConnectionTest):
+    """Test FTP connection to a remote host"""
+    try:
+        # Use TCP check to FTP port
+        result = await access_hub.test_tcp_connection(
+            host=request.host,
+            port=request.port,
+            timeout=5
+        )
+        if result["success"]:
+            return {
+                "success": True,
+                "host": request.host,
+                "port": request.port,
+                "protocol": request.protocol,
+                "message": f"{request.protocol.upper()} port is open and reachable"
+            }
+        return {
+            "success": False,
+            "host": request.host,
+            "port": request.port,
+            "protocol": request.protocol,
+            "message": f"{request.protocol.upper()} port is not reachable"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/system-info")
+async def get_system_info_endpoint(request: SystemInfoRequest):
+    """Get system information via SSH - alias for /info/system"""
+    try:
+        result = await access_hub.get_system_info_ssh(
+            host=request.host,
+            port=22,
+            username=request.username,
+            password=request.password,
+            key_file=None
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

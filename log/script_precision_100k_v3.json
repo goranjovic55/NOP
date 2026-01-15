@@ -1,0 +1,121 @@
+{
+  "simulation": {
+    "total_sessions": 100000,
+    "session_distribution": {
+      "backend_only": 10099,
+      "fullstack": 39881,
+      "frontend_only": 24126,
+      "framework": 9948,
+      "docker_heavy": 10076,
+      "docs_only": 5870
+    },
+    "timestamp": "2026-01-14T01:09:58.338400"
+  },
+  "metrics": {
+    "skills": {
+      "name": "skills.py",
+      "true_positives": 168687,
+      "false_positives": 9882,
+      "true_negatives": 895104,
+      "false_negatives": 26327,
+      "precision": 94.47,
+      "recall": 86.5,
+      "f1_score": 90.31,
+      "accuracy": 96.71,
+      "dynamic_loads": 11,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "instructions": {
+      "name": "instructions.py",
+      "true_positives": 234011,
+      "false_positives": 0,
+      "true_negatives": 365989,
+      "false_negatives": 0,
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1_score": 100.0,
+      "accuracy": 100.0,
+      "dynamic_loads": 6,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "agents": {
+      "name": "agents.py",
+      "true_positives": 159560,
+      "false_positives": 0,
+      "true_negatives": 592627,
+      "false_negatives": 47813,
+      "precision": 100.0,
+      "recall": 76.94,
+      "f1_score": 86.97,
+      "accuracy": 94.02,
+      "dynamic_loads": 8,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    },
+    "docs": {
+      "name": "docs.py",
+      "true_positives": 188260,
+      "false_positives": 41896,
+      "true_negatives": 399816,
+      "false_negatives": 0,
+      "precision": 81.8,
+      "recall": 100.0,
+      "f1_score": 89.99,
+      "accuracy": 93.35,
+      "dynamic_loads": 7,
+      "fallback_loads": 0,
+      "dynamic_ratio": 100.0,
+      "errors": 0
+    }
+  },
+  "calibration": {
+    "skills": {
+      "script": "skills.py",
+      "current_precision": 94.47,
+      "current_recall": 86.5,
+      "target_precision": 95.0,
+      "suggestions": [
+        "Reduce false positives (current FP rate: 5.5%)",
+        "Consider stricter trigger matching",
+        "Add context validation before detection",
+        "Reduce false negatives (current FN rate: 13.5%)",
+        "Consider additional trigger patterns",
+        "Add fallback detection heuristics"
+      ]
+    },
+    "instructions": {
+      "script": "instructions.py",
+      "current_precision": 100.0,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": []
+    },
+    "agents": {
+      "script": "agents.py",
+      "current_precision": 100.0,
+      "current_recall": 76.94,
+      "target_precision": 95.0,
+      "suggestions": [
+        "Reduce false negatives (current FN rate: 23.1%)",
+        "Consider additional trigger patterns",
+        "Add fallback detection heuristics"
+      ]
+    },
+    "docs": {
+      "script": "docs.py",
+      "current_precision": 81.8,
+      "current_recall": 100.0,
+      "target_precision": 95.0,
+      "suggestions": [
+        "Reduce false positives (current FP rate: 18.2%)",
+        "Consider stricter trigger matching",
+        "Add context validation before detection"
+      ]
+    }
+  }
+}

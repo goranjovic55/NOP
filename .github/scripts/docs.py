@@ -58,6 +58,182 @@ from pathlib import Path
 from datetime import datetime
 
 # ============================================================================
+# Workflow Log Parser (Standalone - No External Dependencies)
+# ============================================================================
+
+def parse_yaml_frontmatter(content: str) -> Dict[str, Any]:
+    """Parse YAML front matter from workflow log. Standalone implementation."""
+    if not content.startswith('---'):
+        return {}
+    
+    try:
+        end_idx = content.find('\n---', 3)
+        if end_idx == -1:
+            return {}
+        
+        yaml_text = content[4:end_idx].strip()
+        result = {}
+        current_section = None
+        current_list = None
+        indent_stack = [(0, result)]
+        
+        for line in yaml_text.split('\n'):
+            if not line.strip() or line.strip().startswith('#'):
+                continue
+            
+            # Calculate indent level
+            indent = len(line) - len(line.lstrip())
+            line = line.strip()
+            
+            # Handle list items
+            if line.startswith('- '):
+                item_content = line[2:].strip()
+                # Check if it's a dict item like "- {path: ..., type: ...}"
+                if item_content.startswith('{') and item_content.endswith('}'):
+                    item_dict = {}
+                    for pair in item_content[1:-1].split(', '):
+                        if ':' in pair:
+                            k, v = pair.split(':', 1)
+                            item_dict[k.strip()] = v.strip()
+                    if current_list is not None:
+                        current_list.append(item_dict)
+                else:
+                    if current_list is not None:
+                        current_list.append(item_content)
+                continue
+            
+            # Handle key: value
+            if ':' in line:
+                key, _, value = line.partition(':')
+                key = key.strip()
+                value = value.strip()
+                
+                # Pop stack to correct level
+                while indent_stack and indent <= indent_stack[-1][0] and len(indent_stack) > 1:
+                    indent_stack.pop()
+                
+                target = indent_stack[-1][1]
+                
+                if value == '':
+                    # Start of nested section or list
+                    new_dict = {}
+                    target[key] = new_dict
+                    indent_stack.append((indent + 2, new_dict))
+                    current_section = key
+                    current_list = None
+                elif value.startswith('[') and value.endswith(']'):
+                    # Inline list like [frontend-react, debugging]
+                    items = [i.strip() for i in value[1:-1].split(',') if i.strip()]
+                    target[key] = items
+                    current_list = target[key]
+                elif value.startswith('{') and value.endswith('}'):
+                    # Inline dict like {tsx: 1, py: 2}
+                    item_dict = {}
+                    for pair in value[1:-1].split(', '):
+                        if ':' in pair:
+                            k, v = pair.split(':', 1)
+                            try:
+                                item_dict[k.strip()] = int(v.strip())
+                            except ValueError:
+                                item_dict[k.strip()] = v.strip()
+                    target[key] = item_dict
+                else:
+                    # Simple value
+                    target[key] = value
+                    current_list = None
+        
+        return result
+    except Exception:
+        return {}
+
+
+def parse_workflow_logs(root: Path) -> List[Dict[str, Any]]:
+    """Parse all workflow logs from log/workflow/, sorted by recency (newest first)."""
+    logs = []
+    log_dir = root / 'log' / 'workflow'
+    
+    if not log_dir.exists():
+        return logs
+    
+    log_files = sorted(log_dir.glob('*.md'), reverse=True)  # Newest first
+    
+    for log_file in log_files:
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            parsed = parse_yaml_frontmatter(content)
+            if parsed:
+                parsed['_file'] = str(log_file)
+                parsed['_filename'] = log_file.name
+                logs.append(parsed)
+            else:
+                # Legacy format - extract what we can from markdown
+                logs.append({
+                    '_file': str(log_file),
+                    '_filename': log_file.name,
+                    '_legacy': True,
+                    '_content': content
+                })
+        except Exception:
+            continue
+    
+    return logs
+
+
+def get_latest_log_data(root: Path) -> Dict[str, Any]:
+    """Get parsed data from the most recent workflow log (highest priority)."""
+    logs = parse_workflow_logs(root)
+    if logs:
+        return logs[0]  # Most recent
+    return {}
+
+
+def aggregate_log_data(root: Path, max_logs: int = 10) -> Dict[str, Any]:
+    """Aggregate data from recent workflow logs with recency weighting.
+    
+    Returns aggregated stats with latest log getting 3x weight.
+    """
+    logs = parse_workflow_logs(root)[:max_logs]
+    if not logs:
+        return {'files': {}, 'domains': {}, 'gotchas': []}
+    
+    files_modified = defaultdict(int)
+    domains = defaultdict(float)
+    all_gotchas = []
+    
+    for i, log in enumerate(logs):
+        # Weight: latest = 3.0, second = 2.0, rest = 1.0
+        weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+        
+        # Extract file types
+        if 'files' in log and isinstance(log['files'], dict):
+            types = log['files'].get('types', {})
+            if isinstance(types, dict):
+                for ext, count in types.items():
+                    try:
+                        files_modified[ext] += int(count) * weight
+                    except (ValueError, TypeError):
+                        pass
+        
+        # Extract domain
+        session = log.get('session', {})
+        if isinstance(session, dict):
+            domain = session.get('domain', '')
+            if domain:
+                domains[domain] += weight
+        
+        # Extract gotchas
+        gotchas = log.get('gotchas', [])
+        if isinstance(gotchas, list):
+            all_gotchas.extend(gotchas)
+    
+    return {
+        'files': dict(files_modified),
+        'domains': dict(domains),
+        'gotchas': all_gotchas[:20],  # Limit gotchas
+    }
+
+
+# ============================================================================
 # Configuration
 # ============================================================================
 
@@ -522,20 +698,120 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
 
 
 def run_suggest() -> Dict[str, Any]:
-    """Suggest documentation changes without applying."""
+    """Suggest documentation changes based on workflow logs and git diff.
+    
+    Priority: Latest workflow log (3x) > Recent logs (2x) > Git diff (1x)
+    """
     print("=" * 60)
     print("AKIS Documentation Suggestion (Suggest Mode)")
     print("=" * 60)
     
     root = Path.cwd()
-    
-    # Get session files
-    session_files = get_session_files()
-    print(f"\n📁 Session files: {len(session_files)}")
-    
-    # Match files to patterns
     suggestions = []
+    
+    # =========================================================================
+    # Priority 1: Parse latest workflow log (3x weight)
+    # =========================================================================
+    latest_log = get_latest_log_data(root)
+    log_source = "workflow_log" if latest_log else "git_diff"
+    
+    if latest_log and not latest_log.get('_legacy'):
+        print(f"\n📋 Using workflow log: {latest_log.get('_filename', 'unknown')}")
+        
+        # Extract files from structured log
+        files_section = latest_log.get('files', {})
+        if isinstance(files_section, dict):
+            modified = files_section.get('modified', [])
+            if isinstance(modified, list):
+                for file_info in modified:
+                    if isinstance(file_info, dict):
+                        path = file_info.get('path', '')
+                        file_type = file_info.get('type', '')
+                        domain = file_info.get('domain', '')
+                        
+                        # Match to doc patterns with 3x confidence boost
+                        for pattern in LEARNED_PATTERNS:
+                            if re.match(pattern.file_pattern, path):
+                                suggestions.append({
+                                    'file': path,
+                                    'target_doc': pattern.target_doc,
+                                    'type': pattern.update_type,
+                                    'confidence': min(pattern.confidence * 1.2, 1.0),  # Boost
+                                    'section': pattern.section,
+                                    'source': 'workflow_log',
+                                    'domain': domain,
+                                    'weight': 3.0,
+                                })
+                                break
+        
+        # Extract gotchas for documentation
+        gotchas = latest_log.get('gotchas', [])
+        if gotchas:
+            print(f"\n⚠️  Gotchas from session ({len(gotchas)}):")
+            for gotcha in gotchas[:5]:
+                if isinstance(gotcha, dict):
+                    problem = gotcha.get('problem', 'Unknown')
+                    solution = gotcha.get('solution', 'Unknown')
+                    doc_target = gotcha.get('doc_target', 'docs/development/TROUBLESHOOTING.md')
+                    print(f"   • {problem[:60]}...")
+                    suggestions.append({
+                        'file': f"gotcha: {problem[:40]}",
+                        'target_doc': doc_target,
+                        'type': 'add_gotcha',
+                        'confidence': 0.85,
+                        'section': 'Troubleshooting',
+                        'source': 'workflow_log_gotcha',
+                        'gotcha': gotcha,
+                        'weight': 3.0,
+                    })
+        
+        # Extract root causes for documentation
+        root_causes = latest_log.get('root_causes', [])
+        if root_causes:
+            print(f"\n🔍 Root causes documented ({len(root_causes)}):")
+            for rc in root_causes[:5]:
+                if isinstance(rc, dict):
+                    problem = rc.get('problem', 'Unknown')
+                    skill = rc.get('skill', '')
+                    print(f"   • {problem[:60]}...")
+                    # Suggest adding to relevant technical doc
+                    target = 'docs/development/DEBUGGING.md'
+                    if skill == 'frontend-react':
+                        target = 'docs/design/COMPONENTS.md'
+                    elif skill == 'backend-api':
+                        target = 'docs/technical/SERVICES.md'
+                    suggestions.append({
+                        'file': f"root_cause: {problem[:40]}",
+                        'target_doc': target,
+                        'type': 'add_solution',
+                        'confidence': 0.80,
+                        'section': 'Known Issues',
+                        'source': 'workflow_log_root_cause',
+                        'root_cause': rc,
+                        'weight': 3.0,
+                    })
+    
+    # =========================================================================
+    # Priority 2: Aggregate recent logs (2x weight for patterns)
+    # =========================================================================
+    aggregated = aggregate_log_data(root, max_logs=5)
+    if aggregated['domains']:
+        primary_domain = max(aggregated['domains'], key=aggregated['domains'].get)
+        print(f"\n📊 Primary domain from recent sessions: {primary_domain}")
+    
+    # =========================================================================
+    # Priority 3: Fall back to git diff (1x weight)
+    # =========================================================================
+    session_files = get_session_files()
+    print(f"\n📁 Git session files: {len(session_files)}")
+    
+    # Track already-suggested files
+    suggested_files = {s['file'] for s in suggestions if not s['file'].startswith('gotcha:') and not s['file'].startswith('root_cause:')}
+    
     for sf in session_files:
+        if sf in suggested_files:
+            continue  # Already suggested from workflow log
+        
         for pattern in LEARNED_PATTERNS:
             if re.match(pattern.file_pattern, sf):
                 suggestions.append({
@@ -544,22 +820,45 @@ def run_suggest() -> Dict[str, Any]:
                     'type': pattern.update_type,
                     'confidence': pattern.confidence,
                     'section': pattern.section,
+                    'source': 'git_diff',
+                    'weight': 1.0,
                 })
                 break
     
+    # =========================================================================
+    # Sort by weight and confidence
+    # =========================================================================
+    suggestions.sort(key=lambda x: (x.get('weight', 1.0), x.get('confidence', 0)), reverse=True)
+    
+    # =========================================================================
+    # Output
+    # =========================================================================
     print(f"\n📝 DOCUMENTATION SUGGESTIONS ({len(suggestions)}):")
-    print("-" * 40)
+    print("-" * 60)
     
     for s in suggestions:
-        print(f"\n🔹 {s['file']}")
+        weight_indicator = "⭐" if s.get('weight', 1.0) >= 3.0 else "•"
+        source = s.get('source', 'unknown')
+        print(f"\n{weight_indicator} {s['file']}")
         print(f"   → Update: {s['target_doc']}")
-        print(f"   Section: {s['section']}")
+        print(f"   Section: {s['section']} | Source: {source}")
         print(f"   Type: {s['type']} ({100*s['confidence']:.0f}% confidence)")
+    
+    # Summary
+    log_suggestions = len([s for s in suggestions if s.get('source', '').startswith('workflow_log')])
+    git_suggestions = len([s for s in suggestions if s.get('source') == 'git_diff'])
+    
+    print(f"\n📊 Source breakdown:")
+    print(f"   Workflow log: {log_suggestions} (high priority)")
+    print(f"   Git diff: {git_suggestions} (fallback)")
     
     return {
         'mode': 'suggest',
+        'source': log_source,
         'session_files': len(session_files),
         'suggestions': suggestions,
+        'log_suggestions': log_suggestions,
+        'git_suggestions': git_suggestions,
     }
 
 
@@ -613,6 +912,210 @@ def run_index(dry_run: bool = False) -> Dict[str, Any]:
     }
 
 
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive documentation suggestions."""
+    print("=" * 70)
+    print("AKIS Documentation - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    docs_dir = root / 'docs'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_files_modified = defaultdict(lambda: {'count': 0, 'domains': set()})
+    all_file_types = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_gotchas = []
+    all_root_causes = []
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_yaml_frontmatter(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract files modified - use regex for reliability
+            file_pattern = r'\{path:\s*"?([^",}]+)"?,\s*type:\s*(\w+),\s*domain:\s*(\w+)\}'
+            file_matches = re.findall(file_pattern, content)
+            for path, ftype, domain in file_matches:
+                path = path.strip('"').strip()
+                if path and path != 'unknown':
+                    all_files_modified[path]['count'] += weight
+                    all_files_modified[path]['domains'].add(domain)
+                    all_file_types[ftype] += 1
+            
+            # Extract types from {tsx: 1, py: 2} format
+            types_pattern = r'types:\s*\{([^}]+)\}'
+            types_match = re.search(types_pattern, content)
+            if types_match:
+                for pair in types_match.group(1).split(','):
+                    if ':' in pair:
+                        ftype, count = pair.split(':')
+                        try:
+                            all_file_types[ftype.strip()] += int(count.strip())
+                        except ValueError:
+                            pass
+            
+            # Extract session domain - use regex for reliability
+            domain_pattern = r'session:.*?domain:\s*(\w+)'
+            domain_match = re.search(domain_pattern, content, re.DOTALL)
+            if domain_match:
+                domain = domain_match.group(1)
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract gotchas
+            if 'gotchas' in yaml_data:
+                gotchas = yaml_data['gotchas']
+                if isinstance(gotchas, list):
+                    for g in gotchas:
+                        if g and g not in all_gotchas:
+                            all_gotchas.append(g)
+            
+            # Extract root causes
+            if 'root_causes' in yaml_data:
+                causes = yaml_data['root_causes']
+                if isinstance(causes, list):
+                    for c in causes:
+                        if c and c not in all_root_causes:
+                            all_root_causes.append(c)
+                            
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze patterns
+    print(f"\n📊 FILE MODIFICATION ANALYSIS")
+    print("-" * 50)
+    
+    print("\n📄 Most Frequently Modified Files (weighted):")
+    top_files = sorted(all_files_modified.items(), key=lambda x: -x[1]['count'])[:10]
+    for path, data in top_files:
+        domains = ', '.join(data['domains']) if data['domains'] else 'unknown'
+        print(f"   {path}: {data['count']:.1f} mentions ({domains})")
+    
+    print(f"\n📁 File Types Distribution:")
+    for ftype, count in sorted(all_file_types.items(), key=lambda x: -x[1])[:8]:
+        print(f"   .{ftype}: {count} files")
+    
+    print(f"\n📈 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    # Generate documentation suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 DOCUMENTATION SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Check for heavily modified files without documentation
+    for path, data in top_files[:20]:
+        if data['count'] >= 5.0:
+            # Check if documentation exists for this file
+            doc_exists = False
+            component_name = Path(path).stem
+            for doc_file in docs_dir.rglob('*.md'):
+                if component_name.lower() in doc_file.stem.lower():
+                    doc_exists = True
+                    break
+            
+            if not doc_exists:
+                suggestions.append({
+                    'type': 'create',
+                    'target': path,
+                    'reason': f'Frequently modified ({data["count"]:.0f}x) but no dedicated documentation',
+                    'priority': 'High' if data['count'] >= 10 else 'Medium'
+                })
+    
+    # Check for domain gaps
+    if all_domains.get('frontend', 0) > 10:
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/design/COMPONENTS.md',
+            'reason': f'High frontend activity ({all_domains.get("frontend", 0)} sessions) - update component docs',
+            'priority': 'Medium'
+        })
+    
+    if all_domains.get('backend', 0) > 10:
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/technical/API_rest_v1.md',
+            'reason': f'High backend activity ({all_domains.get("backend", 0)} sessions) - update API docs',
+            'priority': 'Medium'
+        })
+    
+    # Gotcha documentation
+    if all_gotchas:
+        print(f"\n⚠️  GOTCHAS CAPTURED ({len(all_gotchas)} total):")
+        for gotcha in all_gotchas[:5]:
+            print(f"   - {gotcha}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/development/TROUBLESHOOTING.md',
+            'reason': f'Add {len(all_gotchas)} gotchas to troubleshooting guide',
+            'priority': 'High'
+        })
+    
+    # Root causes documentation
+    if all_root_causes:
+        print(f"\n🔍 ROOT CAUSES CAPTURED ({len(all_root_causes)} total):")
+        for cause in all_root_causes[:5]:
+            print(f"   - {cause}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'docs/development/DEBUGGING.md',
+            'reason': f'Document {len(all_root_causes)} root causes for future reference',
+            'priority': 'Medium'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 80)
+        print(f"{'Type':<10} {'Target':<45} {'Priority':<10} {'Reason'}")
+        print("-" * 80)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['target']:<45} {s['priority']:<10} {s['reason'][:30]}")
+        print("-" * 80)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Documentation coverage complete - no gaps detected")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'files_modified': {k: {'count': v['count'], 'domains': list(v['domains'])} for k, v in all_files_modified.items()},
+        'file_types': dict(all_file_types),
+        'domains': dict(all_domains),
+        'gotchas_count': len(all_gotchas),
+        'root_causes_count': len(all_root_causes),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Documentation Management Script',
@@ -623,6 +1126,7 @@ Examples:
   python docs.py --update           # Apply documentation updates
   python docs.py --generate         # Full generation with metrics
   python docs.py --suggest          # Suggest without applying
+  python docs.py --ingest-all       # Ingest ALL workflow logs and suggest
   python docs.py --index            # Regenerate INDEX.md
   python docs.py --dry-run          # Preview changes
         """
@@ -635,6 +1139,8 @@ Examples:
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest changes without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--index', action='store_true',
                            help='Regenerate INDEX.md')
     
@@ -652,6 +1158,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.index:
         result = run_index(args.dry_run)
     elif args.update:

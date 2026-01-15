@@ -1,10 +1,17 @@
 ---
-applyTo: "**"
+applyTo: '**'
+description: 'Project architecture reference for NOP - folder structure, component layers, and code organization patterns.'
 ---
 
-# Architecture v7.1
+# Architecture & Structure
 
-Project structure and component layers for NOP (Network Operations Platform).
+Project organization for NOP (Network Operations Platform).
+
+## When This Applies
+- Adding new files or components
+- Navigating unfamiliar parts of codebase
+- Deciding where to place new code
+- Moving or reorganizing code
 
 ## Root Structure
 
@@ -15,8 +22,15 @@ Project structure and component layers for NOP (Network Operations Platform).
 | `docker/` | Container configurations |
 | `docs/` | Documentation by type |
 | `.github/` | AKIS framework + workflows |
+| `.project/` | Blueprints, design docs, feature specs |
 | `log/workflow/` | Session logs |
 | `scripts/` | Python automation |
+
+## Root Files
+- .py: agent.py only
+- .sh: deploy.sh only  
+- .md: README, CHANGELOG, CONTRIBUTING
+- config: docker-compose.yml, .env, project_knowledge.json
 
 ## Layers
 
@@ -27,15 +41,32 @@ Project structure and component layers for NOP (Network Operations Platform).
 | Infra | Docker, PostgreSQL, Redis | `docker/`, `docker-compose.yml` |
 | Agent | AKIS framework | `.github/` |
 
+## File Placement
+
+| Type | Location |
+|------|----------|
+| Source | `{service}/src/` or `{service}/app/` |
+| Tests | `{service}/tests/` |
+| Docs | `docs/{type}/` |
+| Blueprints | `.project/{feature}/` |
+| Logs | `log/workflow/` |
+| Infra | Root `docker-compose.yml` |
+
 ## Finding Related Code
 
-1. **Services:** `backend/app/services/`
-2. **API routes:** `backend/app/api/`
-3. **UI components:** `frontend/src/components/`
-4. **State stores:** `frontend/src/store/`
+| Component | Location |
+|-----------|----------|
+| Services | `backend/app/services/` |
+| API routes | `backend/app/api/` |
+| UI components | `frontend/src/components/` |
+| State stores | `frontend/src/store/` |
+| Hooks | `frontend/src/hooks/` |
+| Pages | `frontend/src/pages/` |
 
 ## ⚠️ Critical Gotchas
 
-- **Services are async** - Use `async/await`, avoid blocking calls
-- **State in Zustand** - Use `useStore` hooks, not Redux patterns
-- **Docker-first** - Services run in containers, not locally
+| Pattern | Issue | Solution |
+|---------|-------|----------|
+| Services | Blocking calls | Use `async/await`, avoid blocking |
+| State | Redux patterns | Use Zustand `useStore` hooks |
+| Runtime | Local execution | Docker-first, services run in containers |

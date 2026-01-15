@@ -1,0 +1,13 @@
+{
+  "mode": "precision-test",
+  "sessions": 100000,
+  "total_suggestions": 300157,
+  "true_positives": 273368,
+  "false_positives": 26789,
+  "false_negatives": 0,
+  "precision": 0.9107500408119751,
+  "recall": 1.0,
+  "f1_score": 0.9532906150560133,
+  "precision_pass": true,
+  "recall_pass": true
+}

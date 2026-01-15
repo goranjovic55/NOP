@@ -124,3 +124,29 @@ async def get_current_user(
         }
     except (JWTError, ValueError):
         raise credentials_exception
+
+
+async def get_optional_user(
+    token: str = Depends(OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False))
+):
+    """
+    Optional authentication - returns user if valid token, None otherwise.
+    Use for endpoints that work for both authenticated and anonymous users.
+    """
+    if not token:
+        return None
+    
+    try:
+        payload = decode_token(token)
+        user_id: str = payload.get("sub")
+        username: str = payload.get("username")
+        
+        if user_id is None:
+            return None
+        
+        return {
+            "id": user_id,
+            "username": username or "unknown"
+        }
+    except (JWTError, ValueError):
+        return None

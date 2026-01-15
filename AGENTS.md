@@ -1,4 +1,4 @@
-# AGENTS.md - NOP Project (AKIS v7.1)
+# AGENTS.md - NOP Project (AKIS v7.4)
 
 ## Environment
 
@@ -16,10 +16,11 @@
 | Backend test | `cd backend && python -m pytest` |
 | Frontend test | `cd frontend && npm test` |
 
-## ⛔ Gates (7)
+## ⛔ Gates (8)
 
 | G | Check | Fix |
 |---|-------|-----|
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
 | 1 | No ◆ | Create TODO |
 | 2 | No skill | Load skill |
 | 3 | No START | Do START |
@@ -27,6 +28,25 @@
 | 5 | No verify | Check syntax |
 | 6 | Multi ◆ | One only |
 | 7 | No parallel | Use pairs |
+
+## ⚡ G0: Knowledge in Memory
+**Read first 100 lines of project_knowledge.json ONCE at START:**
+```
+Line 1:     HOT_CACHE (top 20 entities + paths)
+Line 2:     DOMAIN_INDEX (81 backend, 74 frontend file paths)
+Line 4:     GOTCHAS (43 known issues + solutions)
+Lines 7-12: Layer entities
+Lines 13-93: Layer relations
+```
+
+**Context Budget:** 3,000 tokens max per skill
+
+**Anti-Pattern:**
+```
+❌ Run --query 5 times to gather info
+❌ grep knowledge.json multiple times
+✓ Read first 100 lines ONCE, use that context
+```
 
 ## Agents
 
@@ -45,16 +65,27 @@
 |------------|----------|
 | Simple (<3) | Direct or delegate |
 | Medium (3-5) | Smart delegate |
-| Complex (6+) | Delegate |
+| Complex (6+) | **Auto-prompt delegation** |
+
+**6+ Tasks Auto-Prompt:** Show delegation suggestion before proceeding.
 
 ## Parallel (G7)
-code+docs | code+reviewer | research+code | architect+research
+**Target: 60% of complex sessions**
+
+| Pair | Use Case |
+|------|----------|
+| code+docs | Fullstack |
+| code+reviewer | Refactor |
+| research+code | New feature |
+| architect+research | Design |
+| debugger+docs | Bug fix |
 
 ## AKIS Files
 
 | File | Purpose |
 |------|---------|
-| `.github/copilot-instructions.md` | Protocol v7.1 |
+| `.github/copilot-instructions.md` | Protocol v7.4 |
 | `.github/skills/INDEX.md` | Skill catalog |
 | `.github/instructions/` | Guidance |
 | `.github/agents/` | Agent configs |
+| `project_knowledge.json` | Knowledge graph (v4.2) |

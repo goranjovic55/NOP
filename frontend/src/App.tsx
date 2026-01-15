@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { POVProvider } from './context/POVContext';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
 import Topology from './pages/Topology';
@@ -10,6 +11,7 @@ import Traffic from './pages/Traffic';
 import Scans from './pages/Scans';
 import Access from './pages/Access';
 import Host from './pages/Host';
+import WorkflowBuilder from './pages/WorkflowBuilder';
 import Settings from './pages/Settings';
 import Agents from './pages/Agents';
 import Login from './pages/Login';
@@ -48,6 +50,7 @@ function App() {
                   <Route path="/scans" element={<Scans />} />
                   <Route path="/access" element={<Access />} />
                   <Route path="/host" element={<Host />} />
+                  <Route path="/flows" element={<ErrorBoundary><WorkflowBuilder /></ErrorBoundary>} />
                   <Route path="/agents" element={<Agents />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/login" element={<Navigate to="/dashboard" replace />} />

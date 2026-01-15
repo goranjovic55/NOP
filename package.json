@@ -1,0 +1,28 @@
+{
+  "name": "nop",
+  "version": "1.0.0",
+  "description": "A comprehensive, self-contained network assessment platform designed for deployment as a network monitoring appliance. Provides complete visibility into LAN environments through passive discovery, real-time traffic analysis, and intelligent topology mapping.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goranjovic55/NOP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/goranjovic55/NOP/issues"
+  },
+  "homepage": "https://github.com/goranjovic55/NOP#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "playwright": "^1.57.0"
+  }
+}

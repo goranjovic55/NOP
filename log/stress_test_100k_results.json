@@ -1,0 +1,342 @@
+{
+  "edge_tests": {
+    "edge_tests": [
+      {
+        "edge_case": "empty_session",
+        "description": "No files modified in session",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Returns empty suggestions",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "mega_session",
+        "description": "50+ files modified in session",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Limits analysis to most relevant files",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_agents_dir",
+        "description": "No .github/agents directory exists",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Creates directory and agent stubs",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "circular_agents",
+        "description": "Agents reference each other in circles",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Detects cycles and breaks with sequential fallback",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "all_agents_active",
+        "description": "All agent types needed simultaneously",
+        "passed": true,
+        "script": "agents.py",
+        "error_message": "",
+        "recovery_method": "Prioritizes by tier (core > supporting > specialized)",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "empty_knowledge",
+        "description": "project_knowledge.json is empty or missing",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Creates new knowledge structure from codebase",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "corrupted_jsonl",
+        "description": "project_knowledge.json has invalid JSON lines",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Skips invalid lines, logs warning",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "stale_knowledge",
+        "description": "Knowledge file is older than 7 days",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Triggers full regeneration",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "huge_codebase",
+        "description": "Codebase has 10k+ files to analyze",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Uses sampling and incremental updates",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "binary_files",
+        "description": "Binary files in source directories",
+        "passed": true,
+        "script": "knowledge.py",
+        "error_message": "",
+        "recovery_method": "Detects and skips binary files",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "no_matching_skills",
+        "description": "Session files don't match any skill patterns",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Suggests new skill creation",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "multiple_skill_matches",
+        "description": "Files match 5+ skill patterns",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Ranks by confidence, returns top 3",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_skill_file",
+        "description": "Skill directory exists but no SKILL.md",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Generates stub SKILL.md",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "verbose_skill",
+        "description": "SKILL.md exceeds 350 word limit",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Flags as quality issue, suggests trimming",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "chain_skill_missing",
+        "description": "Auto-chain target skill doesn't exist",
+        "passed": true,
+        "script": "skills.py",
+        "error_message": "",
+        "recovery_method": "Skips chain, logs warning",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "no_instructions",
+        "description": "No instruction files in .github/instructions/",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Uses copilot-instructions.md as fallback",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "conflicting_instructions",
+        "description": "Two instruction files contradict each other",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Later file takes precedence, logs conflict",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "missing_frontmatter",
+        "description": "Instruction file lacks applyTo frontmatter",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Flags as issue, suggests adding frontmatter",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "full_coverage",
+        "description": "All instruction patterns already covered",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Reports no changes needed",
+        "tokens_wasted": 0
+      },
+      {
+        "edge_case": "session_interrupt",
+        "description": "Session interrupted mid-task",
+        "passed": true,
+        "script": "instructions.py",
+        "error_message": "",
+        "recovery_method": "Detects incomplete state, suggests resume",
+        "tokens_wasted": 0
+      }
+    ],
+    "total_passed": 20,
+    "total_tests": 20,
+    "pass_rate": 1.0
+  },
+  "simulation": {
+    "total_sessions": 100000,
+    "success_rate": 0.86567,
+    "edge_case_hit_rate": 0.14895,
+    "skill_accuracy": 0.9611,
+    "knowledge_hit_rate": 0.4793,
+    "instruction_compliance": 0.9456,
+    "agent_effectiveness": 0.92073,
+    "suggestion_precision": 0.8581069000002616,
+    "suggestion_recall": 0.8077831000001723,
+    "tokens_consumed": 1272330953,
+    "api_calls": 1880775,
+    "avg_resolution_time": 12.479744114211544
+  },
+  "patterns": {
+    "logs_analyzed": 124,
+    "session_patterns": {
+      "fullstack": 58,
+      "framework": 18,
+      "frontend_only": 21,
+      "backend_only": 24,
+      "docs_only": 2,
+      "docker_heavy": 1
+    },
+    "skill_usage": {
+      "docker": 47,
+      "documentation": 53,
+      "testing": 49,
+      "knowledge": 78,
+      "debugging": 27,
+      "frontend-react": 24,
+      "backend-api": 20,
+      "akis-development": 12,
+      "ci-cd": 4,
+      "research": 10,
+      "planning": 4
+    },
+    "common_sequences": [
+      [
+        "documentation \u2192 knowledge",
+        26
+      ],
+      [
+        "knowledge \u2192 testing",
+        25
+      ],
+      [
+        "docker \u2192 documentation",
+        22
+      ],
+      [
+        "documentation \u2192 testing",
+        14
+      ],
+      [
+        "docker \u2192 knowledge",
+        13
+      ],
+      [
+        "backend-api \u2192 frontend-react",
+        11
+      ],
+      [
+        "knowledge \u2192 backend-api",
+        10
+      ],
+      [
+        "testing \u2192 debugging",
+        7
+      ],
+      [
+        "knowledge \u2192 debugging",
+        7
+      ],
+      [
+        "testing \u2192 knowledge",
+        7
+      ]
+    ],
+    "error_patterns": {
+      "fullstack": 47,
+      "framework": 12,
+      "frontend_only": 19,
+      "docs_only": 1,
+      "backend_only": 17
+    },
+    "success_patterns": {
+      "framework": 14,
+      "fullstack": 43,
+      "backend_only": 18,
+      "frontend_only": 11,
+      "docs_only": 1,
+      "docker_heavy": 1
+    },
+    "industry_alignment": 0.6830645161290341
+  },
+  "validation": {
+    "validation": {
+      "agents": {
+        "precision": 0.8435062421754045,
+        "recall": 0.8786795468286634,
+        "specificity": 0.87439109928312,
+        "relevance": 0.9528405844969421,
+        "actionability": 0.8786776389654013,
+        "pass": true
+      },
+      "knowledge": {
+        "precision": 0.8890213807320836,
+        "recall": 0.7743409880571405,
+        "freshness": 0.9239614695592235,
+        "coverage": 0.8985815746995308,
+        "pass": true
+      },
+      "skills": {
+        "precision": 0.9420410687477073,
+        "recall": 0.8536261750860535,
+        "detection_accuracy": 0.9381497527603677,
+        "false_positive_rate": 0.013502972968890942,
+        "pass": true
+      },
+      "instructions": {
+        "precision": 0.9124921875494244,
+        "recall": 0.7874558124144626,
+        "compliance_improvement": 0.0732173626930999,
+        "pattern_coverage": 0.8963509874508993,
+        "pass": true
+      }
+    },
+    "all_pass": true,
+    "avg_precision": 0.896765219801155,
+    "avg_recall": 0.82352563059658
+  },
+  "industry": {
+    "industry_patterns": {
+      "tdd_first": 0.15,
+      "refactor_then_add": 0.12,
+      "pair_programming": 0.08,
+      "bisect_debug": 0.1,
+      "log_analysis": 0.18,
+      "reproduce_first": 0.25,
+      "design_doc_first": 0.12,
+      "spike_solution": 0.1,
+      "incremental_delivery": 0.22,
+      "self_review": 0.3,
+      "checklist_review": 0.2
+    },
+    "current_alignment": 0.6830645161290341,
+    "recommendations": [
+      "Increase test coverage",
+      "Add verification steps",
+      "Document design decisions"
+    ]
+  }
+}

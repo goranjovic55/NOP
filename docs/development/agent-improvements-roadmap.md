@@ -1,7 +1,13 @@
+---
+title: Agent/C2 Improvements Roadmap
+type: explanation
+category: planning
+last_updated: 2026-01-14
+---
+
 # Agent/C2 Framework - Future Improvements Roadmap
 
-**Generated:** 2026-01-03  
-**Context:** Post-initial implementation of Agent/C2 system with POV switching, encryption, and platform compilation
+> **Context:** Post-initial implementation of Agent/C2 system with POV switching, encryption, and platform compilation
 
 ---
 

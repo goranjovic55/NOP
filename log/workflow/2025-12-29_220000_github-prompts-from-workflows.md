@@ -1,3 +1,35 @@
+---
+session:
+  id: "2025-12-29_github_prompts_from_workflows"
+  date: "2025-12-29"
+  complexity: complex
+  domain: fullstack
+
+skills:
+  loaded: [testing, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: ".github/prompts/init_project.prompt.md", type: md, domain: docs}
+    - {path: ".github/prompts/import_project.prompt.md", type: md, domain: docs}
+    - {path: ".github/prompts/refactor_code.prompt.md", type: md, domain: docs}
+    - {path: ".github/prompts/update_documents.prompt.md", type: md, domain: docs}
+    - {path: ".github/prompts/update_knowledge.prompt.md", type: md, domain: docs}
+  types: {md: 8}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Workflow Log: Create GitHub Prompts from Workflows
 
 **Session**: 2025-12-29_220000  

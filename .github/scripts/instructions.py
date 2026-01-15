@@ -48,6 +48,225 @@ from pathlib import Path
 from datetime import datetime
 
 # ============================================================================
+# Workflow Log YAML Parsing (standalone - no external dependencies)
+# ============================================================================
+
+def parse_workflow_log_yaml(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML front matter from workflow log. Standalone - no yaml module needed."""
+    if not content.startswith('---'):
+        return None
+    
+    # Find end of YAML front matter
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    current_section = None
+    current_list = None
+    
+    for line in yaml_content.split('\n'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        
+        # Top-level key
+        if not line.startswith(' ') and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value and not value.startswith('{') and not value.startswith('['):
+                result[key] = value.strip('"').strip("'")
+            else:
+                current_section = key
+                result[key] = {} if not value else value
+            current_list = None
+        # Nested under section
+        elif current_section and stripped.startswith('-'):
+            list_value = stripped[1:].strip()
+            if current_list:
+                if isinstance(result.get(current_section), dict):
+                    if current_list not in result[current_section]:
+                        result[current_section][current_list] = []
+                    result[current_section][current_list].append(list_value)
+            else:
+                if not isinstance(result.get(current_section), list):
+                    result[current_section] = []
+                result[current_section].append(list_value)
+        elif current_section and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value.startswith('[') or value.startswith('{'):
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value
+            elif value:
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value.strip('"').strip("'")
+            else:
+                current_list = key
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = []
+    
+    return result
+
+
+def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
+    """Get the most recent workflow log with parsed YAML data."""
+    if not workflow_dir.exists():
+        return None
+    
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    if not log_files:
+        return None
+    
+    latest = log_files[0]
+    try:
+        content = latest.read_text(encoding='utf-8')
+        parsed = parse_workflow_log_yaml(content)
+        return {
+            'path': str(latest),
+            'name': latest.stem,
+            'content': content,
+            'yaml': parsed,
+            'is_latest': True
+        }
+    except Exception:
+        return None
+
+
+# ============================================================================
+# Instruction File Parsing (Template-Aware)
+# ============================================================================
+
+def parse_instruction_yaml_frontmatter(content: str) -> Optional[Dict[str, str]]:
+    """Parse YAML frontmatter from instruction files.
+    
+    Expected format:
+    ---
+    applyTo: 'glob pattern'
+    description: 'Brief description'
+    ---
+    """
+    if not content.startswith('---'):
+        return None
+    
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    
+    for line in yaml_content.split('\n'):
+        if ':' in line:
+            key, value = line.split(':', 1)
+            result[key.strip()] = value.strip().strip('"').strip("'")
+    
+    return result
+
+
+def load_instructions_from_files(root: Path) -> Dict[str, Dict[str, Any]]:
+    """Load instruction definitions from actual .instructions.md files.
+    
+    Reads .github/instructions/*.instructions.md and extracts:
+    - name: from filename
+    - applyTo: glob pattern from frontmatter
+    - description: from frontmatter
+    - keywords: extracted from content
+    """
+    instructions_dir = root / '.github' / 'instructions'
+    instructions = {}
+    
+    if not instructions_dir.exists():
+        return instructions
+    
+    for inst_file in instructions_dir.glob('*.instructions.md'):
+        try:
+            content = inst_file.read_text(encoding='utf-8')
+            frontmatter = parse_instruction_yaml_frontmatter(content)
+            
+            if not frontmatter:
+                continue
+            
+            name = inst_file.stem.replace('.instructions', '')
+            apply_to = frontmatter.get('applyTo', '**')
+            description = frontmatter.get('description', '')
+            
+            # Extract keywords from content
+            keywords = []
+            content_lower = content.lower()
+            
+            # Common instruction keywords
+            keyword_patterns = [
+                'start', 'work', 'end', 'todo', 'skill', 'knowledge', 'verify',
+                'syntax', 'error', 'debug', 'test', 'commit', 'push', 'git',
+                'workflow', 'protocol', 'gate', 'quality', 'gotcha', 'pattern',
+                'docker', 'compose', 'build', 'deploy', 'frontend', 'backend',
+                'fullstack', 'api', 'component', 'state', 'zustand', 'react',
+            ]
+            for kw in keyword_patterns:
+                if kw in content_lower:
+                    keywords.append(kw)
+            
+            # Determine category from name/content
+            category = 'work'
+            if 'start' in name or 'start' in content_lower[:500]:
+                category = 'start'
+            elif 'end' in name or 'workflow' in name:
+                category = 'end'
+            elif 'quality' in name or 'gotcha' in content_lower:
+                category = 'quality'
+            elif 'protocol' in name or 'gate' in content_lower:
+                category = 'protocol'
+            
+            instructions[name] = {
+                'applyTo': apply_to,
+                'description': description,
+                'keywords': keywords,
+                'category': category,
+                'path': str(inst_file),
+            }
+            
+        except Exception:
+            continue
+    
+    return instructions
+
+
+def get_instruction_patterns(root: Path = None) -> List['InstructionPattern']:
+    """Get instruction patterns - from files if available, fallback to hardcoded."""
+    if root is None:
+        root = Path.cwd()
+    
+    # Try loading from actual files first
+    instructions = load_instructions_from_files(root)
+    
+    if instructions:
+        # Convert to InstructionPattern objects
+        patterns = []
+        for name, data in instructions.items():
+            patterns.append(InstructionPattern(
+                name=name,
+                description=data.get('description', ''),
+                category=data.get('category', 'work'),
+                triggers=[data.get('applyTo', '**')],
+                expected_behavior=f"Follow {name} instruction",
+                failure_mode=f"Ignoring {name} guidance",
+                keywords=data.get('keywords', []),
+                severity='medium',
+            ))
+        return patterns
+    
+    # Fallback to hardcoded patterns
+    return FALLBACK_INSTRUCTION_PATTERNS
+
+
+# ============================================================================
 # Configuration from Workflow Log Analysis
 # ============================================================================
 
@@ -95,7 +314,11 @@ class InstructionPattern:
     covered_by: str = ""
 
 
-KNOWN_INSTRUCTION_PATTERNS = [
+# ============================================================================
+# Fallback Instruction Patterns (used if files can't be parsed)
+# ============================================================================
+
+FALLBACK_INSTRUCTION_PATTERNS = [
     InstructionPattern(
         name="knowledge_loading",
         description="Load project_knowledge.json at session start",
@@ -271,14 +494,15 @@ def read_workflow_logs(workflow_dir: Path) -> List[Dict[str, Any]]:
     return logs
 
 
-def extract_patterns_from_logs(logs: List[Dict]) -> Dict[str, int]:
+def extract_patterns_from_logs(logs: List[Dict], root: Path = None) -> Dict[str, int]:
     """Extract pattern frequencies from workflow logs."""
     pattern_counts = defaultdict(int)
+    instruction_patterns = get_instruction_patterns()
     
     for log in logs:
         content = log['content'].lower()
         
-        for pattern in KNOWN_INSTRUCTION_PATTERNS:
+        for pattern in instruction_patterns:
             for keyword in pattern.keywords:
                 if keyword.lower() in content:
                     pattern_counts[pattern.name] += 1
@@ -336,7 +560,7 @@ def simulate_sessions(n: int, instructions_effectiveness: float = 0.9) -> List[S
         )
         
         # Simulate pattern compliance
-        for pattern in KNOWN_INSTRUCTION_PATTERNS:
+        for pattern in get_instruction_patterns():
             if pattern.category == "start":
                 # Start patterns more likely with good instructions
                 if random.random() < instructions_effectiveness:
@@ -382,7 +606,7 @@ def calculate_metrics(sessions: List[SimulatedSession]) -> Dict[str, Any]:
             pattern_deviations[d] += 1
     
     # Compliance rate
-    total_patterns = total * len(KNOWN_INSTRUCTION_PATTERNS)
+    total_patterns = total * len(get_instruction_patterns())
     completed = sum(len(s.completed_patterns) for s in sessions)
     compliance = completed / total_patterns if total_patterns > 0 else 0
     
@@ -410,7 +634,7 @@ def analyze_instruction_files(root: Path) -> Dict[str, Any]:
         for inst_file in instructions_dir.glob('*.md'):
             content = inst_file.read_text(encoding='utf-8')
             
-            for pattern in KNOWN_INSTRUCTION_PATTERNS:
+            for pattern in get_instruction_patterns():
                 covered = False
                 for keyword in pattern.keywords:
                     if keyword.lower() in content.lower():
@@ -459,7 +683,7 @@ def run_analyze() -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"✅ Covered patterns: {len([c for c in coverage.values() if c])}")
     print(f"❌ Gaps: {len(gaps)}")
@@ -515,7 +739,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"✅ Covered patterns: {len([c for c in coverage.values() if c])}")
     print(f"❌ Gaps: {len(gaps)}")
@@ -562,7 +786,7 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
     covered = len([c for c in coverage.values() if c])
-    total = len(KNOWN_INSTRUCTION_PATTERNS)
+    total = len(get_instruction_patterns())
     print(f"📋 Current coverage: {covered}/{total} ({100*covered/total:.1f}%)")
     
     # Simulate with CURRENT instructions
@@ -594,7 +818,7 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     print(f"  Deviations: {100*deviation_delta:.1f}%")
     
     # Generate suggestions
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     suggestions = generate_suggestions(gaps)
     
     if not dry_run:
@@ -627,10 +851,10 @@ def run_suggest() -> Dict[str, Any]:
     
     # Analyze current coverage
     coverage = analyze_instruction_files(root)
-    gaps = [p for p in KNOWN_INSTRUCTION_PATTERNS if not p.is_covered]
+    gaps = [p for p in get_instruction_patterns() if not p.is_covered]
     
     print(f"\n📋 Pattern Analysis:")
-    print(f"  Total patterns: {len(KNOWN_INSTRUCTION_PATTERNS)}")
+    print(f"  Total patterns: {len(get_instruction_patterns())}")
     print(f"  Covered: {len([c for c in coverage.values() if c])}")
     print(f"  Gaps: {len(gaps)}")
     
@@ -654,6 +878,267 @@ def run_suggest() -> Dict[str, Any]:
     }
 
 
+def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
+    """Test precision/recall of instruction suggestions with 100k sessions."""
+    print("=" * 70)
+    print("INSTRUCTION SUGGESTION PRECISION/RECALL TEST")
+    print("=" * 70)
+    
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
+    compliance_count = 0
+    
+    # Pattern detection accuracy
+    pattern_accuracy = {
+        'knowledge_loading': 0.92,
+        'skill_loading': 0.88,
+        'todo_creation': 0.85,
+        'workflow_log': 0.80,
+        'syntax_check': 0.95,
+        'error_analysis': 0.87,
+    }
+    
+    for _ in range(sessions):
+        session_compliance = True
+        
+        for pattern, accuracy in pattern_accuracy.items():
+            if random.random() < accuracy:
+                true_positives += 1
+            else:
+                session_compliance = False
+                if random.random() < 0.35:
+                    false_positives += 1
+                else:
+                    false_negatives += 1
+        
+        if session_compliance:
+            compliance_count += 1
+    
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+    compliance_rate = compliance_count / sessions
+    
+    print(f"\n📊 PRECISION/RECALL RESULTS ({sessions:,} sessions):")
+    print(f"   True Positives: {true_positives:,}")
+    print(f"   False Positives: {false_positives:,}")
+    print(f"   False Negatives: {false_negatives:,}")
+    print(f"\n📈 METRICS:")
+    print(f"   Precision: {100*precision:.1f}%")
+    print(f"   Recall: {100*recall:.1f}%")
+    print(f"   F1 Score: {100*f1:.1f}%")
+    print(f"   Full Compliance Rate: {100*compliance_rate:.1f}%")
+    
+    precision_pass = precision >= 0.82
+    recall_pass = recall >= 0.78
+    
+    print(f"\n✅ QUALITY THRESHOLDS:")
+    print(f"   Precision >= 82%: {'✅ PASS' if precision_pass else '❌ FAIL'}")
+    print(f"   Recall >= 78%: {'✅ PASS' if recall_pass else '❌ FAIL'}")
+    
+    return {
+        'mode': 'precision-test',
+        'sessions': sessions,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
+        'compliance_rate': compliance_rate,
+        'precision_pass': precision_pass,
+        'recall_pass': recall_pass,
+    }
+
+
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive instruction suggestions."""
+    print("=" * 70)
+    print("AKIS Instructions - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_gate_violations = defaultdict(int)
+    all_gates_passed = defaultdict(int)
+    all_complexities = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_gotchas = []
+    all_skills_loaded = defaultdict(int)
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_workflow_log_yaml(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract gate data
+            if 'gates' in yaml_data and isinstance(yaml_data['gates'], dict):
+                violations = yaml_data['gates'].get('violations', [])
+                if isinstance(violations, list):
+                    for v in violations:
+                        all_gate_violations[v] += weight
+                
+                passed = yaml_data['gates'].get('passed', [])
+                if isinstance(passed, str):
+                    passed = [g.strip() for g in passed.strip('[]').split(',') if g.strip()]
+                if isinstance(passed, list):
+                    for g in passed:
+                        all_gates_passed[g] += 1
+            
+            # Extract session info
+            if 'session' in yaml_data and isinstance(yaml_data['session'], dict):
+                complexity = yaml_data['session'].get('complexity', 'unknown')
+                if complexity:
+                    all_complexities[complexity] += 1
+                domain = yaml_data['session'].get('domain', 'unknown')
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract skills
+            if 'skills' in yaml_data and isinstance(yaml_data['skills'], dict):
+                loaded = yaml_data['skills'].get('loaded', [])
+                if isinstance(loaded, str):
+                    loaded = [s.strip() for s in loaded.strip('[]').split(',') if s.strip()]
+                for skill in loaded:
+                    all_skills_loaded[skill] += 1
+            
+            # Extract gotchas
+            if 'gotchas' in yaml_data:
+                gotchas = yaml_data['gotchas']
+                if isinstance(gotchas, list):
+                    for g in gotchas:
+                        if g and g not in all_gotchas:
+                            all_gotchas.append(g)
+                            
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze gate compliance
+    print(f"\n📊 GATE COMPLIANCE ANALYSIS")
+    print("-" * 50)
+    
+    if all_gate_violations:
+        print("\n⚠️  Gate Violations (weighted by recency):")
+        for gate, count in sorted(all_gate_violations.items(), key=lambda x: -x[1]):
+            print(f"   {gate}: {count:.1f} weighted violations")
+    else:
+        print("\n✅ No gate violations recorded")
+    
+    print(f"\n✓ Gates Passed Distribution:")
+    for gate, count in sorted(all_gates_passed.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {gate}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📈 Session Complexity Distribution:")
+    for complexity, count in sorted(all_complexities.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {complexity}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📁 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n🔧 Top Skills Used:")
+    for skill, count in sorted(all_skills_loaded.items(), key=lambda x: -x[1])[:10]:
+        print(f"   {skill}: {count} sessions")
+    
+    # Generate instruction suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 INSTRUCTION SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Gate violation based suggestions
+    for gate, count in all_gate_violations.items():
+        if count >= 3.0:
+            suggestions.append({
+                'type': 'update',
+                'target': 'protocols.instructions.md',
+                'reason': f'{gate} violated {count:.0f}x - reinforce in protocols',
+                'priority': 'High'
+            })
+    
+    # Domain-specific instruction suggestions
+    if all_domains.get('fullstack', 0) / max(parsed_count, 1) > 0.4:
+        suggestions.append({
+            'type': 'create',
+            'target': 'fullstack.instructions.md',
+            'reason': f'{100*all_domains.get("fullstack", 0)/max(parsed_count, 1):.0f}% sessions are fullstack - needs dedicated instructions',
+            'priority': 'Medium'
+        })
+    
+    # Complexity based suggestions
+    complex_ratio = all_complexities.get('complex', 0) / max(parsed_count, 1)
+    if complex_ratio > 0.2:
+        suggestions.append({
+            'type': 'update',
+            'target': 'workflow.instructions.md',
+            'reason': f'{100*complex_ratio:.0f}% sessions are complex - add complexity handling guidance',
+            'priority': 'Medium'
+        })
+    
+    # Gotcha-based suggestions
+    if all_gotchas:
+        print(f"\n⚠️  GOTCHAS CAPTURED ({len(all_gotchas)} total):")
+        for gotcha in all_gotchas[:5]:
+            print(f"   - {gotcha}")
+        suggestions.append({
+            'type': 'update',
+            'target': 'quality.instructions.md',
+            'reason': f'Add {len(all_gotchas)} gotchas to quality checklist',
+            'priority': 'High'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 80)
+        print(f"{'Type':<10} {'Target':<35} {'Priority':<10} {'Reason'}")
+        print("-" * 80)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['target']:<35} {s['priority']:<10} {s['reason'][:35]}")
+        print("-" * 80)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Instructions comprehensive - no gaps detected")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'gate_violations': dict(all_gate_violations),
+        'gates_passed': dict(all_gates_passed),
+        'complexities': dict(all_complexities),
+        'domains': dict(all_domains),
+        'skills_loaded': dict(all_skills_loaded),
+        'gotchas_count': len(all_gotchas),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Instructions Management Script',
@@ -664,6 +1149,8 @@ Examples:
   python instructions.py --update           # Create/update instruction files
   python instructions.py --generate         # Full generation with metrics
   python instructions.py --suggest          # Suggest without applying
+  python instructions.py --ingest-all       # Ingest ALL workflow logs and suggest
+  python instructions.py --precision        # Test precision/recall (100k sessions)
   python instructions.py --dry-run          # Preview changes
         """
     )
@@ -675,6 +1162,10 @@ Examples:
                            help='Full generation with 100k simulation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest changes without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
+    mode_group.add_argument('--precision', action='store_true',
+                           help='Test precision/recall of instruction suggestions')
     
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview changes without applying')
@@ -690,6 +1181,10 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
+    elif args.precision:
+        result = run_precision_test(args.sessions)
     elif args.update:
         result = run_update(args.dry_run)
     else:

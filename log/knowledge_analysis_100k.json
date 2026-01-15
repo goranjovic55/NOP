@@ -1,0 +1,25 @@
+{
+  "mode": "generate",
+  "entities": 193,
+  "files": 193,
+  "gotchas": 24,
+  "without_knowledge": {
+    "total_queries": 1000363,
+    "cache_hits": 100459,
+    "full_lookups": 899904,
+    "cache_hit_rate": 0.10042254661557855,
+    "tokens_saved": 200918000
+  },
+  "with_knowledge": {
+    "total_queries": 999475,
+    "cache_hits": 349986,
+    "full_lookups": 649489,
+    "cache_hit_rate": 0.35016983916556194,
+    "tokens_saved": 699972000
+  },
+  "improvement": {
+    "cache_delta": 0.2497472925499834,
+    "lookup_delta": -0.2782685708697817,
+    "tokens_saved": 699972000
+  }
+}

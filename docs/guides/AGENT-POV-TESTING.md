@@ -1,3 +1,10 @@
+---
+title: Agent POV Testing
+type: guide
+category: testing
+last_updated: 2026-01-14
+---
+
 # Agent POV Testing Environment
 
 This environment creates an isolated network topology for testing Agent Point-of-View (POV) functionality. The setup simulates a real-world scenario where an agent is deployed on a remote network that has access to hosts not visible from the main NOP platform network.

@@ -1,3 +1,31 @@
+---
+session:
+  id: "2026-01-09_topology_link_click_fix"
+  date: "2026-01-09"
+  complexity: simple
+  domain: frontend_only
+
+skills:
+  loaded: [frontend-react, debugging, testing, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: "frontend/src/pages/Topology.tsx", type: tsx, domain: frontend}
+  types: {tsx: 1}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Topology Link Click & Highlight Fix | 2026-01-09 | ~5min
 
 ## Summary

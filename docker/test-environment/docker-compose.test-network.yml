@@ -1,0 +1,90 @@
+# Test network with multiple communicating hosts
+# Usage: docker compose -f docker/test-environment/docker-compose.test-network.yml up -d
+
+services:
+  # Web server that other hosts will ping/curl
+  webserver:
+    image: nginx:alpine
+    container_name: nop-test-web
+    hostname: webserver
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.101
+    restart: unless-stopped
+
+  # SSH server (already exists, just reference for completeness)
+  ssh-server:
+    build:
+      context: ./ssh-server
+      dockerfile: Dockerfile
+    container_name: nop-test-ssh
+    hostname: ssh-server
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.100
+    restart: unless-stopped
+
+  # Client 1 - pings and curls other hosts
+  client1:
+    image: alpine:3.19
+    container_name: nop-test-client1
+    hostname: client1
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.102
+    command: |
+      sh -c "apk add --no-cache curl && while true; do
+        echo '[Client1] Pinging webserver...'
+        ping -c 2 172.29.0.101
+        echo '[Client1] Curling webserver...'
+        curl -s http://172.29.0.101 > /dev/null && echo 'HTTP OK'
+        echo '[Client1] Pinging ssh-server...'
+        ping -c 2 172.29.0.100
+        sleep 5
+      done"
+    restart: unless-stopped
+
+  # Client 2 - different traffic pattern
+  client2:
+    image: alpine:3.19
+    container_name: nop-test-client2
+    hostname: client2
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.103
+    command: |
+      sh -c "apk add --no-cache curl netcat-openbsd && while true; do
+        echo '[Client2] Curling webserver...'
+        curl -s http://172.29.0.101 > /dev/null && echo 'HTTP OK'
+        echo '[Client2] Testing SSH port on ssh-server...'
+        nc -zv 172.29.0.100 22 2>&1
+        echo '[Client2] Pinging client1...'
+        ping -c 2 172.29.0.102
+        sleep 7
+      done"
+    restart: unless-stopped
+
+  # Client 3 - talks to all others
+  client3:
+    image: alpine:3.19
+    container_name: nop-test-client3
+    hostname: client3
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.104
+    command: |
+      sh -c "apk add --no-cache curl && while true; do
+        echo '[Client3] Pinging all hosts...'
+        ping -c 1 172.29.0.100
+        ping -c 1 172.29.0.101
+        ping -c 1 172.29.0.102
+        ping -c 1 172.29.0.103
+        echo '[Client3] HTTP to webserver...'
+        curl -s http://172.29.0.101 > /dev/null
+        sleep 10
+      done"
+    restart: unless-stopped
+
+networks:
+  docker_nop-internal:
+    external: true

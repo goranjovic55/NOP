@@ -1,3 +1,15 @@
+---
+title: Quick Start Guide
+type: tutorial
+difficulty: beginner
+time_minutes: 10
+prerequisites:
+  - Docker 20.10+
+  - Docker Compose 2.0+
+  - 8GB RAM minimum
+last_updated: 2026-01-14
+---
+
 # Quick Start Guide - NOP
 
 Get up and running with the Network Observatory Platform in minutes.

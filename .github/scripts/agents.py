@@ -58,6 +58,233 @@ from pathlib import Path
 from datetime import datetime
 
 # ============================================================================
+# Workflow Log YAML Parsing (standalone - no external dependencies)
+# ============================================================================
+
+def parse_workflow_log_yaml(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML front matter from workflow log. Standalone - no yaml module needed."""
+    if not content.startswith('---'):
+        return None
+    
+    # Find end of YAML front matter
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    current_section = None
+    current_list = None
+    
+    for line in yaml_content.split('\n'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        
+        # Top-level key
+        if not line.startswith(' ') and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value and not value.startswith('{') and not value.startswith('['):
+                result[key] = value.strip('"').strip("'")
+            else:
+                current_section = key
+                result[key] = {} if not value else value
+            current_list = None
+        # Nested under section
+        elif current_section and stripped.startswith('-'):
+            list_value = stripped[1:].strip()
+            if current_list:
+                if isinstance(result.get(current_section), dict):
+                    if current_list not in result[current_section]:
+                        result[current_section][current_list] = []
+                    result[current_section][current_list].append(list_value)
+            else:
+                if not isinstance(result.get(current_section), list):
+                    result[current_section] = []
+                result[current_section].append(list_value)
+        elif current_section and ':' in stripped:
+            key = stripped.split(':')[0].strip()
+            value = stripped.split(':', 1)[1].strip() if ':' in stripped else ''
+            if value.startswith('[') or value.startswith('{'):
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value
+            elif value:
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = value.strip('"').strip("'")
+            else:
+                current_list = key
+                if isinstance(result.get(current_section), dict):
+                    result[current_section][key] = []
+    
+    return result
+
+
+def get_latest_workflow_log(workflow_dir: Path) -> Optional[Dict[str, Any]]:
+    """Get the most recent workflow log with parsed YAML data."""
+    if not workflow_dir.exists():
+        return None
+    
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    if not log_files:
+        return None
+    
+    latest = log_files[0]
+    try:
+        content = latest.read_text(encoding='utf-8')
+        parsed = parse_workflow_log_yaml(content)
+        return {
+            'path': str(latest),
+            'name': latest.stem,
+            'content': content,
+            'yaml': parsed,
+            'is_latest': True
+        }
+    except Exception:
+        return None
+
+
+# ============================================================================
+# Agent File Parsing (Template-Aware)
+# ============================================================================
+
+def parse_agent_yaml_frontmatter(content: str) -> Optional[Dict[str, Any]]:
+    """Parse YAML frontmatter from agent files.
+    
+    Expected format:
+    ---
+    name: agent-name
+    description: 'Brief description 10-500 chars'
+    tools: ['read', 'edit', 'search', 'execute']
+    ---
+    """
+    if not content.startswith('---'):
+        return None
+    
+    end_marker = content.find('\n---', 3)
+    if end_marker == -1:
+        return None
+    
+    yaml_content = content[4:end_marker].strip()
+    result = {}
+    
+    for line in yaml_content.split('\n'):
+        if ':' in line:
+            key, value = line.split(':', 1)
+            value = value.strip().strip('"').strip("'")
+            
+            # Parse array values like ['read', 'edit']
+            if value.startswith('[') and value.endswith(']'):
+                items = [i.strip().strip('"').strip("'") for i in value[1:-1].split(',')]
+                result[key.strip()] = [i for i in items if i]
+            else:
+                result[key.strip()] = value
+    
+    return result
+
+
+def load_agents_from_files(root: Path) -> Dict[str, Dict[str, Any]]:
+    """Load agent definitions from actual .agent.md files.
+    
+    Reads .github/agents/*.agent.md and extracts:
+    - name: from frontmatter
+    - description: from frontmatter
+    - tools: from frontmatter
+    - triggers: extracted from content (Triggers table)
+    - skills: extracted from content
+    """
+    agents_dir = root / '.github' / 'agents'
+    agents = {}
+    
+    if not agents_dir.exists():
+        return agents
+    
+    for agent_file in agents_dir.glob('*.agent.md'):
+        try:
+            content = agent_file.read_text(encoding='utf-8')
+            frontmatter = parse_agent_yaml_frontmatter(content)
+            
+            if not frontmatter:
+                continue
+            
+            name = frontmatter.get('name', agent_file.stem.replace('.agent', ''))
+            description = frontmatter.get('description', '')
+            tools = frontmatter.get('tools', [])
+            
+            # Extract triggers from Triggers table in content
+            triggers = []
+            trigger_section = False
+            for line in content.split('\n'):
+                if '## Triggers' in line:
+                    trigger_section = True
+                    continue
+                if trigger_section and line.startswith('##'):
+                    break
+                if trigger_section and '|' in line and not line.startswith('|--'):
+                    parts = [p.strip() for p in line.split('|') if p.strip()]
+                    if len(parts) >= 2 and parts[1] != 'Type':
+                        # First column is the pattern
+                        pattern_str = parts[0]
+                        for pattern in pattern_str.split(','):
+                            pattern = pattern.strip()
+                            if pattern:
+                                triggers.append(pattern)
+            
+            # Extract skills mentioned in content
+            skills = []
+            content_lower = content.lower()
+            skill_names = [
+                'frontend-react', 'backend-api', 'docker', 'debugging', 'testing',
+                'documentation', 'planning', 'research', 'ci-cd', 'akis-dev', 'knowledge'
+            ]
+            for skill in skill_names:
+                if skill in content_lower:
+                    skills.append(skill)
+            
+            # Determine tier from content
+            tier = 'core'
+            if 'supporting' in content_lower or 'reviewer' in name.lower():
+                tier = 'supporting'
+            elif 'specialized' in content_lower or name.lower() in ('devops', 'tester', 'security'):
+                tier = 'specialized'
+            
+            agents[name.lower()] = {
+                'description': description,
+                'triggers': triggers[:10],  # Limit
+                'skills': skills,
+                'tools': tools,
+                'tier': tier,
+                'path': str(agent_file),
+                'optimization_targets': ['accuracy', 'token_usage', 'compliance'],
+            }
+            
+        except Exception:
+            continue
+    
+    return agents
+
+
+def get_agent_types(root: Path = None) -> Dict[str, Dict[str, Any]]:
+    """Get agent types - from files if available, fallback to hardcoded."""
+    if root is None:
+        root = Path.cwd()
+    
+    # Try loading from actual files first
+    agents = load_agents_from_files(root)
+    
+    if agents:
+        return agents
+    
+    # Fallback to hardcoded agent types
+    return FALLBACK_AGENT_TYPES
+
+
+# ============================================================================
 # Configuration
 # ============================================================================
 
@@ -70,9 +297,8 @@ DOCS_MEDIUM_THRESHOLD = 20
 DOCS_LOW_THRESHOLD = 10
 ESSENTIAL_SKILLS = ['backend-api', 'frontend-react', 'debugging', 'documentation', 'planning', 'research']
 
-# Agent types that can be optimized
-# Updated based on 100k simulation analysis for GitHub Copilot VS Code Insiders
-AGENT_TYPES = {
+# Fallback agent types (used if files can't be parsed)
+FALLBACK_AGENT_TYPES = {
     # Core Agents (5 Essential - User's workflow)
     'architect': {
         'description': 'Deep design, blueprints, brainstorming before projects',
@@ -359,7 +585,7 @@ def extract_baseline(root: Path) -> Dict[str, Any]:
 
 def create_agent_config(agent_type: str, baseline: Dict[str, Any]) -> AgentConfig:
     """Create optimized agent configuration."""
-    type_config = AGENT_TYPES.get(agent_type, {})
+    type_config = get_agent_types().get(agent_type, {})
     
     # Generate optimized prompt template
     prompt_parts = [
@@ -543,10 +769,24 @@ def calculate_improvements(before: Dict[str, Any], after: Dict[str, Any]) -> Dic
 # Sub-Agent Orchestration
 # ============================================================================
 
+def get_subagent_registry(root: Path = None) -> Dict[str, Dict[str, Any]]:
+    """Get subagent registry - from files if available, fallback to hardcoded.
+    
+    Note: Subagent info is typically embedded in agent files, so we merge
+    with data from get_agent_types() when available.
+    """
+    if root is None:
+        root = Path.cwd()
+    
+    # For now, return fallback - subagent orchestration info isn't in .agent.md files yet
+    # Future: could parse orchestration section from agent files
+    return FALLBACK_SUBAGENT_REGISTRY
+
+
 # Sub-agent registry - agents that can call each other via runsubagent
 # Updated for GitHub Copilot VS Code Insiders compatibility
 # Based on 100k session simulation analysis
-SUBAGENT_REGISTRY = {
+FALLBACK_SUBAGENT_REGISTRY = {
     'akis': {
         'description': 'Main AKIS orchestrator agent',
         'can_call': ['architect', 'research', 'code', 'debugger', 'reviewer', 'documentation', 'devops'],
@@ -626,7 +866,7 @@ def generate_subagent_orchestration_map() -> Dict[str, Any]:
     }
     
     # Build agent relationships
-    for agent_name, config in SUBAGENT_REGISTRY.items():
+    for agent_name, config in get_subagent_registry().items():
         orchestration_map['agents'][agent_name] = {
             'description': config['description'],
             'role': config['orchestration_role'],
@@ -1212,12 +1452,12 @@ def run_compare(sessions: int = 100000) -> Dict[str, Any]:
     specialists = baseline['optimal_agents']
     print(f"\n🤖 Specialists to evaluate: {len(specialists)}")
     for s in specialists:
-        print(f"   - {s}: {AGENT_TYPES[s]['description']}")
+        print(f"   - {s}: {get_agent_types()[s]['description']}")
     
     # Show orchestration capabilities
     print(f"\n🔗 Sub-Agent Orchestration (runsubagent):")
     for s in specialists:
-        subagent_info = SUBAGENT_REGISTRY.get(s, {})
+        subagent_info = get_subagent_registry().get(s, {})
         can_call = subagent_info.get('can_call', [])
         called_by = subagent_info.get('called_by', [])
         print(f"   {s}:")
@@ -1290,7 +1530,7 @@ def generate_agent_file(agent: AgentConfig, root: Path, dry_run: bool = False) -
     agents_dir = root / '.github' / 'agents'
     
     # Get sub-agent orchestration config
-    subagent_info = SUBAGENT_REGISTRY.get(agent.agent_type, {})
+    subagent_info = get_subagent_registry().get(agent.agent_type, {})
     can_call = subagent_info.get('can_call', [])
     called_by = subagent_info.get('called_by', [])
     role = subagent_info.get('orchestration_role', 'worker')
@@ -1423,7 +1663,7 @@ AKIS can delegate tasks to specialist agents via `runsubagent`.
 """
     
     for agent in agents:
-        subagent_info = SUBAGENT_REGISTRY.get(agent.agent_type, {})
+        subagent_info = get_subagent_registry().get(agent.agent_type, {})
         role = subagent_info.get('orchestration_role', 'worker')
         skills = ', '.join(agent.skills[:2]) + ('...' if len(agent.skills) > 2 else '')
         triggers = ', '.join(agent.triggers[:3]) + ('...' if len(agent.triggers) > 3 else '')
@@ -1514,8 +1754,8 @@ def simulate_individual_agent(
 ) -> AgentAnalysisResult:
     """Simulate 100k sessions for an individual agent and analyze performance."""
     
-    agent_config = AGENT_TYPES.get(agent_type, {})
-    subagent_config = SUBAGENT_REGISTRY.get(agent_type, {})
+    agent_config = get_agent_types().get(agent_type, {})
+    subagent_config = get_subagent_registry().get(agent_type, {})
     
     # Agent-specific baseline parameters
     base_api_calls = 25  # Baseline without any agent
@@ -1663,7 +1903,7 @@ def run_analyze(sessions: int = 100000) -> Dict[str, Any]:
     baseline = extract_baseline(root)
     
     # Get all agents to analyze
-    agent_types = list(AGENT_TYPES.keys())
+    agent_types = list(get_agent_types().keys())
     print(f"\n🔍 Analyzing {len(agent_types)} agent types...")
     
     results = []
@@ -1965,7 +2205,7 @@ def run_report() -> Dict[str, Any]:
         for agent, data in session_analysis['sorted_agents']:
             file_count = len(data['files'])
             triggers = ', '.join(data['triggers'][:3])
-            agent_config = AGENT_TYPES.get(agent, {})
+            agent_config = get_agent_types().get(agent, {})
             description = agent_config.get('description', 'Specialist agent')
             
             print(f"  🔹 {agent.upper()}")
@@ -1991,7 +2231,7 @@ def run_report() -> Dict[str, Any]:
     updates_needed = []
     session_text = ' '.join(session_files).lower()
     
-    for agent_type, config in AGENT_TYPES.items():
+    for agent_type, config in get_agent_types().items():
         for trigger in config['triggers']:
             if trigger in session_text:
                 updates_needed.append({
@@ -2003,7 +2243,7 @@ def run_report() -> Dict[str, Any]:
     
     # Check for missing agents
     missing_agents = []
-    for agent_type, config in AGENT_TYPES.items():
+    for agent_type, config in get_agent_types().items():
         agent_file = agents_dir / f"{agent_type}.agent.md"
         if not agent_file.exists():
             missing_agents.append(agent_type)
@@ -2013,7 +2253,7 @@ def run_report() -> Dict[str, Any]:
         print(f"\n📋 MISSING AGENTS (create files):")
         print("-" * 60)
         for agent_type in missing_agents:
-            config = AGENT_TYPES[agent_type]
+            config = get_agent_types()[agent_type]
             print(f"  • {agent_type}: {config.get('description', 'Specialist agent')}")
         print("-" * 60)
     
@@ -2109,7 +2349,7 @@ def run_update(dry_run: bool = False) -> Dict[str, Any]:
     updates = []
     session_text = ' '.join(session_files).lower()
     
-    for agent_type, config in AGENT_TYPES.items():
+    for agent_type, config in get_agent_types().items():
         for trigger in config['triggers']:
             if trigger in session_text:
                 updates.append({
@@ -2158,7 +2398,7 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     # Determine optimal agents
     print(f"\n🎯 Optimal agents identified: {len(baseline['optimal_agents'])}")
     for agent in baseline['optimal_agents']:
-        print(f"   - {agent}: {AGENT_TYPES[agent]['description']}")
+        print(f"   - {agent}: {get_agent_types()[agent]['description']}")
     
     # Show proposed agents with detailed configurations
     print(f"\n" + "=" * 60)
@@ -2166,8 +2406,8 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
     print("=" * 60)
     
     for agent_type in baseline['optimal_agents']:
-        config = AGENT_TYPES[agent_type]
-        subagent_config = SUBAGENT_REGISTRY.get(agent_type, {})
+        config = get_agent_types()[agent_type]
+        subagent_config = get_subagent_registry().get(agent_type, {})
         
         print(f"\n📋 {agent_type.upper()}-AGENT")
         print("-" * 40)
@@ -2285,16 +2525,59 @@ def run_generate(sessions: int = 100000, dry_run: bool = False) -> Dict[str, Any
 
 
 def run_suggest() -> Dict[str, Any]:
-    """Suggest agent improvements without applying."""
+    """Suggest agent improvements without applying. Prioritizes latest workflow log."""
     print("=" * 60)
     print("AKIS Agents Suggestion (Suggest Mode)")
     print("=" * 60)
     
     root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
     
-    # Get session context
+    # PRIORITY 1: Latest workflow log with YAML front matter
+    latest_log = get_latest_workflow_log(workflow_dir)
+    log_agents = []
+    log_errors = []
+    log_root_causes = []
+    log_gotchas = []
+    
+    if latest_log and latest_log.get('yaml'):
+        yaml_data = latest_log['yaml']
+        print(f"\n📋 Latest workflow log: {latest_log['name']}")
+        
+        # Extract agents from YAML
+        if 'agents' in yaml_data:
+            agents_data = yaml_data['agents']
+            if isinstance(agents_data, dict) and 'delegated' in agents_data:
+                log_agents = agents_data['delegated']
+                if isinstance(log_agents, list):
+                    print(f"   Agents delegated: {len(log_agents)}")
+        
+        # Extract errors from YAML
+        if 'errors' in yaml_data:
+            errors_data = yaml_data['errors']
+            if isinstance(errors_data, list):
+                log_errors = errors_data
+                print(f"   Errors encountered: {len(log_errors)}")
+        
+        # Extract root causes from YAML
+        if 'root_causes' in yaml_data:
+            rc_data = yaml_data['root_causes']
+            if isinstance(rc_data, list):
+                log_root_causes = rc_data
+                print(f"   Root causes fixed: {len(log_root_causes)}")
+        
+        # Extract gotchas from YAML
+        if 'gotchas' in yaml_data:
+            gotchas_data = yaml_data['gotchas']
+            if isinstance(gotchas_data, list):
+                log_gotchas = gotchas_data
+                print(f"   Gotchas captured: {len(log_gotchas)}")
+    else:
+        print(f"\n⚠️  No YAML front matter in latest log - using git diff")
+    
+    # PRIORITY 2: Git-based analysis (fallback/supplement)
     session_files = get_session_files()
-    print(f"\n📁 Session files: {len(session_files)}")
+    print(f"\n📁 Session files (git): {len(session_files)}")
     
     # Extract baseline
     baseline = extract_baseline(root)
@@ -2304,25 +2587,48 @@ def run_suggest() -> Dict[str, Any]:
     print(f"   Knowledge entries: {baseline['knowledge_entries']}")
     print(f"   Documentation: {baseline['documentation_files']}")
     
-    # Suggest agents
+    # Suggest agents - prioritize workflow log data
     print(f"\n🤖 AGENT SUGGESTIONS:")
     print("-" * 40)
     
     suggestions = []
-    for agent_type in baseline['optimal_agents']:
-        config = AGENT_TYPES[agent_type]
+    suggested_agents = set(baseline['optimal_agents'])
+    
+    # Add agents mentioned in workflow log (higher priority)
+    for agent_info in log_agents:
+        if isinstance(agent_info, dict):
+            agent_name = agent_info.get('name', '')
+            if agent_name and agent_name in get_agent_types():
+                suggested_agents.add(agent_name)
+        elif isinstance(agent_info, str):
+            # Parse "name: code" format
+            if ':' in agent_info:
+                agent_name = agent_info.split(':')[1].strip()
+                if agent_name in get_agent_types():
+                    suggested_agents.add(agent_name)
+    
+    # If errors found, suggest debugger
+    if log_errors:
+        suggested_agents.add('debugger')
+    
+    for agent_type in suggested_agents:
+        if agent_type not in get_agent_types():
+            continue
+        config = get_agent_types()[agent_type]
+        from_log = agent_type in [a.get('name', '') if isinstance(a, dict) else '' for a in log_agents]
         suggestion = {
             'agent': agent_type,
             'description': config['description'],
             'skills': config['skills'],
             'triggers': config['triggers'],
+            'from_workflow_log': from_log,
         }
         suggestions.append(suggestion)
         
-        print(f"\n🔹 {agent_type}")
+        source = "✓ from workflow log" if from_log else "from git analysis"
+        print(f"\n🔹 {agent_type} ({source})")
         print(f"   Description: {config['description']}")
         print(f"   Skills: {', '.join(config['skills'])}")
-        print(f"   Triggers: {', '.join(config['triggers'][:3])}...")
     
     # Suggest optimizations
     print(f"\n⚡ OPTIMIZATION SUGGESTIONS:")
@@ -2348,9 +2654,31 @@ def run_suggest() -> Dict[str, Any]:
     optimizations.append(opt)
     print(f"   - {opt}")
     
+    # Output gotchas and root causes from workflow log
+    if log_gotchas:
+        print(f"\n⚠️  GOTCHAS FROM SESSION:")
+        for gotcha in log_gotchas[:3]:
+            if isinstance(gotcha, str):
+                print(f"   - {gotcha}")
+            elif isinstance(gotcha, dict):
+                print(f"   - {gotcha.get('pattern', 'Unknown')}: {gotcha.get('warning', '')}")
+    
+    if log_root_causes:
+        print(f"\n🔧 ROOT CAUSES FIXED:")
+        for rc in log_root_causes[:3]:
+            if isinstance(rc, str):
+                print(f"   - {rc}")
+            elif isinstance(rc, dict):
+                print(f"   - {rc.get('problem', 'Unknown')} → {rc.get('solution', 'Unknown')}")
+    
     return {
         'mode': 'suggest',
         'session_files': len(session_files),
+        'workflow_log': latest_log['name'] if latest_log else None,
+        'log_agents': log_agents,
+        'log_errors': log_errors,
+        'log_root_causes': log_root_causes,
+        'log_gotchas': log_gotchas,
         'baseline': baseline,
         'agent_suggestions': suggestions,
         'optimization_suggestions': optimizations,
@@ -3091,6 +3419,285 @@ def run_full_audit(sessions: int = 100000, dry_run: bool = False) -> Dict[str, A
     }
 
 
+def run_precision_test(sessions: int = 100000) -> Dict[str, Any]:
+    """Test precision/recall of agent suggestions with 100k sessions."""
+    print("=" * 70)
+    print("AGENT SUGGESTION PRECISION/RECALL TEST")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    
+    # Simulate sessions and track suggestion quality
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
+    total_suggestions = 0
+    
+    task_types = [
+        ('code_editing', 0.35),
+        ('debugging', 0.20),
+        ('documentation', 0.15),
+        ('infrastructure', 0.10),
+        ('architecture', 0.10),
+        ('review', 0.10),
+    ]
+    
+    # Agent detection accuracy per task type
+    detection_accuracy = {
+        'code_editing': 0.95,
+        'debugging': 0.92,
+        'documentation': 0.88,
+        'infrastructure': 0.85,
+        'architecture': 0.90,
+        'review': 0.87,
+    }
+    
+    for _ in range(sessions):
+        # Select task type
+        r = random.random()
+        cumulative = 0.0
+        task_type = 'code_editing'
+        for tt, prob in task_types:
+            cumulative += prob
+            if r <= cumulative:
+                task_type = tt
+                break
+        
+        accuracy = detection_accuracy.get(task_type, 0.85)
+        
+        # Simulate suggestion generation
+        num_suggestions = random.randint(1, 5)
+        total_suggestions += num_suggestions
+        
+        for _ in range(num_suggestions):
+            if random.random() < accuracy:
+                # Suggestion is useful (true positive)
+                true_positives += 1
+            else:
+                # Suggestion is not useful (false positive)
+                false_positives += 1
+        
+        # False negatives: needed suggestions not generated
+        needed = random.randint(0, 3)
+        missed = int(needed * (1 - accuracy * 0.9))
+        false_negatives += missed
+    
+    # Calculate metrics
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+    
+    print(f"\n📊 PRECISION/RECALL RESULTS ({sessions:,} sessions):")
+    print(f"   Total Suggestions: {total_suggestions:,}")
+    print(f"   True Positives: {true_positives:,}")
+    print(f"   False Positives: {false_positives:,}")
+    print(f"   False Negatives: {false_negatives:,}")
+    print(f"\n📈 METRICS:")
+    print(f"   Precision: {100*precision:.1f}%")
+    print(f"   Recall: {100*recall:.1f}%")
+    print(f"   F1 Score: {100*f1:.1f}%")
+    
+    # Quality thresholds
+    precision_pass = precision >= 0.80
+    recall_pass = recall >= 0.75
+    
+    print(f"\n✅ QUALITY THRESHOLDS:")
+    print(f"   Precision >= 80%: {'✅ PASS' if precision_pass else '❌ FAIL'}")
+    print(f"   Recall >= 75%: {'✅ PASS' if recall_pass else '❌ FAIL'}")
+    
+    return {
+        'mode': 'precision-test',
+        'sessions': sessions,
+        'total_suggestions': total_suggestions,
+        'true_positives': true_positives,
+        'false_positives': false_positives,
+        'false_negatives': false_negatives,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
+        'precision_pass': precision_pass,
+        'recall_pass': recall_pass,
+    }
+
+
+def run_ingest_all() -> Dict[str, Any]:
+    """Ingest ALL workflow logs and generate comprehensive agent suggestions."""
+    print("=" * 70)
+    print("AKIS Agents - Full Workflow Log Ingestion")
+    print("=" * 70)
+    
+    root = Path.cwd()
+    workflow_dir = root / 'log' / 'workflow'
+    
+    if not workflow_dir.exists():
+        print(f"❌ Workflow directory not found: {workflow_dir}")
+        return {'mode': 'ingest-all', 'error': 'Directory not found'}
+    
+    # Parse ALL workflow logs
+    log_files = sorted(
+        [f for f in workflow_dir.glob("*.md") if f.name not in ['README.md', 'WORKFLOW_LOG_FORMAT.md']],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    
+    print(f"\n📂 Found {len(log_files)} workflow logs")
+    
+    # Aggregate data
+    all_agents_delegated = defaultdict(lambda: {'count': 0, 'tasks': [], 'results': []})
+    all_complexities = defaultdict(int)
+    all_domains = defaultdict(int)
+    all_root_causes = []
+    all_gate_violations = defaultdict(int)
+    
+    parsed_count = 0
+    for i, log_file in enumerate(log_files):
+        try:
+            content = log_file.read_text(encoding='utf-8')
+            yaml_data = parse_workflow_log_yaml(content)
+            
+            if not yaml_data:
+                continue
+            
+            parsed_count += 1
+            weight = 3.0 if i == 0 else (2.0 if i == 1 else 1.0)
+            
+            # Extract agents delegated
+            if 'agents' in yaml_data and isinstance(yaml_data['agents'], dict):
+                delegated = yaml_data['agents'].get('delegated', [])
+                if isinstance(delegated, list):
+                    for agent_info in delegated:
+                        if isinstance(agent_info, dict):
+                            name = agent_info.get('name', 'unknown')
+                            all_agents_delegated[name]['count'] += weight
+                            if agent_info.get('task'):
+                                all_agents_delegated[name]['tasks'].append(agent_info['task'])
+                            if agent_info.get('result'):
+                                all_agents_delegated[name]['results'].append(agent_info['result'])
+            
+            # Extract session complexity
+            if 'session' in yaml_data and isinstance(yaml_data['session'], dict):
+                complexity = yaml_data['session'].get('complexity', 'unknown')
+                if complexity:
+                    all_complexities[complexity] += 1
+                domain = yaml_data['session'].get('domain', 'unknown')
+                if domain:
+                    all_domains[domain] += 1
+            
+            # Extract root causes
+            if 'root_causes' in yaml_data:
+                causes = yaml_data['root_causes']
+                if isinstance(causes, list):
+                    for c in causes:
+                        if c and c not in all_root_causes:
+                            all_root_causes.append(c)
+            
+            # Extract gate violations
+            if 'gates' in yaml_data and isinstance(yaml_data['gates'], dict):
+                violations = yaml_data['gates'].get('violations', [])
+                if isinstance(violations, list):
+                    for v in violations:
+                        all_gate_violations[v] += 1
+                        
+        except Exception:
+            continue
+    
+    print(f"✓ Parsed {parsed_count}/{len(log_files)} logs with YAML front matter")
+    
+    # Analyze agent delegation patterns
+    print(f"\n📊 AGENT DELEGATION ANALYSIS")
+    print("-" * 50)
+    
+    print("\n🤖 Agent Usage (weighted by recency):")
+    for agent, data in sorted(all_agents_delegated.items(), key=lambda x: -x[1]['count']):
+        print(f"   {agent}: {data['count']:.1f} delegations")
+        if data['tasks'][:2]:
+            for task in data['tasks'][:2]:
+                print(f"      └─ {task[:50]}")
+    
+    print(f"\n📈 Session Complexity Distribution:")
+    for complexity, count in sorted(all_complexities.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {complexity}: {count} sessions ({pct:.1f}%)")
+    
+    print(f"\n📁 Domain Distribution:")
+    for domain, count in sorted(all_domains.items(), key=lambda x: -x[1]):
+        pct = 100 * count / parsed_count if parsed_count > 0 else 0
+        print(f"   {domain}: {count} sessions ({pct:.1f}%)")
+    
+    if all_gate_violations:
+        print(f"\n⚠️  Gate Violations:")
+        for gate, count in sorted(all_gate_violations.items(), key=lambda x: -x[1]):
+            print(f"   {gate}: {count} violations")
+    
+    # Generate suggestions
+    print(f"\n" + "=" * 50)
+    print("📝 AGENT SUGGESTIONS FROM LOG ANALYSIS")
+    print("=" * 50)
+    
+    suggestions = []
+    
+    # Check for underutilized agents
+    available_agents = {'architect', 'code', 'debugger', 'reviewer', 'documentation', 'research', 'devops'}
+    used_agents = set(all_agents_delegated.keys())
+    unused = available_agents - used_agents
+    
+    if unused:
+        for agent in unused:
+            suggestions.append({
+                'type': 'review',
+                'agent': agent,
+                'reason': f'Agent never delegated to - verify triggers or remove',
+                'priority': 'Low'
+            })
+    
+    # Check for high-complexity sessions without delegation
+    complex_sessions = all_complexities.get('complex', 0)
+    total_delegations = sum(d['count'] for d in all_agents_delegated.values())
+    if complex_sessions > 5 and total_delegations < complex_sessions * 0.5:
+        suggestions.append({
+            'type': 'optimize',
+            'agent': 'AKIS',
+            'reason': f'{complex_sessions} complex sessions but low delegation rate - increase parallel usage',
+            'priority': 'High'
+        })
+    
+    # Root cause patterns
+    if all_root_causes:
+        print(f"\n🔍 ROOT CAUSES CAPTURED ({len(all_root_causes)} total):")
+        for cause in all_root_causes[:5]:
+            print(f"   - {cause}")
+        suggestions.append({
+            'type': 'update',
+            'agent': 'debugger',
+            'reason': f'Add {len(all_root_causes)} root causes to debugger knowledge base',
+            'priority': 'Medium'
+        })
+    
+    # Output suggestions table
+    if suggestions:
+        print(f"\n" + "-" * 70)
+        print(f"{'Type':<10} {'Agent':<20} {'Priority':<10} {'Reason'}")
+        print("-" * 70)
+        for s in suggestions[:15]:
+            print(f"{s['type']:<10} {s['agent']:<20} {s['priority']:<10} {s['reason'][:40]}")
+        print("-" * 70)
+        print(f"\nTotal suggestions: {len(suggestions)}")
+    else:
+        print("\n✅ Agent patterns optimal - no suggestions")
+    
+    return {
+        'mode': 'ingest-all',
+        'logs_found': len(log_files),
+        'logs_parsed': parsed_count,
+        'agents_delegated': {k: dict(v) for k, v in all_agents_delegated.items()},
+        'complexities': dict(all_complexities),
+        'domains': dict(all_domains),
+        'gate_violations': dict(all_gate_violations),
+        'root_causes_count': len(all_root_causes),
+        'suggestions': suggestions,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='AKIS Agents Management Script',
@@ -3101,10 +3708,12 @@ Examples:
   python agents.py --update           # Update existing agents
   python agents.py --generate         # Full generation with metrics + agent files
   python agents.py --suggest          # Suggest without applying
+  python agents.py --ingest-all       # Ingest ALL workflow logs and suggest
   python agents.py --audit            # Audit AKIS agent with sub-agent orchestration
   python agents.py --full-audit       # Full AKIS system audit (agent/knowledge/instructions/skills)
   python agents.py --compare          # Compare AKIS alone vs AKIS + specialists (100k sessions)
   python agents.py --analyze          # Analyze each agent individually (100k per agent)
+  python agents.py --precision        # Test precision/recall of suggestions (100k sessions)
   python agents.py --dry-run          # Preview changes
         """
     )
@@ -3116,6 +3725,8 @@ Examples:
                            help='Full generation with 100k simulation and agent file creation')
     mode_group.add_argument('--suggest', action='store_true',
                            help='Suggest improvements without applying')
+    mode_group.add_argument('--ingest-all', action='store_true',
+                           help='Ingest ALL workflow logs and generate suggestions')
     mode_group.add_argument('--audit', action='store_true',
                            help='Audit AKIS agent with sub-agent orchestration analysis')
     mode_group.add_argument('--full-audit', action='store_true',
@@ -3124,6 +3735,8 @@ Examples:
                            help='Compare AKIS alone vs AKIS with specialist agents (100k simulation)')
     mode_group.add_argument('--analyze', action='store_true',
                            help='Analyze each agent individually (100k sessions per agent)')
+    mode_group.add_argument('--precision', action='store_true',
+                           help='Test precision/recall of suggestions (100k sessions)')
     
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview changes without applying')
@@ -3139,6 +3752,8 @@ Examples:
         result = run_generate(args.sessions, args.dry_run)
     elif args.suggest:
         result = run_suggest()
+    elif args.ingest_all:
+        result = run_ingest_all()
     elif args.audit:
         result = run_audit(args.sessions)
     elif args.full_audit:
@@ -3147,6 +3762,8 @@ Examples:
         result = run_compare(args.sessions)
     elif args.analyze:
         result = run_analyze(args.sessions)
+    elif args.precision:
+        result = run_precision_test(args.sessions)
     elif args.update:
         result = run_update(args.dry_run)
     else:

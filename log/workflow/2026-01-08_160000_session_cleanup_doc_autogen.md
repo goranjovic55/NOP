@@ -1,3 +1,35 @@
+---
+session:
+  id: "2026-01-08_session_cleanup_doc_autogen"
+  date: "2026-01-08"
+  complexity: complex
+  domain: backend_only
+
+skills:
+  loaded: [backend-api, testing, documentation, akis-development]
+  suggested: []
+
+files:
+  modified:
+    - {path: ".github/scripts/session_cleanup.py", type: py, domain: backend}
+    - {path: ".github/scripts/update_docs.py", type: py, domain: backend}
+    - {path: ".github/copilot-instructions.md", type: md, domain: docs}
+    - {path: ".github/instructions/protocols.instructions.md", type: md, domain: docs}
+    - {path: ".github/agents/akis.agent.md", type: md, domain: docs}
+  types: {py: 2, md: 4}
+
+agents:
+  delegated: []
+
+gates:
+  passed: [G1, G2, G3, G4, G5, G6]
+  violations: []
+
+root_causes: []
+
+gotchas: []
+---
+
 # Session Cleanup & Doc Autogen Scripts | 2026-01-08
 
 ## Summary

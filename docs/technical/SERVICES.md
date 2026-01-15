@@ -1,6 +1,12 @@
-# Backend Services
+---
+title: Backend Services
+type: reference
+category: technical
+auto_generated: true
+last_updated: 2026-01-14
+---
 
-**Category**: technical | **Auto-generated**: yes
+# Backend Services
 
 ## Overview
 

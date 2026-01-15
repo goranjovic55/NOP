@@ -1,56 +1,83 @@
-# Planning Skill v7.1
+---
+name: planning
+description: Load for new features, design tasks, and architecture decisions. Provides structured workflow for UNDERSTAND → RESEARCH → DESIGN → HANDOFF phases.
+---
 
-> For new features, design tasks, and architecture
+# Planning
 
-## Triggers
-- "new feature", "implement", "add functionality"
-- "design", "architect", "plan"
+## Merged Skills
+- **requirements**: Clarifying scope, boundaries, acceptance criteria
+- **architecture**: High-level design decisions, component structure
 
 ## ⚠️ Critical Gotchas
-- **Blueprint before code:** NEVER implement without design doc
-- **Research auto-chains:** Don't skip - improves resolution by 4.9%
-- **Scope creep:** Define boundaries in blueprint, stick to them
-- **Complexity check:** Complex (6+ files) → MUST use planning
 
-## Workflow
-1. **UNDERSTAND** - Clarify requirements, scope
-2. **RESEARCH** - ⚡ Auto-chain: Load [research skill](../research/SKILL.md)
-3. **DESIGN** - Create blueprint in `.project/blueprints/`
-4. **VALIDATE** - Review approach against research findings
-5. **HANDOFF** - Transition to BUILD phase
-
-## Research Integration
-```
-UNDERSTAND → research skill (GATHER→ANALYZE→SYNTHESIZE) → DESIGN
-```
-- Research skill runs automatically during phase 2
-- Findings inform DESIGN decisions
-- Skip research only if trivial change
-
-## Blueprint Template
-```markdown
-# Feature: {name}
-
-## Scope
-- Goal:
-- Files:
-- Dependencies:
-
-## Design
-- Approach:
-- Components:
-- Data flow:
-
-## Tasks
-1. [ ] Task 1
-2. [ ] Task 2
-
-## Risks
--
-```
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| Premature code | Implementing without design | Create blueprint FIRST in `.project/` |
+| External first | Searching web before local | Check docs/ + codebase BEFORE external |
+| Scope creep | Expanding beyond boundaries | Define scope in blueprint, stick to it |
+| Complexity | Underestimating 6+ file changes | Complex tasks MUST use planning phase |
+| Handoff | No clear transition to BUILD | End planning with task list + skill annotations |
 
 ## Rules
-- Create blueprint BEFORE implementing
-- Keep blueprints in `.project/blueprints/`
-- Update blueprint as design evolves
-- Reference blueprint in workflow log
+
+| Rule | Pattern |
+|------|---------|
+| Blueprint first | Create `.project/{feature}.md` before any code |
+| Local research | grep docs/ + codebase before external search |
+| Scope boundaries | Define what's IN and OUT in blueprint |
+| Task decomposition | Break into <3 file tasks where possible |
+| Skill annotation | Tag tasks with `[skill-name]` for BUILD phase |
+
+## Avoid
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| Start coding immediately | Create blueprint first |
+| Research externally first | Check local docs/ first |
+| Undefined scope | Explicit IN/OUT boundaries |
+| Monolithic tasks | Decomposed to <3 files each |
+| Untracked design changes | Update blueprint as design evolves |
+
+## Patterns
+
+```markdown
+# Blueprint: {Feature Name}
+
+## Scope
+- **Goal:** One sentence describing outcome
+- **IN:** What this feature includes
+- **OUT:** What this feature excludes
+- **Files:** Estimated file count and locations
+
+## Design
+- **Approach:** High-level solution strategy
+- **Components:** Key parts and their responsibilities
+- **Dependencies:** External services, libraries, other features
+
+## Tasks
+1. [ ] Task description [backend-api]
+2. [ ] Task description [frontend-react]
+3. [ ] Task description [testing]
+
+## Research Notes
+- {Finding 1}
+- {Finding 2}
+```
+
+## Workflow
+
+| Phase | Action | Output |
+|-------|--------|--------|
+| UNDERSTAND | Clarify requirements, ask questions | Clear scope statement |
+| RESEARCH | Local first, then external | Research notes in blueprint |
+| DESIGN | Create blueprint with approach | `.project/{feature}.md` |
+| HANDOFF | Transition to BUILD phase | Task list with skills |
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Create blueprint | `touch .project/{feature}.md` |
+| Find existing patterns | `grep -r "pattern" docs/ backend/ frontend/` |
+| Check similar features | `ls .project/` |

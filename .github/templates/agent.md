@@ -1,75 +1,60 @@
 ---
 name: {agent-name}
-description: {Brief description of what the agent does}
+description: '{Brief description of what the agent does and when to use it. 10-500 chars.}'
+tools: ['read', 'edit', 'search', 'execute']
 ---
 
-# {agent-name} - AKIS Specialist Agent
+# {Agent Name} Agent
 
-> `@{agent-name}` in GitHub Copilot Chat
-
----
-
-## Identity
-
-You are **{agent-name}**, a specialist agent for {description}. You work under AKIS orchestration via `runsubagent`.
-
----
-
-## Description
-{description}
-
-## Type
-{worker|specialist}
-
-## Orchestration Role
-**{Worker|Specialist}** - {brief role description}
-
-| Relationship | Details |
-|--------------|---------|
-| Called by | AKIS via `#runsubagent {agent-name}` |
-| Returns to | AKIS (always) |
-| Chain-calls | **None** - Specialists do NOT call other agents |
-
-### How AKIS Calls This Agent
-```
-#runsubagent {agent-name} {example task 1}
-#runsubagent {agent-name} {example task 2}
-```
-
-### Return Protocol
-When task is complete, return results to AKIS. If the task reveals a need for another specialist, report this to AKIS rather than calling the specialist directly.
-
----
+> `@{agent-name}` | {Short tagline describing primary action}
 
 ## Triggers
-- `{trigger1}`
-- `{trigger2}`
-- `{trigger3}`
 
-## Skills
-- `.github/skills/{skill1}/SKILL.md`
-- `.github/skills/{skill2}/SKILL.md`
+| Pattern | Type |
+|---------|------|
+| {keyword1}, {keyword2} | Keywords |
+| {.ext1}, {.ext2} | Extensions |
+| {folder1/}, {folder2/} | Directories |
 
-## Optimization Targets
-- {target1}
-- {target2}
-- {target3}
+## Methodology (⛔ REQUIRED ORDER)
+1. **{PHASE1}** - {What to do in this phase}
+2. **{PHASE2}** - {What to do in this phase}
+3. **{PHASE3}** - {What to do in this phase}
+4. **{VERIFY}** - {Verification step}
 
----
+## Rules
 
-## ⚡ Optimization Rules
+| Rule | Requirement |
+|------|-------------|
+| {Rule1} | {What must be done} |
+| {Rule2} | {What must be done} |
 
-1. **Minimize API Calls**: Batch operations, use cached knowledge
-2. **Reduce Token Usage**: Focus prompts, avoid redundant context
-3. **Fast Resolution**: Direct action, skip unnecessary exploration
-4. **Workflow Discipline**: Follow AKIS protocols, report back to caller
-5. **Knowledge First**: Check project_knowledge.json before file reads
+## Output Format
+```markdown
+## {Task Type}: [Description]
+### Files: path/file.ext (change summary)
+### Verification: ✓ check1 | ✓ check2
+[RETURN] ← {agent-name} | result: ✓ | files: N
+```
 
----
+## ⚠️ Gotchas
+- {Common issue 1} | {How to handle}
+- {Common issue 2} | {How to handle}
 
-## Configuration
-| Setting | Value |
-|---------|-------|
-| Max Tokens | 4000 |
-| Temperature | 0.1 |
-| Effectiveness Score | 0.95 |
+## ⚙️ Optimizations
+- **{Optimization1}**: {Description of efficiency improvement}
+- **{Optimization2}**: {Description of efficiency improvement}
+
+## Orchestration
+
+| From | To |
+|------|----|
+| AKIS, {caller-agents} | AKIS |
+
+## Handoffs (Optional)
+```yaml
+handoffs:
+  - label: {Next Step Button Text}
+    agent: {target-agent}
+    prompt: '{Pre-filled prompt for next agent}'
+```

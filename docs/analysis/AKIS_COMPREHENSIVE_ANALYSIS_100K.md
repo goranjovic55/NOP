@@ -1,8 +1,17 @@
+---
+title: AKIS Comprehensive Analysis (100k Sessions)
+type: analysis
+date: 2026-01-10
+author: Automated
+status: final
+scope: Framework metrics analysis across 100,000 sessions
+last_updated: 2026-01-14
+---
+
 # AKIS Framework Comprehensive Analysis (100k Sessions)
 
-> Generated: 2026-01-10
-> Simulation Engine: `.github/scripts/simulation.py --framework-analysis`
-> Total Sessions: 100,000
+> **Simulation Engine:** `.github/scripts/simulation.py --framework-analysis`  
+> **Total Sessions:** 100,000
 
 ## Executive Summary
 

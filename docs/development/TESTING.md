@@ -1,3 +1,10 @@
+---
+title: Testing Guide
+type: guide
+category: development
+last_updated: 2026-01-14
+---
+
 # Testing Guide - NOP
 
 Comprehensive guide for testing the Network Observatory Platform.

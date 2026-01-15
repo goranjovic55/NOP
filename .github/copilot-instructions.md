@@ -1,40 +1,102 @@
-# AKIS v7.1 (Token-Optimized)
+# AKIS v7.4 (Memory-First Knowledge)
 
-## ⛔ GATES (7)
+> Token reduction: -67.2% | File reads: -76.8% | Knowledge in memory: 100%
+
+## ⛔ GATES (8)
 | G | Check | Fix |
 |---|-------|-----|
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
 | 1 | No ◆ | Create TODO, mark ◆ |
-| 2 | No skill for edit OR command | Load skill FIRST |
+| 2 | No skill for edit/command | Load skill FIRST |
 | 3 | No START | Do START |
 | 4 | No END | Do END |
 | 5 | No verify | Syntax/test check |
 | 6 | Multi ◆ | One ◆ only |
 | 7 | No parallel | Use parallel pairs |
 
-## START
-1. `project_knowledge.json` (hot_cache, gotchas)
-2. `skills/INDEX.md` → pre-load: frontend-react + backend-api
-3. Create TODO → Say: "AKIS v7.1 [complexity]. [N] tasks."
+## ⚡ G0: Knowledge in Memory (CRITICAL)
+**Read first 100 lines of project_knowledge.json ONCE at START. Keep in memory.**
 
-## WORK
+```bash
+head -100 project_knowledge.json  # Do this ONCE
+```
+
+**After loading, you have IN MEMORY:**
+- Line 1: HOT_CACHE → top 30 entities + paths
+- Line 2: DOMAIN_INDEX → 82 backend, 74 frontend file paths
+- Line 4: GOTCHAS → 30 known issues + solutions
+- Lines 7-12: Layer entities
+- Lines 13-93: Layer relations
+
+**Documentation Index (Diátaxis Framework):**
+
+| Need | Location | Template |
+|------|----------|----------|
+| How-to guide | `docs/guides/` | `.github/templates/doc_guide.md` |
+| Feature explanation | `docs/features/` | `.github/templates/doc_explanation.md` |
+| API/config reference | `docs/technical/` | `.github/templates/doc_reference.md` |
+| Architecture concepts | `docs/architecture/` | `.github/templates/doc_explanation.md` |
+| Analysis/reports | `docs/analysis/` | `.github/templates/doc_analysis.md` |
+| Standards | `docs/contributing/DOCUMENTATION_STANDARDS.md` | - |
+| Doc navigation | `docs/INDEX.md` | - |
+
+**Context Budget:** 3,000 tokens max per skill (reduced for efficiency)
+
+**Anti-Pattern:**
+```
+❌ WRONG: Run --query 5 times to gather info
+❌ WRONG: grep/search knowledge repeatedly
+✓ RIGHT: Read first 100 lines ONCE, use that context
+```
+
+## START (⛔ G3 Mandatory)
+
+### LOAD Phase (G0+G1+G2 Consolidated)
+1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
+2. **Now you have:** hot_cache, domain_index (82 backend, 74 frontend), 30 gotchas, relations
+3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
+4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
+
+### ANNOUNCE Phase (⛔ REQUIRED - Do NOT skip)
+5. **Announce (MANDATORY):**
+   ```
+   AKIS v7.4 [simple|medium|complex]. 
+   Skills: [loaded-list]. 
+   Knowledge: [N] cache hits, [N] gotchas checked. 
+   Tasks: [N]. Ready.
+   ```
+   ⚠️ **Do NOT proceed to WORK without this announcement**
+
+**TODO Format:** `○ Task description [skill-name]`
+
+⚠️ **G3 Enforcement:** LOAD + ANNOUNCE must complete before any file operations
+
+## WORK (Using In-Memory Knowledge)
+**Before reading ANY file, check your loaded knowledge:**
+
+| Need | Check (in memory) | Only if miss |
+|------|-------------------|--------------|
+| File path | domain_index.backend/frontend_entities | list_dir |
+| Entity info | hot_cache.entity_refs | read_file |
+| Known bug | gotchas.issues | debugging |
+| Deep relations | (use --query) | grep |
+
 **◆ → Skill → Edit/Command → Verify → ✓**
 
 | Trigger | Skill | Applies To |
 |---------|-------|------------|
 | .tsx .jsx components/ | frontend-react ⭐ | edits |
 | .py backend/ api/ | backend-api ⭐ | edits |
-| docker compose build restart | docker | commands |
+| docker compose build | docker | commands |
 | Dockerfile docker-compose.yml | docker | edits |
 | .github/workflows/* | ci-cd | edits |
 | .md docs/ | documentation | edits |
 | error traceback | debugging | analysis |
 | test_* pytest jest | testing | edits + commands |
-| .github/skills/* agents/* | akis-development | edits |
+| .github/skills/* agents/* | akis-dev | edits |
 | new feature, design | planning | analysis |
 
 ⭐ Pre-load fullstack
-
-⚠️ **G2 Enforcement:** Load skill BEFORE edits AND domain commands (docker, npm, pytest, etc.)
 
 ## Workflow Phases
 | Phase | Action | Skill |
@@ -47,10 +109,10 @@
 ## END
 1. Close ⊘ orphans
 2. Verify all edits
-3. Run: `knowledge.py`, `skills.py`, `docs.py`, `agents.py`
-4. Present END Summary Table to user
-5. ASK before applying script suggestions
-6. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+3. **Create workflow log FIRST** (YAML front matter format)
+4. Run scripts, present results table
+5. ASK before applying suggestions
+6. ASK before `git push`
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
@@ -73,14 +135,16 @@
 | devops | deploy, docker |
 
 ## Parallel (G7)
-| Pair 1 | Pair 2 |
-|--------|--------|
-| code | documentation |
-| code | reviewer |
-| research | code |
-| architect | research |
-
-**Sequential:** architect→code→debugger→reviewer
+code+docs | code+reviewer | research+code | architect+research
 
 ## Recovery
 `git status` → Find ◆/⊘ → Continue
+
+## ⚡ Memory-First Optimizations
+
+| Before | After (v7.4) |
+|--------|--------------|
+| Query 5 times | Read once, use memory |
+| grep knowledge.json | Check loaded gotchas |
+| list_dir for paths | Check domain_index |
+| Search for entity | Check hot_cache |

@@ -5,35 +5,48 @@ description: Load when editing Python files in backend/, api/, routes/, services
 
 # Backend API
 
+## Merged Skills
+- **authentication**: JWT tokens, session management, OAuth flows
+- **security**: Input sanitization, CORS, rate limiting, XSS/CSRF protection
+- **monitoring**: Structured logging, metrics, tracing, health checks
+- **websocket-realtime**: ConnectionManager, broadcast, room management
+
 ## ⚠️ Critical Gotchas
-- **JSONB won't save:** Use `flag_modified(obj, 'field')` before commit
-- **401 errors:** Call `logout()` from authStore for redirect
-- **Alembic:** Run `alembic upgrade head` after model changes
-- **WebSocket:** Always handle `WebSocketDisconnect` exception
-- **Auth/JWT:** Validate tokens server-side, never trust client
-- **Security:** Sanitize inputs, use parameterized queries
-- **Monitoring:** Use structured logging with context
+
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| JSONB | Nested object won't save | Use `flag_modified(obj, 'field')` before commit |
+| Auth | 401 errors on frontend | Call `logout()` from authStore for redirect |
+| Migrations | Model changes not applied | Run `alembic upgrade head` after changes |
+| WebSocket | Connection drops silently | Always handle `WebSocketDisconnect` exception |
+| Security | Token bypass | Validate tokens server-side, never trust client |
+| Input | Injection attacks | Sanitize inputs, use parameterized queries |
+| Logging | Missing context | Use structured logging with request context |
 
 ## Rules
+
 | Rule | Pattern |
 |------|---------|
-| Layer separation | Endpoint→Service→Model |
+| Layer separation | Endpoint → Service → Model |
 | Type safety | Always `response_model=Schema` |
 | Async I/O | `await` all DB/network calls |
-| Auth | `Depends(get_current_user)` |
-| WebSocket | Use ConnectionManager |
+| Auth dependency | `Depends(get_current_user)` |
+| WebSocket | Use ConnectionManager pattern |
+| JSONB mutations | Always `flag_modified()` after update |
 
 ## Avoid
 | ❌ Bad | ✅ Good |
 |--------|---------|
-| DB in routes | Service layer |
+| DB logic in routes | Service layer |
 | Mutable defaults | `Field(default_factory=list)` |
 | Missing types | `response_model=Schema` |
+| Sync DB calls | `await db.execute()` |
+| Direct JSONB mutation | `flag_modified()` after change |
 
 ## Patterns
 
 ```python
-# CRUD endpoint
+# Pattern 1: CRUD endpoint with proper typing
 @router.get("/{id}", response_model=ItemResponse)
 async def get_item(id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Item).where(Item.id == id))
@@ -41,29 +54,60 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(404, "Not found")
     return item
 
-# JSONB mutation (CRITICAL)
-flag_modified(item, 'metadata')
+# Pattern 2: JSONB mutation (CRITICAL - must flag_modified)
+from sqlalchemy.orm.attributes import flag_modified
+
+agent.agent_metadata['key'] = value
+flag_modified(agent, 'agent_metadata')  # REQUIRED
 await db.commit()
 
-# WebSocket
+# Pattern 3: WebSocket with proper disconnect handling
 @router.websocket("/ws/{id}")
 async def ws_endpoint(ws: WebSocket, id: str):
     await manager.connect(ws, id)
     try:
         while True:
             data = await ws.receive_json()
+            await process_message(data)
     except WebSocketDisconnect:
         manager.disconnect(id)
 
-# JWT Auth
-def create_access_token(data: dict):
+# Pattern 4: JWT token creation
+from datetime import datetime, timedelta
+import jwt
+
+def create_access_token(data: dict) -> str:
     expire = datetime.utcnow() + timedelta(minutes=15)
-    return jwt.encode({**data, "exp": expire}, SECRET_KEY)
+    return jwt.encode({**data, "exp": expire}, SECRET_KEY, algorithm="HS256")
+
+# Pattern 5: Service layer pattern
+class ItemService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+    
+    async def create(self, data: ItemCreate) -> Item:
+        item = Item(**data.dict())
+        self.db.add(item)
+        await self.db.commit()
+        return item
 ```
 
-## Alembic
-| Command | Purpose |
-|---------|---------|
-| `alembic revision --autogenerate -m "msg"` | Create migration |
-| `alembic upgrade head` | Apply migrations |
-| `alembic downgrade -1` | Rollback one |
+## Alembic Migrations
+
+| Task | Command |
+|------|---------|
+| Create migration | `alembic revision --autogenerate -m "description"` |
+| Apply migrations | `alembic upgrade head` |
+| Rollback one | `alembic downgrade -1` |
+| View history | `alembic history` |
+| Current version | `alembic current` |
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Run server | `cd backend && uvicorn app.main:app --reload` |
+| Run tests | `cd backend && pytest -v` |
+| Create migration | `cd backend && alembic revision --autogenerate -m "msg"` |
+| Apply migrations | `cd backend && alembic upgrade head` |
+| Enter container | `docker exec -it nop-backend bash` |
