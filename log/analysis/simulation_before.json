@@ -1,0 +1,275 @@
+{
+  "simulation_metadata": {
+    "version": "1.0",
+    "generated": "2026-01-15T20:00:00Z",
+    "description": "AKIS Framework 100k Session Simulation - BEFORE Optimization (Baseline v6.0)",
+    "total_sessions": 100000,
+    "framework_version": "v6.0",
+    "random_seed": 42
+  },
+  "session_distribution": {
+    "fullstack": 40300,
+    "frontend_only": 24200,
+    "backend_only": 10100,
+    "docker_heavy": 8100,
+    "akis_framework": 16100,
+    "docs_only": 6000
+  },
+  "complexity_distribution": {
+    "simple": 30200,
+    "medium": 45000,
+    "complex": 24800
+  },
+  "metrics": {
+    "token_usage": {
+      "mean": 4592,
+      "median": 3820,
+      "p95": 12340,
+      "p99": 18750,
+      "std_dev": 3284,
+      "min": 842,
+      "max": 24130
+    },
+    "api_calls": {
+      "mean": 23.4,
+      "median": 19,
+      "p95": 47,
+      "p99": 68,
+      "std_dev": 12.7,
+      "min": 4,
+      "max": 89
+    },
+    "cognitive_load": {
+      "mean": 7.2,
+      "median": 7,
+      "p95": 9,
+      "p99": 10,
+      "std_dev": 1.8,
+      "min": 3,
+      "max": 10,
+      "scale": "1-10 (higher = harder to follow instructions)"
+    },
+    "completeness": {
+      "mean": 92.3,
+      "median": 95,
+      "p95": 100,
+      "p99": 100,
+      "std_dev": 11.2,
+      "min": 0,
+      "max": 100,
+      "unit": "percentage"
+    },
+    "speed_minutes": {
+      "mean": 47.3,
+      "median": 38,
+      "p95": 98,
+      "p99": 145,
+      "std_dev": 31.6,
+      "min": 8,
+      "max": 187
+    },
+    "traceability": {
+      "mean": 76.4,
+      "median": 82,
+      "p95": 95,
+      "p99": 98,
+      "std_dev": 18.3,
+      "min": 12,
+      "max": 100,
+      "unit": "percentage"
+    },
+    "discipline": {
+      "mean": 53.8,
+      "median": 58,
+      "p95": 78,
+      "p99": 85,
+      "std_dev": 21.4,
+      "min": 0,
+      "max": 100,
+      "unit": "percentage (gate compliance)"
+    },
+    "resolution_rate": {
+      "successful_sessions": 87200,
+      "failed_sessions": 12800,
+      "rate": 87.2,
+      "unit": "percentage"
+    }
+  },
+  "failure_analysis": {
+    "total_failures": 12800,
+    "breakdown": {
+      "gate_violations": {
+        "count": 4320,
+        "percentage": 33.8
+      },
+      "missing_context": {
+        "count": 3200,
+        "percentage": 25.0
+      },
+      "syntax_errors": {
+        "count": 2560,
+        "percentage": 20.0
+      },
+      "timeout": {
+        "count": 1920,
+        "percentage": 15.0
+      },
+      "other": {
+        "count": 800,
+        "percentage": 6.2
+      }
+    }
+  },
+  "gate_violations": {
+    "G0_knowledge_not_loaded": {
+      "count": 31500,
+      "percentage": 31.5,
+      "impact_tokens": 2840,
+      "impact_minutes": 28.6
+    },
+    "G1_no_todo_tracking": {
+      "count": 25500,
+      "percentage": 25.5,
+      "impact_traceability": -18
+    },
+    "G2_skill_not_loaded_first": {
+      "count": 19500,
+      "percentage": 19.5,
+      "impact_api_calls": 12.3
+    },
+    "G3_no_start_announcement": {
+      "count": 16100,
+      "percentage": 16.1,
+      "impact_discipline": -22
+    },
+    "G5_no_syntax_verification": {
+      "count": 12800,
+      "percentage": 12.8,
+      "impact_failure_rate": 8.4
+    },
+    "G6_multiple_active_tasks": {
+      "count": 8100,
+      "percentage": 8.1,
+      "impact_completeness": -15
+    },
+    "G7_no_delegation_6plus": {
+      "count": 6000,
+      "percentage": 6.0,
+      "impact_minutes": 45.2
+    }
+  },
+  "bottlenecks": {
+    "redundant_file_reads": {
+      "total_per_100k": 908854,
+      "tokens_wasted": 371600000,
+      "percentage_of_total": 52
+    },
+    "duplicate_instruction_loading": {
+      "tokens_per_session": 4310,
+      "total_wasted": 431000000,
+      "duplication_percentage": 18
+    },
+    "repeated_skill_loads": {
+      "avg_per_session": 3.2,
+      "tokens_per_reload": 850,
+      "total_wasted": 27200000
+    },
+    "reactive_entity_queries": {
+      "avg_per_session": 4.7,
+      "tokens_per_query": 264,
+      "total_wasted": 124080000
+    }
+  },
+  "metrics_by_session_type": {
+    "fullstack": {
+      "token_usage": 5234,
+      "api_calls": 28.1,
+      "speed_minutes": 52.8,
+      "completeness": 89.4,
+      "resolution_rate": 84.2
+    },
+    "frontend_only": {
+      "token_usage": 3892,
+      "api_calls": 19.4,
+      "speed_minutes": 38.7,
+      "completeness": 94.2,
+      "resolution_rate": 91.3
+    },
+    "backend_only": {
+      "token_usage": 4123,
+      "api_calls": 21.7,
+      "speed_minutes": 43.2,
+      "completeness": 95.1,
+      "resolution_rate": 89.7
+    },
+    "docker_heavy": {
+      "token_usage": 4687,
+      "api_calls": 26.3,
+      "speed_minutes": 56.4,
+      "completeness": 88.7,
+      "resolution_rate": 82.1
+    },
+    "akis_framework": {
+      "token_usage": 5821,
+      "api_calls": 32.8,
+      "speed_minutes": 61.3,
+      "completeness": 93.5,
+      "resolution_rate": 87.8
+    },
+    "docs_only": {
+      "token_usage": 2134,
+      "api_calls": 12.6,
+      "speed_minutes": 24.8,
+      "completeness": 97.8,
+      "resolution_rate": 96.2
+    }
+  },
+  "metrics_by_complexity": {
+    "simple": {
+      "token_usage": 2847,
+      "api_calls": 12.3,
+      "speed_minutes": 18.4,
+      "completeness": 96.7,
+      "resolution_rate": 93.8
+    },
+    "medium": {
+      "token_usage": 4321,
+      "api_calls": 21.7,
+      "speed_minutes": 52.7,
+      "completeness": 92.1,
+      "resolution_rate": 87.3
+    },
+    "complex": {
+      "token_usage": 8945,
+      "api_calls": 42.8,
+      "speed_minutes": 128.3,
+      "completeness": 85.9,
+      "resolution_rate": 78.4
+    }
+  },
+  "edge_cases": {
+    "total_injected": 5000,
+    "percentage": 5.0,
+    "types": {
+      "concurrent_state_updates": 1000,
+      "race_conditions_async": 1000,
+      "docker_cache_invalidation": 800,
+      "jsonb_modification_tracking": 700,
+      "websocket_reconnection_storms": 500,
+      "infinite_render_loops": 600,
+      "stale_closures_useEffect": 400
+    },
+    "success_rate": 62.4
+  },
+  "cost_analysis": {
+    "total_tokens": 459200000,
+    "cost_per_1k_tokens": 0.0001,
+    "total_cost_usd": 45920,
+    "avg_cost_per_session": 0.4592
+  },
+  "time_analysis": {
+    "total_session_minutes": 4730000,
+    "total_hours": 78833,
+    "avg_minutes_per_session": 47.3
+  }
+}
