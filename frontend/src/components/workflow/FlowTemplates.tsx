@@ -400,18 +400,21 @@ interface FlowTemplatesProps {
   canSaveTemplate?: boolean;
 }
 
-// Smart layout algorithm to optimize block positions and prevent connection intersections
+/**
+ * Smart layout algorithm to minimize edge crossings
+ * Uses Sugiyama-style layered layout with crossing reduction
+ */
 const optimizeTemplateLayout = (nodes: Partial<WorkflowNode>[], edges: Partial<WorkflowEdge>[]): Partial<WorkflowNode>[] => {
   if (nodes.length === 0) return nodes;
   
-  // Calculate node dependencies
+  // Build node ID mapping (templates use 1-indexed string IDs)
   const nodeIdToIndex = new Map<string, number>();
   nodes.forEach((node, idx) => {
     const nodeId = node.id || `${idx + 1}`;
     nodeIdToIndex.set(nodeId, idx);
   });
   
-  // Build adjacency list for topological sort
+  // Build adjacency lists
   const outgoing = new Map<number, number[]>();
   const incoming = new Map<number, number[]>();
   nodes.forEach((_, idx) => {
@@ -428,63 +431,102 @@ const optimizeTemplateLayout = (nodes: Partial<WorkflowNode>[], edges: Partial<W
     }
   });
   
-  // Calculate levels using BFS (longest path for better layout)
-  const levels = new Map<number, number>();
-  const queue: number[] = [];
+  // Assign layers using longest path (handles cycles better)
+  const layers = new Map<number, number>();
+  const visited = new Set<number>();
+  const MAX_LAYER = 10;
   
-  // Find root nodes (no incoming edges)
+  // Find start nodes
+  const startNodes: number[] = [];
   nodes.forEach((_, idx) => {
     if ((incoming.get(idx)?.length || 0) === 0) {
-      levels.set(idx, 0);
-      queue.push(idx);
+      startNodes.push(idx);
     }
   });
   
-  // BFS to assign levels
+  // If no start nodes (all have incoming), use node 0
+  if (startNodes.length === 0 && nodes.length > 0) {
+    startNodes.push(0);
+  }
+  
+  // BFS to assign layers
+  const queue = startNodes.map(n => ({ node: n, layer: 0 }));
+  startNodes.forEach(n => layers.set(n, 0));
+  
   while (queue.length > 0) {
-    const current = queue.shift()!;
-    const currentLevel = levels.get(current) || 0;
+    const { node, layer } = queue.shift()!;
     
-    outgoing.get(current)?.forEach(next => {
-      const existingLevel = levels.get(next);
-      const newLevel = currentLevel + 1;
-      if (existingLevel === undefined || newLevel > existingLevel) {
-        levels.set(next, newLevel);
-        queue.push(next);
+    outgoing.get(node)?.forEach(next => {
+      const currentLayer = layers.get(next);
+      const newLayer = Math.min(layer + 1, MAX_LAYER);
+      
+      // Update layer if new path is longer (but avoid infinite loops)
+      if (currentLayer === undefined || (newLayer > currentLayer && !visited.has(next))) {
+        layers.set(next, newLayer);
+        visited.add(next);
+        queue.push({ node: next, layer: newLayer });
       }
     });
   }
   
-  // Group nodes by level
-  const levelNodes = new Map<number, number[]>();
+  // Group nodes by layer
+  const layerNodes = new Map<number, number[]>();
   nodes.forEach((_, idx) => {
-    const level = levels.get(idx) || 0;
-    if (!levelNodes.has(level)) {
-      levelNodes.set(level, []);
+    const layer = layers.get(idx) || 0;
+    if (!layerNodes.has(layer)) {
+      layerNodes.set(layer, []);
     }
-    levelNodes.get(level)!.push(idx);
+    layerNodes.get(layer)!.push(idx);
   });
   
-  // Calculate positions with optimized spacing
-  const HORIZONTAL_SPACING = 250;  // Space between columns
-  const VERTICAL_SPACING = 140;    // Space between rows
+  // Sort nodes within each layer to minimize crossings
+  // Use barycenter method: position based on average position of connected nodes
+  const sortedLayers = Array.from(layerNodes.keys()).sort((a, b) => a - b);
+  const positions = new Map<number, number>(); // vertical position within layer
+  
+  // Initialize positions for first layer
+  const firstLayer = sortedLayers[0];
+  layerNodes.get(firstLayer)?.forEach((nodeIdx, i) => {
+    positions.set(nodeIdx, i);
+  });
+  
+  // Sweep forward: order nodes based on predecessors
+  for (let i = 1; i < sortedLayers.length; i++) {
+    const currentLayerNodes = layerNodes.get(sortedLayers[i]) || [];
+    const barycenters: { idx: number; bc: number }[] = [];
+    
+    currentLayerNodes.forEach(nodeIdx => {
+      const predecessors = incoming.get(nodeIdx) || [];
+      if (predecessors.length > 0) {
+        const avg = predecessors.reduce((sum, p) => sum + (positions.get(p) || 0), 0) / predecessors.length;
+        barycenters.push({ idx: nodeIdx, bc: avg });
+      } else {
+        barycenters.push({ idx: nodeIdx, bc: positions.size });
+      }
+    });
+    
+    // Sort by barycenter
+    barycenters.sort((a, b) => a.bc - b.bc);
+    barycenters.forEach((item, pos) => {
+      positions.set(item.idx, pos);
+    });
+  }
+  
+  // Calculate final positions
+  const HORIZONTAL_SPACING = 220;
+  const VERTICAL_SPACING = 120;
   const START_X = 100;
   const START_Y = 50;
   
   const optimizedNodes = nodes.map((node, idx) => {
-    const level = levels.get(idx) || 0;
-    const nodesAtLevel = levelNodes.get(level) || [idx];
-    const positionInLevel = nodesAtLevel.indexOf(idx);
-    
-    // Center nodes vertically within their level
-    const totalHeight = (nodesAtLevel.length - 1) * VERTICAL_SPACING;
-    const startY = START_Y + (positionInLevel * VERTICAL_SPACING);
+    const layer = layers.get(idx) || 0;
+    const posInLayer = positions.get(idx) || 0;
     
     return {
       ...node,
       position: {
-        x: START_X + (level * HORIZONTAL_SPACING),
-        y: startY,
+        x: START_X + (layer * HORIZONTAL_SPACING),
+        y: START_Y + (posInLayer * VERTICAL_SPACING),
       },
     };
   });
@@ -541,12 +583,13 @@ const FlowTemplates: React.FC<FlowTemplatesProps> = ({
   // All templates (built-in + user)
   const allTemplates = useMemo(() => [...TEMPLATES, ...userTemplates], [userTemplates]);
 
-  // Handle template click - normal click inserts with optimized layout
+  // Handle template click - use original designed positions for clarity
+  // Templates have manually positioned nodes to show loops/branches intuitively
   const handleTemplateClick = useCallback((template: FlowTemplate, e: React.MouseEvent) => {
     e.preventDefault();
-    // Optimize layout before inserting
-    const optimizedNodes = optimizeTemplateLayout(template.nodes, template.edges);
-    onInsertTemplate(optimizedNodes, template.edges);
+    // Use original template positions - they are designed for visual clarity
+    // Loop nodes are positioned to the right, branches show true/false paths clearly
+    onInsertTemplate(template.nodes, template.edges);
   }, [onInsertTemplate]);
 
   // Handle right-click for selection (copy to clipboard)

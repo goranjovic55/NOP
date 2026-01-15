@@ -18,6 +18,8 @@ description: 'Workflow details: END phase, log format, fullstack coordination.'
 python .github/scripts/knowledge.py --update
 python .github/scripts/skills.py --suggest
 python .github/scripts/docs.py --suggest
+python .github/scripts/agents.py --suggest
+python .github/scripts/instructions.py --suggest
 ```
 
 **Step 4:** Present results table:
@@ -25,6 +27,9 @@ python .github/scripts/docs.py --suggest
 |--------|--------|
 | knowledge.py | X entities |
 | skills.py | X suggestions |
+| docs.py | X suggestions |
+| agents.py | X suggestions |
+| instructions.py | X suggestions |
 
 **Step 5:** ASK before applying suggestions
 

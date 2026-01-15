@@ -434,6 +434,9 @@ export const useWorkflowStore = create<WorkflowState>()(
       addNode: (node) => {
         set(state => ({
           nodes: [...state.nodes, node],
+          openTabs: state.openTabs.map(t =>
+            t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+          ),
         }));
       },
 
@@ -452,6 +455,9 @@ export const useWorkflowStore = create<WorkflowState>()(
           nodes: state.nodes.filter(n => n.id !== id),
           edges: state.edges.filter(e => e.source !== id && e.target !== id),
           selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
+          openTabs: state.openTabs.map(t =>
+            t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+          ),
         }));
       },
 
@@ -459,6 +465,9 @@ export const useWorkflowStore = create<WorkflowState>()(
       addEdge: (edge) => {
         set(state => ({
           edges: [...state.edges, edge],
+          openTabs: state.openTabs.map(t =>
+            t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+          ),
         }));
       },
 
@@ -466,14 +475,27 @@ export const useWorkflowStore = create<WorkflowState>()(
       removeEdge: (id) => {
         set(state => ({
           edges: state.edges.filter(e => e.id !== id),
+          openTabs: state.openTabs.map(t =>
+            t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+          ),
         }));
       },
 
-      // Canvas: Set all nodes
-      setNodes: (nodes) => set({ nodes }),
+      // Canvas: Set all nodes (marks dirty)
+      setNodes: (nodes) => set(state => ({
+        nodes,
+        openTabs: state.openTabs.map(t =>
+          t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+        ),
+      })),
 
-      // Canvas: Set all edges
-      setEdges: (edges) => set({ edges }),
+      // Canvas: Set all edges (marks dirty)
+      setEdges: (edges) => set(state => ({
+        edges,
+        openTabs: state.openTabs.map(t =>
+          t.workflowId === state.currentWorkflowId ? { ...t, isDirty: true } : t
+        ),
+      })),
 
       // Selection
       selectNode: (id) => {

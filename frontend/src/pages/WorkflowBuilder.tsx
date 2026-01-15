@@ -30,6 +30,7 @@ const WorkflowBuilder: React.FC = () => {
     setCurrentWorkflow,
     selectNode,
     updateNode,
+    createWorkflow,
     setExecution: setStoreExecution,
   } = useWorkflowStore();
 
@@ -150,10 +151,29 @@ const WorkflowBuilder: React.FC = () => {
     }
   };
 
-  const handleInsertTemplate = useCallback((templateNodes: any[], templateEdges: any[]) => {
-    if (!currentWorkflowId) {
-      console.warn('No workflow selected');
-      return;
+  const handleNewWorkflow = useCallback(async () => {
+    try {
+      const name = `Workflow ${workflows.length + 1}`;
+      await createWorkflow({ name, description: '' });
+      console.log('Created new workflow:', name);
+    } catch (error) {
+      console.error('Failed to create workflow:', error);
+    }
+  }, [createWorkflow, workflows.length]);
+
+  const handleInsertTemplate = useCallback(async (templateNodes: any[], templateEdges: any[]) => {
+    // Auto-create workflow if none selected
+    let workflowId = currentWorkflowId;
+    if (!workflowId) {
+      try {
+        const name = `Template Flow ${workflows.length + 1}`;
+        const newWorkflow = await createWorkflow({ name, description: '' });
+        workflowId = newWorkflow.id;
+        console.log('Auto-created workflow for template:', name);
+      } catch (error) {
+        console.error('Failed to create workflow for template:', error);
+        return;
+      }
     }
     
     // Generate unique IDs for nodes and edges
@@ -201,7 +221,7 @@ const WorkflowBuilder: React.FC = () => {
     
     console.log('Inserted template:', newNodes.length, 'nodes,', newEdges.length, 'edges');
     setShowTemplates(false);
-  }, [currentWorkflowId]);
+  }, [currentWorkflowId, workflows.length, createWorkflow]);
 
   const handleStartExecution = async () => {
     if (currentWorkflowId) {
@@ -235,7 +255,7 @@ const WorkflowBuilder: React.FC = () => {
               <option key={w.id} value={w.id}>{String(w.name)}</option>
             ))}
           </select>
-          <CyberButton variant="green" size="sm">+ NEW</CyberButton>
+          <CyberButton variant="green" size="sm" onClick={handleNewWorkflow}>+ NEW</CyberButton>
           <CyberButton 
             variant="purple" 
             size="sm" 

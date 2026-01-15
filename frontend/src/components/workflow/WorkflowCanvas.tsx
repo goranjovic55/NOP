@@ -1,5 +1,11 @@
 /**
  * WorkflowCanvas - React Flow canvas with debugging
+ * 
+ * Selection modes:
+ * - Left-click + drag: Pan the canvas
+ * - Shift + left-click + drag: Selection box
+ * - Right-click on node: Toggle multi-select
+ * - Click on node: Single select
  */
 
 import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
@@ -39,9 +45,8 @@ const cyberEdgeStyle = {
 const WorkflowCanvasInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  const [isRightClickSelecting, setIsRightClickSelecting] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false); // Shift key held
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set());
-  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   
   const { 
     nodes, 
@@ -107,6 +112,28 @@ const WorkflowCanvasInner: React.FC = () => {
     };
   }, [nodes, edges, selectedNodeId, selectedEdgeIds, removeNode, removeEdge, selectNode]);
 
+  // Track Shift key for selection mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setSelectionMode(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setSelectionMode(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   // Convert store nodes to React Flow format - merge execution status into node data
   const flowNodes = useMemo(() => {
     if (!Array.isArray(nodes)) return [];
@@ -146,15 +173,62 @@ const WorkflowCanvasInner: React.FC = () => {
 
   const flowEdges = useMemo(() => {
     if (!Array.isArray(edges)) return [];
-    return edges.map(edge => ({
-      ...edge,
-      animated: selectedEdgeIds.has(edge.id),
-      selected: selectedEdgeIds.has(edge.id),
-      style: selectedEdgeIds.has(edge.id) 
-        ? { stroke: '#f43f5e', strokeWidth: 3 } // Red highlight when selected
-        : cyberEdgeStyle,
-    }));
-  }, [edges, selectedEdgeIds]);
+    
+    // Get node statuses to determine which edges should be highlighted
+    const nodeStatuses = execution?.nodeStatuses || {};
+    const runningNodes = new Set(
+      Object.entries(nodeStatuses)
+        .filter(([_, status]) => status === 'running')
+        .map(([id]) => id)
+    );
+    const completedNodes = new Set(
+      Object.entries(nodeStatuses)
+        .filter(([_, status]) => status === 'completed')
+        .map(([id]) => id)
+    );
+    
+    return edges.map(edge => {
+      // Check if this edge is connected to the selected node
+      const isConnectedToSelected = selectedNodeId && 
+        (edge.source === selectedNodeId || edge.target === selectedNodeId);
+      
+      // Check if this edge is part of the execution flow
+      const sourceCompleted = completedNodes.has(edge.source);
+      const targetRunning = runningNodes.has(edge.target);
+      const targetCompleted = completedNodes.has(edge.target);
+      const isActiveEdge = sourceCompleted && (targetRunning || targetCompleted);
+      const isFlowingEdge = sourceCompleted && targetRunning;
+      
+      // Determine edge style based on state (priority: selected > connected > execution > default)
+      let edgeStyle = cyberEdgeStyle;
+      let animated = false;
+      
+      if (selectedEdgeIds.has(edge.id)) {
+        // Edge is directly selected (for deletion)
+        edgeStyle = { stroke: '#f43f5e', strokeWidth: 3 }; // Red when selected
+      } else if (isConnectedToSelected) {
+        // Edge is connected to selected node - highlight in purple/cyan
+        const isOutgoing = edge.source === selectedNodeId;
+        edgeStyle = { 
+          stroke: isOutgoing ? '#00d4ff' : '#a855f7', // Cyan for outgoing, purple for incoming
+          strokeWidth: 3 
+        };
+        animated = true; // Animate to make it more visible
+      } else if (isFlowingEdge) {
+        edgeStyle = { stroke: '#22c55e', strokeWidth: 3 }; // Green animated when flowing
+        animated = true;
+      } else if (isActiveEdge) {
+        edgeStyle = { stroke: '#22c55e', strokeWidth: 2 }; // Green solid when completed
+      }
+      
+      return {
+        ...edge,
+        animated,
+        selected: selectedEdgeIds.has(edge.id),
+        style: edgeStyle,
+      };
+    });
+  }, [edges, selectedEdgeIds, selectedNodeId, execution]);
 
   // Handle edge click - select for deletion
   const onEdgeClick = useCallback(
@@ -258,11 +332,9 @@ const WorkflowCanvasInner: React.FC = () => {
     setSelectedEdgeIds(new Set()); // Clear edge selection too
   }, [selectNode]);
 
-  // Handle right-click on pane - start selection mode
+  // Prevent context menu on canvas (we handle right-click on nodes separately)
   const onPaneContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setIsRightClickSelecting(true);
-    setSelectionStart({ x: e.clientX, y: e.clientY });
   }, []);
 
   // Handle right-click on node - toggle multi-select
@@ -301,7 +373,13 @@ const WorkflowCanvasInner: React.FC = () => {
   );
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full">
+    <div ref={reactFlowWrapper} className="w-full h-full relative">
+      {/* Selection mode indicator */}
+      {selectionMode && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1 bg-cyber-purple/80 text-white text-xs font-mono rounded">
+          SELECTION MODE (Shift + Drag)
+        </div>
+      )}
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}
@@ -319,9 +397,9 @@ const WorkflowCanvasInner: React.FC = () => {
         fitView
         snapToGrid
         snapGrid={[15, 15]}
-        selectionOnDrag={isRightClickSelecting}
+        selectionOnDrag={selectionMode}
         selectionMode={SelectionMode.Partial}
-        panOnDrag={true}
+        panOnDrag={!selectionMode}
         zoomOnScroll={true}
         panOnScroll={false}
         deleteKeyCode={null}
