@@ -1,0 +1,136 @@
+{
+  "simulation_info": {
+    "n_sessions": 100000,
+    "timestamp": "2026-01-15T18:15:59.900268",
+    "seed": 42
+  },
+  "baseline": {
+    "name": "baseline",
+    "total_sessions": 100000,
+    "avg_token_consumption": 15167.37803,
+    "avg_api_calls": 29.29588,
+    "avg_resolution_time": 29.744108220776845,
+    "avg_traceability": 0.46263399028557317,
+    "avg_precision": 0.648065275937372,
+    "avg_cognitive_load": 0.583251998320169,
+    "avg_completeness": 0.6202422759570511,
+    "success_rate": 0.81764,
+    "perfect_session_rate": 0.23486,
+    "compliance_scores": {
+      "tables_over_prose": 0.6499338154039187,
+      "actionable_steps": 0.7204187944301679,
+      "examples_included": 0.5794169179272826,
+      "gotchas_preserved": 0.7996636217831475,
+      "completeness": 0.6202422759570563,
+      "structured_todo_naming": 0.031765079084406546,
+      "delegation_discipline": 0.7000962403895605,
+      "parallel_execution": 0.2004098803634496
+    },
+    "overall_compliance": 0.5377433281673737,
+    "total_tokens": 1516737803,
+    "total_api_calls": 2929588,
+    "p50_resolution_time": 25.808292966420083,
+    "p95_resolution_time": 72.28526432392623,
+    "deviation_counts": {
+      "incomplete_todo_naming": 40329,
+      "skip_verification": 18023,
+      "skip_parallel_for_complex": 7016,
+      "skip_skill_loading": 15254,
+      "skip_delegation_for_complex": 4947,
+      "skip_knowledge_loading": 7989,
+      "skip_workflow_log": 21860,
+      "skip_todo_tracking": 11942
+    }
+  },
+  "compliant": {
+    "name": "compliant",
+    "total_sessions": 100000,
+    "avg_token_consumption": 10619.84289,
+    "avg_api_calls": 19.52117,
+    "avg_resolution_time": 21.028193404141682,
+    "avg_traceability": 0.9320297023794684,
+    "avg_precision": 0.901496317024489,
+    "avg_cognitive_load": 0.18669917078360307,
+    "avg_completeness": 0.8798709370231537,
+    "success_rate": 0.95007,
+    "perfect_session_rate": 0.6728,
+    "compliance_scores": {
+      "tables_over_prose": 0.9458054963171059,
+      "actionable_steps": 0.9190273765056604,
+      "examples_included": 0.8997469510509369,
+      "gotchas_preserved": 0.9459326007880511,
+      "completeness": 0.8798709370231503,
+      "structured_todo_naming": 0.9460052677375522,
+      "delegation_discipline": 0.8994927168267688,
+      "parallel_execution": 0.5999471800250227
+    },
+    "overall_compliance": 0.8794785657842811,
+    "total_tokens": 1061984289,
+    "total_api_calls": 1952117,
+    "p50_resolution_time": 19.408859215171113,
+    "p95_resolution_time": 48.88696659689038,
+    "deviation_counts": {
+      "skip_skill_loading": 4887,
+      "skip_workflow_log": 10014,
+      "skip_knowledge_loading": 2953,
+      "skip_verification": 7886,
+      "skip_delegation_for_complex": 1578,
+      "skip_parallel_for_complex": 2024,
+      "skip_todo_tracking": 3991,
+      "incomplete_todo_naming": 5115
+    }
+  },
+  "improvements": {
+    "token_consumption": 29.982341911735155,
+    "api_calls": 33.365476647228206,
+    "resolution_time": 29.302995914151914,
+    "traceability": 101.46157047478248,
+    "precision": 39.10578926182248,
+    "cognitive_load": 67.98996465998958,
+    "completeness": 41.85923325937246,
+    "success_rate": 16.196614647032916,
+    "overall_compliance": 63.549879601768225
+  },
+  "compliance_checks": {
+    "tables_over_prose": {
+      "description": "Uses tables instead of prose for documentation",
+      "baseline_compliance": 0.65,
+      "target_compliance": 0.95
+    },
+    "actionable_steps": {
+      "description": "All steps are concrete and actionable",
+      "baseline_compliance": 0.72,
+      "target_compliance": 0.92
+    },
+    "examples_included": {
+      "description": "Each pattern has at least one example",
+      "baseline_compliance": 0.58,
+      "target_compliance": 0.9
+    },
+    "gotchas_preserved": {
+      "description": "All gotchas are documented with solutions",
+      "baseline_compliance": 0.8,
+      "target_compliance": 0.95
+    },
+    "completeness": {
+      "description": "Agent can execute task with only this file",
+      "baseline_compliance": 0.62,
+      "target_compliance": 0.88
+    },
+    "structured_todo_naming": {
+      "description": "Uses [agent:phase:skill] format",
+      "baseline_compliance": 0.0,
+      "target_compliance": 0.95
+    },
+    "delegation_discipline": {
+      "description": "Proper delegation for complex tasks",
+      "baseline_compliance": 0.7,
+      "target_compliance": 0.9
+    },
+    "parallel_execution": {
+      "description": "Uses parallel execution when possible",
+      "baseline_compliance": 0.2,
+      "target_compliance": 0.6
+    }
+  }
+}

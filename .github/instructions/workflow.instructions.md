@@ -1,245 +1,70 @@
 ---
 applyTo: '**'
-description: 'AKIS workflow phases: START, WORK, END. Session management and logging.'
+description: 'Workflow details: END phase, log format, fullstack coordination.'
 ---
 
-# Workflow (Memory-First)
+# Workflow Details
 
-## When This Applies
-- Session start (START phase)
-- During task execution (WORK phase)
-- Session completion (END phase)
+> Core workflow in copilot-instructions.md. This file: END details + log format.
 
-## Phases
-| Phase | Actions |
-|-------|---------|
-| START | **Load Knowledge (100 lines)** → **Read skills/INDEX.md** → **manage_todo_list** → **Announce** |
-| WORK | Use in-memory knowledge → ◆ → Skill → Edit → Verify → ✓ |
-| END | Close ⊘ → **Create Log** → Scripts → Commit |
+## END Phase (Detailed)
 
-## ⛔ START Requirements (G3)
-1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
-2. **Now you have:** hot_cache, domain_index, gotchas, documentation_index, relations
-3. **Read `skills/INDEX.md`** → identify skills to load
-4. **Use `manage_todo_list` tool** → NOT text TODOs
-5. **Announce:** "AKIS v7.4 [complexity]. Skills: [list]. Knowledge loaded. [N] tasks. Ready."
+**Step 1:** Close ⊘ orphans, verify all edits
 
-## ⛔ G0: Knowledge in Memory
-```
-First 100 lines give you:
-├── Line 1: HOT_CACHE → top 30 entities + paths
-├── Line 2: DOMAIN_INDEX → 82 backend, 74 frontend paths
-├── Line 4: GOTCHAS → 30 known issues + solutions
-├── Lines 7-12: Layer entities (includes DOCUMENTATION_INDEX)
-└── Lines 13-93: Layer relations (caches, indexes, has_gotcha)
-```
+**Step 2:** Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
 
-**Documentation Index (Diátaxis Framework):**
-
-| Need | Location | Template |
-|------|----------|----------|
-| How-to guide | `docs/guides/` | `.github/templates/doc_guide.md` |
-| Feature explanation | `docs/features/` | `.github/templates/doc_explanation.md` |
-| API reference | `docs/technical/` | `.github/templates/doc_reference.md` |
-| Architecture | `docs/architecture/` | `.github/templates/doc_explanation.md` |
-| Analysis/reports | `docs/analysis/` | `.github/templates/doc_analysis.md` |
-| Standards | `docs/contributing/DOCUMENTATION_STANDARDS.md` | - |
-
-**Use in-memory knowledge:**
-- Need file path? → Check domain_index (in memory)
-- Hit error? → Check gotchas (in memory)
-- Need entity? → Check hot_cache (in memory)
-- Need doc location? → Check documentation_index (in memory)
-- Need deep relations? → THEN use --query (rare)
-
-## Symbols
-✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
-
-## TODO Rules
-1. Create before multi-step work
-2. **Annotate with skill:** `○ Task [skill-name]` when skill applies
-3. Mark ◆ BEFORE edit, ✓ AFTER verify
-4. Only ONE ◆ active
-
-## ⛔ Complex Session Handling (6+ tasks) - MANDATORY Delegation
-
-| Complexity | Strategy | Enforcement |
-|------------|----------|-------------|
-| Simple (<3) | Handle directly | Optional |
-| Medium (3-5) | Consider delegation | Suggest |
-| Complex (6+) | **MUST use runSubagent** | **MANDATORY** |
-
-### Step 1: Detect Complexity
-When `manage_todo_list` creates 6+ tasks → **Trigger delegation**
-
-### Step 2: Show Delegation Prompt (REQUIRED)
-```
-⚠️ Complex session (N tasks) - MANDATORY delegation
-Proposed delegation:
-- [task-group] → runSubagent(agentName="code")
-- [task-group] → runSubagent(agentName="documentation")
-Executing delegation...
-```
-
-### Step 3: Invoke runSubagent (REQUIRED)
-```python
-runSubagent(
-  agentName="code",
-  prompt="Implement [tasks]. Context: [files]. Return: modified files list.",
-  description="Implement feature"
-)
-```
-
-**Phase Grouping:**
-```
-## Phase 1: [domain] [skill] → runSubagent(agentName="X")
-⧖ Task 1.1 (delegated)
-⧖ Task 1.2 (delegated)
-
-## Phase 2: [domain] [skill] → runSubagent(agentName="Y")
-⧖ Task 2.1 (delegated)
-```
-
-**Parallel Execution (G7):** For complex sessions, invoke pairs:
-- `runSubagent("code")` + `runSubagent("documentation")` (parallel)
-- `runSubagent("research")` → `runSubagent("code")` (sequential)
-
-## Verification
-After EVERY edit:
-1. Syntax check
-2. Import validation
-3. Test if applicable
-4. Mark ✓
-
-## ⛔ END Phase (Strict Order)
-
-**Step 1: User Confirmation**
-- Say: "Ready for END phase. Confirm?"
-- Wait for user confirmation
-
-**Step 2: Create Workflow Log (BEFORE scripts)**
-- Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
-- Use YAML front matter format (see below)
-- Include: skills loaded, files modified, gotchas, root_causes
-
-⚠️ **root_causes Field (REQUIRED for debugging sessions):**
-```yaml
-root_causes:
-  - problem: "Exact error or issue description"
-    solution: "What fixed it"
-    skill: debugging  # or relevant skill
-```
-**If you fixed a bug, you MUST document the root cause.** This improves future debugging by 58%.
-
-**Step 3: Run END Scripts**
+**Step 3:** Run scripts:
 ```bash
 python .github/scripts/knowledge.py --update
 python .github/scripts/skills.py --suggest
 python .github/scripts/docs.py --suggest
-python .github/scripts/agents.py --suggest
-python .github/scripts/instructions.py --suggest
 ```
 
-**Step 4: Present Summary Table**
-| Metric | Value |
-|--------|-------|
-| Tasks | X/Y completed |
-| Files | X modified |
-| Knowledge | X entities merged |
-
-**Script Results Table (REQUIRED):**
+**Step 4:** Present results table:
 | Script | Output |
 |--------|--------|
-| knowledge.py | X entities merged |
+| knowledge.py | X entities |
 | skills.py | X suggestions |
-| docs.py | X suggestions |
-| agents.py | X suggestions |
-| instructions.py | X suggestions |
 
-**Step 5: Present Script Suggestions Table (REQUIRED)**
-Collect ALL suggestions from script output and present in table:
+**Step 5:** ASK before applying suggestions
 
-| Script | Suggestion | Priority | Action |
-|--------|------------|----------|--------|
-| skills.py | Create new skill: authentication | Medium | Apply/Skip |
-| docs.py | Update docs/technical/API_rest_v1.md | High | Apply/Skip |
-| agents.py | Enable documentation pre-loading | Low | Apply/Skip |
-| instructions.py | Add security_review instruction | High | Apply/Skip |
+**Step 6:** ASK before `git push`
 
-**Rules:**
-- Include EVERY suggestion from ALL scripts
-- Group by script name
-- Show actual suggestion text from output
-- ASK user: "Apply any suggestions?" before implementing
-
-**Step 6: Cleanup (Optional)**
-- Remove temporary files: `/tmp/*.py`, `/tmp/*.json`
-- Clean build artifacts if needed
-
-**Step 7: Commit & Push**
-- ⚠️ Always ASK user before `git push`. Never auto-push.
-
-## Workflow Log Format (YAML Front Matter)
+## Workflow Log Format
 
 ```yaml
 ---
 session:
-  id: "YYYY-MM-DD_task_name"
-  date: "YYYY-MM-DD"
-  complexity: medium  # simple | medium | complex
-  domain: fullstack   # frontend_only | backend_only | fullstack | docker_heavy
+  id: "YYYY-MM-DD_task"
+  complexity: medium  # simple|medium|complex
 
 skills:
   loaded: [skill1, skill2]
-  suggested: [skill3]
 
 files:
   modified:
-    - {path: "path/to/file.tsx", type: tsx, domain: frontend}
-  types: {tsx: 1, py: 1}
+    - {path: "file.tsx", domain: frontend}
 
 agents:
-  delegated:  # REQUIRED for 6+ task sessions
-    - {name: code, task: "Implement auth", result: success, tokens_saved: 5000}
-    - {name: documentation, task: "Update README", result: success, tokens_saved: 2000}
+  delegated:
+    - {name: code, task: "Task", result: success}
 
-gotchas:
-  - pattern: "Pattern that caused issue"
-    warning: "What went wrong"
-    solution: "How to fix"
-    applies_to: [skill-name]
-
-root_causes:
-  - problem: "Description"
-    solution: "How fixed"
-    skill: skill-name
-
-gates:
-  passed: [G1, G2, G3, G4, G5, G6]
-  violations: []
+root_causes:  # REQUIRED for debugging
+  - problem: "Error description"
+    solution: "Fix applied"
 ---
 
-# Session Log: Task Name
+# Session: Task Name
 
 ## Summary
 Brief description.
 
-## Tasks Completed
+## Tasks
 - ✓ Task 1
 - ✓ Task 2
 ```
 
-## Workflow Phases
-| Phase | Skill | Action |
-|-------|-------|--------|
-| PLAN | planning | Analyze, design, research |
-| BUILD | frontend/backend | Implement |
-| VERIFY | testing/debugging | Test, check |
-| DOCUMENT | documentation | Update docs |
-
-## Fullstack Sessions
-When editing both frontend + backend:
-1. Pre-load BOTH skills: `frontend-react` + `backend-api`
-2. Group by domain in phases
-3. Coordinate: API changes → Types → UI → Test
-4. Check: trailing slashes, CORS, state sync
+## Fullstack Coordination
+1. Pre-load: frontend-react + backend-api
+2. Order: API → Types → UI → Test
+3. Check: trailing slashes, CORS, state sync

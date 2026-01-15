@@ -55,10 +55,11 @@ Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytes
 - **Missing tests** | Add tests for new code
 
 ## ⚙️ Optimizations
-- **Documentation pre-loading**: Load relevant docs before implementation
-- **Test-aware mode**: Check existing tests, update when changing code
-- **Operation batching**: Group related file edits to reduce token usage
+- **Documentation pre-loading**: Load relevant docs before implementation ✓
+- **Test-aware mode**: Check existing tests, update when changing code ✓
+- **Operation batching**: Group related file edits to reduce token usage ✓
 - **Pattern reuse**: Check existing components before creating new
+- **Skills**: docker, documentation (auto-loaded when relevant)
 
 ## Orchestration
 

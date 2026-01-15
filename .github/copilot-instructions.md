@@ -1,208 +1,82 @@
-# AKIS v7.4 (Memory-First Knowledge)
+# AKIS v7.4
 
-> Token reduction: -67.2% | File reads: -76.8% | Knowledge in memory: 100%
-
-## ⛔ GATES (8)
+## Gates
 | G | Check | Fix |
 |---|-------|-----|
-| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
-| 1 | No ◆ | Create TODO, mark ◆ |
-| 2 | No skill for edit/command | Load skill FIRST |
+| 0 | No knowledge | `head -100 project_knowledge.json` ONCE |
+| 1 | No ◆ | `manage_todo_list` → mark ◆ |
+| 2 | No skill | Load skill FIRST |
 | 3 | No START | Do START |
 | 4 | No END | Do END |
-| 5 | No verify | Syntax/test check |
-| 6 | Multi ◆ | One ◆ only |
-| 7 | No parallel | Use parallel pairs |
+| 5 | No verify | Syntax check |
+| 6 | Multi ◆ | One only |
+| 7 | No parallel | Use pairs for 6+ |
 
-## ⚡ G0: Knowledge in Memory (CRITICAL)
-**Read first 100 lines of project_knowledge.json ONCE at START. Keep in memory.**
+## START
+1. `head -100 project_knowledge.json` → IN MEMORY: hot_cache, domain_index, gotchas
+2. Read `skills/INDEX.md` → pre-load: frontend-react + backend-api
+3. `manage_todo_list` → structured TODO naming
+4. **Announce:** `AKIS v7.4 [complexity]. Skills: [list]. [N] tasks. Ready.`
 
-```bash
-head -100 project_knowledge.json  # Do this ONCE
-```
+## TODO Format
+`○ [agent:phase:skill] Task [context]`
 
-**After loading, you have IN MEMORY:**
-- Line 1: HOT_CACHE → top 30 entities + paths
-- Line 2: DOMAIN_INDEX → 82 backend, 74 frontend file paths
-- Line 4: GOTCHAS → 30 known issues + solutions
-- Lines 7-12: Layer entities
-- Lines 13-93: Layer relations
+| Field | Values |
+|-------|--------|
+| agent | AKIS, code, architect, debugger, reviewer, documentation, research, devops |
+| phase | START, WORK, END, VERIFY |
+| skill | backend-api, frontend-react, docker, testing, debugging, documentation |
+| context | `parent→X` `deps→Y,Z` |
 
-**Documentation Index (Diátaxis Framework):**
+## WORK
+**Check memory first:** domain_index → paths, gotchas → bugs, hot_cache → entities
 
-| Need | Location | Template |
-|------|----------|----------|
-| How-to guide | `docs/guides/` | `.github/templates/doc_guide.md` |
-| Feature explanation | `docs/features/` | `.github/templates/doc_explanation.md` |
-| API/config reference | `docs/technical/` | `.github/templates/doc_reference.md` |
-| Architecture concepts | `docs/architecture/` | `.github/templates/doc_explanation.md` |
-| Analysis/reports | `docs/analysis/` | `.github/templates/doc_analysis.md` |
-| Standards | `docs/contributing/DOCUMENTATION_STANDARDS.md` | - |
-| Doc navigation | `docs/INDEX.md` | - |
+| Trigger | Skill |
+|---------|-------|
+| .tsx .jsx | frontend-react |
+| .py backend/ | backend-api |
+| Dockerfile | docker |
+| error | debugging |
+| test_* | testing |
+| .md docs/ | documentation |
 
-**Context Budget:** 3,000 tokens max per skill (reduced for efficiency)
-
-**Anti-Pattern:**
-```
-❌ WRONG: Run --query 5 times to gather info
-❌ WRONG: grep/search knowledge repeatedly
-✓ RIGHT: Read first 100 lines ONCE, use that context
-```
-
-## START (⛔ G3 Mandatory)
-
-### LOAD Phase (G0+G1+G2 Consolidated)
-1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
-2. **Now you have:** hot_cache, domain_index (82 backend, 74 frontend), 30 gotchas, relations
-3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
-4. **Use `manage_todo_list` tool** → Create TODO with structured naming
-
-### ANNOUNCE Phase (⛔ REQUIRED - Do NOT skip)
-5. **Announce (MANDATORY):**
-   ```
-   AKIS v7.4 [simple|medium|complex]. 
-   Skills: [loaded-list]. 
-   Knowledge: [N] cache hits, [N] gotchas checked. 
-   Tasks: [N]. Ready.
-   ```
-   ⚠️ **Do NOT proceed to WORK without this announcement**
-
-**TODO Format (Structured Naming):**
-```
-○ [agent:phase:skill] Task description [context]
-```
-
-| Field | Values | Purpose |
-|-------|--------|---------|
-| agent | AKIS, code, architect, debugger, etc. | Who handles this |
-| phase | START, WORK, END, VERIFY | Methodology phase |
-| skill | backend-api, frontend-react, etc. | Required skill |
-| context | `parent→X` `deps→Y,Z` | Delegation chain |
-
-**Examples:**
-```
-○ [AKIS:START:planning] Analyze requirements
-○ [code:WORK:backend-api] Implement auth endpoint [parent→abc123]
-○ [debugger:WORK:debugging] Fix null pointer [deps→task1,task2]
-○ [AKIS:END:documentation] Update README
-```
-
-⚠️ **G3 Enforcement:** LOAD + ANNOUNCE must complete before any file operations
-
-## WORK (Using In-Memory Knowledge)
-**Before reading ANY file, check your loaded knowledge:**
-
-| Need | Check (in memory) | Only if miss |
-|------|-------------------|--------------|
-| File path | domain_index.backend/frontend_entities | list_dir |
-| Entity info | hot_cache.entity_refs | read_file |
-| Known bug | gotchas.issues | debugging |
-| Deep relations | (use --query) | grep |
-
-**◆ → Skill → Edit/Command → Verify → ✓**
-
-| Trigger | Skill | Applies To |
-|---------|-------|------------|
-| .tsx .jsx components/ | frontend-react ⭐ | edits |
-| .py backend/ api/ | backend-api ⭐ | edits |
-| docker compose build | docker | commands |
-| Dockerfile docker-compose.yml | docker | edits |
-| .github/workflows/* | ci-cd | edits |
-| .md docs/ | documentation | edits |
-| error traceback | debugging | analysis |
-| test_* pytest jest | testing | edits + commands |
-| .github/skills/* agents/* | akis-dev | edits |
-| new feature, design | planning | analysis |
-
-⭐ Pre-load fullstack
-
-## Workflow Phases
-| Phase | Action | Skill |
-|-------|--------|-------|
-| PLAN | Analyze, design | planning |
-| BUILD | Implement | frontend/backend |
-| VERIFY | Test, check | testing/debugging |
-| DOCUMENT | Update docs | documentation |
+**Flow:** ◆ → Skill → Edit → Verify → ✓
 
 ## END
-1. Close ⊘ orphans
-2. Verify all edits
-3. **Create workflow log FIRST** (YAML front matter format)
-4. Run scripts, present results table
-5. ASK before applying suggestions
-6. ASK before `git push`
+1. Close ⊘, verify edits
+2. Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+3. Run scripts, present table
+4. **ASK before git push**
+
+## Delegation (6+ = MANDATORY)
+| Tasks | Action |
+|-------|--------|
+| <3 | Direct |
+| 3-5 | Consider |
+| 6+ | **runSubagent** |
+
+| Agent | Use |
+|-------|-----|
+| architect | Design |
+| code | Implement |
+| debugger | Fix bugs |
+| documentation | Docs (parallel) |
+
+## Parallel (G7: 60%)
+| Pair | Pattern |
+|------|---------|
+| code + docs | ✓ Parallel |
+| research + code | Sequential |
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## ⛔ Delegation (MANDATORY for 6+ tasks)
-| Complexity | Strategy | Action |
-|------------|----------|--------|
-| Simple (<3) | Direct | Handle yourself |
-| Medium (3-5) | Consider | Suggest delegation |
-| Complex (6+) | **MANDATORY** | **MUST use runSubagent** |
-
-### runSubagent Usage (⛔ REQUIRED)
-**When tasks ≥ 6, you MUST invoke `runSubagent` tool:**
-
-1. **Create delegated TODO with context:**
-```
-○ [code:WORK:backend-api] Implement auth endpoint [parent→abc123]
-```
-
-2. **Invoke agent:**
-```
-runSubagent(
-  agentName: "code",
-  prompt: "Implement [task]. Parent: abc123. Return: status, result, artifacts.",
-  description: "[3-5 word summary]"
-)
-```
-
-3. **Agent returns:** `{status: "success", result: "...", artifacts: [...]}`
-
-| Agent | Triggers | Use For |
-|-------|----------|--------|
-| architect | design, blueprint | Planning complex features |
-| code | implement, create | Multi-file implementations |
-| debugger | error, bug | Complex debugging |
-| reviewer | review, audit | Code review, security |
-| documentation | docs, readme | Doc updates alongside code |
-| research | research, compare | Standards, best practices |
-| devops | deploy, docker | Infrastructure changes |
-
-### Delegation Chains
-| Task Type | Chain |
-|-----------|-------|
-| Feature | architect → code → reviewer |
-| Bug fix | debugger → code |
-| Docs | documentation (parallel with code) |
-| Infra | architect → devops → code |
-
-## ⛔ Parallel (G7 - 60% Target)
-**Goal: 60%+ of complex sessions MUST use parallel delegation**
-
-| Pair | Use Case | Independence |
-|------|----------|-------------|
-| code + docs | Fullstack | ✓ Fully parallel |
-| code + reviewer | Refactor | Sequential |
-| research + code | New feature | Research first |
-| architect + research | Design | Parallel research |
-
-**Invoke parallel:**
-```
-○ [documentation:WORK:documentation] Update docs [parent→root]
-○ [code:WORK:backend-api] Implement feature [parent→root]
-```
-
-## Recovery
-`git status` → Find ◆/⊘ → Continue
-
-## ⚡ Memory-First Optimizations
-
-| Before | After (v7.4) |
-|--------|--------------|
-| Query 5 times | Read once, use memory |
-| grep knowledge.json | Check loaded gotchas |
-| list_dir for paths | Check domain_index |
-| Search for entity | Check hot_cache |
+## Gotchas
+| Issue | Fix |
+|-------|-----|
+| Query knowledge repeatedly | Read 100 lines ONCE |
+| Text TODOs | Use `manage_todo_list` |
+| Edit without skill | Load skill FIRST |
+| Skip announcement | Announce before WORK |
+| Multiple ◆ | One only |
+| Auto-push | ASK first |

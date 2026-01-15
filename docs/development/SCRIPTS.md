@@ -265,6 +265,40 @@ Scripts for AKIS framework session management. Located in `.github/scripts/`.
 | `--update` | Creates instruction files for gaps |
 | (default) | Reports instruction coverage gaps |
 
+### akis_compliance_simulation
+**File**: `.github/scripts/akis_compliance_simulation.py` | **Updated**: 2026-01-15
+
+| Mode | Description |
+|------|-------------|
+| `--full` | Run full 100k session simulation |
+| `--output FILE` | Save results to JSON file |
+| (default) | Run 10k quick simulation |
+
+| Metric | Description |
+|--------|-------------|
+| Token Consumption | Average tokens per session |
+| API Calls | Average API calls per session |
+| Traceability | TODO naming compliance |
+| Precision | Correct skill detection |
+| Cognitive Load | Complexity score |
+| Completeness | Rule coverage |
+| Success Rate | Session completion rate |
+
+### simulate_metadata_enhancement
+**File**: `.github/scripts/simulate_metadata_enhancement.py` | **Updated**: 2026-01-15
+
+100k simulation for metadata enhancement patterns.
+
+### simulate_session_json
+**File**: `.github/scripts/simulate_session_json.py` | **Updated**: 2026-01-15
+
+100k simulation for session JSON format patterns.
+
+### simulate_todo_naming
+**File**: `.github/scripts/simulate_todo_naming.py` | **Updated**: 2026-01-15
+
+100k simulation for structured TODO naming patterns.
+
 ### Workflow Log Parsing
 
 All scripts parse YAML front matter from `log/workflow/*.md`:

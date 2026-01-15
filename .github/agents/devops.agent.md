@@ -50,9 +50,10 @@ tools: ['read', 'edit', 'execute']
 - **Hardcoded secrets** | Use environment variables
 
 ## ⚙️ Optimizations
-- **Config validation**: Always run docker-compose config before apply
+- **Config validation**: Always run docker-compose config before apply ✓
 - **Incremental deploys**: Deploy one service at a time
 - **Health-first**: Wait for health checks before proceeding
+- **Skills**: docker (auto-loaded)
 
 ## Orchestration
 

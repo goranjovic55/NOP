@@ -50,10 +50,11 @@ tools: ['read', 'edit', 'search']
 - **No update date** | Include last-updated date
 
 ## ⚙️ Optimizations
-- **Pre-load docs/INDEX.md**: Understand doc structure before updates
-- **Batch updates**: Group related doc changes together
+- **Pre-load docs/INDEX.md**: Understand doc structure before updates ✓
+- **Batch updates**: Group related doc changes together ✓
 - **Auto-generate tables**: Use consistent markdown table format
 - **Template reuse**: Use existing templates from docs/
+- **Skills**: documentation, knowledge (auto-loaded)
 
 ## Orchestration
 

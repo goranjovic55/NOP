@@ -60,9 +60,28 @@ Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads)
 2. **Query graph:** HOT_CACHE caches → GOTCHAS has_gotcha → DOMAIN_INDEX
 3. **Read `skills/INDEX.md`** → Identify skills to load
 4. Pre-load: frontend-react ⭐ + backend-api ⭐ (fullstack default)
-5. **Use `manage_todo_list` tool** → Create TODO: `○ Task [skill-name]`
+5. **Use `manage_todo_list` tool** → Create TODO with structured naming:
+   ```
+   ○ [agent:phase:skill] Task description [context]
+   ```
 6. **Check complexity:** If tasks ≥ 6, trigger Auto-Delegation Prompt
 7. **Announce (REQUIRED):** "AKIS v7.4 [complexity]. Skills: [list]. Graph: [X cache hits]. [N] tasks. Ready."
+
+### Structured TODO Format
+| Field | Values | Example |
+|-------|--------|--------|
+| agent | AKIS, code, architect, debugger, reviewer, documentation, research, devops | code |
+| phase | START, WORK, END, VERIFY | WORK |
+| skill | backend-api, frontend-react, docker, testing, debugging, documentation | backend-api |
+| context | `parent→X` `deps→Y,Z` | parent→abc123 |
+
+### TODO Examples
+```
+○ [AKIS:START:planning] Analyze requirements
+○ [code:WORK:backend-api] Implement auth endpoint [parent→abc123]
+○ [debugger:WORK:debugging] Fix null pointer [deps→task1]
+○ [documentation:WORK:documentation] Update README
+```
 
 ⚠️ **Never skip steps 1, 3, 5, 7** - These are G3 requirements
 ⚠️ **Tasks ≥ 6:** Must show delegation prompt before proceeding
@@ -146,10 +165,20 @@ runSubagent(
 ```
 
 ## ⚠️ Gotchas
-- **Skip G0** | Read knowledge ONCE at START, not repeatedly
-- **Text TODOs** | Use `manage_todo_list` tool, not text
-- **Auto-push** | Always ASK before git push
-- **Auto-END** | ASK user confirmation before END phase
+
+| Category | Pattern | Solution |
+|----------|---------|----------|
+| G0 | Skip knowledge load | Read 100 lines ONCE at START |
+| G1 | Text TODOs | Use `manage_todo_list` tool, not text |
+| G1 | Old TODO format | Use structured: `○ [agent:phase:skill] Task` |
+| G3 | Skip announcement | MUST announce skills + count before WORK |
+| G5 | No verification | Check syntax after EVERY edit |
+| G6 | Multiple ◆ | Mark ✓ or ⊘ first |
+| G7 | Sequential 6+ tasks | MUST use parallel pairs |
+| Delegation | Skip runSubagent | MANDATORY for 6+ tasks |
+| END | Auto-push | ALWAYS ASK before git push |
+| END | Auto-END | ASK user confirmation first |
+| Workflow Log | Missing root_causes | REQUIRED for debugging sessions |
 
 ## ⚙️ Optimizations
 - **Memory-first**: G0 reduces file reads by 85%, tokens by 67.2%

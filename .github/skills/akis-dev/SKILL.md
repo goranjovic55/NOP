@@ -1,118 +1,141 @@
 ---
 name: akis-dev
-description: Load when editing .github/copilot-instructions*, skills/*, agents/*, instructions/*, or project_knowledge.json. Provides AKIS framework development patterns for skills, agents, and instructions.
+description: Load when editing .github/copilot-instructions*, skills/*, agents/*, instructions/*, or project_knowledge.json. Provides AKIS framework development patterns optimized for minimal tokens with full completeness.
 ---
 
 # AKIS Development
 
-## Merged Skills
-- **skill-authoring**: Creating and editing skill files
-- **agent-authoring**: Creating and editing agent configurations
-- **instruction-authoring**: Creating and editing instruction files
-- **knowledge-management**: Working with project_knowledge.json
+> Target: -68% tokens, 100% completeness, identical behavior
 
-## ⚠️ Critical Gotchas
+## Core Principle: Single-Source DRY
 
-| Category | Pattern | Solution |
-|----------|---------|----------|
-| Script output | Suggestions not shown to user | Present in TABLE format, ASK before applying |
-| END summary | User doesn't see results | MUST show metrics table with Tasks/Resolution/Files |
-| Condensing | Content lost when shortening | Use tables instead of deletion, keep all gotchas |
-| Context | Assumes files pre-attached | Require explicit reads of skills/agents/instructions |
-| Skill balance | Too terse to understand | Include examples, not just rules |
-| Examples | Agent guesses without them | Keep 1+ example per pattern minimum |
-| Completeness | Agent can't execute | Test: can agent do task with ONLY this file? |
+| Rule | Description |
+|------|-------------|
+| One source of truth | Each rule exists in ONE file only |
+| Reference don't repeat | Other files say "see X" not copy X |
+| Unique content only | Each file has ONE purpose, no overlap |
 
-## Rules
+## File Architecture
 
-| Rule | Pattern |
-|------|---------|
-| Tables over prose | Convert paragraphs to tables (same info, fewer tokens) |
-| Preserve actionable steps | Every concrete action must remain after condensing |
-| Keep examples | Without examples, agent guesses wrong |
-| Maintain gotchas | These prevent repeated mistakes |
-| Test comprehension | If ambiguous after condensing, expand back |
+| File | Contains | Does NOT Contain |
+|------|----------|------------------|
+| `copilot-instructions.md` | All core rules, gates, workflow | Details, examples beyond 1 |
+| `workflow.instructions.md` | END phase details, log format | Gates, START (in main) |
+| `protocols.instructions.md` | Skill triggers, pre-commit, stats | Gates, workflow (in main) |
+| `quality.instructions.md` | Gotchas table only | Rules (in main) |
 
-## Avoid
+## Optimization Rules
 
-| ❌ Bad | ✅ Good |
-|--------|---------|
-| Remove details to save tokens | Convert prose to table |
-| Assume agent will infer steps | Document all steps explicitly |
-| Summarize multi-step to one line | Keep numbered steps |
-| Word limits like "(<350 words)" | Structure limits like "1 example per pattern" |
-| Generic placeholders | Concrete examples from actual codebase |
+| Rule | Before | After | Savings |
+|------|--------|-------|---------|
+| Tables over prose | Paragraph explaining X | Table with X | -60% |
+| One example not four | 4 identical examples | 1 example | -75% |
+| Deduplicate | Same table in 3 files | Table in 1 file | -66% |
+| Compress headers | `## ⛔ Section Name (REQUIRED)` | `## Section` | -40% |
+| Remove redundant | "This is important because..." | (just the rule) | -80% |
 
-## Patterns
+## Anti-Patterns
+
+| ❌ Bad | ✅ Good | Why |
+|--------|---------|-----|
+| Same example 4 times | 1 example in main file | -75% tokens |
+| Gates table in 3 files | Gates in copilot-instructions only | -66% tokens |
+| Verbose explanation | Table row | Same info, fewer tokens |
+| "CRITICAL", "MANDATORY" spam | One ⛔ per section max | Reduces noise |
+| Numbered sub-sub-steps | Flat list | Easier to scan |
+
+## Template: Compact Instruction File
 
 ```markdown
-# Pattern 1: Skill YAML frontmatter
 ---
-name: skill-name
-description: Load when... Provides... (max 1024 chars)
+applyTo: '**'
+description: 'One line: what unique content this adds.'
 ---
 
-# Pattern 2: Gotchas table format
-| Category | Pattern | Solution |
-|----------|---------|----------|
-| API | 307 redirect | Add trailing slash |
+# Title
 
-# Pattern 3: Code example in skill
-```python
-# Named pattern with comment
-@router.get("/{id}")
-async def get(id: int): ...
+> Core rules in copilot-instructions.md. This file: [unique purpose].
+
+## Unique Section 1
+| Col | Col |
+|-----|-----|
+| ... | ... |
+
+## Unique Section 2
+Brief content that exists NOWHERE ELSE.
 ```
 
-# Pattern 4: Commands table
-| Task | Command |
-|------|---------|
-| Run scripts | `python .github/scripts/knowledge.py --update` |
+## Template: Compact Main File
+
+```markdown
+# AKIS v7.4
+
+## Gates
+| G | Check | Fix |
+|---|-------|-----|
+| 0 | ... | ... |
+
+## START
+1. Step one
+2. Step two
+3. **Announce:** `format`
+
+## WORK
+| Trigger | Skill |
+|---------|-------|
+
+## END
+1. Step one
+2. Step two
+
+## Delegation
+| Tasks | Action |
+|-------|--------|
+
+## Gotchas
+| Issue | Fix |
+|-------|-----|
 ```
 
-## File Locations
+## Optimization Checklist
 
-| Type | Path | Template |
-|------|------|----------|
-| Skills | `.github/skills/{name}/SKILL.md` | `.github/templates/skill.md` |
-| Agents | `.github/agents/{name}.md` | `.github/templates/agent.md` |
-| Instructions | `.github/instructions/{name}.instructions.md` | - |
-| Knowledge | `project_knowledge.json` | - |
+Before saving AKIS file:
+- [ ] Does this content exist elsewhere? → Remove, add reference
+- [ ] Can table replace prose? → Convert
+- [ ] Multiple examples of same pattern? → Keep 1
+- [ ] Verbose header? → Simplify
+- [ ] Can agent execute with ONLY this file? → Yes = complete
+
+## Completeness Verification
+
+```bash
+# Check all rules present across files
+grep -h "pattern1\|pattern2" .github/*.md .github/instructions/*.md
+```
+
+Required rules (must exist in at least ONE file):
+- G0-G7 gates
+- START/WORK/END phases  
+- Structured TODO format
+- Delegation rules (6+)
+- Parallel execution (60%)
+- Symbols line
+- Gotchas table
+
+## Metrics Target
+
+| Metric | Target |
+|--------|--------|
+| Token reduction | ≥65% vs verbose |
+| Line reduction | ≥60% vs verbose |
+| Completeness | 100% (all rules present) |
+| Behavior | Identical (same simulation results) |
 
 ## Commands
 
 | Task | Command |
 |------|---------|
-| Update knowledge | `python .github/scripts/knowledge.py --update` |
-| Suggest skills | `python .github/scripts/skills.py --suggest` |
-| Suggest docs | `python .github/scripts/docs.py --suggest` |
-| Suggest agents | `python .github/scripts/agents.py --suggest` |
-| Suggest instructions | `python .github/scripts/instructions.py --suggest` |
-
-## END Phase Protocol
-
-1. Run all 5 scripts (knowledge, skills, docs, agents, instructions)
-2. Present suggestions in table:
-
-| Script | Suggestion | Priority |
-|--------|------------|----------|
-| skills.py | Create new skill: {name} | Medium |
-
-3. ASK user: "Apply any suggestions?"
-4. Apply only if approved
-5. Show final metrics:
-
-| Metric | Value |
-|--------|-------|
-| Tasks | X/Y completed |
-| Resolution | X% |
-| Files | X modified |
-
-## Completeness Checklist
-
-Before saving any skill/agent/instruction:
-- [ ] Can agent execute without additional context?
-- [ ] Are all conditional branches documented?
-- [ ] Does each pattern have an example?
-- [ ] Are gotchas preserved with solutions?
-- [ ] Is format self-documenting (tables with headers)?
+| Measure tokens | `wc -w file.md` × 1.3 |
+| Check duplication | `grep -h "pattern" files \| sort \| uniq -c` |
+| Verify completeness | `grep "required_pattern" files` |
+| Run simulation | `python .github/scripts/akis_compliance_simulation.py` |

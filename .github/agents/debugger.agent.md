@@ -55,10 +55,11 @@ print(f"[DEBUG] EXIT func | result: {result}")
 - **Logs remain** | Clean up after fix
 
 ## ⚙️ Optimizations
-- **Test-aware mode**: Check existing tests before debugging, run tests to reproduce
+- **Test-aware mode**: Check existing tests before debugging, run tests to reproduce ✓
 - **Browser console first**: For frontend issues, check DevTools console for exact error
-- **Knowledge-first**: Check gotchas in project_knowledge.json before file reads
+- **Knowledge-first**: Check gotchas in project_knowledge.json before file reads ✓
 - **Binary search**: Isolate issue by halving search space
+- **Skills**: debugging, knowledge (auto-loaded)
 
 ## Orchestration
 
