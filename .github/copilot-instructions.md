@@ -55,7 +55,7 @@ head -100 project_knowledge.json  # Do this ONCE
 1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
 2. **Now you have:** hot_cache, domain_index (82 backend, 74 frontend), 30 gotchas, relations
 3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
-4. **Use `manage_todo_list` tool** → Create TODO with metadata (NOT text TODOs)
+4. **Use `manage_todo_list` tool** → Create TODO with structured naming
 
 ### ANNOUNCE Phase (⛔ REQUIRED - Do NOT skip)
 5. **Announce (MANDATORY):**
@@ -67,21 +67,24 @@ head -100 project_knowledge.json  # Do this ONCE
    ```
    ⚠️ **Do NOT proceed to WORK without this announcement**
 
-**TODO Format:** `○ Task description [skill-name]`
+**TODO Format (Structured Naming):**
+```
+○ [agent:phase:skill] Task description [context]
+```
 
-**TODO Metadata (optional but recommended):**
-```python
-manage_todo_list(
-    action="add",
-    task="Implement feature X",
-    metadata={
-        "id": "uuid",            # Task ID for tracking
-        "assigned_to": "code",   # Agent for delegation
-        "skill": "backend-api",  # Required skill
-        "dependencies": [],      # Task IDs that must complete first
-        "parallel_group": "pg1"  # For parallel execution
-    }
-)
+| Field | Values | Purpose |
+|-------|--------|---------|
+| agent | AKIS, code, architect, debugger, etc. | Who handles this |
+| phase | START, WORK, END, VERIFY | Methodology phase |
+| skill | backend-api, frontend-react, etc. | Required skill |
+| context | `parent→X` `deps→Y,Z` | Delegation chain |
+
+**Examples:**
+```
+○ [AKIS:START:planning] Analyze requirements
+○ [code:WORK:backend-api] Implement auth endpoint [parent→abc123]
+○ [debugger:WORK:debugging] Fix null pointer [deps→task1,task2]
+○ [AKIS:END:documentation] Update README
 ```
 
 ⚠️ **G3 Enforcement:** LOAD + ANNOUNCE must complete before any file operations
@@ -140,37 +143,23 @@ manage_todo_list(
 | Complex (6+) | **MANDATORY** | **MUST use runSubagent** |
 
 ### runSubagent Usage (⛔ REQUIRED)
-**When tasks ≥ 6, you MUST invoke `runSubagent` tool with delegation context:**
-```python
-# Mark task as delegated first
-manage_todo_list(
-    action="delegate",
-    task_id="abc-123",
-    metadata={"assigned_to": "code", "delegation_depth": 1}
-)
+**When tasks ≥ 6, you MUST invoke `runSubagent` tool:**
 
-# Pass delegation context to subagent
-runSubagent(
-    agentName="code",
-    prompt="""Implement [specific task].
-    
-    [DELEGATION_CONTEXT]
-    parent_task_id: abc-123
-    delegation_depth: 1
-    parent_agent: AKIS
-    skill_required: backend-api
-    """,
-    description="[3-5 word summary]"
-)
-
-# Subagent returns (expected format):
-{
-    "status": "success",
-    "result": "Implemented feature X",
-    "artifacts": ["file1.py", "file2.py"],
-    "tokens_used": 15000
-}
+1. **Create delegated TODO with context:**
 ```
+○ [code:WORK:backend-api] Implement auth endpoint [parent→abc123]
+```
+
+2. **Invoke agent:**
+```
+runSubagent(
+  agentName: "code",
+  prompt: "Implement [task]. Parent: abc123. Return: status, result, artifacts.",
+  description: "[3-5 word summary]"
+)
+```
+
+3. **Agent returns:** `{status: "success", result: "...", artifacts: [...]}`
 
 | Agent | Triggers | Use For |
 |-------|----------|--------|
@@ -190,24 +179,6 @@ runSubagent(
 | Docs | documentation (parallel with code) |
 | Infra | architect → devops → code |
 
-### Delegation Metadata Protocol
-**Context TO delegated agent:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| parent_task_id | ✓ | UUID of parent task |
-| delegation_depth | ✓ | 0=root, increments per level |
-| parent_agent | | Agent that delegated |
-| skill_required | | Skill needed for task |
-| delegation_chain | | Full chain for traceability |
-
-**Result FROM delegated agent:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| status | ✓ | success/failure/partial |
-| result | ✓ | What was accomplished |
-| artifacts | | Files created/modified |
-| tokens_used | | Token consumption |
-
 ## ⛔ Parallel (G7 - 60% Target)
 **Goal: 60%+ of complex sessions MUST use parallel delegation**
 
@@ -220,8 +191,8 @@ runSubagent(
 
 **Invoke parallel:**
 ```
-runSubagent(agentName: "documentation", ...) // Start docs
-runSubagent(agentName: "code", ...)          // Start code (parallel)
+○ [documentation:WORK:documentation] Update docs [parent→root]
+○ [code:WORK:backend-api] Implement feature [parent→root]
 ```
 
 ## Recovery

@@ -1,4 +1,4 @@
-# Skills Index v7.3
+# Skills Index v7.2
 
 > Based on 100k session simulation: 96.0% precision, 92.0% recall
 
@@ -16,7 +16,6 @@
 | test_* *_test.py *.test.ts | [testing](testing/SKILL.md) | | 65% |
 | .github/skills/* agents/* | [akis-dev](akis-dev/SKILL.md) | | 87% |
 | project_knowledge.json | [knowledge](knowledge/SKILL.md) | | 3% |
-| task metadata, delegation, manage_todo_list | [session](session/SKILL.md) | | 100% |
 
 ⭐ Pre-load for fullstack (65.6% of sessions)
 

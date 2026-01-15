@@ -1,0 +1,95 @@
+{
+  "simulation_info": {
+    "n_sessions": 100000,
+    "timestamp": "2026-01-15T17:38:00.239592",
+    "seed": 42
+  },
+  "simple": {
+    "name": "simple_todo",
+    "total_sessions": 100000,
+    "avg_tokens": 215.71824,
+    "avg_token_overhead_pct": 0.0,
+    "avg_traceability": 0.0,
+    "avg_cognitive_load": 0.5999184157165315,
+    "avg_success_rate": 0.8161728703033724,
+    "total_tokens": 21571824,
+    "avg_agent_clarity": 0.0,
+    "avg_phase_clarity": 0.0,
+    "avg_chain_visibility": 0.0,
+    "avg_context_visibility": 0.0,
+    "by_session_type": {
+      "simple": {
+        "count": 40141,
+        "pct": 0.40141,
+        "avg_tokens": 15.91549787000822,
+        "avg_traceability": 0.0,
+        "success_rate": 0.8999623122475376
+      },
+      "medium": {
+        "count": 34877,
+        "pct": 0.34877,
+        "avg_tokens": 227.74676721048255,
+        "avg_traceability": 0.0,
+        "success_rate": 0.8200546227711049
+      },
+      "complex": {
+        "count": 20055,
+        "pct": 0.20055,
+        "avg_tokens": 456.53113936674146,
+        "avg_traceability": 0.0,
+        "success_rate": 0.6997634190113022
+      },
+      "extreme": {
+        "count": 4927,
+        "pct": 0.04927,
+        "avg_tokens": 778.1822610107571,
+        "avg_traceability": 0.0,
+        "success_rate": 0.579886220367227
+      }
+    }
+  },
+  "structured": {
+    "name": "structured_todo",
+    "total_sessions": 100000,
+    "avg_tokens": 617.03446,
+    "avg_token_overhead_pct": 0.0,
+    "avg_traceability": 0.8653107449000434,
+    "avg_cognitive_load": 0.35008937419087577,
+    "avg_success_rate": 0.8537020071492419,
+    "total_tokens": 61703446,
+    "avg_agent_clarity": 0.9500225683596718,
+    "avg_phase_clarity": 0.9500271261445926,
+    "avg_chain_visibility": 0.7112367149129806,
+    "avg_context_visibility": 0.8499565701829291,
+    "by_session_type": {
+      "simple": {
+        "count": 40141,
+        "pct": 0.40141,
+        "avg_tokens": 54.976981141476294,
+        "avg_traceability": 0.8124680372237846,
+        "success_rate": 0.9200727273149977
+      },
+      "medium": {
+        "count": 34877,
+        "pct": 0.34877,
+        "avg_tokens": 550.4724030163145,
+        "avg_traceability": 0.8938023274402042,
+        "success_rate": 0.859934550283243
+      },
+      "complex": {
+        "count": 20055,
+        "pct": 0.20055,
+        "avg_tokens": 1371.9268511593118,
+        "avg_traceability": 0.9099387126556703,
+        "success_rate": 0.7599522778000468
+      },
+      "extreme": {
+        "count": 4927,
+        "pct": 0.04927,
+        "avg_tokens": 2594.6409579866045,
+        "avg_traceability": 0.9124884009261106,
+        "success_rate": 0.6504528366682113
+      }
+    }
+  }
+}
