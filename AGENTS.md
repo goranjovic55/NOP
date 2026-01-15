@@ -60,25 +60,41 @@ Lines 13-93: Layer relations
 | devops | infra | deploy, docker |
 | research | investigator | research, compare |
 
-## Delegation
-| Complexity | Strategy |
-|------------|----------|
-| Simple (<3) | Direct or delegate |
-| Medium (3-5) | Smart delegate |
-| Complex (6+) | **Auto-prompt delegation** |
+## ⛔ Delegation (MANDATORY for 6+ tasks)
+| Complexity | Strategy | Enforcement |
+|------------|----------|-------------|
+| Simple (<3) | Direct | Optional |
+| Medium (3-5) | Consider | Suggest |
+| Complex (6+) | **MUST Delegate** | **runSubagent REQUIRED** |
 
-**6+ Tasks Auto-Prompt:** Show delegation suggestion before proceeding.
+### runSubagent Usage
+```python
+# MANDATORY for complex sessions (6+ tasks)
+runSubagent(
+  agentName="code",
+  prompt="Implement [task]. Files: [list]. Return: completion status.",
+  description="Implement feature X"
+)
+```
 
-## Parallel (G7)
-**Target: 60% of complex sessions**
+### 100k Projection Impact
+| Metric | Without | With | Savings |
+|--------|---------|------|---------|
+| API Calls | 37 | 16 | **-48%** |
+| Tokens | 21k | 9k | **-55%** |
+| Time | 53 min | 8 min | **-56%** |
+| Success | 87% | 94% | **+7%** |
 
-| Pair | Use Case |
-|------|----------|
-| code+docs | Fullstack |
-| code+reviewer | Refactor |
-| research+code | New feature |
-| architect+research | Design |
-| debugger+docs | Bug fix |
+## Parallel (G7) - 60% Target
+**MUST achieve 60%+ parallel execution for complex sessions**
+
+| Pair | Pattern | Use Case |
+|------|---------|----------|
+| code + docs | Parallel runSubagent | Fullstack |
+| code + reviewer | Sequential | Refactor |
+| research + code | Research first | New feature |
+| architect + research | Parallel | Design |
+| debugger + docs | Parallel | Bug fix |
 
 ## AKIS Files
 

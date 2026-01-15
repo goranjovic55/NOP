@@ -45,6 +45,10 @@ class SnifferService:
         self.filter_multicast = True  # Filter multicast by default
         self.filter_broadcast = True  # Filter broadcast by default
         
+        # Passive scan - detect open ports from SYN/ACK responses
+        self.passive_scan_enabled = False
+        self.detected_services = {}  # Format: {host_ip: {port: {"service": name, "first_seen": ts, "last_seen": ts, "syn_ack_count": n}}}
+        
         # Storm-related attributes
         self.is_storming = False
         self.storm_thread: Optional[threading.Thread] = None
@@ -159,6 +163,36 @@ class SnifferService:
         """Enable or disable broadcast filtering"""
         self.filter_broadcast = enabled
         logger.info(f"Passive discovery filter_broadcast set to: {enabled}")
+    
+    def set_passive_scan_enabled(self, enabled: bool):
+        """Enable or disable passive port scanning from SYN/ACK detection"""
+        self.passive_scan_enabled = enabled
+        logger.info(f"Passive scan enabled: {enabled}")
+    
+    def get_detected_services(self) -> Dict[str, Any]:
+        """Return detected services from passive scan"""
+        services = []
+        for host_ip, ports in self.detected_services.items():
+            for port, info in ports.items():
+                services.append({
+                    "host": host_ip,
+                    "port": port,
+                    "service": info.get("service", "unknown"),
+                    "first_seen": info.get("first_seen"),
+                    "last_seen": info.get("last_seen"),
+                    "syn_ack_count": info.get("syn_ack_count", 0)
+                })
+        return {
+            "enabled": self.passive_scan_enabled,
+            "services": services,
+            "host_count": len(self.detected_services),
+            "total_services": len(services)
+        }
+    
+    def clear_detected_services(self):
+        """Clear all detected services from passive scan"""
+        self.detected_services = {}
+        logger.info("Cleared passive scan detected services")
     
     def _is_broadcast_mac(self, mac: str) -> bool:
         """Check if MAC address is broadcast"""
@@ -492,6 +526,21 @@ class SnifferService:
                 break
         
         return app
+    
+    def _detect_service_by_port(self, port: int) -> str:
+        """Map common ports to service names for passive scan detection"""
+        service_map = {
+            20: "ftp-data", 21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp",
+            53: "dns", 67: "dhcp", 68: "dhcp", 69: "tftp", 80: "http",
+            110: "pop3", 123: "ntp", 137: "netbios-ns", 138: "netbios-dgm",
+            139: "netbios-ssn", 143: "imap", 161: "snmp", 162: "snmp-trap",
+            389: "ldap", 443: "https", 445: "smb", 465: "smtps", 514: "syslog",
+            587: "smtp", 636: "ldaps", 993: "imaps", 995: "pop3s",
+            1433: "mssql", 1521: "oracle", 3306: "mysql", 3389: "rdp",
+            5432: "postgresql", 5900: "vnc", 6379: "redis",
+            8080: "http-alt", 8443: "https-alt", 27017: "mongodb"
+        }
+        return service_map.get(port, "unknown")
 
     def _packet_callback(self, packet):
         # Store for PCAP export
@@ -578,6 +627,33 @@ class SnifferService:
                 packet_data["protocol"] = "TCP"
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
+                
+                # Passive scan: detect open ports from SYN+ACK responses
+                if self.passive_scan_enabled:
+                    tcp_layer = packet[TCP]
+                    # Check for SYN+ACK (flags.S and flags.A both set)
+                    if tcp_layer.flags.S and tcp_layer.flags.A:
+                        # SYN+ACK means the source has an open port (sport)
+                        host_ip = src  # The host responding with SYN+ACK
+                        open_port = tcp_layer.sport  # The port that responded
+                        
+                        if host_ip not in self.detected_services:
+                            self.detected_services[host_ip] = {}
+                        
+                        if open_port not in self.detected_services[host_ip]:
+                            # New service detected
+                            service_name = self._detect_service_by_port(open_port)
+                            self.detected_services[host_ip][open_port] = {
+                                "service": service_name,
+                                "first_seen": current_time,
+                                "last_seen": current_time,
+                                "syn_ack_count": 1
+                            }
+                            logger.info(f"Passive scan: detected {service_name} on {host_ip}:{open_port}")
+                        else:
+                            # Update existing service
+                            self.detected_services[host_ip][open_port]["last_seen"] = current_time
+                            self.detected_services[host_ip][open_port]["syn_ack_count"] += 1
             elif UDP in packet:
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"

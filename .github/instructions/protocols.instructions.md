@@ -93,15 +93,39 @@ When creating TODOs, match each task to its skill:
 | Bug fix | [debugging] |
 | No specific domain | (no annotation) |
 
-## Delegation
-| Complexity | Strategy |
-|------------|----------|
-| Simple (<3) | Direct or delegate |
-| Medium (3-5) | Smart delegate |
-| Complex (6+) | Delegate |
+## ⛔ Delegation (MANDATORY)
+| Complexity | Strategy | Enforcement |
+|------------|----------|-------------|
+| Simple (<3) | Direct | Optional delegation |
+| Medium (3-5) | Smart delegate | Suggest delegation |
+| Complex (6+) | **MUST Delegate** | **runSubagent REQUIRED** |
 
-## Parallel (G7)
-code+docs | code+reviewer | research+code | architect+research
+### runSubagent Invocation (6+ tasks)
+```python
+# MANDATORY for complex sessions
+runSubagent(
+  agentName="[agent]",
+  prompt="[role + task + context + scope + return + autonomy]",
+  description="[3-5 word summary]"
+)
+```
+
+### Delegation Savings (100k Projection)
+| Without | With | Savings |
+|---------|------|--------|
+| 37 API calls | 16 API calls | -48% |
+| 21k tokens | 9k tokens | -55% |
+| 53 min | 8 min | -56% |
+
+## ⛔ Parallel (G7) - runSubagent Pairs
+**MUST achieve 60%+ parallel execution for complex sessions**
+
+| Pair | Pattern | Independence |
+|------|---------|-------------|
+| code + docs | Both `runSubagent` parallel | ✓ Full |
+| code + reviewer | Sequential delegation | Partial |
+| research + code | Research first | Sequential |
+| architect + research | Parallel research | ✓ Full |
 
 ## Verification
 After edit: Syntax → Imports → Tests → ✓

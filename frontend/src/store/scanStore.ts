@@ -59,9 +59,23 @@ export interface ScanOptions {
   timing: '1' | '2' | '3' | '4' | '5';
 }
 
+export interface PassiveService {
+  host: string;
+  port: number;
+  service: string;
+  first_seen: number;
+  last_seen: number;
+  syn_ack_count: number;
+}
+
 interface ScanState {
   tabs: ScanTab[];
   activeTabId: string | null;
+  // Passive scan state
+  passiveScanEnabled: boolean;
+  passiveServices: PassiveService[];
+  setPassiveScanEnabled: (enabled: boolean) => void;
+  setPassiveServices: (services: PassiveService[]) => void;
   addTab: (ipOrIps: string | string[], hostname?: string) => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
@@ -80,6 +94,10 @@ interface ScanState {
 export const useScanStore = create<ScanState>((set) => ({
   tabs: [],
   activeTabId: null,
+  passiveScanEnabled: false,
+  passiveServices: [],
+  setPassiveScanEnabled: (enabled) => set({ passiveScanEnabled: enabled }),
+  setPassiveServices: (services) => set({ passiveServices: services }),
   onScanComplete: undefined,
   setOnScanComplete: (callback) => set({ onScanComplete: callback }),
   addTab: (ipOrIps, hostname) => set((state) => {

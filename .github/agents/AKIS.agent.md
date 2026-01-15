@@ -101,16 +101,40 @@ Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads)
 
 ⚠️ **Block commit if:** log not created OR root_causes missing (for bug fixes)
 
-## Auto-Delegation Prompt (6+ Tasks)
-When task count ≥ 6:
+## ⛔ Auto-Delegation (6+ Tasks) - MANDATORY
+When task count ≥ 6, **YOU MUST**:
+
+### Step 1: Show Delegation Prompt
 ```
 ⚠️ Complex session detected (N tasks). 
-Recommended: Delegate to specialized agents.
+🔴 MANDATORY: Delegate to specialized agents.
 Suggested delegation:
 - [task-type] → [agent]
 - [task-type] → [agent]
-Proceed with delegation? (Y/n)
+Proceeding with runSubagent delegation...
 ```
+
+### Step 2: Invoke runSubagent (REQUIRED)
+```python
+# You MUST call runSubagent for complex sessions
+runSubagent(
+  agentName="code",
+  prompt="Implement [task]. Files: [list]. Return: completion status + files modified.",
+  description="Implement feature X"
+)
+```
+
+### Delegation Template (6 Elements)
+| Element | Description | Example |
+|---------|-------------|--------|
+| Role | Agent specialty | "You are a code agent" |
+| Task | Specific work | "Implement user auth" |
+| Context | Files/state | "Files: auth.py, user.ts" |
+| Scope | Boundaries | "Only modify listed files" |
+| Return | Expected output | "Return: files modified, tests passed" |
+| Autonomy | Decision scope | "Make implementation choices" |
+
+⚠️ **Violation:** NOT using runSubagent for 6+ tasks = G7 violation
 
 ## Output Format
 ```markdown
@@ -132,20 +156,33 @@ Proceed with delegation? (Y/n)
 - **Cache hot paths**: 71.3% cache hit rate with knowledge graph
 - **Skill pre-load**: Load frontend-react + backend-api for fullstack (65.6% of sessions)
 
-## Orchestration
+## ⛔ Orchestration via runSubagent
 
-| Delegate To | Triggers |
-|-------------|----------|
-| architect | design, blueprint |
-| code | implement, create |
-| debugger | error, bug |
-| reviewer | review, audit |
-| documentation | docs, readme |
-| research | research, compare |
-| devops | deploy, docker |
+| Delegate To | Triggers | runSubagent Call |
+|-------------|----------|------------------|
+| architect | design, blueprint | `runSubagent(agentName="architect", ...)` |
+| code | implement, create | `runSubagent(agentName="code", ...)` |
+| debugger | error, bug | `runSubagent(agentName="debugger", ...)` |
+| reviewer | review, audit | `runSubagent(agentName="reviewer", ...)` |
+| documentation | docs, readme | `runSubagent(agentName="documentation", ...)` |
+| research | research, compare | `runSubagent(agentName="research", ...)` |
+| devops | deploy, docker | `runSubagent(agentName="devops", ...)` |
 
-## Parallel (G7)
-code+docs | code+reviewer | research+code | architect+research
+### 100k Projection: With vs Without Delegation
+| Metric | Without | With | Improvement |
+|--------|---------|------|-------------|
+| API Calls | 37.1 | 16.5 | **-48.3%** |
+| Tokens | 21,751 | 8,909 | **-55.5%** |
+| Resolution | 53.5 min | 8.1 min | **-56.0%** |
+| Success | 86.8% | 94.0% | **+7.1%** |
+
+## ⛔ Parallel (G7 - 60% Target)
+| Pair | Invoke Pattern |
+|------|---------------|
+| code + docs | Both runSubagent calls in parallel |
+| code + reviewer | Sequential: code → reviewer |
+| research + code | Sequential: research → code |
+| architect + research | Parallel research phase |
 
 ## Recovery
 `git status` → Find ◆/⊘ → Continue

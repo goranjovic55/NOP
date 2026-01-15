@@ -61,28 +61,48 @@ First 100 lines give you:
 3. Mark ◆ BEFORE edit, ✓ AFTER verify
 4. Only ONE ◆ active
 
-## Complex Session Handling (6+ tasks)
+## ⛔ Complex Session Handling (6+ tasks) - MANDATORY Delegation
 
-| Complexity | Strategy |
-|------------|----------|
-| Simple (<3) | Handle directly |
-| Medium (3-5) | Consider delegation |
-| Complex (6+) | **Delegate + phase grouping** |
+| Complexity | Strategy | Enforcement |
+|------------|----------|-------------|
+| Simple (<3) | Handle directly | Optional |
+| Medium (3-5) | Consider delegation | Suggest |
+| Complex (6+) | **MUST use runSubagent** | **MANDATORY** |
+
+### Step 1: Detect Complexity
+When `manage_todo_list` creates 6+ tasks → **Trigger delegation**
+
+### Step 2: Show Delegation Prompt (REQUIRED)
+```
+⚠️ Complex session (N tasks) - MANDATORY delegation
+Proposed delegation:
+- [task-group] → runSubagent(agentName="code")
+- [task-group] → runSubagent(agentName="documentation")
+Executing delegation...
+```
+
+### Step 3: Invoke runSubagent (REQUIRED)
+```python
+runSubagent(
+  agentName="code",
+  prompt="Implement [tasks]. Context: [files]. Return: modified files list.",
+  description="Implement feature"
+)
+```
 
 **Phase Grouping:**
 ```
-## Phase 1: [domain] [skill]
-○ Task 1.1
-○ Task 1.2
+## Phase 1: [domain] [skill] → runSubagent(agentName="X")
+⧖ Task 1.1 (delegated)
+⧖ Task 1.2 (delegated)
 
-## Phase 2: [domain] [skill]
-○ Task 2.1
+## Phase 2: [domain] [skill] → runSubagent(agentName="Y")
+⧖ Task 2.1 (delegated)
 ```
 
-**Parallel Execution (G7):** For complex sessions, use pairs:
-- code + documentation (independent)
-- code + reviewer (sequential)
-- research + code (research first)
+**Parallel Execution (G7):** For complex sessions, invoke pairs:
+- `runSubagent("code")` + `runSubagent("documentation")` (parallel)
+- `runSubagent("research")` → `runSubagent("code")` (sequential)
 
 ## Verification
 After EVERY edit:
@@ -179,7 +199,9 @@ files:
   types: {tsx: 1, py: 1}
 
 agents:
-  delegated: []  # or [{name: agent, task: "desc", result: success}]
+  delegated:  # REQUIRED for 6+ task sessions
+    - {name: code, task: "Implement auth", result: success, tokens_saved: 5000}
+    - {name: documentation, task: "Update README", result: success, tokens_saved: 2000}
 
 gotchas:
   - pattern: "Pattern that caused issue"
