@@ -134,3 +134,35 @@ async def run_version_detection(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Version detection failed: {str(e)}")
+
+
+# Import sniffer service for passive scan
+from app.services.SnifferService import sniffer_service
+
+
+class PassiveScanToggleRequest(BaseModel):
+    """Request to toggle passive scan"""
+    enabled: bool
+
+
+@router.get("/passive-scan")
+async def get_passive_scan_status():
+    """Get passive scan status and detected services"""
+    return sniffer_service.get_detected_services()
+
+
+@router.post("/passive-scan")
+async def toggle_passive_scan(request: PassiveScanToggleRequest):
+    """Enable or disable passive port scanning"""
+    sniffer_service.set_passive_scan_enabled(request.enabled)
+    return {
+        "enabled": request.enabled,
+        "message": f"Passive scan {'enabled' if request.enabled else 'disabled'}"
+    }
+
+
+@router.delete("/passive-scan/services")
+async def clear_passive_scan_services():
+    """Clear all detected services from passive scan"""
+    sniffer_service.clear_detected_services()
+    return {"message": "Detected services cleared"}

@@ -67,7 +67,7 @@ const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, onOpen 
 AssetListItem.displayName = 'AssetListItem';
 
 const Scans: React.FC = () => {
-  const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning } = useScanStore();
+  const { tabs, activeTabId, setActiveTab, removeTab, updateTabOptions, startScan, setScanStatus, addLog, addTab, onScanComplete, setSelectedDatabases, setVulnerabilities, setVulnScanning, passiveScanEnabled, setPassiveScanEnabled, passiveServices, setPassiveServices } = useScanStore();
   const { token } = useAuthStore();
   const { activeAgent } = usePOV();
   const navigate = useNavigate();
@@ -106,6 +106,56 @@ const Scans: React.FC = () => {
       .catch((err) => console.error('Failed to load assets', err))
       .finally(() => setLoadingAssets(false));
   }, [token, activeAgent]);
+
+  // Fetch passive scan status on mount and periodically
+  useEffect(() => {
+    if (!token) return;
+    
+    const fetchPassiveScanStatus = async () => {
+      try {
+        const response = await fetch('/api/v1/scans/passive-scan', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPassiveScanEnabled(data.enabled);
+          setPassiveServices(data.services || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch passive scan status:', err);
+      }
+    };
+
+    fetchPassiveScanStatus();
+    // Refresh every 10 seconds when passive scan is enabled
+    const interval = setInterval(() => {
+      if (passiveScanEnabled) {
+        fetchPassiveScanStatus();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [token, passiveScanEnabled, setPassiveScanEnabled, setPassiveServices]);
+
+  const handleTogglePassiveScan = async () => {
+    if (!token) return;
+    try {
+      const newEnabled = !passiveScanEnabled;
+      const response = await fetch('/api/v1/scans/passive-scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ enabled: newEnabled })
+      });
+      if (response.ok) {
+        setPassiveScanEnabled(newEnabled);
+      }
+    } catch (err) {
+      console.error('Failed to toggle passive scan:', err);
+    }
+  };
 
   // Removed auto-scroll behavior - log area now has fixed height with scrollbar
   // Users can manually scroll through logs without being forced to the bottom
@@ -394,6 +444,20 @@ const Scans: React.FC = () => {
           <p className="text-cyber-gray-light text-sm mt-1">Discover assets and run focused scans</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleTogglePassiveScan}
+            className={`p-2 px-3 border text-sm font-bold transition-colors ${
+              passiveScanEnabled
+                ? 'bg-cyber-green bg-opacity-10 border-cyber-green text-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.3)]'
+                : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-green'
+            }`}
+            title="Passively detect open ports from TCP SYN/ACK responses in network traffic"
+          >
+            {passiveScanEnabled ? '● PASSIVE ON' : '○ PASSIVE OFF'}
+            {passiveScanEnabled && passiveServices.length > 0 && (
+              <span className="ml-2 text-xs">({passiveServices.length})</span>
+            )}
+          </button>
           <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
             <input
               type="text"

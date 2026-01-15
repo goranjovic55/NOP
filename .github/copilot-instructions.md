@@ -117,25 +117,56 @@ head -100 project_knowledge.json  # Do this ONCE
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
 
-## Delegation
-| Complexity | Strategy |
-|------------|----------|
-| Simple (<3) | Direct or delegate |
-| Medium (3-5) | Smart delegate |
-| Complex (6+) | Delegate |
+## ⛔ Delegation (MANDATORY for 6+ tasks)
+| Complexity | Strategy | Action |
+|------------|----------|--------|
+| Simple (<3) | Direct | Handle yourself |
+| Medium (3-5) | Consider | Suggest delegation |
+| Complex (6+) | **MANDATORY** | **MUST use runSubagent** |
 
-| Agent | Triggers |
-|-------|----------|
-| architect | design, blueprint |
-| code | implement, create |
-| debugger | error, bug |
-| reviewer | review, audit |
-| documentation | docs, readme |
-| research | research, compare |
-| devops | deploy, docker |
+### runSubagent Usage (⛔ REQUIRED)
+**When tasks ≥ 6, you MUST invoke `runSubagent` tool:**
+```
+runSubagent(
+  agentName: "code",
+  prompt: "Implement [specific task]. Context: [files]. Return: [expected output]",
+  description: "[3-5 word summary]"
+)
+```
 
-## Parallel (G7)
-code+docs | code+reviewer | research+code | architect+research
+| Agent | Triggers | Use For |
+|-------|----------|--------|
+| architect | design, blueprint | Planning complex features |
+| code | implement, create | Multi-file implementations |
+| debugger | error, bug | Complex debugging |
+| reviewer | review, audit | Code review, security |
+| documentation | docs, readme | Doc updates alongside code |
+| research | research, compare | Standards, best practices |
+| devops | deploy, docker | Infrastructure changes |
+
+### Delegation Chains
+| Task Type | Chain |
+|-----------|-------|
+| Feature | architect → code → reviewer |
+| Bug fix | debugger → code |
+| Docs | documentation (parallel with code) |
+| Infra | architect → devops → code |
+
+## ⛔ Parallel (G7 - 60% Target)
+**Goal: 60%+ of complex sessions MUST use parallel delegation**
+
+| Pair | Use Case | Independence |
+|------|----------|-------------|
+| code + docs | Fullstack | ✓ Fully parallel |
+| code + reviewer | Refactor | Sequential |
+| research + code | New feature | Research first |
+| architect + research | Design | Parallel research |
+
+**Invoke parallel:**
+```
+runSubagent(agentName: "documentation", ...) // Start docs
+runSubagent(agentName: "code", ...)          // Start code (parallel)
+```
 
 ## Recovery
 `git status` → Find ◆/⊘ → Continue
