@@ -1,0 +1,189 @@
+{
+  "simulation_info": {
+    "n_sessions": 100000,
+    "timestamp": "2026-01-15T17:03:06.273647",
+    "seed": 42
+  },
+  "results": {
+    "baseline": {
+      "name": "baseline_no_metadata",
+      "total_sessions": 100000,
+      "avg_tokens": 514.972,
+      "avg_metadata_overhead_pct": 0.0,
+      "avg_traceability_score": 0.2,
+      "avg_delegation_depth": 0.0,
+      "avg_success_rate": 0.643399349077078,
+      "avg_memory_bytes": 316.856,
+      "avg_log_bytes": 190.1136,
+      "total_tokens": 51497200,
+      "total_memory_bytes": 31685600,
+      "delegation_visibility_rate": 0.0,
+      "full_lineage_rate": 0.0,
+      "by_session_type": {
+        "simple": {
+          "count": 39830,
+          "pct": 0.3983,
+          "avg_tokens": 100.14812955059001,
+          "avg_traceability": 0.2,
+          "success_rate": 0.3899322119005775
+        },
+        "medium": {
+          "count": 35177,
+          "pct": 0.35177,
+          "avg_tokens": 499.65602524376726,
+          "avg_traceability": 0.2,
+          "success_rate": 0.7920961951599869
+        },
+        "complex": {
+          "count": 20008,
+          "pct": 0.20008,
+          "avg_tokens": 1045.6467413034786,
+          "avg_traceability": 0.2,
+          "success_rate": 0.8349121221197392
+        },
+        "extreme": {
+          "count": 4985,
+          "pct": 0.04985,
+          "avg_tokens": 1807.542627883651,
+          "avg_traceability": 0.2,
+          "success_rate": 0.8506409851942219
+        }
+      }
+    },
+    "metadata": {
+      "name": "metadata_enhanced",
+      "total_sessions": 100000,
+      "avg_tokens": 1283.18448,
+      "avg_metadata_overhead_pct": 62.25948775245166,
+      "avg_traceability_score": 0.9000112593710908,
+      "avg_delegation_depth": 0.80803,
+      "avg_success_rate": 0.6504827931345004,
+      "avg_memory_bytes": 950.568,
+      "avg_log_bytes": 1133.712,
+      "total_tokens": 128318448,
+      "total_memory_bytes": 95056800,
+      "delegation_visibility_rate": 1.0,
+      "full_lineage_rate": 1.0,
+      "by_session_type": {
+        "simple": {
+          "count": 39830,
+          "pct": 0.3983,
+          "avg_tokens": 301.6088877730354,
+          "avg_traceability": 0.9000623175292042,
+          "success_rate": 0.3899322119005775
+        },
+        "medium": {
+          "count": 35177,
+          "pct": 0.35177,
+          "avg_tokens": 1231.309946840265,
+          "avg_traceability": 0.9000468898203123,
+          "success_rate": 0.8023157718043581
+        },
+        "complex": {
+          "count": 20008,
+          "pct": 0.20008,
+          "avg_tokens": 2551.6767792882847,
+          "avg_traceability": 0.8999005311185438,
+          "success_rate": 0.8489372574313598
+        },
+        "extreme": {
+          "count": 4985,
+          "pct": 0.04985,
+          "avg_tokens": 4400.7275827482445,
+          "avg_traceability": 0.8997963009211496,
+          "success_rate": 0.8643291398197578
+        }
+      }
+    },
+    "session_json": {
+      "name": "session_json_plan",
+      "total_sessions": 100000,
+      "avg_tokens": 1571.9416,
+      "avg_metadata_overhead_pct": 0.0,
+      "avg_traceability_score": 0.6998603156030327,
+      "avg_delegation_depth": 0.80803,
+      "avg_success_rate": 0.645994642366968,
+      "avg_memory_bytes": 1006.9696,
+      "avg_log_bytes": 1306.9696,
+      "total_tokens": 157194160,
+      "total_memory_bytes": 100696960,
+      "delegation_visibility_rate": 0.60288,
+      "full_lineage_rate": 0.0,
+      "by_session_type": {
+        "simple": {
+          "count": 39830,
+          "pct": 0.3983,
+          "avg_tokens": 810.385136831534,
+          "avg_traceability": 0.6997674835016023,
+          "success_rate": 0.3899322119005775
+        },
+        "medium": {
+          "count": 35177,
+          "pct": 0.35177,
+          "avg_tokens": 1529.2148278704835,
+          "avg_traceability": 0.7000561733778349,
+          "success_rate": 0.7960503481035363
+        },
+        "complex": {
+          "count": 20008,
+          "pct": 0.20008,
+          "avg_tokens": 2558.1977209116353,
+          "avg_traceability": 0.6999603899044523,
+          "success_rate": 0.8397356514159792
+        },
+        "extreme": {
+          "count": 4985,
+          "pct": 0.04985,
+          "avg_tokens": 3999.7813440320965,
+          "avg_traceability": 0.6988182949476581,
+          "success_rate": 0.8554403666856166
+        }
+      }
+    },
+    "hybrid": {
+      "name": "hybrid",
+      "total_sessions": 100000,
+      "avg_tokens": 2340.15408,
+      "avg_metadata_overhead_pct": 28.097802318718628,
+      "avg_traceability_score": 0.9499924937754192,
+      "avg_delegation_depth": 0.80803,
+      "avg_success_rate": 0.6551826633837211,
+      "avg_memory_bytes": 1867.424,
+      "avg_log_bytes": 1950.568,
+      "total_tokens": 234015408,
+      "total_memory_bytes": 186742400,
+      "delegation_visibility_rate": 1.0,
+      "full_lineage_rate": 1.0,
+      "by_session_type": {
+        "simple": {
+          "count": 39830,
+          "pct": 0.3983,
+          "avg_tokens": 1011.8458950539795,
+          "avg_traceability": 0.9498830952463584,
+          "success_rate": 0.3899322119005775
+        },
+        "medium": {
+          "count": 35177,
+          "pct": 0.35177,
+          "avg_tokens": 2260.868749466981,
+          "avg_traceability": 0.9499983240869748,
+          "success_rate": 0.8087531151983778
+        },
+        "complex": {
+          "count": 20008,
+          "pct": 0.20008,
+          "avg_tokens": 4064.2277588964416,
+          "avg_traceability": 0.9502673277538941,
+          "success_rate": 0.8583643116180101
+        },
+        "extreme": {
+          "count": 4985,
+          "pct": 0.04985,
+          "avg_tokens": 6592.96629889669,
+          "avg_traceability": 0.949722357827889,
+          "success_rate": 0.8753470126751514
+        }
+      }
+    }
+  }
+}
