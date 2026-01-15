@@ -1,0 +1,216 @@
+{
+  "simulation_info": {
+    "n_sessions": 100000,
+    "timestamp": "2026-01-15T16:12:53.270831",
+    "seed": 42,
+    "mode": "all",
+    "pattern_analyzed": "PLAN-ONCE"
+  },
+  "baseline": {
+    "name": "WITHOUT session.json",
+    "total_sessions": 100000,
+    "avg_file_writes": 2.0,
+    "avg_tokens": 3184.03453,
+    "avg_api_calls": 24.68131,
+    "avg_resolution_time": 18.603543810235283,
+    "avg_cognitive_load": 0.43770321160517955,
+    "avg_traceability": 0.8700146443772626,
+    "total_tokens": 318403453,
+    "total_file_writes": 200000,
+    "total_api_calls": 2468131,
+    "success_rate": 0.87942,
+    "staleness_rate": 0.0,
+    "sync_conflict_rate": 0.0,
+    "parse_error_rate": 0.0,
+    "p50_resolution_time": 16.823077716518515,
+    "p95_resolution_time": 38.54080133167299,
+    "metrics_by_complexity": {
+      "simple": {
+        "count": 34817,
+        "pct": 0.34817,
+        "avg_tokens": 2240.1297641956517,
+        "avg_time": 9.989457671854035,
+        "avg_cognitive": 0.3000360316804601,
+        "success_rate": 0.9493063733233765,
+        "staleness_rate": 0.0
+      },
+      "medium": {
+        "count": 45230,
+        "pct": 0.4523,
+        "avg_tokens": 3199.6763431350873,
+        "avg_time": 17.997050232259188,
+        "avg_cognitive": 0.4500696890379338,
+        "success_rate": 0.8808976343135088,
+        "staleness_rate": 0.0
+      },
+      "complex": {
+        "count": 19953,
+        "pct": 0.19953,
+        "avg_tokens": 4795.6444644915555,
+        "avg_time": 35.009514922944106,
+        "avg_cognitive": 0.6498929790163698,
+        "success_rate": 0.7541221871397785,
+        "staleness_rate": 0.0
+      }
+    }
+  },
+  "proposed": {
+    "name": "WITH session.json (PLAN-ONCE)",
+    "total_sessions": 100000,
+    "avg_file_writes": 3.0,
+    "avg_tokens": 4084.5873,
+    "avg_api_calls": 27.7012,
+    "avg_resolution_time": 18.642316819877696,
+    "avg_cognitive_load": 0.46777907796008433,
+    "avg_traceability": 0.9300185058042787,
+    "total_tokens": 408458730,
+    "total_file_writes": 300000,
+    "total_api_calls": 2770120,
+    "success_rate": 0.8824,
+    "staleness_rate": 0.00763,
+    "sync_conflict_rate": 0.0,
+    "parse_error_rate": 0.00196,
+    "p50_resolution_time": 16.820397167168156,
+    "p95_resolution_time": 38.53942925062295,
+    "metrics_by_complexity": {
+      "simple": {
+        "count": 35093,
+        "pct": 0.35093,
+        "avg_tokens": 3140.2471433049327,
+        "avg_time": 10.002675504284394,
+        "avg_cognitive": 0.33003978123345284,
+        "success_rate": 0.9505314450175248,
+        "staleness_rate": 0.0073518935400222266
+      },
+      "medium": {
+        "count": 44714,
+        "pct": 0.44714,
+        "avg_tokens": 4098.10055016326,
+        "avg_time": 18.015557800216232,
+        "avg_cognitive": 0.4799467711377093,
+        "success_rate": 0.8794560987610145,
+        "staleness_rate": 0.008319541977904013
+      },
+      "complex": {
+        "count": 20193,
+        "pct": 0.20193,
+        "avg_tokens": 5695.81384638241,
+        "avg_time": 35.04482439642691,
+        "avg_cognitive": 0.6802100643060138,
+        "success_rate": 0.7705145347397613,
+        "staleness_rate": 0.006586440845837666
+      }
+    }
+  },
+  "deltas": {
+    "file_writes": 0.5,
+    "tokens": 0.28283385796070504,
+    "api_calls": 0.12235533689257176,
+    "resolution_time": 0.002084173318692111,
+    "cognitive_load": 0.06871292135282307,
+    "traceability": 0.06896879473789264,
+    "success_rate": 0.0033885970298605703
+  },
+  "cost_benefit_ratio": 11.768621816092443,
+  "verdict": {
+    "recommendation": "\ud83d\udd34 DO NOT IMPLEMENT",
+    "confidence": "HIGH",
+    "reason": "Costs significantly outweigh benefits"
+  },
+  "realtime_pattern": {
+    "name": "WITH session.json (REAL-TIME)",
+    "total_sessions": 100000,
+    "avg_file_writes": 13.78169,
+    "avg_tokens": 7467.54517,
+    "avg_api_calls": 39.45317,
+    "avg_resolution_time": 18.639166319188018,
+    "avg_cognitive_load": 0.507464662985135,
+    "avg_traceability": 0.9199603196258769,
+    "total_tokens": 746754517,
+    "total_file_writes": 1378169,
+    "total_api_calls": 3945317,
+    "success_rate": 0.8526,
+    "staleness_rate": 0.08064,
+    "sync_conflict_rate": 0.00729,
+    "parse_error_rate": 0.02068,
+    "p50_resolution_time": 16.858812381797186,
+    "p95_resolution_time": 38.51145560475066,
+    "metrics_by_complexity": {
+      "simple": {
+        "count": 34901,
+        "pct": 0.34901,
+        "avg_tokens": 4339.1208274834535,
+        "avg_time": 10.025191181336107,
+        "avg_cognitive": 0.36986572745703883,
+        "success_rate": 0.9267642760952408,
+        "staleness_rate": 0.07973983553479844
+      },
+      "medium": {
+        "count": 45177,
+        "pct": 0.45177,
+        "avg_tokens": 7551.56714699958,
+        "avg_time": 18.051886387637907,
+        "avg_cognitive": 0.5200444030919958,
+        "success_rate": 0.8569183434048299,
+        "staleness_rate": 0.0807269185647564
+      },
+      "complex": {
+        "count": 19922,
+        "pct": 0.19922,
+        "avg_tokens": 12757.640397550447,
+        "avg_time": 35.06160843111498,
+        "avg_cognitive": 0.7199948070499094,
+        "success_rate": 0.7128802329083426,
+        "staleness_rate": 0.08201987752233711
+      }
+    }
+  },
+  "plan_once_pattern": {
+    "name": "WITH session.json (PLAN-ONCE)",
+    "total_sessions": 100000,
+    "avg_file_writes": 3.0,
+    "avg_tokens": 4084.5873,
+    "avg_api_calls": 27.7012,
+    "avg_resolution_time": 18.642316819877696,
+    "avg_cognitive_load": 0.46777907796008433,
+    "avg_traceability": 0.9300185058042787,
+    "total_tokens": 408458730,
+    "total_file_writes": 300000,
+    "total_api_calls": 2770120,
+    "success_rate": 0.8824,
+    "staleness_rate": 0.00763,
+    "sync_conflict_rate": 0.0,
+    "parse_error_rate": 0.00196,
+    "p50_resolution_time": 16.820397167168156,
+    "p95_resolution_time": 38.53942925062295,
+    "metrics_by_complexity": {
+      "simple": {
+        "count": 35093,
+        "pct": 0.35093,
+        "avg_tokens": 3140.2471433049327,
+        "avg_time": 10.002675504284394,
+        "avg_cognitive": 0.33003978123345284,
+        "success_rate": 0.9505314450175248,
+        "staleness_rate": 0.0073518935400222266
+      },
+      "medium": {
+        "count": 44714,
+        "pct": 0.44714,
+        "avg_tokens": 4098.10055016326,
+        "avg_time": 18.015557800216232,
+        "avg_cognitive": 0.4799467711377093,
+        "success_rate": 0.8794560987610145,
+        "staleness_rate": 0.008319541977904013
+      },
+      "complex": {
+        "count": 20193,
+        "pct": 0.20193,
+        "avg_tokens": 5695.81384638241,
+        "avg_time": 35.04482439642691,
+        "avg_cognitive": 0.6802100643060138,
+        "success_rate": 0.7705145347397613,
+        "staleness_rate": 0.006586440845837666
+      }
+    }
+  }
+}
