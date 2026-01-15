@@ -29,7 +29,7 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 ## Checklist
 □ No syntax errors | □ No duplicates | □ Imports resolve | □ Tests pass
 
-## ⚠️ Common Gotchas (from 141 workflow logs - 43 documented)
+## ⚠️ Common Gotchas (from 141 workflow logs - top 30 kept)
 
 | Category | Pattern | Solution |
 |----------|---------|----------|

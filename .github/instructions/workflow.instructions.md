@@ -27,9 +27,9 @@ description: 'AKIS workflow phases: START, WORK, END. Session management and log
 ## ⛔ G0: Knowledge in Memory
 ```
 First 100 lines give you:
-├── Line 1: HOT_CACHE → top 20 entities + paths
-├── Line 2: DOMAIN_INDEX → 81 backend, 74 frontend paths
-├── Line 4: GOTCHAS → 43 known issues + solutions
+├── Line 1: HOT_CACHE → top 30 entities + paths
+├── Line 2: DOMAIN_INDEX → 82 backend, 74 frontend paths
+├── Line 4: GOTCHAS → 30 known issues + solutions
 ├── Lines 7-12: Layer entities (includes DOCUMENTATION_INDEX)
 └── Lines 13-93: Layer relations (caches, indexes, has_gotcha)
 ```

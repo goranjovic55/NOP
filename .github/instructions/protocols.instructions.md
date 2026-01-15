@@ -34,9 +34,9 @@ head -100 project_knowledge.json  # Do this ONCE, keep in context
 **After loading, you have IN MEMORY:**
 | Line | Contains | Use For |
 |------|----------|---------|
-| 1 | HOT_CACHE | Top 20 entities + paths |
-| 2 | DOMAIN_INDEX | 81 backend, 71 frontend paths |
-| 4 | GOTCHAS | 43 known issues + solutions |
+| 1 | HOT_CACHE | Top 30 entities + paths |
+| 2 | DOMAIN_INDEX | 82 backend, 74 frontend paths |
+| 4 | GOTCHAS | 30 known issues + solutions |
 | 7-12 | Layer entities | Graph structure |
 | 13-93 | Layer relations | Traversal paths |
 
