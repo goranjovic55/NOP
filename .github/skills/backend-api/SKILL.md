@@ -35,6 +35,7 @@ description: Load when editing Python files in backend/, api/, routes/, services
 | JSONB mutations | Always `flag_modified()` after update |
 
 ## Avoid
+
 | ❌ Bad | ✅ Good |
 |--------|---------|
 | DB logic in routes | Service layer |

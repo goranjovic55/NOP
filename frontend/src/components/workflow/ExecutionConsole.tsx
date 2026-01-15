@@ -8,7 +8,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { WorkflowExecution, NodeResult } from '../../types/workflow';
 import { useWorkflowStore, ConsoleLogEntry } from '../../store/workflowStore';
 import { CyberButton } from '../CyberUI';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ExecutionConsoleProps {
   execution: WorkflowExecution | null;
@@ -297,8 +296,8 @@ const ExecutionConsole: React.FC<ExecutionConsoleProps> = ({
                     onClick={() => hasData && toggleExpanded(log.id)}
                   >
                     {hasData && (
-                      <span className="text-cyber-gray-light shrink-0 w-3">
-                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <span className="text-cyber-gray-light shrink-0 w-3 text-xs">
+                        {isExpanded ? '▼' : '▶'}
                       </span>
                     )}
                     <span className="text-cyber-gray shrink-0">

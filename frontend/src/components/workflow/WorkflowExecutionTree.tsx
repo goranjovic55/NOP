@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 import { WorkflowExecution, NodeExecutionStatus, NodeResult } from '../../types/workflow';
 
 interface ExecutionTreeNode {
@@ -26,42 +25,42 @@ const statusConfig = {
     color: 'text-cyber-gray-light',
     bgColor: 'bg-cyber-gray/10',
     borderColor: 'border-cyber-gray/30',
-    icon: <AlertCircle className="w-4 h-4" />,
+    icon: '○',
     label: '○',
   },
   waiting: {
     color: 'text-cyber-gray-light',
     bgColor: 'bg-cyber-gray/10',
     borderColor: 'border-cyber-gray/30',
-    icon: <AlertCircle className="w-4 h-4" />,
+    icon: '⧖',
     label: '⧖',
   },
   running: {
     color: 'text-cyber-yellow',
     bgColor: 'bg-cyber-yellow/10',
     borderColor: 'border-cyber-yellow/30',
-    icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    icon: '⊙',
     label: '⊙',
   },
   completed: {
     color: 'text-cyber-green',
     bgColor: 'bg-cyber-green/10',
     borderColor: 'border-cyber-green/30',
-    icon: <Check className="w-4 h-4" />,
+    icon: '✓',
     label: '✓',
   },
   failed: {
     color: 'text-cyber-red',
     bgColor: 'bg-cyber-red/10',
     borderColor: 'border-cyber-red/30',
-    icon: <X className="w-4 h-4" />,
+    icon: '✗',
     label: '✗',
   },
   skipped: {
     color: 'text-cyber-gray',
     bgColor: 'bg-cyber-gray/10',
     borderColor: 'border-cyber-gray/30',
-    icon: <AlertCircle className="w-4 h-4" />,
+    icon: '⊘',
     label: '⊘',
   },
 } as const;
@@ -179,16 +178,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, onToggle, expandedNode
       >
         {/* Expand icon */}
         {hasChildren && (
-          <ChevronRight
-            className={`w-4 h-4 text-cyber-gray transition-transform flex-shrink-0 ${
-              isExpanded ? 'rotate-90' : ''
-            }`}
-          />
+          <span className={`text-cyber-gray transition-transform flex-shrink-0 text-xs ${
+            isExpanded ? 'rotate-90' : ''
+          }`}>
+            ▶
+          </span>
         )}
         {!hasChildren && <div className="w-4" />}
 
         {/* Status icon */}
-        <div className={`${config.color} flex-shrink-0`}>{config.icon}</div>
+        <span className={`${config.color} flex-shrink-0`}>{config.icon}</span>
 
         {/* Block name */}
         <span className={`${config.color} font-semibold flex-1 text-sm`}>{node.name}</span>
