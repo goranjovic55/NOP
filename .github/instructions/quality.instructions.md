@@ -29,7 +29,7 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 ## Checklist
 □ No syntax errors | □ No duplicates | □ Imports resolve | □ Tests pass
 
-## ⚠️ Common Gotchas (from 137 workflow logs - 41 documented)
+## ⚠️ Common Gotchas (from 141 workflow logs - 43 documented)
 
 | Category | Pattern | Solution |
 |----------|---------|----------|
@@ -57,3 +57,5 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Workflow | Black screen on switch | Call `reset()` to clear execution state |
 | Context | Connection menu hidden | Check DOM ordering, z-index, pointer-events |
 | Cache | Same skill reloaded | Load skill ONCE per domain, cache list |
+| JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
+| WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |

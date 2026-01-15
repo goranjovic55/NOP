@@ -45,14 +45,19 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
         if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
           // Execution already finished
           setIsExecuting(false);
+          
+          const nodeStatuses = data.node_statuses || {};
+          const nodeResults = data.node_results || {};
+          
+          // Update execution state
           setExecution({
             id: data.id,
             workflowId: data.workflow_id,
             status: data.status,
             currentLevel: data.current_level,
             totalLevels: data.total_levels,
-            nodeStatuses: data.node_statuses || {},
-            nodeResults: data.node_results || {},
+            nodeStatuses,
+            nodeResults,
             progress: {
               completed: data.progress?.completed || 0,
               total: data.progress?.total || 0,
@@ -63,6 +68,28 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
             errors: data.errors || [],
             variables: data.variables || {},
           });
+          
+          // Also call onNodeStatusChange for each node so BlockNode gets updated
+          // This handles fast executions that complete before WebSocket connected
+          console.log('[DEBUG] pollExecutionStatus: nodeStatuses=', Object.keys(nodeStatuses).length, nodeStatuses);
+          if (options.onNodeStatusChange) {
+            for (const [nodeId, status] of Object.entries(nodeStatuses)) {
+              console.log('[DEBUG] pollExecutionStatus: calling onNodeStatusChange for', nodeId, status);
+              const nodeResult = nodeResults[nodeId];
+              const mappedStatus: NodeExecutionStatus = status === 'completed' ? 'completed' : 
+                                                        status === 'failed' ? 'failed' : 
+                                                        status === 'running' ? 'running' : 'pending';
+              options.onNodeStatusChange(nodeId, mappedStatus, nodeResult ? {
+                success: nodeResult.success,
+                output: nodeResult.output,
+                error: nodeResult.error,
+                duration: nodeResult.duration_ms,
+              } : undefined);
+            }
+          } else {
+            console.log('[DEBUG] pollExecutionStatus: options.onNodeStatusChange is NOT defined!');
+          }
+          
           if (options.onComplete && data.status === 'completed') {
             options.onComplete(data);
           }
@@ -166,10 +193,34 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
             setIsExecuting(false);
             setExecution(prev => {
               if (prev) {
+                // Use nodeStatuses from the completion event if available (backend includes final state)
+                const finalNodeStatuses = data.nodeStatuses || prev.nodeStatuses;
+                const finalNodeResults = data.nodeResults || prev.nodeResults;
+                
+                // Call onNodeStatusChange for each node from the final state
+                // This ensures all nodes get their final status, including START node
+                if (options.onNodeStatusChange && data.nodeStatuses) {
+                  console.log('[DEBUG] execution_completed: updating node statuses from WS event', data.nodeStatuses);
+                  for (const [nodeId, status] of Object.entries(data.nodeStatuses as Record<string, string>)) {
+                    const nodeResult = finalNodeResults[nodeId];
+                    const mappedStatus: NodeExecutionStatus = status === 'completed' ? 'completed' : 
+                                                              status === 'failed' ? 'failed' : 
+                                                              status === 'running' ? 'running' : 'pending';
+                    options.onNodeStatusChange(nodeId, mappedStatus, nodeResult ? {
+                      success: nodeResult.success,
+                      output: nodeResult.output,
+                      error: nodeResult.error,
+                      duration: nodeResult.duration_ms,
+                    } : undefined);
+                  }
+                }
+                
                 const updated = {
                   ...prev,
                   status: data.status as ExecutionStatus,
                   completedAt: new Date().toISOString(),
+                  nodeStatuses: finalNodeStatuses,
+                  nodeResults: finalNodeResults,
                   // Force progress to 100% on completion
                   progress: {
                     ...prev.progress,

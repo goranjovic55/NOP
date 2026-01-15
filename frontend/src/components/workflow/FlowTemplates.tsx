@@ -1,6 +1,6 @@
 /**
  * FlowTemplates - Predefined workflow templates for network operations
- * UI Test templates from merged commit scenarios
+ * Production-ready templates for automation scenarios
  * Supports shift+click selection for copying content to clipboard
  */
 
@@ -18,210 +18,8 @@ interface FlowTemplate {
   edges: Partial<WorkflowEdge>[];
 }
 
-// UI Test Templates from merged commit scenarios
+// Production workflow templates
 const TEMPLATES: FlowTemplate[] = [
-  // ============================================================================
-  // UI TEST TEMPLATES
-  // ============================================================================
-  {
-    id: 'multi-host-ping-monitor',
-    name: 'UI Test: Multi-Host Ping Monitor',
-    description: 'Ping multiple hosts and monitor connectivity status',
-    category: 'traffic',
-    icon: '≡',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Multi-Host Ping' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Ping Host 1', type: 'traffic.ping', category: 'traffic', parameters: { host: '172.21.0.10', count: 2 } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Ping Host 2', type: 'traffic.ping', category: 'traffic', parameters: { host: '172.21.0.20', count: 2 } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'count-loop-test',
-    name: 'UI Test: Count Loop Test',
-    description: 'Test loop iteration with counter variable',
-    category: 'utility',
-    icon: '⟳',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Loop Test' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Counter', type: 'control.variable_set', category: 'control', parameters: { name: 'counter', value: '0' } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Loop 3 Times', type: 'control.loop', category: 'control', parameters: { iterations: 3, variable: 'i' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Increment', type: 'control.variable_set', category: 'control', parameters: { name: 'counter', value: '{{counter + 1}}' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'loop', targetHandle: 'in' },
-      { source: '4', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '5', sourceHandle: 'done', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'agent-pov-reconnaissance',
-    name: 'UI Test: Agent POV Reconnaissance',
-    description: 'Reconnaissance from host perspective with network scanning',
-    category: 'scanning',
-    icon: '◆',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Host Recon' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'SSH: Get Network Info', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.21.0.10', command: 'ip addr' } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'SSH: Scan Local Net', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.21.0.10', command: 'arp -a' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Parse Results', type: 'data.output_interpreter', category: 'data', parameters: { inputSource: '{{previous.output}}', containsPass: 'inet', extractVariable: 'hosts' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'agent-mass-deployment',
-    name: 'UI Test: Agent Mass Deployment',
-    description: 'Deploy agents to multiple target hosts',
-    category: 'agent',
-    icon: '◆',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Mass Deploy' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Generate Agent', type: 'agent.generate', category: 'agent', parameters: { platform: 'linux-amd64', obfuscate: true } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Deploy to Host 1', type: 'agent.deploy', category: 'agent', parameters: { host: '172.21.0.10', username: 'root' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Deploy to Host 2', type: 'agent.deploy', category: 'agent', parameters: { host: '172.21.0.20', username: 'root' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'rep-ring-failover-test',
-    name: 'UI Test: REP Ring Failover Test',
-    description: 'Test redundancy ring failover between nodes',
-    category: 'access',
-    icon: '⬡',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'REP Ring Test' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Test Primary', type: 'traffic.ping', category: 'traffic', parameters: { host: '172.21.0.10', count: 2 } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Test Secondary', type: 'traffic.ping', category: 'traffic', parameters: { host: '172.21.0.20', count: 2 } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Check Failover', type: 'data.assertion', category: 'data', parameters: { condition: 'or', values: ['primary.reachable', 'secondary.reachable'], failMessage: 'All nodes down' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'ssh-command-chain',
-    name: 'UI Test: SSH Command Chain',
-    description: 'Execute chained SSH commands with output parsing',
-    category: 'access',
-    icon: '⬢',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'SSH Chain' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'SSH: Get Hostname', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.21.0.10', command: 'hostname' } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'SSH: Get Uptime', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.21.0.10', command: 'uptime' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'SSH: Get Disk', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.21.0.10', command: 'df -h' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'connectivity-health-check',
-    name: 'UI Test: Connectivity Health Check',
-    description: 'Check connectivity health across network segments',
-    category: 'traffic',
-    icon: '≡',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Health Check' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Ping Gateway', type: 'traffic.ping', category: 'traffic', parameters: { host: '172.21.0.1', count: 4 } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Check Latency', type: 'data.output_interpreter', category: 'data', parameters: { inputSource: '{{previous.output}}', containsPass: 'ms', extractVariable: 'latency' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Ping DNS', type: 'traffic.ping', category: 'traffic', parameters: { host: '8.8.8.8', count: 2 } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'security-scan-pipeline',
-    name: 'UI Test: Security Scan Pipeline',
-    description: 'Run security scans with vulnerability detection',
-    category: 'scanning',
-    icon: '⊙',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Security Scan' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Port Scan', type: 'scanning.port_scan', category: 'scanning', parameters: { host: '172.21.0.10', scanType: 'full' } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Version Detect', type: 'scanning.version_detect', category: 'scanning', parameters: { host: '172.21.0.10' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Check Results', type: 'data.assertion', category: 'data', parameters: { condition: 'exists', value: 'open_ports', failMessage: 'No ports found' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'network-discovery-pipeline',
-    name: 'UI Test: Network Discovery Pipeline',
-    description: 'Discover hosts and scan for services',
-    category: 'scanning',
-    icon: '⊙',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Network Discovery' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Network', type: 'control.variable_set', category: 'control', parameters: { name: 'network', value: '172.21.0.0/24' } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Discover Hosts', type: 'scanning.network_discovery', category: 'scanning', parameters: { network: '{{network}}' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Parse Hosts', type: 'data.output_interpreter', category: 'data', parameters: { inputSource: '{{previous.output}}', containsPass: 'host', extractVariable: 'hostList' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
-    ],
-  },
-  {
-    id: 'traffic-baseline-collection',
-    name: 'UI Test: Traffic Baseline Collection',
-    description: 'Collect traffic baseline for network analysis',
-    category: 'traffic',
-    icon: '◉',
-    nodes: [
-      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Traffic Baseline' } } },
-      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Capture Traffic', type: 'traffic.burst_capture', category: 'traffic', parameters: { interface: 'eth0', duration_seconds: 5 } } },
-      { type: 'block', position: { x: 100, y: 250 }, data: { label: 'Get Stats', type: 'traffic.get_stats', category: 'traffic', parameters: { interface: 'eth0' } } },
-      { type: 'block', position: { x: 100, y: 350 }, data: { label: 'Analyze', type: 'data.code', category: 'data', parameters: { description: 'Analyze baseline', passCode: 'return true;', outputCode: 'return { baseline: context.input };' } } },
-      { type: 'block', position: { x: 100, y: 450 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success' } } },
-    ],
-    edges: [
-      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '3', target: '4', sourceHandle: 'out', targetHandle: 'in' },
-      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
-    ],
-  },
   // ============================================================================
   // ASSET ITERATION TEMPLATES
   // ============================================================================
@@ -307,6 +105,279 @@ const TEMPLATES: FlowTemplate[] = [
       { source: '3', target: '6', sourceHandle: 'false', targetHandle: 'in' },
       { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
       { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+  // ============================================================================
+  // AUTOMATION SCENARIOS (10 Production Workflows)
+  // These templates can be used with production or test environments
+  // ============================================================================
+  
+  // Scenario 1: Asset Discovery & Inventory
+  {
+    id: 'asset-discovery',
+    name: 'Asset Discovery & Inventory',
+    description: 'Discover all hosts on subnet via ARP/Ping, add to inventory',
+    category: 'scanning',
+    icon: '◉',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Asset Discovery' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'ARP Discovery', type: 'assets.discover_arp', category: 'assets', parameters: { subnet: '172.29.0.0/24', timeout: 15, autoAdd: true } } },
+      { type: 'block', position: { x: 100, y: 270 }, data: { label: 'Ping Sweep', type: 'assets.discover_ping', category: 'assets', parameters: { subnet: '172.29.0.0/24', timeout: 2000, concurrent: 50, autoAdd: true } } },
+      { type: 'block', position: { x: 100, y: 390 }, data: { label: 'Get All Assets', type: 'assets.get_all', category: 'assets', parameters: { includeOffline: false, limit: 100 } } },
+      { type: 'block', position: { x: 100, y: 510 }, data: { label: 'Asset Count Check', type: 'data.assertion', category: 'data', parameters: { name: 'Discovered hosts check', condition: 'expression', value: 'context.input.length > 0', failMessage: 'No hosts discovered!' } } },
+      { type: 'block', position: { x: 100, y: 630 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Discovery complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'discovered', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'discovered', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'assets', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 2: Vulnerability Assessment Chain
+  {
+    id: 'vuln-assessment',
+    name: 'Vulnerability Assessment Chain',
+    description: 'Scan target, detect versions, lookup CVEs, map exploits',
+    category: 'scanning',
+    icon: '⚠',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Vuln Assessment' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Version Detection', type: 'scanning.version_detect', category: 'scanning', parameters: { host: '172.29.0.106', ports: '22,80,8080,3306', aggressive: true, timeout: 300 } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Parse Versions', type: 'data.output_interpreter', category: 'data', parameters: { inputSource: '{{previous.output}}', containsPass: 'Apache', extractVariable: 'apacheVersion', extractPattern: 'Apache/(\\d+\\.\\d+\\.\\d+)' } } },
+      { type: 'block', position: { x: 320, y: 290 }, data: { label: 'CVE Lookup Apache', type: 'vulnerability.cve_lookup', category: 'scanning', parameters: { product: 'apache http server', version: '2.4.49', vendor: 'apache' } } },
+      { type: 'block', position: { x: 320, y: 430 }, data: { label: 'Get Exploits', type: 'vulnerability.get_exploits', category: 'scanning', parameters: { cve_id: 'CVE-2021-41773' } } },
+      { type: 'block', position: { x: 320, y: 570 }, data: { label: 'Transform Results', type: 'data.transform', category: 'data', parameters: { transformType: 'json_stringify', template: '{"host": "172.29.0.106", "cves": {{input.cves}}, "exploits": {{input.exploits}}}' } } },
+      { type: 'block', position: { x: 100, y: 570 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Vuln assessment complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 3: Credential Validation Sweep
+  {
+    id: 'credential-sweep',
+    name: 'Credential Validation Sweep',
+    description: 'Test SSH/FTP credentials against multiple hosts',
+    category: 'access',
+    icon: '🔑',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Credential Sweep' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Set Targets', type: 'control.variable_set', category: 'control', parameters: { name: 'targets', value: '["172.29.0.100", "172.29.0.105", "172.29.0.106"]', type: 'array' } } },
+      { type: 'block', position: { x: 100, y: 270 }, data: { label: 'Loop Targets', type: 'control.loop', category: 'control', parameters: { mode: 'array', items: '{{ $vars.targets }}', variable: 'target' } } },
+      { type: 'block', position: { x: 320, y: 220 }, data: { label: 'SSH Test (root)', type: 'connection.ssh_test', category: 'connection', parameters: { host: '{{ $loop.item }}', port: 22, username: 'root', password: 'toor', timeout: 10 } } },
+      { type: 'block', position: { x: 320, y: 360 }, data: { label: 'FTP Test', type: 'connection.ftp_test', category: 'connection', parameters: { host: '{{ $loop.item }}', port: 21, protocol: 'ftp', username: 'ftpuser', password: 'ftp123' } } },
+      { type: 'block', position: { x: 320, y: 500 }, data: { label: 'Log Results', type: 'control.variable_set', category: 'control', parameters: { name: 'lastResult', value: '{"host": "{{ $loop.item }}", "ssh": {{ $prev.success }}, "ftp": {{ $blocks.ftp_test.success }}}' } } },
+      { type: 'block', position: { x: 100, y: 500 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Credential sweep complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'loop', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '6', target: '3', sourceHandle: 'out', targetHandle: 'next' },
+      { source: '3', target: '7', sourceHandle: 'done', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 4: SSH Command Execution Campaign
+  {
+    id: 'ssh-campaign',
+    name: 'SSH Command Execution Campaign',
+    description: 'Execute commands on all SSH-accessible hosts',
+    category: 'access',
+    icon: '⬢',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'SSH Campaign' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Filter SSH Assets', type: 'assets.get_by_filter', category: 'assets', parameters: { status: 'online', subnet: '172.29.0.0/24' } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Loop Assets', type: 'control.loop', category: 'control', parameters: { mode: 'array', items: '{{ $prev.assets }}', variable: 'asset' } } },
+      { type: 'block', position: { x: 320, y: 240 }, data: { label: 'SSH Test', type: 'connection.ssh_test', category: 'connection', parameters: { host: '{{ $loop.item.ip_address }}', port: 22, username: 'root', password: 'toor', timeout: 10 } } },
+      { type: 'block', position: { x: 320, y: 380 }, data: { label: 'SSH Connected?', type: 'control.condition', category: 'control', parameters: { expression: '{{ $prev.success }} === true', description: 'Check SSH connection' } } },
+      { type: 'block', position: { x: 540, y: 330 }, data: { label: 'Run: hostname', type: 'command.ssh_execute', category: 'command', parameters: { host: '{{ $loop.item.ip_address }}', port: 22, username: 'root', password: 'toor', command: 'hostname && uname -a', timeout: 30 } } },
+      { type: 'block', position: { x: 540, y: 470 }, data: { label: 'Parse Output', type: 'data.code', category: 'data', parameters: { description: 'Parse hostname output', passCode: 'return context.input && context.input.length > 0;', outputCode: 'return { host: context.input.split("\\n")[0], info: context.input };' } } },
+      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'SSH campaign complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'assets', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'loop', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'true', targetHandle: 'in' },
+      { source: '5', target: '3', sourceHandle: 'false', targetHandle: 'next' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '7', target: '3', sourceHandle: 'pass', targetHandle: 'next' },
+      { source: '3', target: '8', sourceHandle: 'done', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 5: Network Traffic Analysis
+  {
+    id: 'traffic-analysis',
+    name: 'Network Traffic Analysis',
+    description: 'Capture and analyze network traffic patterns',
+    category: 'traffic',
+    icon: '≋',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Traffic Analysis' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Burst Capture (5s)', type: 'traffic.burst_capture', category: 'traffic', parameters: { interface: 'eth0', duration_seconds: 5, filter: 'net 172.29.0.0/24' } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Get Traffic Stats', type: 'traffic.get_stats', category: 'traffic', parameters: { interface: 'eth0', period: '1m' } } },
+      { type: 'block', position: { x: 100, y: 430 }, data: { label: 'Analyze Traffic', type: 'data.output_interpreter', category: 'data', parameters: { inputSource: '{{previous.output}}', containsPass: 'packets', extractVariable: 'packetCount', extractPattern: '(\\d+) packets' } } },
+      { type: 'block', position: { x: 100, y: 570 }, data: { label: 'Traffic Check', type: 'data.assertion', category: 'data', parameters: { name: 'Traffic detected', condition: 'expression', value: 'context.input.packetCount > 0', failMessage: 'No traffic captured!' } } },
+      { type: 'block', position: { x: 100, y: 710 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Traffic analysis complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 6: Exploit Discovery & Mapping
+  {
+    id: 'exploit-discovery',
+    name: 'Exploit Discovery & Mapping',
+    description: 'Find services, lookup CVEs, discover available exploits',
+    category: 'scanning',
+    icon: '⚡',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Exploit Discovery' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Service Scan', type: 'scanning.service_scan', category: 'scanning', parameters: { host: '172.29.0.106' } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Version Detect', type: 'scanning.version_detect', category: 'scanning', parameters: { host: '172.29.0.106', ports: '22,8080,3306', aggressive: true } } },
+      { type: 'block', position: { x: 100, y: 430 }, data: { label: 'CVE Lookup', type: 'vulnerability.cve_lookup', category: 'scanning', parameters: { product: 'apache http server', version: '2.4.49' } } },
+      { type: 'block', position: { x: 100, y: 570 }, data: { label: 'Get Exploits', type: 'vulnerability.get_exploits', category: 'scanning', parameters: { cve_id: 'CVE-2021-41773' } } },
+      { type: 'block', position: { x: 100, y: 710 }, data: { label: 'Map Results', type: 'data.transform', category: 'data', parameters: { transformType: 'template', template: '{"target": "172.29.0.106", "exploitable": true, "exploits": {{input}}}' } } },
+      { type: 'block', position: { x: 100, y: 850 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Exploit discovery complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 7: FTP File Operations
+  {
+    id: 'ftp-operations',
+    name: 'FTP File Operations',
+    description: 'Connect to FTP, list files, download and upload',
+    category: 'access',
+    icon: '▤',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'FTP Operations' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'FTP Test', type: 'connection.ftp_test', category: 'connection', parameters: { host: '172.29.0.105', port: 21, protocol: 'ftp', username: 'ftpuser', password: 'ftp123' } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'FTP Connected?', type: 'control.condition', category: 'control', parameters: { expression: '{{ $prev.success }} === true', description: 'Check FTP connection' } } },
+      { type: 'block', position: { x: 320, y: 240 }, data: { label: 'FTP List', type: 'command.ftp_list', category: 'command', parameters: { host: '172.29.0.105', port: 21, username: 'ftpuser', password: 'ftp123', path: '/downloads' } } },
+      { type: 'block', position: { x: 320, y: 380 }, data: { label: 'FTP Download', type: 'command.ftp_download', category: 'command', parameters: { host: '172.29.0.105', port: 21, username: 'ftpuser', password: 'ftp123', remotePath: '/downloads/test.txt', localPath: '/tmp/downloaded.txt' } } },
+      { type: 'block', position: { x: 320, y: 520 }, data: { label: 'FTP Upload', type: 'command.ftp_upload', category: 'command', parameters: { host: '172.29.0.105', port: 21, username: 'ftpuser', password: 'ftp123', localPath: '/tmp/downloaded.txt', remotePath: '/uploads/uploaded.txt' } } },
+      { type: 'block', position: { x: 100, y: 520 }, data: { label: 'End Success', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'FTP operations complete' } } },
+      { type: 'block', position: { x: 100, y: 400 }, data: { label: 'End Fail', type: 'control.end', category: 'control', parameters: { status: 'failure', message: 'FTP connection failed' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'true', targetHandle: 'in' },
+      { source: '3', target: '8', sourceHandle: 'false', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 8: Multi-Host Ping Health Check
+  {
+    id: 'ping-health-check',
+    name: 'Multi-Host Ping Health Check',
+    description: 'Ping all assets and verify connectivity status',
+    category: 'traffic',
+    icon: '●',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Health Check' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Get All Assets', type: 'assets.get_all', category: 'assets', parameters: { includeOffline: true, limit: 50 } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Loop Assets', type: 'control.loop', category: 'control', parameters: { mode: 'array', items: '{{ $prev.assets }}', variable: 'asset' } } },
+      { type: 'block', position: { x: 320, y: 240 }, data: { label: 'Ping Host', type: 'traffic.ping', category: 'traffic', parameters: { host: '{{ $loop.item.ip_address }}', count: 3, timeout: 5 } } },
+      { type: 'block', position: { x: 320, y: 380 }, data: { label: 'Check Status', type: 'data.assertion', category: 'data', parameters: { name: 'Host reachable', condition: 'expression', value: 'context.input.success === true', failMessage: 'Host unreachable: {{ $loop.item.ip_address }}' } } },
+      { type: 'block', position: { x: 320, y: 520 }, data: { label: 'Update Status', type: 'assets.check_online', category: 'assets', parameters: { host: '{{ $loop.item.ip_address }}', method: 'ping', updateInventory: true } } },
+      { type: 'block', position: { x: 100, y: 520 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Health check complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'assets', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'loop', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '3', sourceHandle: 'online', targetHandle: 'next' },
+      { source: '5', target: '3', sourceHandle: 'fail', targetHandle: 'next' },
+      { source: '3', target: '7', sourceHandle: 'done', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 9: Agent Deployment Chain
+  {
+    id: 'agent-deploy',
+    name: 'Agent Deployment Chain',
+    description: 'Generate agent, deploy via SSH, verify running',
+    category: 'agent',
+    icon: '◆',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Agent Deploy' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'SSH Test Target', type: 'connection.ssh_test', category: 'connection', parameters: { host: '172.29.0.100', port: 22, username: 'root', password: 'toor', timeout: 10 } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'SSH OK?', type: 'control.condition', category: 'control', parameters: { expression: '{{ $prev.success }} === true', description: 'Check SSH access' } } },
+      { type: 'block', position: { x: 320, y: 240 }, data: { label: 'Generate Agent', type: 'agent.generate', category: 'agent', parameters: { agent_id: 'default', platform: 'linux-amd64', obfuscate: true, compress: true } } },
+      { type: 'block', position: { x: 320, y: 380 }, data: { label: 'Deploy Agent', type: 'agent.deploy', category: 'agent', parameters: { host: '172.29.0.100', username: 'root', password: 'toor', agentBinary: '{{ $prev.agentPath }}', remotePath: '/tmp/nop-agent', autoStart: true } } },
+      { type: 'block', position: { x: 320, y: 520 }, data: { label: 'Verify Running', type: 'command.ssh_execute', category: 'command', parameters: { host: '172.29.0.100', port: 22, username: 'root', password: 'toor', command: 'ps aux | grep nop-agent', timeout: 15 } } },
+      { type: 'block', position: { x: 100, y: 520 }, data: { label: 'End Success', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Agent deployed' } } },
+      { type: 'block', position: { x: 100, y: 400 }, data: { label: 'End Fail', type: 'control.end', category: 'control', parameters: { status: 'failure', message: 'SSH access failed' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'true', targetHandle: 'in' },
+      { source: '3', target: '8', sourceHandle: 'false', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+    ],
+  },
+
+  // Scenario 10: Traffic Storm Testing
+  {
+    id: 'traffic-storm',
+    name: 'Traffic Storm Testing',
+    description: 'Generate traffic storm, capture burst, analyze results',
+    category: 'traffic',
+    icon: '⚡',
+    nodes: [
+      { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Storm Test' } } },
+      { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Pre-Storm Stats', type: 'traffic.get_stats', category: 'traffic', parameters: { interface: 'eth0', period: '1m' } } },
+      { type: 'block', position: { x: 100, y: 290 }, data: { label: 'Start Storm', type: 'traffic.storm', category: 'traffic', parameters: { interface: 'eth0', type: 'broadcast', duration: 3, rate: 500 } } },
+      { type: 'block', position: { x: 100, y: 430 }, data: { label: 'Wait', type: 'control.delay', category: 'control', parameters: { seconds: 5 } } },
+      { type: 'block', position: { x: 100, y: 550 }, data: { label: 'Burst Capture', type: 'traffic.burst_capture', category: 'traffic', parameters: { interface: 'eth0', duration_seconds: 2, filter: 'broadcast' } } },
+      { type: 'block', position: { x: 100, y: 690 }, data: { label: 'Post-Storm Stats', type: 'traffic.get_stats', category: 'traffic', parameters: { interface: 'eth0', period: '1m' } } },
+      { type: 'block', position: { x: 100, y: 830 }, data: { label: 'Analyze Results', type: 'data.code', category: 'data', parameters: { description: 'Compare pre/post stats', passCode: 'return true;', outputCode: 'return { preStorm: context.vars.preStats, postStorm: context.input, stormDetected: true };' } } },
+      { type: 'block', position: { x: 100, y: 970 }, data: { label: 'End', type: 'control.end', category: 'control', parameters: { status: 'success', message: 'Storm test complete' } } },
+    ],
+    edges: [
+      { source: '1', target: '2', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '2', target: '3', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '3', target: '4', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '4', target: '5', sourceHandle: 'out', targetHandle: 'in' },
+      { source: '5', target: '6', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '6', target: '7', sourceHandle: 'pass', targetHandle: 'in' },
+      { source: '7', target: '8', sourceHandle: 'pass', targetHandle: 'in' },
     ],
   },
 ];

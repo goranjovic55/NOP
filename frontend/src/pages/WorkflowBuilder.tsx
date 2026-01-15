@@ -30,7 +30,7 @@ const WorkflowBuilder: React.FC = () => {
     setCurrentWorkflow,
     selectNode,
     updateNode,
-    nodes,
+    setExecution: setStoreExecution,
   } = useWorkflowStore();
 
   const [openTabs, setOpenTabs] = useState<FlowTab[]>([]);
@@ -51,8 +51,16 @@ const WorkflowBuilder: React.FC = () => {
   } = useWorkflowExecution({
     onNodeStatusChange: useCallback((nodeId: string, status: string, result?: any) => {
       // Update node visual status in store for block highlighting
-      const node = nodes.find(n => n.id === nodeId);
+      // Use getState() to always get fresh node data, avoiding stale closure
+      console.log('[DEBUG] onNodeStatusChange called:', nodeId, status, result ? 'with result' : 'no result');
+      const currentNodes = useWorkflowStore.getState().nodes;
+      
+      // Log all available node IDs for debugging
+      console.log('[DEBUG] Available node IDs:', currentNodes.map(n => n.id));
+      
+      const node = currentNodes.find(n => n.id === nodeId);
       if (node) {
+        console.log('[DEBUG] Updating node:', nodeId, 'to status:', status);
         updateNode(nodeId, {
           data: {
             ...node.data,
@@ -62,15 +70,50 @@ const WorkflowBuilder: React.FC = () => {
             executionDuration: result?.duration,
           }
         });
+      } else {
+        console.log('[DEBUG] Node not found:', nodeId);
+        console.log('[DEBUG] All current nodes:', currentNodes.map(n => ({ id: n.id, type: n.data?.type, label: n.data?.label })));
       }
-    }, [nodes, updateNode]),
+    }, [updateNode]),
     onComplete: useCallback((exec: any) => {
       console.log('Workflow execution completed:', exec);
-    }, []),
+      
+      // Mark any nodes that weren't executed as "skipped"
+      // This helps users understand which nodes weren't reached
+      // Check both snake_case (from API) and camelCase (from hook state)
+      // Note: empty object {} is truthy, so we must check for keys
+      const snakeStatuses = exec.node_statuses || {};
+      const camelStatuses = exec.nodeStatuses || {};
+      const nodeStatuses = Object.keys(snakeStatuses).length > 0 ? snakeStatuses : camelStatuses;
+      const executedNodeIds = new Set(Object.keys(nodeStatuses));
+      
+      console.log('[DEBUG] executedNodeIds:', Array.from(executedNodeIds));
+      
+      const currentNodes = useWorkflowStore.getState().nodes;
+      
+      currentNodes.forEach(node => {
+        if (!executedNodeIds.has(node.id)) {
+          // Node was not executed - mark as skipped
+          console.log('[DEBUG] Marking node as skipped:', node.id, node.data?.label);
+          updateNode(node.id, {
+            data: {
+              ...node.data,
+              executionStatus: 'skipped',
+            }
+          });
+        }
+      });
+    }, [updateNode]),
     onError: useCallback((error: string) => {
       console.error('Workflow execution error:', error);
     }, []),
   });
+
+  // Sync hook's execution state to store for WorkflowCanvas to read
+  useEffect(() => {
+    console.log('[DEBUG] Syncing execution to store:', execution?.status, 'nodeStatuses:', execution?.nodeStatuses ? Object.keys(execution.nodeStatuses) : 'none');
+    setStoreExecution(execution);
+  }, [execution, setStoreExecution]);
 
   useEffect(() => {
     loadWorkflows();

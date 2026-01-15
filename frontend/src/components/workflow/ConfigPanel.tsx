@@ -256,7 +256,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
 
   if (!nodeId || !node || !definition) {
     return (
-      <div className="w-80 h-full bg-cyber-darker border-l border-cyber-gray flex items-center justify-center">
+      <div className="w-[480px] h-full bg-cyber-darker border-l border-cyber-gray flex items-center justify-center">
         <p className="text-cyber-gray-light text-sm font-mono">◇ SELECT NODE</p>
       </div>
     );
@@ -316,7 +316,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
   };
 
   return (
-    <div className="w-80 h-full bg-cyber-darker border-l border-cyber-gray flex flex-col overflow-hidden">
+    <div className="w-[480px] h-full bg-cyber-darker border-l border-cyber-gray flex flex-col overflow-hidden">
       {/* Header */}
       <div 
         className="p-4 border-b flex items-center justify-between"
@@ -516,8 +516,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                 {nodeResult?.output && !nodeResult.iterations && (
                   <div className="mt-2">
                     <p className="text-xs text-cyber-gray-light font-mono mb-1">OUTPUT:</p>
-                    <div className="text-xs font-mono bg-cyber-dark p-2 rounded border border-cyber-green/30 max-h-40 overflow-y-auto cyber-scrollbar">
-                      <pre className="text-cyber-green whitespace-pre-wrap break-words">
+                    <div className="text-xs font-mono bg-cyber-dark p-3 rounded border border-cyber-green/30 max-h-80 overflow-y-auto cyber-scrollbar">
+                      <pre className="text-cyber-green whitespace-pre-wrap break-words text-sm">
                         {typeof nodeResult.output === 'object' 
                           ? JSON.stringify(nodeResult.output, null, 2)
                           : String(nodeResult.output)
@@ -669,7 +669,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ nodeId, onClose }) => {
                 )}
               </div>
               {blockResult.output && (
-                <div className="text-xs font-mono bg-cyber-darker p-1 rounded max-h-24 overflow-y-auto cyber-scrollbar">
+                <div className="text-xs font-mono bg-cyber-darker p-2 rounded max-h-64 overflow-y-auto cyber-scrollbar border border-cyber-green/20">
                   <pre className="text-cyber-green whitespace-pre-wrap break-words">
                     {JSON.stringify(blockResult.output, null, 2)}
                   </pre>

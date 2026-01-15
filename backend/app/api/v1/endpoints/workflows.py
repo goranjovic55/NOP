@@ -2442,10 +2442,13 @@ async def run_workflow_execution(execution_id: UUID, workflow, db: AsyncSession)
                 block_type = data.get('type', 'unknown')
                 params = data.get('parameters', {})
                 
+                logger.info(f"[NODE_EXEC] Processing node {node_id} type={block_type}")
+                
                 # Update node status to running
                 execution.node_statuses[node_id] = 'running'
                 flag_modified(execution, 'node_statuses')
                 await session.commit()
+                logger.info(f"[NODE_EXEC] Set {node_id} to 'running', node_statuses keys: {list(execution.node_statuses.keys())}")
                 
                 # Notify node started
                 await send_ws_event("node_started", {"nodeId": node_id, "blockType": block_type})
@@ -2496,6 +2499,7 @@ async def run_workflow_execution(execution_id: UUID, workflow, db: AsyncSession)
                     flag_modified(execution, 'node_statuses')
                     flag_modified(execution, 'node_results')
                     await session.commit()
+                    logger.info(f"[NODE_EXEC] Set {node_id} to '{execution.node_statuses[node_id]}', all statuses: {execution.node_statuses}")
                     
                     # Notify node completed - include iteration data for loops
                     ws_data = {
@@ -2584,8 +2588,12 @@ async def run_workflow_execution(execution_id: UUID, workflow, db: AsyncSession)
             execution.completed_at = datetime.utcnow()
             await session.commit()
             
-            # Notify execution completed
-            await send_ws_event("execution_completed", {"status": "completed"})
+            # Notify execution completed - include final node statuses
+            await send_ws_event("execution_completed", {
+                "status": "completed",
+                "nodeStatuses": execution.node_statuses or {},
+                "nodeResults": execution.node_results or {}
+            })
             logger.info(f"Workflow execution {execution_id} completed successfully")
     except Exception as e:
         logger.error(f"Workflow execution {execution_id} failed with error: {e}")

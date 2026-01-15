@@ -95,6 +95,7 @@ interface WorkflowState {
   executeWorkflow: (id: string) => Promise<void>;
   cancelExecution: () => void;
   updateNodeStatus: (nodeId: string, status: NodeExecutionStatus) => void;
+  setExecution: (execution: WorkflowExecution | null) => void;
   
   // UI
   togglePalette: () => void;
@@ -277,12 +278,22 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       // Set current workflow
       setCurrentWorkflow: (id) => {
-        const { workflows, openTabs } = get();
+        const { workflows, openTabs, activeTabId, nodes, edges } = get();
         const workflow = workflows.find(w => w.id === id);
+        
+        // Save current tab state before switching (fixes template persistence bug)
+        let updatedTabs = openTabs;
+        if (activeTabId) {
+          updatedTabs = openTabs.map(t => 
+            t.workflowId === activeTabId 
+              ? { ...t, nodes, edges }
+              : t
+          );
+        }
         
         if (id && workflow) {
           // Check if already open in a tab
-          const existingTab = openTabs.find(t => t.workflowId === id);
+          const existingTab = updatedTabs.find(t => t.workflowId === id);
           if (!existingTab) {
             const newTab: WorkflowTab = {
               workflowId: id,
@@ -291,18 +302,19 @@ export const useWorkflowStore = create<WorkflowState>()(
               edges: workflow.edges || [],
               isDirty: false,
             };
-            set(state => ({
+            set({
               currentWorkflowId: id,
-              openTabs: [...state.openTabs, newTab],
+              openTabs: [...updatedTabs, newTab],
               activeTabId: id,
               nodes: workflow?.nodes || [],
               edges: workflow?.edges || [],
               selectedNodeId: null,
               execution: null,
-            }));
+            });
           } else {
             set({
               currentWorkflowId: id,
+              openTabs: updatedTabs,
               activeTabId: id,
               nodes: existingTab.nodes,
               edges: existingTab.edges,
@@ -521,6 +533,11 @@ export const useWorkflowStore = create<WorkflowState>()(
           isExecuting: false,
           execution: null,
         });
+      },
+
+      // Set execution state (sync from hook)
+      setExecution: (execution) => {
+        set({ execution, isExecuting: execution !== null && execution.status === 'running' });
       },
 
       // Update node execution status

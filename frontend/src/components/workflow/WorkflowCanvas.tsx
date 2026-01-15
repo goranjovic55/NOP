@@ -23,7 +23,7 @@ import 'reactflow/dist/style.css';
 
 import BlockNode from './BlockNode';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { WorkflowNode, WorkflowEdge } from '../../types/workflow';
+import { WorkflowNode, WorkflowEdge, NodeExecutionStatus } from '../../types/workflow';
 
 // Define custom node types
 const nodeTypes = {
@@ -53,6 +53,7 @@ const WorkflowCanvasInner: React.FC = () => {
     removeEdge,
     selectedNodeId,
     selectNode,
+    execution, // Get execution state for node status highlighting
   } = useWorkflowStore();
 
   // Handle keyboard events for Ctrl (selection mode) and Delete (remove nodes/edges)
@@ -115,15 +116,42 @@ const WorkflowCanvasInner: React.FC = () => {
     };
   }, [nodes, edges, selectedNodeId, selectedEdgeIds, removeNode, removeEdge, selectNode]);
 
-  // Convert store nodes to React Flow format - keep original data
+  // Convert store nodes to React Flow format - merge execution status into node data
   const flowNodes = useMemo(() => {
     if (!Array.isArray(nodes)) return [];
-    return nodes.map(node => ({
-      ...node,
-      type: 'block',
-      selected: node.id === selectedNodeId,
-    }));
-  }, [nodes, selectedNodeId]);
+    
+    // Get execution state for node highlighting
+    const nodeStatuses = execution?.nodeStatuses || {};
+    const nodeResults = execution?.nodeResults || {};
+    
+    // Debug: Log when execution state changes
+    console.log('[DEBUG] flowNodes useMemo: execution status=', execution?.status, 'nodeStatuses=', Object.keys(nodeStatuses));
+    
+    return nodes.map(node => {
+      const status = nodeStatuses[node.id] as NodeExecutionStatus | undefined;
+      const result = nodeResults[node.id];
+      
+      // Debug: Log status for each node
+      if (status) {
+        console.log('[DEBUG] flowNodes: node', node.id, 'status=', status);
+      }
+      
+      return {
+        ...node,
+        type: 'block',
+        selected: node.id === selectedNodeId,
+        // Merge execution data into node data for BlockNode to render
+        data: {
+          ...node.data,
+          executionStatus: status,
+          executionResult: result,
+          executionDuration: result?.duration,
+          executionOutput: result?.output,
+          executionCount: (result as any)?.executionCount || (status === 'completed' || status === 'failed' ? 1 : 0),
+        },
+      };
+    });
+  }, [nodes, selectedNodeId, execution]);
 
   const flowEdges = useMemo(() => {
     if (!Array.isArray(edges)) return [];

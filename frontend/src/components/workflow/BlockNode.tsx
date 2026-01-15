@@ -44,7 +44,7 @@ const formatDuration = (ms?: number): string => {
   return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
 };
 
-const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
+const BlockNode: React.FC<BlockNodeProps> = ({ data, selected, id }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   
   // SAFETY: Ensure data exists and has required fields
@@ -68,6 +68,11 @@ const BlockNode: React.FC<BlockNodeProps> = ({ data, selected }) => {
   const executionDuration = (data as any).executionDuration as number || 0;
   const executionInput = (data as any).executionInput as any;
   const executionOutput = (data as any).executionOutput as any;
+  
+  // Debug: Log when execution status is set
+  if (executionStatus) {
+    console.log('[DEBUG] BlockNode render:', id, safeLabel, 'executionStatus=', executionStatus);
+  }
   
   // Determine border color based on execution status
   const borderColor = executionStatus 

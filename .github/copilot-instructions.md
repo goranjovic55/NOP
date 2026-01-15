@@ -24,7 +24,7 @@ head -100 project_knowledge.json  # Do this ONCE
 **After loading, you have IN MEMORY:**
 - Line 1: HOT_CACHE → top 20 entities + paths
 - Line 2: DOMAIN_INDEX → 81 backend, 74 frontend file paths
-- Line 4: GOTCHAS → 41 known issues + solutions
+- Line 4: GOTCHAS → 43 known issues + solutions
 - Lines 7-12: Layer entities
 - Lines 13-93: Layer relations
 
@@ -53,7 +53,7 @@ head -100 project_knowledge.json  # Do this ONCE
 
 ### LOAD Phase (G0+G1+G2 Consolidated)
 1. **Read first 100 lines of `project_knowledge.json`** → KEEP IN MEMORY
-2. **Now you have:** hot_cache, domain_index (81 backend, 74 frontend), 41 gotchas, relations
+2. **Now you have:** hot_cache, domain_index (81 backend, 74 frontend), 43 gotchas, relations
 3. **Read `skills/INDEX.md`** → identify skills, pre-load: frontend-react ⭐ + backend-api ⭐
 4. **Use `manage_todo_list` tool** → Create TODO (NOT text TODOs)
 

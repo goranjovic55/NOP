@@ -1,6 +1,6 @@
 ---
 name: debugging
-description: Load when encountering errors, tracebacks, or investigating bugs. Provides systematic debugging patterns and common gotchas from 131 workflow logs.
+description: Load when encountering errors, tracebacks, or investigating bugs. Provides systematic debugging patterns and common gotchas from 141 workflow logs.
 ---
 
 # Debugging
@@ -37,6 +37,8 @@ description: Load when encountering errors, tracebacks, or investigating bugs. P
 | Terminal | Line wrapping corrupts | Limit line length, handle overflow |
 | Undo/Redo | Deep state breaks | Use immutable update patterns |
 | Credentials | Params missing | Validate block config completeness |
+| JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
+| WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |
 
 ## Rules
 

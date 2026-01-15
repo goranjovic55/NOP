@@ -36,7 +36,7 @@ head -100 project_knowledge.json  # Do this ONCE, keep in context
 |------|----------|---------|
 | 1 | HOT_CACHE | Top 20 entities + paths |
 | 2 | DOMAIN_INDEX | 81 backend, 71 frontend paths |
-| 4 | GOTCHAS | 38 known issues + solutions |
+| 4 | GOTCHAS | 43 known issues + solutions |
 | 7-12 | Layer entities | Graph structure |
 | 13-93 | Layer relations | Traversal paths |
 
