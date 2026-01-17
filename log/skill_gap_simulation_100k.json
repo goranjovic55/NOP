@@ -1,0 +1,248 @@
+{
+  "simulation_summary": {
+    "total_sessions": 10000,
+    "baseline_version": "current",
+    "optimized_version": "optimized",
+    "timestamp": "2026-01-17T21:40:21.094690"
+  },
+  "metrics_comparison": {
+    "discipline": {
+      "baseline": 0.8091557264957265,
+      "optimized": 0.8689397435897436,
+      "improvement": 0.0738844392202825
+    },
+    "cognitive_load": {
+      "baseline": 0.793507,
+      "optimized": 0.6714559999999999,
+      "improvement": 0.15381212768129332
+    },
+    "resolve_rate": {
+      "baseline": 0.8701,
+      "optimized": 0.8839,
+      "improvement": 0.015860245948741563
+    },
+    "speed": {
+      "baseline_p50": 50.64458391281012,
+      "optimized_p50": 43.478828507451105,
+      "improvement": 0.14149105100153656
+    },
+    "traceability": {
+      "baseline": 0.8344799999999999,
+      "optimized": 0.8891583333333332,
+      "improvement": 0.0655238391972645
+    },
+    "token_consumption": {
+      "baseline": 20253.7285,
+      "optimized": 15129.6468,
+      "improvement": 0.25299448938500385
+    },
+    "api_calls": {
+      "baseline": 37.5311,
+      "optimized": 25.6322,
+      "improvement": 0.3170410672748734
+    }
+  },
+  "totals_comparison": {
+    "tokens_saved": 51240817,
+    "api_calls_saved": 118989,
+    "deviations_prevented": 4069,
+    "additional_successes": 138
+  },
+  "rates_comparison": {
+    "success_rate": {
+      "baseline": 0.8701,
+      "optimized": 0.8839
+    },
+    "perfect_session_rate": {
+      "baseline": 0.1393,
+      "optimized": 0.2513
+    }
+  },
+  "deviation_analysis": {
+    "baseline_top_deviations": {
+      "skip_skill_loading": 3086,
+      "skip_delegation_for_complex": 2312,
+      "skip_workflow_log": 2164,
+      "skip_verification": 1780,
+      "skip_delegation_tracing": 1493,
+      "incomplete_delegation_context": 1154,
+      "skip_parallel_for_complex": 1060,
+      "skip_delegation_verification": 1033,
+      "incomplete_todo_tracking": 1007,
+      "wrong_agent_selected": 857
+    },
+    "optimized_top_deviations": {
+      "skip_skill_loading": 2887,
+      "skip_workflow_log": 1913,
+      "skip_verification": 1655,
+      "skip_delegation_for_complex": 1516,
+      "skip_delegation_tracing": 1199,
+      "incomplete_delegation_context": 1034,
+      "incomplete_todo_tracking": 920,
+      "skip_delegation_verification": 826,
+      "wrong_agent_selected": 731,
+      "skip_knowledge_loading": 715
+    }
+  },
+  "edge_case_analysis": {
+    "baseline_hit_rate": 0.1435,
+    "optimized_hit_rate": 0.145,
+    "top_edge_cases": {
+      "Unicode encoding issues": 101,
+      "Race condition in async operations": 99,
+      "SSR hydration mismatch": 94,
+      "Infinite render loop": 77,
+      "Connection pool exhaustion": 73,
+      "Concurrent state updates": 73,
+      "Circular dependency in imports": 72,
+      "Database migration rollback": 70,
+      "Timezone handling errors": 70,
+      "Stale closure in useEffect": 68
+    }
+  },
+  "delegation_analysis": {
+    "baseline": {
+      "delegation_rate": 0.5349,
+      "sessions_with_delegation": 5349,
+      "avg_delegation_discipline": 0.8499813049168069,
+      "avg_delegations_per_session": 2.9902785567395775,
+      "delegation_success_rate": 0.9296753287218794,
+      "agents_usage": {
+        "architect": 2329,
+        "research": 2313,
+        "documentation": 2292,
+        "devops": 2294,
+        "debugger": 2160,
+        "reviewer": 2347,
+        "code": 2260
+      }
+    },
+    "optimized": {
+      "delegation_rate": 0.5261,
+      "sessions_with_delegation": 5261,
+      "avg_delegation_discipline": 0.8499239688272191,
+      "avg_delegations_per_session": 3.005512260026611,
+      "delegation_success_rate": 0.9356427802065514,
+      "agents_usage": {
+        "reviewer": 2257,
+        "code": 2291,
+        "devops": 2248,
+        "debugger": 2307,
+        "research": 2198,
+        "documentation": 2263,
+        "architect": 2248
+      }
+    }
+  },
+  "parallel_execution_analysis": {
+    "baseline": {
+      "parallel_execution_rate": 0.1858,
+      "sessions_with_parallel": 1858,
+      "avg_parallel_agents": 2.339074273412271,
+      "avg_parallel_time_saved": 13.564371761717075,
+      "total_parallel_time_saved": 25202.602733270323,
+      "parallel_success_rate": 0.7841765339074274,
+      "strategy_distribution": {
+        "parallel": 1858,
+        "sequential": 8142
+      }
+    },
+    "optimized": {
+      "parallel_execution_rate": 0.4419,
+      "sessions_with_parallel": 4419,
+      "avg_parallel_agents": 2.143018782529984,
+      "avg_parallel_time_saved": 12.547387476641733,
+      "total_parallel_time_saved": 55446.90525927982,
+      "parallel_success_rate": 0.8343516632722335,
+      "strategy_distribution": {
+        "parallel": 4419,
+        "sequential": 5581
+      }
+    }
+  },
+  "skill_analysis": {
+    "total_gaps": 5,
+    "gaps": [
+      {
+        "skill": "security",
+        "frequency": 0.08,
+        "importance": "critical",
+        "description": "Protection against vulnerabilities",
+        "keywords": [
+          "security",
+          "vulnerability",
+          "injection",
+          "xss",
+          "csrf",
+          "owasp"
+        ]
+      },
+      {
+        "skill": "authentication",
+        "frequency": 0.18,
+        "importance": "high",
+        "description": "Secure user identity and access control",
+        "keywords": [
+          "auth",
+          "jwt",
+          "login",
+          "token",
+          "session",
+          "oauth",
+          "password"
+        ]
+      },
+      {
+        "skill": "performance",
+        "frequency": 0.12,
+        "importance": "high",
+        "description": "Speed and resource optimization",
+        "keywords": [
+          "performance",
+          "optimization",
+          "cache",
+          "slow",
+          "memory",
+          "profiling"
+        ]
+      },
+      {
+        "skill": "monitoring",
+        "frequency": 0.15,
+        "importance": "medium",
+        "description": "System health tracking and observability",
+        "keywords": [
+          "monitoring",
+          "metrics",
+          "logging",
+          "alerts",
+          "observability",
+          "health"
+        ]
+      },
+      {
+        "skill": "websocket-realtime",
+        "frequency": 0.07,
+        "importance": "medium",
+        "description": "Bidirectional real-time communication",
+        "keywords": [
+          "websocket",
+          "realtime",
+          "real-time",
+          "live",
+          "streaming",
+          "ws"
+        ]
+      }
+    ],
+    "coverage_before": 0.6875,
+    "coverage_after": 1.0
+  },
+  "new_skills_added": [
+    "security",
+    "authentication",
+    "performance",
+    "monitoring",
+    "websocket-realtime"
+  ]
+}

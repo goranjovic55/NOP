@@ -16,16 +16,18 @@
 | test_* *_test.py *.test.ts | [testing](testing/SKILL.md) | | 65% |
 | .github/skills/* agents/* | [akis-dev](akis-dev/SKILL.md) | | 87% |
 | project_knowledge.json | [knowledge](knowledge/SKILL.md) | | 3% |
+| auth jwt login token session | [authentication](authentication/SKILL.md) | | 18% |
+| performance optimization cache slow | [performance](performance/SKILL.md) | | 12% |
+| monitoring metrics logging alerts | [monitoring](monitoring/SKILL.md) | | 15% |
+| security vulnerability injection XSS | [security](security/SKILL.md) | | 8% |
+| websocket real-time live streaming | [websocket-realtime](websocket-realtime/SKILL.md) | | 7% |
 
-## Suggested Skills (Not Yet Created)
+## Suggested Skills (Future)
 | Situation | Skill | Confidence |
 |-----------|-------|------------|
-| auth jwt login token | authentication | 95% |
-| performance optimization cache | performance | 95% |
-| monitoring metrics logging | monitoring | 85% |
-| security vulnerability injection | security | 75% |
-| websocket real-time realtime | websocket-realtime | 70% |
 | locale language i18n intl | internationalization | 70% |
+| database migration schema | database-migration | 65% |
+| email notification templating | email-notifications | 60% |
 
 ⭐ Pre-load for fullstack (65.6% of sessions)
 
