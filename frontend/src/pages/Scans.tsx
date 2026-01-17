@@ -11,24 +11,56 @@ interface AssetListItemProps {
   isActive: boolean;
   scanStatus?: 'idle' | 'running' | 'completed' | 'failed';
   vulnScanning?: boolean;
+  passiveServices?: { port: number; service: string }[];
   onOpen: (asset: Asset) => void;
 }
 
-const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, onOpen }: AssetListItemProps) => {
+const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, passiveServices = [], onOpen }: AssetListItemProps) => {
+  // Combine services from asset and passive discovery
+  const activeServices = asset.services ? Object.entries(asset.services).map(([port, data]) => ({
+    port: parseInt(port),
+    service: data.service,
+    isPassive: false
+  })) : [];
+  
+  const passiveSvcs = passiveServices.map(s => ({
+    port: s.port,
+    service: s.service,
+    isPassive: true
+  }));
+  
+  // Merge, avoiding duplicates (prefer active scan data)
+  const activePorts = new Set(activeServices.map(s => s.port));
+  const allServices = [
+    ...activeServices,
+    ...passiveSvcs.filter(s => !activePorts.has(s.port))
+  ].sort((a, b) => a.port - b.port);
+
+  // Check if asset was discovered passively
+  const isPassiveDiscovered = (asset as any).discovery_method === 'passive' || passiveSvcs.length > 0;
+
   return (
     <div
       onClick={() => onOpen(asset)}
       className={`px-3 py-2 cursor-pointer border-l-4 transition-all ${
         isActive
           ? 'border-l-cyber-red bg-cyber-darker'
-          : 'border-l-cyber-gray hover:border-l-cyber-blue hover:bg-cyber-dark'
+          : isPassiveDiscovered
+            ? 'border-l-cyber-purple hover:border-l-cyber-purple hover:bg-cyber-dark'
+            : 'border-l-cyber-gray hover:border-l-cyber-blue hover:bg-cyber-dark'
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           {/* Online status */}
           <span className={`w-2 h-2 rounded-full ${asset.status === 'online' ? 'bg-cyber-green' : 'bg-cyber-gray'}`} />
-          <div className={`font-mono text-sm font-bold truncate ${isActive ? 'text-cyber-red' : 'text-cyber-blue'}`}>
+          {/* Passive discovery indicator */}
+          {isPassiveDiscovered && (
+            <span className="w-2 h-2 rounded-full bg-cyber-purple shadow-[0_0_5px_rgba(138,43,226,0.5)]" title="Passive discovery" />
+          )}
+          <div className={`font-mono text-sm font-bold truncate ${
+            isActive ? 'text-cyber-red' : isPassiveDiscovered ? 'text-cyber-purple' : 'text-cyber-blue'
+          }`}>
             {asset.ip_address}
           </div>
         </div>
@@ -55,9 +87,25 @@ const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, onOpen 
       {asset.hostname && asset.hostname !== asset.ip_address && (
         <div className="text-cyber-gray-light text-xs truncate mt-1">{asset.hostname}</div>
       )}
-      {asset.open_ports && asset.open_ports.length > 0 && (
-        <div className="text-cyber-gray-light text-xs mt-1">
-          <span className="text-cyber-purple">◈</span> {asset.open_ports.slice(0, 4).join(', ')}{asset.open_ports.length > 4 ? '...' : ''}
+      {/* Services display - both active (blue) and passive (purple) */}
+      {allServices.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1">
+          {allServices.slice(0, 4).map((svc) => (
+            <span
+              key={svc.port}
+              className={`px-1.5 py-0.5 text-[10px] rounded border ${
+                svc.isPassive 
+                  ? 'border-cyber-purple text-cyber-purple' 
+                  : 'border-cyber-blue text-cyber-blue'
+              }`}
+              title={`${svc.service} on port ${svc.port}${svc.isPassive ? ' (passive)' : ''}`}
+            >
+              {svc.port}
+            </span>
+          ))}
+          {allServices.length > 4 && (
+            <span className="text-cyber-gray text-[10px]">+{allServices.length - 4}</span>
+          )}
         </div>
       )}
     </div>
@@ -448,12 +496,12 @@ const Scans: React.FC = () => {
             onClick={handleTogglePassiveScan}
             className={`p-2 px-3 border text-sm font-bold transition-colors ${
               passiveScanEnabled
-                ? 'bg-cyber-green bg-opacity-10 border-cyber-green text-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.3)]'
-                : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-green'
+                ? 'bg-cyber-purple bg-opacity-10 border-cyber-purple text-cyber-purple shadow-[0_0_5px_rgba(138,43,226,0.3)]'
+                : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-purple'
             }`}
             title="Passively detect open ports from TCP SYN/ACK responses in network traffic"
           >
-            {passiveScanEnabled ? '● PASSIVE ON' : '○ PASSIVE OFF'}
+            {passiveScanEnabled ? '◉ PASSIVE ON' : '○ PASSIVE OFF'}
             {passiveScanEnabled && passiveServices.length > 0 && (
               <span className="ml-2 text-xs">({passiveServices.length})</span>
             )}
@@ -513,6 +561,9 @@ const Scans: React.FC = () => {
             ) : (
               filteredAssets.map((asset) => {
                 const tab = tabs.find(t => t.ip === asset.ip_address);
+                const assetPassiveServices = passiveServices
+                  .filter(ps => ps.host === asset.ip_address)
+                  .map(ps => ({ port: ps.port, service: ps.service }));
                 return (
                   <AssetListItem
                     key={asset.id}
@@ -520,6 +571,7 @@ const Scans: React.FC = () => {
                     isActive={asset.ip_address === activeTab?.ip}
                     scanStatus={getScanStatus(asset.ip_address)}
                     vulnScanning={tab?.vulnScanning}
+                    passiveServices={assetPassiveServices}
                     onOpen={handleOpenAsset}
                   />
                 );

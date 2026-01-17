@@ -78,7 +78,7 @@ const Assets: React.FC = () => {
 
   const { token } = useAuthStore();
   const { activeAgent } = usePOV();
-  const { setOnScanComplete, tabs: scanTabs } = useScanStore();
+  const { setOnScanComplete, tabs: scanTabs, passiveServices } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { setIsDiscovering } = useDiscoveryStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -487,12 +487,12 @@ const Assets: React.FC = () => {
               }}
               className={`p-2 px-3 border text-sm font-bold transition-colors ${
                 scanSettings.passiveDiscoveryEnabled 
-                  ? 'bg-cyber-green bg-opacity-10 border-cyber-green text-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.3)]' 
-                  : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-green'
+                  ? 'bg-cyber-purple bg-opacity-10 border-cyber-purple text-cyber-purple shadow-[0_0_5px_rgba(138,43,226,0.3)]' 
+                  : 'bg-cyber-darker border-cyber-gray text-cyber-gray-light hover:text-cyber-purple'
               }`}
               title="Toggle passive network discovery from traffic"
             >
-              {scanSettings.passiveDiscoveryEnabled ? '● PASSIVE ON' : '○ PASSIVE OFF'}
+              {scanSettings.passiveDiscoveryEnabled ? '◉ PASSIVE ON' : '○ PASSIVE OFF'}
             </button>
 
             <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-cyber-darker border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue transition-colors text-sm font-bold">
@@ -500,12 +500,18 @@ const Assets: React.FC = () => {
             </button>
             <button 
               onClick={async () => {
-                if (window.confirm('Are you sure you want to clear all assets? This cannot be undone.')) {
+                if (window.confirm('Are you sure you want to clear all assets? This will also clear scan results, topology data, and traffic history. This cannot be undone.')) {
                   try {
-                    await assetService.deleteAllAssets(token || '');
+                    await assetService.deleteAllAssets(token || '', activeAgent?.id);
+                    // Also clear local scan results cache
+                    localStorage.removeItem('nop_local_scan_results');
+                    // Refresh the assets list
+                    setAssets([]);
+                    setSelectedAsset(null);
                     fetchAssets(true);
                   } catch (err) {
                     console.error('Failed to clear assets:', err);
+                    setError('Failed to clear assets. Please try again.');
                   }
                 }
               }} 
@@ -563,14 +569,19 @@ const Assets: React.FC = () => {
                 filteredAndSortedAssets.map((asset: any) => {
                   const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
                   const isConnectedThis = accessTabs.some(t => t.ip === asset.ip_address && t.status === 'connected');
+                  const hasPassiveServices = passiveServices.some(ps => ps.host === asset.ip_address);
+                  const isPassiveDiscovered = asset.discovery_method === 'passive' || hasPassiveServices;
                   return (
                     <tr
                       key={asset.id}
                       className={`hover:bg-cyber-darker cursor-pointer transition-colors ${selectedAsset?.id === asset.id || selectedAsset?.ip_address === asset.ip_address ? 'bg-cyber-darker border-l-2 border-cyber-red' : ''}`}
                       onClick={() => setSelectedAsset(asset)}
                     >
-                      <td className="px-6 py-4 text-sm text-cyber-blue font-mono flex items-center space-x-2">
-                        <span>{asset.ip_address}</span>
+                      <td className="px-6 py-4 text-sm font-mono flex items-center space-x-2">
+                        {isPassiveDiscovered && (
+                          <span className="w-2 h-2 bg-cyber-purple rounded-full shadow-[0_0_5px_rgba(138,43,226,0.5)]" title="Passive discovery"></span>
+                        )}
+                        <span className={isPassiveDiscovered ? 'text-cyber-purple' : 'text-cyber-blue'}>{asset.ip_address}</span>
                         {isScanningThis && (
                           <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Scan Underway"></span>
                         )}

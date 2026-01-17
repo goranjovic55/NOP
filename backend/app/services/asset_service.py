@@ -176,11 +176,145 @@ class AssetService:
         await self.db.commit()
         return result.rowcount > 0
 
-    async def delete_all_assets(self) -> int:
-        query = delete(Asset)
-        result = await self.db.execute(query)
+    async def delete_all_assets(self, agent_id: Optional[UUID] = None) -> Dict[str, int]:
+        """Delete all assets and related data.
+        
+        Clears: assets, scans, scan_results, topology_edges, flows
+        to provide a clean start for asset discovery.
+        
+        Args:
+            agent_id: If provided, only delete data for this agent (POV mode)
+            
+        Returns:
+            Dictionary with counts of deleted records per table
+        """
+        counts = {
+            "assets": 0,
+            "scans": 0,
+            "scan_results": 0,
+            "topology_edges": 0,
+            "flows": 0,
+            "events": 0,
+            "vulnerabilities": 0
+        }
+        
+        # Import models here to avoid circular imports
+        from app.models.scan import Scan, ScanResult
+        from app.models.topology import TopologyEdge
+        from app.models.flow import Flow
+        
+        try:
+            # Delete scan results first (has FK to scans and assets)
+            if agent_id:
+                # Get scan IDs for this agent
+                scan_ids_query = select(Scan.id).where(Scan.agent_id == agent_id)
+                scan_ids_result = await self.db.execute(scan_ids_query)
+                scan_ids = [row[0] for row in scan_ids_result.all()]
+                
+                if scan_ids:
+                    result = await self.db.execute(delete(ScanResult).where(ScanResult.scan_id.in_(scan_ids)))
+                    counts["scan_results"] = result.rowcount
+            else:
+                result = await self.db.execute(delete(ScanResult))
+                counts["scan_results"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete scan_results: {e}")
+            
+        try:
+            # Delete scans
+            if agent_id:
+                result = await self.db.execute(delete(Scan).where(Scan.agent_id == agent_id))
+            else:
+                result = await self.db.execute(delete(Scan))
+            counts["scans"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete scans: {e}")
+            
+        try:
+            # Delete topology edges (has FK to assets)
+            if agent_id:
+                # Get asset IDs for this agent first
+                asset_ids_query = select(Asset.id).where(Asset.agent_id == agent_id)
+                asset_ids_result = await self.db.execute(asset_ids_query)
+                asset_ids = [row[0] for row in asset_ids_result.all()]
+                
+                if asset_ids:
+                    result = await self.db.execute(
+                        delete(TopologyEdge).where(
+                            or_(
+                                TopologyEdge.source_asset_id.in_(asset_ids),
+                                TopologyEdge.dest_asset_id.in_(asset_ids)
+                            )
+                        )
+                    )
+                    counts["topology_edges"] = result.rowcount
+            else:
+                result = await self.db.execute(delete(TopologyEdge))
+                counts["topology_edges"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete topology_edges: {e}")
+            
+        try:
+            # Delete flows (traffic data)
+            if agent_id:
+                result = await self.db.execute(delete(Flow).where(Flow.agent_id == agent_id))
+            else:
+                result = await self.db.execute(delete(Flow))
+            counts["flows"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete flows: {e}")
+            
+        try:
+            # Delete events related to assets
+            from app.models.event import Event
+            if agent_id:
+                # Get asset IDs for this agent
+                asset_ids_query = select(Asset.id).where(Asset.agent_id == agent_id)
+                asset_ids_result = await self.db.execute(asset_ids_query)
+                asset_ids = [row[0] for row in asset_ids_result.all()]
+                
+                if asset_ids:
+                    result = await self.db.execute(
+                        delete(Event).where(Event.asset_id.in_(asset_ids))
+                    )
+                    counts["events"] = result.rowcount
+            else:
+                result = await self.db.execute(delete(Event).where(Event.asset_id.isnot(None)))
+                counts["events"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete events: {e}")
+            
+        try:
+            # Delete vulnerabilities related to assets
+            from app.models.vulnerability import Vulnerability
+            if agent_id:
+                # Get asset IDs for this agent
+                asset_ids_query = select(Asset.id).where(Asset.agent_id == agent_id)
+                asset_ids_result = await self.db.execute(asset_ids_query)
+                asset_ids = [row[0] for row in asset_ids_result.all()]
+                
+                if asset_ids:
+                    result = await self.db.execute(
+                        delete(Vulnerability).where(Vulnerability.asset_id.in_(asset_ids))
+                    )
+                    counts["vulnerabilities"] = result.rowcount
+            else:
+                result = await self.db.execute(delete(Vulnerability))
+                counts["vulnerabilities"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete vulnerabilities: {e}")
+        
+        # Finally, delete assets
+        if agent_id:
+            result = await self.db.execute(delete(Asset).where(Asset.agent_id == agent_id))
+        else:
+            result = await self.db.execute(delete(Asset))
+        counts["assets"] = result.rowcount
+        
         await self.db.commit()
-        return result.rowcount
+        
+        print(f"[CLEAR] Deleted records: {counts}")
+        return counts
 
     async def get_asset_stats(self, agent_id: Optional[UUID] = None, exclude_agent_assets: bool = False) -> AssetStats:
         # Total assets

@@ -199,12 +199,21 @@ async def update_asset(
 
 @router.delete("/clear-all")
 async def delete_all_assets(
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete all assets"""
+    """Delete all assets and related data (scans, topology, flows)
+    
+    Clears all data to provide a clean start for asset discovery.
+    In POV mode, only clears assets for that agent.
+    """
+    agent_pov = get_agent_pov(request)
     asset_service = AssetService(db)
-    count = await asset_service.delete_all_assets()
-    return {"message": f"Deleted {count} assets successfully"}
+    counts = await asset_service.delete_all_assets(agent_id=agent_pov)
+    return {
+        "message": f"Cleared all data successfully",
+        "deleted": counts
+    }
 
 
 @router.delete("/{asset_id}")

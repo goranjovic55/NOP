@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuthStore();
   const { activeAgent, setActiveAgent } = usePOV();
   const { agents } = useAgentStore();
-  const { tabs: scanTabs } = useScanStore();
+  const { tabs: scanTabs, passiveScanEnabled } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { isDiscovering } = useDiscoveryStore();
   const { getActiveSessionCount } = useExploitStore();
@@ -95,8 +95,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {item.name}
                     </span>
                   )}
-                  {item.name === 'Assets' && isDiscovering && (
-                    <div className={`absolute right-2 w-2 h-2 bg-cyber-blue rounded-full animate-pulse ${!sidebarOpen ? 'top-2' : ''}`}></div>
+                  {item.name === 'Assets' && (isDiscovering || passiveScanEnabled) && (
+                    <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
+                      {isDiscovering && <div className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" title="Discovery running"></div>}
+                      {passiveScanEnabled && <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse" title="Passive discovery on"></div>}
+                    </div>
                   )}
                   {item.name === 'Traffic' && isTrafficActive && (
                     <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
@@ -106,10 +109,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {isStorming && <div className="w-2 h-2 bg-cyber-red rounded-full animate-ping" title="Storming"></div>}
                     </div>
                   )}
-                  {item.name === 'Scans' && (isAnyScanRunning || isAnyVulnScanRunning) && (
+                  {item.name === 'Scans' && (isAnyScanRunning || isAnyVulnScanRunning || passiveScanEnabled) && (
                     <div className={`absolute right-2 flex items-center gap-1 ${!sidebarOpen ? 'top-2' : ''}`}>
                       {isAnyScanRunning && <div className="w-2 h-2 bg-cyber-red rounded-full animate-pulse" title="Port scan running"></div>}
                       {isAnyVulnScanRunning && <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse" title="Vulnerability scan running"></div>}
+                      {passiveScanEnabled && !isAnyVulnScanRunning && <div className="w-2 h-2 bg-cyber-purple rounded-full" title="Passive scan on"></div>}
                     </div>
                   )}
                   {item.name === 'ACCESS' && (connectedCount > 0 || activeExploitCount > 0) && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
+import { useScanStore } from '../store/scanStore';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { assetService, Asset } from '../services/assetService';
@@ -16,6 +17,7 @@ const Access: React.FC = () => {
   const { activeAgent } = usePOV();
   const location = useLocation();
   const { tabs, activeTabId, setActiveTab, removeTab, addTab, updateTabStatus } = useAccessStore();
+  const { passiveServices } = useScanStore();
   const { 
     sessions: shellSessions, 
     activeSessionId, 
@@ -1049,42 +1051,81 @@ const Access: React.FC = () => {
                     <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
                       {/* Left: Selection Indicator + IP */}
                       <div className="flex items-center space-x-2 min-w-[140px]">
-                        {selectedAsset?.id === asset.id && (
-                          <span className={accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red'}>◉</span>
-                        )}
-                        <div>
-                          <h4 className={`font-bold text-sm font-mono ${selectedAsset?.id === asset.id ? (accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red') : 'text-cyber-blue'}`}>
-                            {asset.ip_address}
-                          </h4>
-                          {asset.hostname && asset.hostname !== asset.ip_address && (
-                            <span className="text-cyber-gray-light text-[10px] block">{asset.hostname}</span>
-                          )}
-                          <span className="text-cyber-gray-light text-[10px]">
-                            OS: <span className="text-cyber-green">{asset.os_name || 'Unknown'}</span>
-                          </span>
-                        </div>
+                        {(() => {
+                          const assetPassiveSvcs = passiveServices.filter(ps => ps.host === asset.ip_address);
+                          const isPassiveDiscovered = asset.discovery_method === 'passive' || assetPassiveSvcs.length > 0;
+                          return (
+                            <>
+                              {isPassiveDiscovered && !selectedAsset?.id && (
+                                <span className="w-2 h-2 rounded-full bg-cyber-purple shadow-[0_0_5px_rgba(138,43,226,0.5)]" title="Passive discovery" />
+                              )}
+                              {selectedAsset?.id === asset.id && (
+                                <span className={accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red'}>◉</span>
+                              )}
+                              <div>
+                                <h4 className={`font-bold text-sm font-mono ${
+                                  selectedAsset?.id === asset.id 
+                                    ? (accessMode === 'login' ? 'text-cyber-green' : 'text-cyber-red') 
+                                    : isPassiveDiscovered ? 'text-cyber-purple' : 'text-cyber-blue'
+                                }`}>
+                                  {asset.ip_address}
+                                </h4>
+                                {asset.hostname && asset.hostname !== asset.ip_address && (
+                                  <span className="text-cyber-gray-light text-[10px] block">{asset.hostname}</span>
+                                )}
+                                <span className="text-cyber-gray-light text-[10px]">
+                                  OS: <span className="text-cyber-green">{asset.os_name || 'Unknown'}</span>
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       {/* Center: Ports */}
                       <div>
-                        {asset.services && Object.keys(asset.services).length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {Object.keys(asset.services).slice(0, 4).map(port => (
-                              <span
-                                key={port}
-                                className="px-2 py-0.5 bg-cyber-darker border border-cyber-blue text-cyber-blue rounded text-xs inline-block w-fit"
-                                title={`${asset.services?.[port]?.service || 'Unknown'} on port ${port}`}
-                              >
-                                {getServiceIcon(asset.services?.[port]?.service || '')} {port}
-                              </span>
-                            ))}
-                            {Object.keys(asset.services).length > 4 && (
-                              <span className="text-cyber-gray text-xs">+{Object.keys(asset.services).length - 4} more</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-cyber-gray text-xs">No services detected</span>
-                        )}
+                        {(() => {
+                          // Combine active services and passive services
+                          const activeServices = asset.services ? Object.entries(asset.services).map(([port, data]) => ({
+                            port: parseInt(port),
+                            service: data.service,
+                            isPassive: false
+                          })) : [];
+                          
+                          const assetPassiveServices = passiveServices
+                            .filter(ps => ps.host === asset.ip_address)
+                            .map(ps => ({ port: ps.port, service: ps.service, isPassive: true }));
+                          
+                          // Merge, avoiding duplicates (prefer active scan data)
+                          const activePorts = new Set(activeServices.map(s => s.port));
+                          const allServices = [
+                            ...activeServices,
+                            ...assetPassiveServices.filter(s => !activePorts.has(s.port))
+                          ].sort((a, b) => a.port - b.port);
+                          
+                          return allServices.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {allServices.slice(0, 4).map(svc => (
+                                <span
+                                  key={svc.port}
+                                  className={`px-2 py-0.5 bg-cyber-darker border rounded text-xs inline-block w-fit ${
+                                    svc.isPassive 
+                                      ? 'border-cyber-purple text-cyber-purple' 
+                                      : 'border-cyber-blue text-cyber-blue'
+                                  }`}
+                                  title={`${svc.service || 'Unknown'} on port ${svc.port}${svc.isPassive ? ' (passive)' : ''}`}
+                                >
+                                  {getServiceIcon(svc.service || '')} {svc.port}
+                                </span>
+                              ))}
+                              {allServices.length > 4 && (
+                                <span className="text-cyber-gray text-xs">+{allServices.length - 4} more</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-cyber-gray text-xs">No services detected</span>
+                          );
+                        })()}
                       </div>
 
                       {/* Right: Status Badges */}
@@ -1487,17 +1528,45 @@ const Access: React.FC = () => {
               {/* Port Display - Always show */}
               <div className="bg-cyber-dark border border-cyber-gray rounded p-3">
                 <p className="text-xs text-cyber-gray-light mb-2 uppercase tracking-wide font-bold">◆ Detected Port(s)</p>
-                {selectedAsset.services && Object.keys(selectedAsset.services).length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(selectedAsset.services).map(([port, serviceData]) => (
-                      <span key={port} className="px-2 py-1 bg-cyber-darker border border-cyber-blue text-cyber-blue rounded text-xs font-mono">
-                        ◈ {port} {serviceData.service ? `[${serviceData.service.toUpperCase()}]` : ''}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-cyber-gray italic">◇ No ports detected - manual selection required</p>
-                )}
+                {(() => {
+                  // Combine active services and passive services
+                  const activeServices = selectedAsset.services ? Object.entries(selectedAsset.services).map(([port, data]) => ({
+                    port: parseInt(port),
+                    service: data.service,
+                    isPassive: false
+                  })) : [];
+                  
+                  const assetPassiveServices = passiveServices
+                    .filter(ps => ps.host === selectedAsset.ip_address)
+                    .map(ps => ({ port: ps.port, service: ps.service, isPassive: true }));
+                  
+                  // Merge, avoiding duplicates
+                  const activePorts = new Set(activeServices.map(s => s.port));
+                  const allServices = [
+                    ...activeServices,
+                    ...assetPassiveServices.filter(s => !activePorts.has(s.port))
+                  ].sort((a, b) => a.port - b.port);
+                  
+                  return allServices.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {allServices.map(svc => (
+                        <span 
+                          key={svc.port} 
+                          className={`px-2 py-1 bg-cyber-darker border rounded text-xs font-mono ${
+                            svc.isPassive 
+                              ? 'border-cyber-purple text-cyber-purple' 
+                              : 'border-cyber-blue text-cyber-blue'
+                          }`}
+                          title={svc.isPassive ? 'Discovered via passive scan' : 'Discovered via active scan'}
+                        >
+                          ◈ {svc.port} {svc.service ? `[${svc.service.toUpperCase()}]` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-cyber-gray italic">◇ No ports detected - manual selection required</p>
+                  );
+                })()}
               </div>
               
               {/* Protocol Selection - Always show for manual selection */}

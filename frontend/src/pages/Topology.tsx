@@ -5,6 +5,7 @@ import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { trafficService } from '../services/trafficService';
 import { useAuthStore } from '../store/authStore';
+import { useScanStore } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
@@ -37,6 +38,10 @@ interface GraphLink {
   last_seen?: number | string; // timestamp of last traffic
   first_seen?: number | string; // timestamp of first traffic
   packet_count?: number; // number of packets
+  ports?: number[]; // list of ports used in connection
+  sourcePort?: number; // primary source port
+  targetPort?: number; // primary destination port
+  bytesPerSecond?: number; // calculated throughput for filtering
 }
 
 interface GraphData {
@@ -202,15 +207,12 @@ const drawCurvedLine = (
 
 const Topology: React.FC = () => {
   const { token } = useAuthStore();
+  const { passiveServices } = useScanStore();
   const { activeAgent, isAgentPOV } = usePOV();
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   
   // Persisted settings - restore from localStorage
-  const [layoutMode, setLayoutMode] = useState<'force' | 'circular' | 'hierarchical'>(() => {
-    const saved = localStorage.getItem('nop_topology_layout');
-    return (saved as 'force' | 'circular' | 'hierarchical') || 'force';
-  });
   const [trafficThreshold, setTrafficThreshold] = useState<number>(() => {
     const saved = localStorage.getItem('nop_topology_threshold');
     return saved ? parseInt(saved, 10) : 0;
@@ -287,6 +289,84 @@ const Topology: React.FC = () => {
   const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
+  // Asset highlighting state - when an asset is clicked, highlight its connections (persistent)
+  const [highlightedAsset, setHighlightedAsset] = useState<string | null>(null);
+  const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+  const [highlightedLinks, setHighlightedLinks] = useState<Set<string>>(new Set());
+
+  // Hover highlighting state (temporary, while hovering)
+  const [hoverHighlightedNodes, setHoverHighlightedNodes] = useState<Set<string>>(new Set());
+  const [hoverHighlightedLinks, setHoverHighlightedLinks] = useState<Set<string>>(new Set());
+
+  // Calculate connected nodes and links for a given node
+  const calculateConnections = useCallback((nodeId: string | null): { nodes: Set<string>; links: Set<string> } => {
+    if (!nodeId) {
+      return { nodes: new Set(), links: new Set() };
+    }
+
+    const connectedNodes = new Set<string>([nodeId]);
+    const connectedLinks = new Set<string>();
+
+    graphData.links.forEach(link => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      
+      if (sourceId === nodeId || targetId === nodeId) {
+        connectedNodes.add(sourceId);
+        connectedNodes.add(targetId);
+        // Use sorted key for consistent link identification
+        const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+        connectedLinks.add(`${node1}<->${node2}`);
+      }
+    });
+
+    return { nodes: connectedNodes, links: connectedLinks };
+  }, [graphData.links]);
+
+  // Calculate highlighted nodes and links when an asset is clicked (persistent)
+  useEffect(() => {
+    const { nodes, links } = calculateConnections(highlightedAsset);
+    setHighlightedNodes(nodes);
+    setHighlightedLinks(links);
+  }, [highlightedAsset, calculateConnections]);
+
+  // Calculate hover-highlighted nodes and links when hovering over a node OR a link
+  useEffect(() => {
+    // Only apply hover highlighting if there's no persistent highlight
+    if (highlightedAsset) {
+      // Clear hover state when we have a persistent highlight
+      setHoverHighlightedNodes(new Set());
+      setHoverHighlightedLinks(new Set());
+      return;
+    }
+    
+    // If hovering on a node, use that node's connections
+    if (hoveredNode) {
+      const { nodes, links } = calculateConnections(hoveredNode.id);
+      setHoverHighlightedNodes(nodes);
+      setHoverHighlightedLinks(links);
+      return;
+    }
+    
+    // If hovering on a link, highlight both endpoints and the link
+    if (hoveredLink) {
+      const sourceId = typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source;
+      const targetId = typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target;
+      
+      const connectedNodes = new Set<string>([sourceId, targetId]);
+      const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+      const connectedLinks = new Set<string>([`${node1}<->${node2}`]);
+      
+      setHoverHighlightedNodes(connectedNodes);
+      setHoverHighlightedLinks(connectedLinks);
+      return;
+    }
+    
+    // Nothing hovered - clear
+    setHoverHighlightedNodes(new Set());
+    setHoverHighlightedLinks(new Set());
+  }, [hoveredNode, hoveredLink, highlightedAsset, calculateConnections]);
+
   // Get scan settings for discovery subnet
   const [scanSettings, setScanSettings] = useState(() => {
     const saved = localStorage.getItem('nop_scan_settings');
@@ -306,6 +386,18 @@ const Topology: React.FC = () => {
 
   // IP filter for "all subnets" mode
   const [ipFilter, setIpFilter] = useState<string>('');
+
+  // Port filter - filter connections by port number
+  const [portFilter, setPortFilter] = useState<string>(() => {
+    const saved = localStorage.getItem('nop_topology_port_filter');
+    return saved || '';
+  });
+
+  // Link speed filter (Mbps) - filter by minimum throughput
+  const [linkSpeedFilter, setLinkSpeedFilter] = useState<number>(() => {
+    const saved = localStorage.getItem('nop_topology_linkspeed_filter');
+    return saved ? parseInt(saved, 10) : 0;
+  });
 
   // Available subnets discovered from assets
   const [availableSubnets, setAvailableSubnets] = useState<string[]>([]);
@@ -372,11 +464,6 @@ const Topology: React.FC = () => {
     localStorage.setItem('nop_scan_settings', JSON.stringify(newSettings));
   }, [discoverySubnet]);
 
-  // Persist layout mode changes
-  useEffect(() => {
-    localStorage.setItem('nop_topology_layout', layoutMode);
-  }, [layoutMode]);
-
   // Persist traffic threshold changes
   useEffect(() => {
     localStorage.setItem('nop_topology_threshold', trafficThreshold.toString());
@@ -396,6 +483,16 @@ const Topology: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nop_topology_refreshrate', refreshRate.toString());
   }, [refreshRate]);
+
+  // Persist port filter changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_port_filter', portFilter);
+  }, [portFilter]);
+
+  // Persist link speed filter changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_linkspeed_filter', linkSpeedFilter.toString());
+  }, [linkSpeedFilter]);
 
   // Resize observer
   useEffect(() => {
@@ -539,11 +636,15 @@ const Topology: React.FC = () => {
       assets.forEach(asset => {
         if (!shouldIncludeNode(asset)) return;
         
+        // Check if asset was discovered passively
+        const isPassiveDiscovered = asset.discovery_method === 'passive' || 
+          passiveServices.some(ps => ps.host === asset.ip_address);
+        
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
           name: asset.hostname || asset.ip_address,
           val: 1,
-          group: asset.status === 'online' ? 'online' : 'offline',
+          group: isPassiveDiscovered ? 'passive' : (asset.status === 'online' ? 'online' : 'offline'),
           ip: asset.ip_address,
           status: asset.status,
           details: asset
@@ -666,7 +767,10 @@ const Topology: React.FC = () => {
             protocols: conn.protocols || [],
             last_seen: conn.last_seen,
             first_seen: conn.first_seen,
-            packet_count: conn.packet_count || 0
+            packet_count: conn.packet_count || 0,
+            ports: conn.ports || [],
+            sourcePort: conn.source_port,
+            targetPort: conn.target_port || conn.dest_port
           });
         }
       });
@@ -674,7 +778,45 @@ const Topology: React.FC = () => {
       const links = Array.from(linksMap.values()).filter(link => {
         // Filter by traffic threshold
         const totalTraffic = link.value + (link.reverseValue || 0);
-        return totalTraffic >= trafficThreshold;
+        if (totalTraffic < trafficThreshold) return false;
+        
+        // Filter by port if specified
+        if (portFilter) {
+          const portNum = parseInt(portFilter, 10);
+          if (!isNaN(portNum)) {
+            // Check if any of the ports match
+            const linkPorts = link.ports || [];
+            const hasPort = linkPorts.includes(portNum) ||
+              link.sourcePort === portNum ||
+              link.targetPort === portNum;
+            if (!hasPort) return false;
+          }
+        }
+        
+        // Filter by link speed (Mbps) - calculate bytes per second
+        if (linkSpeedFilter > 0) {
+          // Estimate throughput based on first_seen and last_seen
+          const parseTime = (ts: number | string | undefined): number => {
+            if (!ts) return 0;
+            if (typeof ts === 'string') return new Date(ts).getTime() / 1000;
+            return ts > 1000000000000 ? ts / 1000 : ts;
+          };
+          const firstTime = parseTime(link.first_seen);
+          const lastTime = parseTime(link.last_seen);
+          const duration = lastTime - firstTime;
+          
+          if (duration > 0) {
+            // Calculate Mbps (totalTraffic is in bytes)
+            const mbps = (totalTraffic * 8) / (duration * 1000000);
+            link.bytesPerSecond = totalTraffic / duration;
+            if (mbps < linkSpeedFilter) return false;
+          } else if (linkSpeedFilter > 0) {
+            // No duration data, can't calculate speed - filter out if speed filter is set
+            return false;
+          }
+        }
+        
+        return true;
       });
 
       // Calculate Centrality (Degree)
@@ -720,7 +862,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet, ipFilter, activeAgent, isPlaying, refreshRate, mergeConnections]);
+  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold]);
 
   useEffect(() => {
     // Initial load - run simulation
@@ -739,7 +881,7 @@ const Topology: React.FC = () => {
     
     fetchData(false, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMode, discoverySubnet, ipFilter]);
+  }, [filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, trafficThreshold]);
   
   useEffect(() => {
     // Auto-refresh interval - separate from initial load
@@ -761,7 +903,8 @@ const Topology: React.FC = () => {
     if (!fgRef.current || graphData.nodes.length === 0) return;
     
     // Apply strong repulsion forces for better node spacing
-    if (layoutMode === 'force' && !simulationCompleteRef.current) {
+    // Always in force mode since layout buttons were removed
+    if (!simulationCompleteRef.current) {
       const fg = fgRef.current;
       
       // Strong collision force to prevent node overlaps
@@ -776,83 +919,67 @@ const Topology: React.FC = () => {
       
       // Adjust forces based on node count
       const chargeStrength = nodeCount > 50 ? -500 : nodeCount > 20 ? -1500 : -3000;
-      const linkDistance = nodeCount > 50 ? 100 : nodeCount > 20 ? 200 : 400;
+      const baseLinkDistance = nodeCount > 50 ? 100 : nodeCount > 20 ? 200 : 400;
       
       fg.d3Force('charge')?.strength(chargeStrength).distanceMax(1500);
-      fg.d3Force('link')?.distance(linkDistance).strength(0.1);
+      
+      // Calculate max traffic for normalization
+      let maxTraffic = 0;
+      graphData.links.forEach((link: any) => {
+        const totalTraffic = (link.value || 0) + (link.reverseValue || 0);
+        if (totalTraffic > maxTraffic) maxTraffic = totalTraffic;
+      });
+      
+      // Configure link distance based on traffic - higher traffic = closer (shorter distance)
+      // This creates an "orbital" effect where high-throughput connections pull nodes closer
+      fg.d3Force('link')?.distance((link: any) => {
+        const totalTraffic = (link.value || 0) + (link.reverseValue || 0);
+        
+        if (maxTraffic === 0 || totalTraffic === 0) {
+          // No traffic data - use max distance (outer orbit)
+          return baseLinkDistance * 1.5;
+        }
+        
+        // Normalize traffic to 0-1 range using logarithmic scale for better distribution
+        // Log scale prevents a few high-traffic links from dominating
+        const logTraffic = Math.log10(totalTraffic + 1);
+        const logMax = Math.log10(maxTraffic + 1);
+        const normalizedTraffic = logTraffic / logMax; // 0 to 1
+        
+        // Invert: high traffic = low distance (close to center)
+        // Range: minDistance (closest) to baseLinkDistance * 1.5 (farthest)
+        const minDistance = baseLinkDistance * 0.3; // Closest orbit
+        const maxDistance = baseLinkDistance * 1.5; // Farthest orbit
+        
+        // Higher normalized traffic = shorter distance (closer to center)
+        const distance = maxDistance - (normalizedTraffic * (maxDistance - minDistance));
+        
+        return distance;
+      }).strength(0.15); // Slightly stronger link force to enforce distance
+      
       fg.d3Force('center')?.strength(0.005);
       
       // Reheat simulation with new forces
       fg.d3ReheatSimulation();
     }
-  }, [graphData.nodes.length, layoutMode]);
+  }, [graphData.nodes.length, graphData.links]);
 
-  // Handle Layout Changes - only when layout mode or dimensions change, NOT on data refresh
+  // Handle Layout - force-directed mode with traffic-aware distances
   // This preserves user's zoom/pan position during auto-refresh
   useEffect(() => {
     if (!fgRef.current) return;
 
-    if (layoutMode === 'circular') {
-      // Reset fixed positions only for circular layout
-      const nodes = graphData.nodes;
-      const radius = Math.min(dimensions.width, dimensions.height) / 3;
-      const angleStep = (2 * Math.PI) / nodes.length;
-      
-      // Sort nodes by degree for better circular layout (hubs together or spread)
-      // Let's just sort by IP for stability
-      const sortedNodes = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
-
-      sortedNodes.forEach((node, i) => {
-        node.fx = Math.cos(i * angleStep) * radius;
-        node.fy = Math.sin(i * angleStep) * radius;
-      });
-      
-      // Re-heat simulation to move to new positions
-      fgRef.current.d3Force('charge')?.strength(-100);
-      fgRef.current.d3ReheatSimulation();
-    } else if (layoutMode === 'hierarchical') {
-      // Use dagMode
-      fgRef.current.d3Force('charge')?.strength(-300);
-      // dagMode is handled via prop
-    } else {
-      // Force Directed (Default)
-      // Increase repulsion for better spacing - more negative = more spread
-      fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
-      // Increase link distance for more space between connected nodes
-      fgRef.current.d3Force('link')?.distance(180);
-      // Weaken center force to allow more spread
-      fgRef.current.d3Force('center')?.strength(0.05);
-      // Only reheat on initial load or layout change, not data refresh
-    }
-  }, [layoutMode, dimensions]); // Removed graphData - don't re-layout on refresh
+    // Force Directed layout with spread settings
+    fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
+    fgRef.current.d3Force('link')?.distance(180);
+    fgRef.current.d3Force('center')?.strength(0.05);
+  }, [dimensions]);
 
   return (
     <div className="h-full flex flex-col space-y-2">
       {/* Compact toolbar - wraps on smaller screens */}
       <div className="flex flex-wrap gap-2 items-center bg-cyber-darker p-2 border border-cyber-gray">
         <CyberPageTitle color="red">Network Topology</CyberPageTitle>
-        
-        {/* Layout mode buttons */}
-        <div className="flex bg-cyber-dark rounded border border-cyber-gray">
-          <button 
-            onClick={() => setLayoutMode('force')}
-            className={`px-2 py-1 text-xs font-bold uppercase ${layoutMode === 'force' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
-          >
-            Force
-          </button>
-          <button 
-            onClick={() => setLayoutMode('circular')}
-            className={`px-2 py-1 text-xs font-bold uppercase ${layoutMode === 'circular' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
-          >
-            Circ
-          </button>
-          <button 
-            onClick={() => setLayoutMode('hierarchical')}
-            className={`px-2 py-1 text-xs font-bold uppercase ${layoutMode === 'hierarchical' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white'}`}
-          >
-            Hier
-          </button>
-        </div>
 
         {/* Filter mode buttons */}
         <div className="flex bg-cyber-dark rounded border border-cyber-gray">
@@ -930,6 +1057,43 @@ const Topology: React.FC = () => {
           <option value={1024}>1K</option>
           <option value={102400}>100K</option>
           <option value={1048576}>1M</option>
+        </select>
+
+        {/* Port Filter */}
+        <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-purple">
+          <label className="text-xs text-cyber-purple font-bold">Port:</label>
+          <input
+            type="text"
+            value={portFilter}
+            onChange={(e) => setPortFilter(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="Any"
+            className="bg-cyber-darker text-cyber-gray-light text-xs px-1 py-0.5 border border-cyber-gray rounded focus:outline-none focus:border-cyber-purple w-14 font-mono"
+            title="Filter connections by port number"
+          />
+          {portFilter && (
+            <button
+              onClick={() => setPortFilter('')}
+              className="text-xs text-cyber-red hover:text-cyber-gray-light transition-colors"
+              title="Clear port filter"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Link Speed Filter (Mbps) */}
+        <select 
+          value={linkSpeedFilter}
+          onChange={(e) => setLinkSpeedFilter(Number(e.target.value))}
+          className="bg-cyber-dark text-cyber-gray-light text-xs px-2 py-1 border border-cyber-gray rounded"
+          title="Min link speed (Mbps)"
+        >
+          <option value={0}>Speed</option>
+          <option value={0.1}>0.1M</option>
+          <option value={1}>1M</option>
+          <option value={10}>10M</option>
+          <option value={100}>100M</option>
+          <option value={1000}>1G</option>
         </select>
 
         {/* Refresh Rate Selector */}
@@ -1062,6 +1226,7 @@ const Topology: React.FC = () => {
           
           nodeLabel="name"
           nodeColor={node => {
+            if (node.group === 'passive') return '#8b5cf6'; // Cyber Purple for passive
             if (node.group === 'online') return '#00ff41'; // Cyber Green
             if (node.group === 'offline') return '#ff0040'; // Cyber Red
             return '#8b5cf6'; // Cyber Purple (External/Unknown)
@@ -1146,12 +1311,22 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
+            // Check if this link is part of the highlighted asset's connections (click)
+            const sourceId = start.id;
+            const targetId = end.id;
+            const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+            const linkKey = `${node1}<->${node2}`;
+            const isHighlightedLink = highlightedLinks.has(linkKey);
+            const isHoverHighlightedLink = hoverHighlightedLinks.has(linkKey);
+            const isAnyHighlightActive = highlightedAsset || hoveredNode;
+            const isDimmedLink = isAnyHighlightActive && !isHighlightedLink && !isHoverHighlightedLink;
+            
             // Check if this link is selected
             const isSelected = selectedLink && 
               ((typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === start.id) &&
               ((typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === end.id);
             
-            // Check if this link is hovered
+            // Check if this link is hovered (now handled via isHoverHighlightedLink)
             const isHovered = hoveredLink && 
               ((typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source) === start.id) &&
               ((typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target) === end.id);
@@ -1163,10 +1338,18 @@ const Topology: React.FC = () => {
             const baseWidth = calculateLinkWidth(totalTraffic);
             // Scale with zoom - thinner when zoomed out, thicker when zoomed in
             const zoomScale = Math.max(0.3, Math.min(1.5, globalScale));
-            const width = (isSelected ? baseWidth * 2 : baseWidth) * zoomScale;
+            const highlightWidthMultiplier = isHighlightedLink ? 2.5 : (isHoverHighlightedLink ? 2.0 : (isSelected ? 2 : 1));
+            const width = baseWidth * highlightWidthMultiplier * zoomScale;
             const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
+            
             // Apply opacity based on recency and traffic activity - more visible fading
-            const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
+            // But keep highlighted links bright
+            let opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
+            if (isHighlightedLink || isHoverHighlightedLink) {
+              opacity = 1.0; // Full brightness for highlighted links
+            } else if (isDimmedLink) {
+              opacity = 0.1; // Very dim for non-connected links
+            }
             const color = applyOpacity(baseColor, opacity);
             
             // Calculate control point for curve - match library's internal calculation
@@ -1186,15 +1369,28 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw subtle hover highlight (outer edge only, low intensity)
-            if (isHovered && !isSelected) {
+            // Draw hover-highlighted link glow - cyan for hover (unified with node hover)
+            if (isHoverHighlightedLink && !isHighlightedLink) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              ctx.strokeStyle = 'rgba(100, 200, 255, 0.4)'; // Faint cyan glow
+              ctx.strokeStyle = '#00f0ff';
               ctx.lineWidth = width + 4;
-              ctx.shadowBlur = 12;
-              ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+              ctx.shadowBlur = 18;
+              ctx.shadowColor = '#00f0ff';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw highlighted link glow - bright green (for clicked/persistent)
+            if (isHighlightedLink) {
+              ctx.beginPath();
+              ctx.moveTo(start.x, start.y);
+              ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
+              ctx.strokeStyle = '#00ff41';
+              ctx.lineWidth = width + 6;
+              ctx.shadowBlur = 25;
+              ctx.shadowColor = '#00ff41';
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
@@ -1218,15 +1414,48 @@ const Topology: React.FC = () => {
             ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
             ctx.strokeStyle = color;
             ctx.lineWidth = width;
-            if (isSelected) {
+            if (isSelected || isHighlightedLink || isHoverHighlightedLink) {
               ctx.shadowBlur = 10;
               ctx.shadowColor = color;
             }
             ctx.stroke();
             ctx.shadowBlur = 0;
             
+            // Draw port and protocol labels on highlighted links (both click and hover)
+            if ((isHighlightedLink || isHoverHighlightedLink) && globalScale > 0.5) {
+              // Calculate curve midpoint for label placement
+              const curveMidX = 0.25 * start.x + 0.5 * ctrlX + 0.25 * end.x;
+              const curveMidY = 0.25 * start.y + 0.5 * ctrlY + 0.25 * end.y;
+              
+              // Build label text: protocols, ports, and traffic info
+              const protocols = link.protocols?.join('/') || 'IP';
+              const trafficMB = formatTrafficMB(totalTraffic);
+              const portInfo = link.targetPort ? `:${link.targetPort}` : (link.ports?.length ? `:${link.ports[0]}` : '');
+              
+              // Draw label background
+              const labelFontSize = Math.max(8, 10 / globalScale);
+              ctx.font = `bold ${labelFontSize}px Monospace`;
+              const labelText = `${protocols}${portInfo} ${trafficMB}MB`;
+              const labelWidth = ctx.measureText(labelText).width + 8;
+              const labelHeight = labelFontSize + 4;
+              
+              const labelColor = isHighlightedLink ? '#00ff41' : '#00f0ff';
+              
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+              ctx.fillRect(curveMidX - labelWidth / 2, curveMidY - labelHeight / 2, labelWidth, labelHeight);
+              ctx.strokeStyle = labelColor;
+              ctx.lineWidth = 1;
+              ctx.strokeRect(curveMidX - labelWidth / 2, curveMidY - labelHeight / 2, labelWidth, labelHeight);
+              
+              // Draw label text
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = labelColor;
+              ctx.fillText(labelText, curveMidX, curveMidY);
+            }
+            
             // Draw directional indicators for bidirectional links at curve midpoint
-            if (link.bidirectional && globalScale > 1.5) {
+            if (link.bidirectional && globalScale > 1.5 && !isHighlightedLink) {
               if (linkLength > 0) {
                 const arrowSize = 8 / globalScale;
                 // Midpoint of quadratic bezier at t=0.5
@@ -1280,14 +1509,28 @@ const Topology: React.FC = () => {
             ctx.lineWidth = 10; // Wide hit area for easier clicking
             ctx.stroke();
           }}
-          dagMode={layoutMode === 'hierarchical' ? 'td' : undefined}
-          dagLevelDistance={100}
           d3VelocityDecay={0.3}
           onNodeClick={(node: any, event: MouseEvent) => {
-            // Open context menu for host
-            setSelectedNode(node);
+            // Toggle asset highlighting on click
+            if (highlightedAsset === node.id) {
+              // If already highlighted, show context menu
+              setSelectedNode(node);
+              setSelectedLink(null);
+              setContextMenuPosition({ x: event.clientX, y: event.clientY });
+            } else {
+              // First click - highlight this asset and its connections
+              setHighlightedAsset(node.id);
+              setSelectedNode(null);
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }
+          }}
+          onBackgroundClick={() => {
+            // Clear highlighting when clicking on empty space
+            setHighlightedAsset(null);
+            setSelectedNode(null);
             setSelectedLink(null);
-            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+            setContextMenuPosition(null);
           }}
           onLinkClick={(link: any, event: MouseEvent) => {
             // Open context menu for connection
@@ -1313,14 +1556,74 @@ const Topology: React.FC = () => {
             
             const isSelected = selectedNode && selectedNode.id === node.id;
             const isHovered = hoveredNode && hoveredNode.id === node.id;
-            const isHighlighted = isSelected || isHovered;
-            const nodeColor = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+            const isHighlightedAsset = highlightedAsset === node.id;
+            const isConnectedToHighlight = highlightedNodes.has(node.id);
+            const isHoverHighlighted = hoveredNode?.id === node.id;
+            const isConnectedToHover = hoverHighlightedNodes.has(node.id);
+            const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
+            const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            
+            // Dim nodes not connected to highlighted asset or hovered node
+            const isAnyHighlightActive = highlightedAsset || hoveredNode;
+            const isDimmed = isAnyHighlightActive && !isConnectedToHighlight && !isConnectedToHover;
             
             // Always show labels, but dim them when there are many nodes
-            const dimLabels = nodeCount > 30 && !isHighlighted;
+            const dimLabels = (nodeCount > 30 && !isHighlighted) || isDimmed;
+            
+            // Draw hover highlight ring for nodes connected to hovered node (cyan)
+            if (isConnectedToHover && !isConnectedToHighlight && !isHoverHighlighted && !highlightedAsset) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 12, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#00f0ff';
+              ctx.lineWidth = 2 / globalScale;
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = '#00f0ff';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw hover ring for the hovered node itself (cyan, dashed)
+            if (isHoverHighlighted && !isHighlightedAsset && !highlightedAsset) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 14, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#00f0ff';
+              ctx.lineWidth = 2 / globalScale;
+              ctx.setLineDash([4 / globalScale, 2 / globalScale]);
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = '#00f0ff';
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw large highlight ring for connected assets (green - click)
+            if (isConnectedToHighlight && !isHighlightedAsset) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 14, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#00ff41';
+              ctx.lineWidth = 2 / globalScale;
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = '#00ff41';
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw extra-large pulsing ring for the highlighted asset itself (click)
+            if (isHighlightedAsset) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 18, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 3 / globalScale;
+              ctx.setLineDash([6 / globalScale, 3 / globalScale]);
+              ctx.shadowBlur = 25;
+              ctx.shadowColor = '#00ff41';
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.shadowBlur = 0;
+            }
             
             // Draw selection ring if selected
-            if (isSelected) {
+            if (isSelected && !isHighlightedAsset) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, 12, 0, 2 * Math.PI, false);
               ctx.strokeStyle = '#ffffff';
@@ -1336,14 +1639,14 @@ const Topology: React.FC = () => {
             
             // Draw Node Circle - dimmer when not highlighted
             ctx.beginPath();
-            ctx.arc(node.x, node.y, isSelected ? 8 : 6, 0, 2 * Math.PI, false);
-            ctx.globalAlpha = isHighlighted ? 1.0 : 0.6;
+            ctx.arc(node.x, node.y, isHighlightedAsset ? 10 : (isSelected ? 8 : 6), 0, 2 * Math.PI, false);
+            ctx.globalAlpha = isDimmed ? 0.2 : (isHighlighted ? 1.0 : 0.6);
             ctx.fillStyle = nodeColor;
             ctx.fill();
             
             // Glow effect - only when highlighted
-            if (isHighlighted) {
-              ctx.shadowBlur = isSelected ? 15 : 10;
+            if (isHighlighted && !isDimmed) {
+              ctx.shadowBlur = isHighlightedAsset ? 20 : (isSelected ? 15 : 10);
               ctx.shadowColor = nodeColor;
             }
             ctx.stroke();
@@ -1353,23 +1656,61 @@ const Topology: React.FC = () => {
             // Always draw labels - brighter when highlighted, dimmer when many nodes
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            if (isHighlighted) {
+            
+            // For highlighted/connected nodes (click - green), show IP prominently
+            if (isHighlightedAsset || isConnectedToHighlight) {
+              // Draw bright IP address
+              const ipFontSize = Math.max(8, fontSize * 1.2);
+              ctx.font = `bold ${ipFontSize}px Monospace`;
+              ctx.fillStyle = isHighlightedAsset ? '#ffffff' : '#00ff41';
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = isHighlightedAsset ? '#ffffff' : '#00ff41';
+              ctx.fillText(node.ip, node.x, node.y + 16);
+              ctx.shadowBlur = 0;
+              
+              // Draw hostname below if different from IP
+              if (node.name !== node.ip) {
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.fillStyle = '#00f0ff';
+                ctx.fillText(node.name, node.x, node.y + 28);
+              }
+            } else if (isHoverHighlighted || isConnectedToHover) {
+              // Hover highlighting (cyan) - show IP prominently
+              const ipFontSize = Math.max(8, fontSize * 1.1);
+              ctx.font = `bold ${ipFontSize}px Monospace`;
+              ctx.fillStyle = isHoverHighlighted ? '#ffffff' : '#00f0ff';
+              ctx.shadowBlur = 8;
+              ctx.shadowColor = '#00f0ff';
+              ctx.fillText(node.ip, node.x, node.y + 14);
+              ctx.shadowBlur = 0;
+              
+              // Draw hostname below if different from IP
+              if (node.name !== node.ip) {
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.fillStyle = '#00f0ff';
+                ctx.fillText(node.name, node.x, node.y + 26);
+              }
+            } else if (isHovered || isSelected) {
               // Bright neon cyan when hovered or selected
               ctx.fillStyle = '#00f0ff';
               ctx.shadowBlur = 8;
               ctx.shadowColor = '#00f0ff';
-            } else if (dimLabels) {
-              // Very dim for crowded view - but still visible
-              ctx.fillStyle = '#2a3a40';
+              const labelOffset = 12;
+              ctx.fillText(label, node.x, node.y + labelOffset);
               ctx.shadowBlur = 0;
+            } else if (dimLabels) {
+              // Very dim for crowded view or dimmed nodes - but still visible
+              ctx.fillStyle = isDimmed ? '#1a2a30' : '#2a3a40';
+              ctx.shadowBlur = 0;
+              const labelOffset = 12;
+              ctx.fillText(label, node.x, node.y + labelOffset);
             } else {
               // Normal dim label
               ctx.fillStyle = '#4a6670';
               ctx.shadowBlur = 0;
+              const labelOffset = 12;
+              ctx.fillText(label, node.x, node.y + labelOffset);
             }
-            // Offset label below node
-            const labelOffset = 12;
-            ctx.fillText(label, node.x, node.y + labelOffset);
             ctx.shadowBlur = 0;
           }}
           nodePointerAreaPaint={(node: any, color, ctx) => {

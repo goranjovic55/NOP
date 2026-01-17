@@ -61,9 +61,13 @@ export const assetService = {
     return response.data;
   },
 
-  deleteAllAssets: async (token: string): Promise<void> => {
+  deleteAllAssets: async (token: string, agentPOV?: string): Promise<void> => {
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
     await axios.delete(`${API_URL}/assets/clear-all`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers
     });
   },
 
