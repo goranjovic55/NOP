@@ -77,6 +77,7 @@
 | Query knowledge repeatedly | Read 100 lines ONCE |
 | Text TODOs | Use `manage_todo_list` |
 | Edit without skill | Load skill FIRST |
+| Reload same skill | Cache: load ONCE per session |
 | Skip announcement | Announce before WORK |
 | Multiple ◆ | One only |
 | Auto-push | ASK first |

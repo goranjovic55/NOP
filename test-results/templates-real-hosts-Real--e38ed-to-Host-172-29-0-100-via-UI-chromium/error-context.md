@@ -1,0 +1,304 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e9]: ◉
+        - generic [ref=e10]: NOP
+      - button "◀" [ref=e11] [cursor=pointer]
+    - navigation [ref=e12]:
+      - list [ref=e13]:
+        - listitem [ref=e14]:
+          - link "▣ Dashboard" [ref=e15] [cursor=pointer]:
+            - /url: /dashboard
+            - generic [ref=e16]: ▣
+            - generic [ref=e17]: Dashboard
+        - listitem [ref=e18]:
+          - link "⬢ Assets" [ref=e19] [cursor=pointer]:
+            - /url: /assets
+            - generic [ref=e20]: ⬢
+            - generic [ref=e21]: Assets
+        - listitem [ref=e22]:
+          - link "◎ Topology" [ref=e23] [cursor=pointer]:
+            - /url: /topology
+            - generic [ref=e24]: ◎
+            - generic [ref=e25]: Topology
+        - listitem [ref=e26]:
+          - link "≋ Traffic" [ref=e27] [cursor=pointer]:
+            - /url: /traffic
+            - generic [ref=e28]: ≋
+            - generic [ref=e29]: Traffic
+        - listitem [ref=e30]:
+          - link "◈ Scans" [ref=e31] [cursor=pointer]:
+            - /url: /scans
+            - generic [ref=e32]: ◈
+            - generic [ref=e33]: Scans
+        - listitem [ref=e34]:
+          - link "⬡ ACCESS" [ref=e35] [cursor=pointer]:
+            - /url: /access
+            - generic [ref=e36]: ⬡
+            - generic [ref=e37]: ACCESS
+        - listitem [ref=e38]:
+          - link "◆ Flows" [ref=e39] [cursor=pointer]:
+            - /url: /flows
+            - generic [ref=e40]: ◆
+            - generic [ref=e41]: Flows
+        - listitem [ref=e42]:
+          - link "◆ Agents" [ref=e43] [cursor=pointer]:
+            - /url: /agents
+            - generic [ref=e44]: ◆
+            - generic [ref=e45]: Agents
+        - listitem [ref=e46]:
+          - link "◐ Host" [ref=e47] [cursor=pointer]:
+            - /url: /host
+            - generic [ref=e48]: ◐
+            - generic [ref=e49]: Host
+        - listitem [ref=e50]:
+          - link "⚙ Settings" [ref=e51] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e52]: ⚙
+            - generic [ref=e53]: Settings
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e57]: A
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: admin
+          - paragraph [ref=e60]: admin
+      - button "> logout" [ref=e61] [cursor=pointer]
+  - generic [ref=e62]:
+    - banner [ref=e63]:
+      - generic [ref=e64]:
+        - heading "Flows" [level=1] [ref=e65]
+        - generic [ref=e66]:
+          - generic [ref=e69]: System Online
+          - generic [ref=e70]: 16:57:18
+    - main [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - heading "◇ FLOWS" [level=2] [ref=e75]
+            - combobox [ref=e76] [cursor=pointer]:
+              - option "[ SELECT FLOW ]"
+              - option "Workflow 1" [selected]
+            - button "+ NEW" [ref=e77] [cursor=pointer]
+            - button "TEMPLATES" [ref=e78] [cursor=pointer]
+          - generic [ref=e80]: 6 blocks
+        - generic [ref=e82] [cursor=pointer]:
+          - generic [ref=e83]: ⌘1
+          - generic [ref=e84]: ◇
+          - generic [ref=e85]: Workflow 1
+          - button "✕" [ref=e86]
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - button "◆ SAVE" [ref=e89] [cursor=pointer]
+            - button "↩ UNDO" [disabled] [ref=e91]
+            - button "↪ REDO" [disabled] [ref=e92]
+            - button "✓ VALIDATE" [ref=e94] [cursor=pointer]
+            - button "⚙ SETTINGS" [ref=e96] [cursor=pointer]
+          - generic [ref=e98]: ● EXECUTING...
+          - generic [ref=e99]:
+            - button "▶ RUN" [disabled] [ref=e100]
+            - button "◼ STOP" [ref=e101] [cursor=pointer]
+            - button "◎ PANEL" [ref=e103] [cursor=pointer]
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - heading "◈ BLOCKS" [level=3] [ref=e108]:
+                  - generic [ref=e109]: ◈
+                  - text: BLOCKS
+                - button "◀" [ref=e110] [cursor=pointer]
+              - textbox "[ SEARCH... ]" [ref=e112]
+              - generic [ref=e113]:
+                - button "◉ assets [8] ▶" [ref=e115] [cursor=pointer]:
+                  - generic [ref=e116]: ◉
+                  - generic [ref=e117]: assets
+                  - generic [ref=e118]: "[8]"
+                  - generic [ref=e119]: ▶
+                - generic [ref=e120]:
+                  - button "⚙ control [8] ▼" [ref=e121] [cursor=pointer]:
+                    - generic [ref=e122]: ⚙
+                    - generic [ref=e123]: control
+                    - generic [ref=e124]: "[8]"
+                    - generic [ref=e125]: ▼
+                  - generic [ref=e126]:
+                    - generic "Workflow entry point - can receive input from loops for iteration" [ref=e127]:
+                      - generic [ref=e128]: ▶
+                      - generic [ref=e129]: Start
+                    - generic "Workflow exit point - execution ends here" [ref=e130]:
+                      - generic [ref=e131]: ■
+                      - generic [ref=e132]: End
+                    - generic "Pause execution for specified duration" [ref=e133]:
+                      - generic [ref=e134]: ◷
+                      - generic [ref=e135]: Delay
+                    - generic "Branch execution based on condition" [ref=e136]:
+                      - generic [ref=e137]: ◇
+                      - generic [ref=e138]: Condition
+                    - generic "Iterate over items or count with feedback loop" [ref=e139]:
+                      - generic [ref=e140]: ⟳
+                      - generic [ref=e141]: Loop
+                    - generic "Execute multiple branches in parallel" [ref=e142]:
+                      - generic [ref=e143]: ⫴
+                      - generic [ref=e144]: Parallel
+                    - generic "Set a workflow variable" [ref=e145]:
+                      - generic [ref=e146]: ◁
+                      - generic [ref=e147]: Set Variable
+                    - generic "Get a workflow variable value" [ref=e148]:
+                      - generic [ref=e149]: ▷
+                      - generic [ref=e150]: Get Variable
+                - button "◎ connection [5] ▶" [ref=e152] [cursor=pointer]:
+                  - generic [ref=e153]: ◎
+                  - generic [ref=e154]: connection
+                  - generic [ref=e155]: "[5]"
+                  - generic [ref=e156]: ▶
+                - button "⬢ command [5] ▶" [ref=e158] [cursor=pointer]:
+                  - generic [ref=e159]: ⬢
+                  - generic [ref=e160]: command
+                  - generic [ref=e161]: "[5]"
+                  - generic [ref=e162]: ▶
+                - button "≋ traffic [7] ▶" [ref=e164] [cursor=pointer]:
+                  - generic [ref=e165]: ≋
+                  - generic [ref=e166]: traffic
+                  - generic [ref=e167]: "[7]"
+                  - generic [ref=e168]: ▶
+                - button "◈ scanning [11] ▶" [ref=e170] [cursor=pointer]:
+                  - generic [ref=e171]: ◈
+                  - generic [ref=e172]: scanning
+                  - generic [ref=e173]: "[11]"
+                  - generic [ref=e174]: ▶
+                - button "◆ agent [4] ▶" [ref=e176] [cursor=pointer]:
+                  - generic [ref=e177]: ◆
+                  - generic [ref=e178]: agent
+                  - generic [ref=e179]: "[4]"
+                  - generic [ref=e180]: ▶
+                - button "⟐ data [4] ▶" [ref=e182] [cursor=pointer]:
+                  - generic [ref=e183]: ⟐
+                  - generic [ref=e184]: data
+                  - generic [ref=e185]: "[4]"
+                  - generic [ref=e186]: ▶
+              - generic [ref=e187]: ◇ DRAG TO CANVAS
+            - generic [ref=e189]:
+              - generic [ref=e191]:
+                - generic:
+                  - img:
+                    - generic:
+                      - button "Edge from node-1768496243091-0 to node-1768496243091-1" [ref=e192] [cursor=pointer]
+                      - button "Edge from node-1768496243091-1 to node-1768496243091-2" [ref=e195] [cursor=pointer]
+                      - button "Edge from node-1768496243091-2 to node-1768496243091-3" [ref=e198] [cursor=pointer]
+                      - button "Edge from node-1768496243091-2 to node-1768496243091-5" [ref=e201] [cursor=pointer]
+                      - button "Edge from node-1768496243091-3 to node-1768496243091-4" [ref=e204] [cursor=pointer]
+                      - button "Edge from node-1768496243091-4 to node-1768496243091-5" [ref=e207] [cursor=pointer]
+                  - generic:
+                    - button "▶ Start control [1] PARAMS" [ref=e210]:
+                      - generic [ref=e212]:
+                        - generic [ref=e213]:
+                          - generic [ref=e214]: ▶
+                          - generic [ref=e215]: Start
+                        - generic [ref=e216]:
+                          - generic [ref=e217]: control
+                          - generic [ref=e218]: "[1] PARAMS"
+                    - button "≋ Ping Host scanning [2] PARAMS ✓ ✗ →" [ref=e222]:
+                      - generic [ref=e224]:
+                        - generic [ref=e225]:
+                          - generic [ref=e226]: ≋
+                          - generic [ref=e227]: Ping Host
+                        - generic [ref=e228]:
+                          - generic [ref=e229]: scanning
+                          - generic [ref=e230]: "[2] PARAMS"
+                        - generic: ✓
+                        - generic: ✗
+                        - generic: →
+                    - button "◇ Is Alive? control [2] PARAMS → →" [ref=e236]:
+                      - generic [ref=e238]:
+                        - generic [ref=e239]:
+                          - generic [ref=e240]: ◇
+                          - generic [ref=e241]: Is Alive?
+                        - generic [ref=e242]:
+                          - generic [ref=e243]: control
+                          - generic [ref=e244]: "[2] PARAMS"
+                        - generic: →
+                        - generic: →
+                    - button "⬡ SSH Test connection [4] PARAMS ✓ ✗ →" [ref=e249]:
+                      - generic [ref=e251]:
+                        - generic [ref=e252]:
+                          - generic [ref=e253]: ⬡
+                          - generic [ref=e254]: SSH Test
+                        - generic [ref=e255]:
+                          - generic [ref=e256]: connection
+                          - generic [ref=e257]: "[4] PARAMS"
+                        - generic: ✓
+                        - generic: ✗
+                        - generic: →
+                    - button "⌘ Get Host Info command [4] PARAMS ✓ ✗ →" [ref=e263]:
+                      - generic [ref=e265]:
+                        - generic [ref=e266]:
+                          - generic [ref=e267]: ⌘
+                          - generic [ref=e268]: Get Host Info
+                        - generic [ref=e269]:
+                          - generic [ref=e270]: command
+                          - generic [ref=e271]: "[4] PARAMS"
+                        - generic: ✓
+                        - generic: ✗
+                        - generic: →
+                    - button "■ End control [1] PARAMS" [ref=e277]:
+                      - generic [ref=e279]:
+                        - generic [ref=e280]:
+                          - generic [ref=e281]: ■
+                          - generic [ref=e282]: End
+                        - generic [ref=e283]:
+                          - generic [ref=e284]: control
+                          - generic [ref=e285]: "[1] PARAMS"
+              - img [ref=e288]
+              - generic [ref=e290]:
+                - button "zoom in" [ref=e291] [cursor=pointer]:
+                  - img [ref=e292]
+                - button "zoom out" [disabled]:
+                  - img
+                - button "fit view" [ref=e294] [cursor=pointer]:
+                  - img [ref=e295]
+              - link "React Flow attribution" [ref=e298] [cursor=pointer]:
+                - /url: https://reactflow.dev
+                - text: React Flow
+          - generic [ref=e300]:
+            - generic [ref=e301] [cursor=pointer]:
+              - generic [ref=e302]:
+                - generic [ref=e303]:
+                  - generic [ref=e304]: ⌘
+                  - text: CONSOLE
+                - generic [ref=e307]: PENDING
+              - generic [ref=e308]:
+                - generic [ref=e309]:
+                  - checkbox "Auto-scroll" [checked] [ref=e310]
+                  - text: Auto-scroll
+                - button "Clear" [ref=e311]
+                - generic [ref=e312]: ▼
+            - generic [ref=e314]: No execution logs yet. Click Execute to run the flow.
+        - generic [ref=e316]:
+          - generic [ref=e321]:
+            - generic [ref=e322]:
+              - generic [ref=e323]: ⌚
+              - generic [ref=e324]:
+                - text: PENDING
+                - generic [ref=e325]: "ID: 546a1f64..."
+            - button "✕" [ref=e326] [cursor=pointer]
+          - generic [ref=e327]:
+            - generic [ref=e328]:
+              - generic [ref=e329]: Progress
+              - generic [ref=e330]: 0 / 6 nodes
+            - generic [ref=e334]: 0%
+          - generic [ref=e335]:
+            - generic [ref=e336]:
+              - generic [ref=e337]: Level
+              - generic [ref=e338]:
+                - text: "1"
+                - generic [ref=e339]: / 1
+            - generic [ref=e341]:
+              - generic [ref=e342]: Time
+              - generic [ref=e343]: "--"
+          - button "Execution Tree ▼" [ref=e345] [cursor=pointer]:
+            - generic [ref=e346]: Execution Tree
+            - generic [ref=e347]: ▼
+          - button "CLOSE" [ref=e349] [cursor=pointer]
+```

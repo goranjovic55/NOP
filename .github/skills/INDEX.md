@@ -53,7 +53,7 @@
 | False Positives | 12.3% | 2.1% | -10.2% |
 
 ## Rules
-- Load skill ONCE per session
-- Check cache before loading
-- Announce: "SKILL: {name} loaded"
-- Pre-load ⭐ marked skills for fullstack sessions
+- Load skill ONCE per session (cached after first load, no reloads needed)
+- Check loaded skills before loading: avoid duplicates
+- Announce: "SKILL: {name} loaded" (only on first load)
+- Pre-load ⭐ marked skills for fullstack sessions (65.6% of sessions)
