@@ -44,16 +44,32 @@ tools: ['read', 'search']
 [RETURN] ← architect | result: blueprint | components: N | next: code
 ```
 
+### Handoff Artifact (for code agent)
+```yaml
+# Max 500 tokens - distilled for clean implementation context
+artifact:
+  type: design_spec
+  summary: "Brief description of what to build"
+  components: ["component1", "component2"]
+  files_to_create: ["path/file1.py"]
+  files_to_modify: ["path/file2.tsx"]
+  key_decisions: ["use pattern X", "avoid approach Y"]
+  constraints: ["must use existing auth", "max 3 API calls"]
+  # NO planning rationale, NO alternatives discussion
+```
+
 ## ⚠️ Gotchas
 - **Over-engineering** | Keep designs simple, max 7 components
 - **Missing docs** | Document in docs/architecture/
 - **No approval** | Get approval before code
 - **Skipped research** | Call research agent first if needed
+- **Context pollution** | Output clean artifact, not full planning
 
 ## ⚙️ Optimizations
 - **Research-first**: Call research agent before complex designs
 - **Component limit**: 7 components max for cognitive clarity
 - **Template reuse**: Check existing blueprints in .project/
+- **Clean handoffs**: Produce 500-token artifact for code agent
 
 ## Orchestration
 
@@ -70,4 +86,5 @@ handoffs:
   - label: Implement Blueprint
     agent: code
     prompt: 'Implement blueprint from architect'
+    artifact: design_spec  # Clean context handoff
 ```

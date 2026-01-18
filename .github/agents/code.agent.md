@@ -39,6 +39,20 @@ tools: ['read', 'edit', 'search', 'execute']
 ## Technologies
 Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytest, jest
 
+## Clean Context Input
+When receiving work from architect or research agent, expect a **clean artifact** (max 500 tokens):
+```yaml
+# Expected input artifact
+artifact:
+  type: design_spec | research_findings
+  summary: "What to implement"
+  files_to_modify: ["file1.py", "file2.tsx"]
+  key_decisions: ["use X", "avoid Y"]
+  constraints: ["constraint1"]
+  # NO planning rationale, NO full conversation history
+```
+**Rule**: Start implementation from clean context. Do NOT need planning details.
+
 ## Output Format
 ```markdown
 ## Implementation: [Feature]
@@ -48,11 +62,22 @@ Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytes
 [RETURN] ← code | result: ✓ | files: N | tests: added
 ```
 
+### Output Artifact (for reviewer/docs)
+```yaml
+artifact:
+  type: code_changes
+  summary: "What was implemented"
+  files_modified: ["file1.py", "file2.tsx"]
+  tests_added: ["test_file1.py"]
+  # Max 400 tokens for clean handoff
+```
+
 ## ⚠️ Gotchas
 - **Style mismatch** | Match existing project code style
 - **No linting** | Run linting after changes
 - **Silent blockers** | Report blockers immediately
 - **Missing tests** | Add tests for new code
+- **Context pollution** | Ignore planning details, focus on artifact
 
 ## ⚙️ Optimizations
 - **Documentation pre-loading**: Load relevant docs before implementation ✓
@@ -60,6 +85,7 @@ Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytes
 - **Operation batching**: Group related file edits to reduce token usage ✓
 - **Pattern reuse**: Check existing components before creating new
 - **Skills**: docker, documentation (auto-loaded when relevant)
+- **Clean context**: Start fresh from artifact, not conversation history
 
 ## Orchestration
 
@@ -73,6 +99,7 @@ handoffs:
   - label: Review Code
     agent: reviewer
     prompt: 'Review implementation for quality and security'
+    artifact: code_changes  # Clean context handoff
   - label: Debug Issue
     agent: debugger
     prompt: 'Debug issue in implementation'

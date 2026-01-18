@@ -62,6 +62,15 @@
 | debugger | Fix bugs |
 | documentation | Docs (parallel) |
 
+## Context Isolation (Clean Handoffs)
+| Phase | Max Tokens | Rule |
+|-------|------------|------|
+| planning → code | 500 | Artifact only, no history |
+| research → design | 800 | Summary + decisions |
+| code → review | 400 | Code changes only |
+
+**Handoff Protocol**: Produce typed artifact, not conversation history.
+
 ## Parallel (G7: 60%)
 | Pair | Pattern |
 |------|---------|
@@ -81,3 +90,4 @@
 | Skip announcement | Announce before WORK |
 | Multiple ◆ | One only |
 | Auto-push | ASK first |
+| Context pollution | Use artifact handoffs |
