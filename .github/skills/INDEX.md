@@ -51,9 +51,21 @@
 |--------|--------|-------|-------------|
 | Skill Detection | 14.3% | 96.0% | +81.7% |
 | False Positives | 12.3% | 2.1% | -10.2% |
+| Token Usage | 20,179 | 10,382 | -48.5% |
+| Cognitive Load | 85.5% | 58.3% | -31.9% |
+| Context Pollution | 65.7% | 19.6% | -70.1% |
+
+## Context Isolation (100k Validated)
+| Phase | Max Tokens | Handoff Type |
+|-------|------------|--------------|
+| research → architect | 800 | research_findings |
+| architect → code | 500 | design_spec |
+| code → reviewer | 400 | code_changes |
+| debugger → code | 600 | bug_diagnosis |
 
 ## Rules
 - Load skill ONCE per session (cached after first load, no reloads needed)
 - Check loaded skills before loading: avoid duplicates
 - Announce: "SKILL: {name} loaded" (only on first load)
 - Pre-load ⭐ marked skills for fullstack sessions (65.6% of sessions)
+- Use artifact-based handoffs between agents (max tokens per phase)
