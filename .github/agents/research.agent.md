@@ -48,14 +48,12 @@ tools: ['read', 'search']
 
 ### Output Artifact (for architect/code)
 ```yaml
-# Max 800 tokens - distilled findings for clean handoff
 artifact:
   type: research_findings
-  summary: "3-sentence distillation of key findings"
+  summary: "Brief distillation of key findings"
   key_decisions: ["use X over Y because Z"]
   recommendations: ["recommendation1", "recommendation2"]
   references: ["source1", "source2"]
-  constraints: ["identified constraint"]
   # NO full comparison matrix, NO detailed analysis
 ```
 
@@ -70,7 +68,7 @@ artifact:
 - **Knowledge-first**: project_knowledge.json has pre-indexed entities
 - **Workflow mining**: Check log/workflow/ for past solutions
 - **Confidence levels**: Report high/medium/low confidence
-- **Clean handoffs**: Produce 800-token artifact for downstream agents
+- **Clean handoffs**: Produce distilled artifact for downstream agents
 
 ## Orchestration
 

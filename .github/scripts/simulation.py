@@ -365,16 +365,6 @@ class AKISConfiguration:
     # Context isolation settings (clean context handoffs between phases)
     enable_context_isolation: bool = False  # When True, agents start with clean context
     artifact_based_handoffs: bool = False   # Use structured artifacts instead of conversation
-    context_budget_per_agent: Dict[str, int] = field(default_factory=lambda: {
-        'architect': 2000,   # Planning can be verbose
-        'research': 2000,    # Research needs context
-        'code': 500,         # Implementation: minimal context
-        'debugger': 600,     # Debugging: error + trace only
-        'reviewer': 800,     # Review: code + criteria
-        'documentation': 400, # Docs: just code and API
-        'devops': 1000,      # DevOps: config + requirements
-    })
-    max_planning_tokens_in_implementation: int = 200  # Max planning context leaked to impl
 
 
 @dataclass
@@ -1241,7 +1231,6 @@ def simulate_session(
                 metrics.planning_tokens_in_implementation = random.randint(1500, 4000)
             
             # Calculate context pollution score
-            max_allowed = akis_config.max_planning_tokens_in_implementation
             if metrics.artifact_based_handoff:
                 # Low pollution with artifact handoffs
                 metrics.context_pollution_score = min(1.0, metrics.planning_tokens_in_implementation / 1000)
@@ -1700,7 +1689,6 @@ def create_optimized_akis_config() -> AKISConfiguration:
         # Context isolation (NEW - clean context handoffs)
         enable_context_isolation=True,
         artifact_based_handoffs=True,
-        max_planning_tokens_in_implementation=200,
     )
 
 

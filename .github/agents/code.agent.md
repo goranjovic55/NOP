@@ -40,15 +40,13 @@ tools: ['read', 'edit', 'search', 'execute']
 Python, React, TypeScript, FastAPI, Zustand, Workflows, Docker, WebSocket, pytest, jest
 
 ## Clean Context Input
-When receiving work from architect or research agent, expect a **clean artifact** (max 500 tokens):
+When receiving work from architect or research agent, expect a **clean artifact**:
 ```yaml
-# Expected input artifact
 artifact:
   type: design_spec | research_findings
   summary: "What to implement"
   files_to_modify: ["file1.py", "file2.tsx"]
   key_decisions: ["use X", "avoid Y"]
-  constraints: ["constraint1"]
   # NO planning rationale, NO full conversation history
 ```
 **Rule**: Start implementation from clean context. Do NOT need planning details.
@@ -69,7 +67,6 @@ artifact:
   summary: "What was implemented"
   files_modified: ["file1.py", "file2.tsx"]
   tests_added: ["test_file1.py"]
-  # Max 400 tokens for clean handoff
 ```
 
 ## ⚠️ Gotchas

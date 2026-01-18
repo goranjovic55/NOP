@@ -212,28 +212,16 @@ runSubagent(
 When delegating to agents, use **artifact-based handoffs** (not conversation history):
 
 ```yaml
-# Handoff Artifact (max 500 tokens for implementation agents)
 artifact:
   type: "design_spec" | "research_findings" | "code_changes"
-  summary: "3-sentence max distillation"
+  summary: "Brief distillation"
   key_decisions: ["decision1", "decision2"]
   files: ["file1.py", "file2.tsx"]
-  constraints: ["constraint1"]
   # NO conversation history, NO planning details
 ```
 
-### Context Budgets (Per Agent)
-| Agent | Max Tokens | Receives |
-|-------|------------|----------|
-| architect | 2000 | requirements, constraints |
-| research | 2000 | requirements, prior_knowledge |
-| code | 500 | design_artifact, file_structure |
-| debugger | 600 | error_logs, code_artifact |
-| reviewer | 800 | code_changes, criteria |
-| documentation | 400 | code_artifact, API_summary |
-
 ### Clean Context Rules
-1. **Planning phase outputs** → Summarize to artifact (max 500 tokens)
+1. **Planning phase outputs** → Summarize to artifact
 2. **Implementation agents** → Start fresh, only receive artifact
 3. **NO conversation history** passed between agents
 4. **Each agent is stateless** - Orchestrator manages state

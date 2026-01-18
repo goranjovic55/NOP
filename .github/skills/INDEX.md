@@ -56,16 +56,16 @@
 | Context Pollution | 65.7% | 19.6% | -70.1% |
 
 ## Context Isolation (100k Validated)
-| Phase | Max Tokens | Handoff Type |
-|-------|------------|--------------|
-| research → architect | 800 | research_findings |
-| architect → code | 500 | design_spec |
-| code → reviewer | 400 | code_changes |
-| debugger → code | 600 | bug_diagnosis |
+| Phase | Handoff Type |
+|-------|--------------|
+| research → architect | research_findings |
+| architect → code | design_spec |
+| code → reviewer | code_changes |
+| debugger → code | bug_diagnosis |
 
 ## Rules
 - Load skill ONCE per session (cached after first load, no reloads needed)
 - Check loaded skills before loading: avoid duplicates
 - Announce: "SKILL: {name} loaded" (only on first load)
 - Pre-load ⭐ marked skills for fullstack sessions (65.6% of sessions)
-- Use artifact-based handoffs between agents (max tokens per phase)
+- Use artifact-based handoffs between agents

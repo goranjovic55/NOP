@@ -93,25 +93,16 @@ runSubagent(
 | Token Usage | 20,179 | 10,382 | **-48.5%** |
 | Cognitive Load | 85.5% | 58.3% | **-31.9%** |
 | Context Pollution | 65.7% | 19.6% | **-70.1%** |
-| Planning Tokens Leaked | 2,883 | 346 | **-88.0%** |
 
 ### Handoff Protocol
 ```yaml
 artifact:
   type: "design_spec" | "research_findings" | "code_changes"
-  summary: "3-sentence max"
+  summary: "Brief distillation"
   key_decisions: ["decision1"]
   files: ["file1.py"]
   # NO conversation history
 ```
-
-### Context Budgets
-| Agent | Max Tokens | Receives |
-|-------|------------|----------|
-| architect | 2000 | requirements, constraints |
-| code | 500 | design_artifact only |
-| debugger | 600 | error_logs, code |
-| reviewer | 800 | code_changes, criteria |
 
 ## Parallel (G7) - 60% Target
 **MUST achieve 60%+ parallel execution for complex sessions**

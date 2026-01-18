@@ -50,7 +50,6 @@ print(f"[DEBUG] EXIT func | result: {result}")
 
 ### Output Artifact (for code agent)
 ```yaml
-# Max 600 tokens - distilled for clean fix context
 artifact:
   type: bug_diagnosis
   summary: "Root cause in 1-2 sentences"
@@ -74,7 +73,7 @@ artifact:
 - **Knowledge-first**: Check gotchas in project_knowledge.json before file reads ✓
 - **Binary search**: Isolate issue by halving search space
 - **Skills**: debugging, knowledge (auto-loaded)
-- **Clean handoffs**: Produce 600-token artifact for code agent
+- **Clean handoffs**: Produce distilled artifact for code agent
 
 ## Orchestration
 

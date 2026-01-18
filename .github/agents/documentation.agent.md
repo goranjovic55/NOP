@@ -44,9 +44,8 @@ tools: ['read', 'edit', 'search']
 ```
 
 ## Clean Context Input
-When receiving work from code agent, expect a **clean artifact** (max 400 tokens):
+When receiving work from code agent, expect a **clean artifact**:
 ```yaml
-# Expected input artifact
 artifact:
   type: code_changes
   summary: "What was implemented"
@@ -68,7 +67,7 @@ artifact:
 - **Auto-generate tables**: Use consistent markdown table format
 - **Template reuse**: Use existing templates from docs/
 - **Skills**: documentation, knowledge (auto-loaded)
-- **Clean context**: Only receive code summary (400 tokens max)
+- **Clean context**: Only receive code summary for docs
 
 ## Orchestration
 

@@ -62,9 +62,8 @@ tools: ['read', 'search']
 ```
 
 ## Clean Context Input
-When receiving work from code agent, expect a **clean artifact** (max 800 tokens):
+When receiving work from code agent, expect a **clean artifact**:
 ```yaml
-# Expected input artifact
 artifact:
   type: code_changes
   summary: "What was implemented"

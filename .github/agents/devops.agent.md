@@ -44,9 +44,8 @@ tools: ['read', 'edit', 'execute']
 ```
 
 ## Clean Context Input
-When receiving work from architect, expect a **clean artifact** (max 1000 tokens):
+When receiving work from architect, expect a **clean artifact**:
 ```yaml
-# Expected input artifact
 artifact:
   type: infrastructure_spec
   summary: "What infrastructure to configure"
@@ -67,7 +66,7 @@ artifact:
 - **Incremental deploys**: Deploy one service at a time
 - **Health-first**: Wait for health checks before proceeding
 - **Skills**: docker (auto-loaded)
-- **Clean context**: Receive 1000-token max artifact
+- **Clean context**: Receive distilled artifact only
 
 ## Orchestration
 
