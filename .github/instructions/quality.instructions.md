@@ -59,3 +59,6 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Cache | Same skill reloaded | Load skill ONCE per domain, cache list |
 | JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
 | WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |
+| Delegation | Context pollution in implementation | Use artifact-based handoffs (max 500 tokens) |
+| Delegation | Agent gets full planning history | Pass structured artifact, not conversation |
+| Delegation | High cognitive load in complex tasks | Enable context isolation, clean starts |

@@ -46,16 +46,29 @@ tools: ['read', 'search']
 [RETURN] ← research | sources: local:N, ext:M | confidence: high
 ```
 
+### Output Artifact (for architect/code)
+```yaml
+artifact:
+  type: research_findings
+  summary: "Brief distillation of key findings"
+  key_decisions: ["use X over Y because Z"]
+  recommendations: ["recommendation1", "recommendation2"]
+  references: ["source1", "source2"]
+  # NO full comparison matrix, NO detailed analysis
+```
+
 ## ⚠️ Gotchas
 - **External first** | Check local FIRST before external
 - **No citations** | Cite all sources
 - **Old sources** | Verify sources <1 year old
 - **No caching** | Cache findings in project_knowledge.json
+- **Context pollution** | Output clean artifact, not full research
 
 ## ⚙️ Optimizations
 - **Knowledge-first**: project_knowledge.json has pre-indexed entities
 - **Workflow mining**: Check log/workflow/ for past solutions
 - **Confidence levels**: Report high/medium/low confidence
+- **Clean handoffs**: Produce distilled artifact for downstream agents
 
 ## Orchestration
 
@@ -69,5 +82,6 @@ handoffs:
   - label: Design from Research
     agent: architect
     prompt: 'Design based on research findings'
+    artifact: research_findings  # Clean context handoff
 ```
 

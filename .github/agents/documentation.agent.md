@@ -43,6 +43,18 @@ tools: ['read', 'edit', 'search']
 [RETURN] ← documentation | result: updated | files: N
 ```
 
+## Clean Context Input
+When receiving work from code agent, expect a **clean artifact**:
+```yaml
+artifact:
+  type: code_changes
+  summary: "What was implemented"
+  files_modified: ["file1.py"]
+  api_changes: ["new endpoint POST /api/x"]
+  # Only need code and API summary for docs
+```
+**Rule**: Document based on code artifact, not implementation details.
+
 ## ⚠️ Gotchas
 - **No index check** | Check docs/INDEX.md first
 - **Style mismatch** | Match existing style
@@ -55,6 +67,7 @@ tools: ['read', 'edit', 'search']
 - **Auto-generate tables**: Use consistent markdown table format
 - **Template reuse**: Use existing templates from docs/
 - **Skills**: documentation, knowledge (auto-loaded)
+- **Clean context**: Only receive code summary for docs
 
 ## Orchestration
 

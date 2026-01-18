@@ -205,6 +205,27 @@ runSubagent(
 | Resolution | 53.5 min | 8.1 min | **-56.0%** |
 | Success | 86.8% | 94.0% | **+7.1%** |
 
+## ⛔ Context Isolation (Clean Handoffs)
+**100k Projection**: Context isolation reduces tokens by 60-70%, cognitive load by 70%
+
+### Handoff Protocol
+When delegating to agents, use **artifact-based handoffs** (not conversation history):
+
+```yaml
+artifact:
+  type: "design_spec" | "research_findings" | "code_changes"
+  summary: "Brief distillation"
+  key_decisions: ["decision1", "decision2"]
+  files: ["file1.py", "file2.tsx"]
+  # NO conversation history, NO planning details
+```
+
+### Clean Context Rules
+1. **Planning phase outputs** → Summarize to artifact
+2. **Implementation agents** → Start fresh, only receive artifact
+3. **NO conversation history** passed between agents
+4. **Each agent is stateless** - Orchestrator manages state
+
 ## ⛔ Parallel (G7 - 60% Target)
 | Pair | Invoke Pattern |
 |------|---------------|

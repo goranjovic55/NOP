@@ -297,6 +297,14 @@ class SessionMetrics:
     deviations: List[str] = field(default_factory=list)
     edge_cases_hit: List[str] = field(default_factory=list)
     errors_encountered: List[str] = field(default_factory=list)
+    
+    # Context isolation metrics (clean context handoffs)
+    context_isolation_used: bool = False
+    context_handoff_count: int = 0
+    context_pollution_score: float = 0.0  # 0=clean, 1=heavily polluted
+    artifact_based_handoff: bool = False
+    planning_tokens_in_implementation: int = 0  # Tokens from planning phase leaked to impl
+    clean_context_starts: int = 0  # Number of times agent started with clean context
 
 
 @dataclass
@@ -353,6 +361,10 @@ class AKISConfiguration:
         ('debugger', 'documentation'),  # Debug + docs can run in parallel
     ])
     require_parallel_coordination: bool = True
+    
+    # Context isolation settings (clean context handoffs between phases)
+    enable_context_isolation: bool = False  # When True, agents start with clean context
+    artifact_based_handoffs: bool = False   # Use structured artifacts instead of conversation
 
 
 @dataclass
@@ -409,6 +421,14 @@ class SimulationResults:
     parallel_execution_success_rate: float = 0.0
     parallel_strategy_distribution: Dict[str, int] = field(default_factory=dict)
     sessions_with_parallel: int = 0
+    
+    # Context isolation metrics (clean context handoffs)
+    context_isolation_rate: float = 0.0
+    avg_context_pollution: float = 0.0
+    avg_planning_tokens_leaked: float = 0.0
+    artifact_handoff_rate: float = 0.0
+    clean_context_sessions: int = 0
+    context_isolation_token_savings: float = 0.0  # Estimated tokens saved from isolation
 
 
 @dataclass
@@ -1176,8 +1196,86 @@ def simulate_session(
         # Parallel not applicable
         metrics.parallel_execution_strategy = "sequential"
     
+    # =========================================================================
+    # Context Isolation Simulation (Clean Context Handoffs)
+    # =========================================================================
+    context_isolation_components = []
+    
+    # Determine if context isolation is used
+    if akis_config.enable_context_isolation:
+        metrics.context_isolation_used = True
+        
+        # Count handoffs (each delegation is a potential handoff)
+        if metrics.delegation_used:
+            metrics.context_handoff_count = metrics.delegations_made
+            
+            # Check if artifact-based handoffs are used
+            if akis_config.artifact_based_handoffs:
+                artifact_handoff_probability = 0.85  # 85% of handoffs use structured artifacts
+                if random.random() < artifact_handoff_probability:
+                    metrics.artifact_based_handoff = True
+                    context_isolation_components.append(1.0)
+                    
+                    # Clean artifact handoffs reduce planning token leakage
+                    metrics.planning_tokens_in_implementation = random.randint(50, 150)
+                else:
+                    metrics.artifact_based_handoff = False
+                    context_isolation_components.append(0.4)
+                    metrics.deviations.append("skip_artifact_handoff")
+                    
+                    # Without artifacts, more planning tokens leak to implementation
+                    metrics.planning_tokens_in_implementation = random.randint(800, 2000)
+            else:
+                # No artifact-based handoffs - conversation history passed
+                metrics.artifact_based_handoff = False
+                metrics.planning_tokens_in_implementation = random.randint(1500, 4000)
+            
+            # Calculate context pollution score
+            if metrics.artifact_based_handoff:
+                # Low pollution with artifact handoffs
+                metrics.context_pollution_score = min(1.0, metrics.planning_tokens_in_implementation / 1000)
+            else:
+                # High pollution without isolation
+                metrics.context_pollution_score = min(1.0, metrics.planning_tokens_in_implementation / 2000)
+            
+            # Check clean context starts
+            for agent in metrics.agents_delegated_to:
+                # Probability of clean context start per agent
+                if metrics.artifact_based_handoff:
+                    if random.random() < 0.90:  # 90% clean starts with artifacts
+                        metrics.clean_context_starts += 1
+                        context_isolation_components.append(1.0)
+                    else:
+                        context_isolation_components.append(0.5)
+                        metrics.deviations.append(f"context_pollution_{agent}")
+                else:
+                    if random.random() < 0.40:  # Only 40% clean without artifacts
+                        metrics.clean_context_starts += 1
+                        context_isolation_components.append(0.6)
+                    else:
+                        context_isolation_components.append(0.3)
+                        metrics.deviations.append(f"context_pollution_{agent}")
+        else:
+            # No delegation - single agent session
+            metrics.context_handoff_count = 0
+            metrics.context_pollution_score = 0.2  # Some inherent session pollution
+            metrics.planning_tokens_in_implementation = random.randint(200, 600)
+            context_isolation_components.append(0.8)
+    else:
+        # Context isolation not enabled - simulate baseline pollution
+        metrics.context_isolation_used = False
+        if complexity == "complex":
+            metrics.context_pollution_score = random.uniform(0.6, 0.9)
+            metrics.planning_tokens_in_implementation = random.randint(2000, 5000)
+        elif complexity == "medium":
+            metrics.context_pollution_score = random.uniform(0.4, 0.7)
+            metrics.planning_tokens_in_implementation = random.randint(1000, 2500)
+        else:
+            metrics.context_pollution_score = random.uniform(0.2, 0.4)
+            metrics.planning_tokens_in_implementation = random.randint(300, 1000)
+    
     # Calculate discipline score
-    all_discipline = discipline_components + delegation_discipline_components + parallel_discipline_components
+    all_discipline = discipline_components + delegation_discipline_components + parallel_discipline_components + context_isolation_components
     metrics.discipline_score = sum(all_discipline) / len(all_discipline) if all_discipline else 0.5
     
     # Simulate cognitive load
@@ -1192,6 +1290,15 @@ def simulate_session(
     
     # Adjust for deviations (more deviations = more confusion)
     cognitive_adjustment += 0.05 * len(metrics.deviations)
+    
+    # Context isolation reduces cognitive load
+    if metrics.context_isolation_used and metrics.artifact_based_handoff:
+        cognitive_adjustment -= 0.20  # Clean context = lower cognitive load
+    elif metrics.context_isolation_used:
+        cognitive_adjustment -= 0.10  # Partial isolation benefit
+    
+    # Context pollution increases cognitive load
+    cognitive_adjustment += 0.15 * metrics.context_pollution_score
     
     metrics.cognitive_load = min(1.0, max(0.1, base_cognitive + cognitive_adjustment))
     
@@ -1294,6 +1401,18 @@ def simulate_session(
     # Good delegation reduces token usage (specialists use focused prompts)
     if metrics.delegation_used and metrics.delegation_discipline_score > 0.7:
         token_multiplier -= 0.20
+    
+    # Context isolation provides significant token reduction
+    if metrics.context_isolation_used:
+        if metrics.artifact_based_handoff:
+            # Artifact-based handoffs: 40-60% token reduction
+            token_multiplier -= 0.50  # Major token savings from clean context
+        else:
+            # Basic isolation: 20-30% reduction
+            token_multiplier -= 0.25
+        
+        # Reduced planning token leakage saves tokens
+        token_multiplier -= (5000 - metrics.planning_tokens_in_implementation) / 50000
     
     metrics.token_usage = int(max(5000, random.gauss(
         base_tokens * token_multiplier,
@@ -1510,6 +1629,26 @@ def aggregate_results(
             strategy_counts[s.parallel_execution_strategy] += 1
     results.parallel_strategy_distribution = dict(strategy_counts)
     
+    # Calculate context isolation metrics
+    sessions_with_isolation = [s for s in sessions if s.context_isolation_used]
+    results.clean_context_sessions = len(sessions_with_isolation)
+    results.context_isolation_rate = results.clean_context_sessions / n if n > 0 else 0
+    
+    if sessions_with_isolation:
+        results.avg_context_pollution = sum(s.context_pollution_score for s in sessions_with_isolation) / len(sessions_with_isolation)
+        results.avg_planning_tokens_leaked = sum(s.planning_tokens_in_implementation for s in sessions_with_isolation) / len(sessions_with_isolation)
+        results.artifact_handoff_rate = sum(1 for s in sessions_with_isolation if s.artifact_based_handoff) / len(sessions_with_isolation)
+        
+        # Calculate token savings from isolation (compared to non-isolated sessions)
+        non_isolated = [s for s in sessions if not s.context_isolation_used]
+        if non_isolated:
+            avg_isolated_tokens = sum(s.token_usage for s in sessions_with_isolation) / len(sessions_with_isolation)
+            avg_non_isolated_tokens = sum(s.token_usage for s in non_isolated) / len(non_isolated)
+            results.context_isolation_token_savings = (avg_non_isolated_tokens - avg_isolated_tokens) / avg_non_isolated_tokens if avg_non_isolated_tokens > 0 else 0
+    else:
+        results.avg_context_pollution = sum(s.context_pollution_score for s in sessions) / n if n > 0 else 0
+        results.avg_planning_tokens_leaked = sum(s.planning_tokens_in_implementation for s in sessions) / n if n > 0 else 0
+    
     return results
 
 
@@ -1546,6 +1685,10 @@ def create_optimized_akis_config() -> AKISConfiguration:
         enable_parallel_execution=True,
         max_parallel_agents=3,
         require_parallel_coordination=True,
+        
+        # Context isolation (NEW - clean context handoffs)
+        enable_context_isolation=True,
+        artifact_based_handoffs=True,
     )
 
 
@@ -1760,6 +1903,24 @@ def generate_comparison_report(
                 "strategy_distribution": optimized.parallel_strategy_distribution,
             },
         },
+        "context_isolation_analysis": {
+            "baseline": {
+                "context_isolation_rate": baseline.context_isolation_rate,
+                "clean_context_sessions": baseline.clean_context_sessions,
+                "avg_context_pollution": baseline.avg_context_pollution,
+                "avg_planning_tokens_leaked": baseline.avg_planning_tokens_leaked,
+                "artifact_handoff_rate": baseline.artifact_handoff_rate,
+                "token_savings": baseline.context_isolation_token_savings,
+            },
+            "optimized": {
+                "context_isolation_rate": optimized.context_isolation_rate,
+                "clean_context_sessions": optimized.clean_context_sessions,
+                "avg_context_pollution": optimized.avg_context_pollution,
+                "avg_planning_tokens_leaked": optimized.avg_planning_tokens_leaked,
+                "artifact_handoff_rate": optimized.artifact_handoff_rate,
+                "token_savings": optimized.context_isolation_token_savings,
+            },
+        },
     }
     
     return report
@@ -1914,6 +2075,38 @@ def print_report(report: Dict[str, Any]):
     print(f"\n   Strategy Distribution (Baseline):")
     for strategy, count in sorted(baseline_par.get('strategy_distribution', {}).items(), key=lambda x: -x[1]):
         print(f"     {strategy}: {count:,}")
+    
+    print("\n" + "=" * 70)
+    print("CONTEXT ISOLATION ANALYSIS (Clean Context Handoffs)")
+    print("=" * 70)
+    
+    context = report.get("context_isolation_analysis", {})
+    baseline_ctx = context.get("baseline", {})
+    optimized_ctx = context.get("optimized", {})
+    
+    print(f"\n🧹 CONTEXT ISOLATION METRICS")
+    print(f"   Context Isolation Rate:")
+    print(f"     Baseline:  {baseline_ctx.get('context_isolation_rate', 0):.1%}")
+    print(f"     Optimized: {optimized_ctx.get('context_isolation_rate', 0):.1%}")
+    
+    print(f"\n   Clean Context Sessions:")
+    print(f"     Baseline:  {baseline_ctx.get('clean_context_sessions', 0):,}")
+    print(f"     Optimized: {optimized_ctx.get('clean_context_sessions', 0):,}")
+    
+    print(f"\n   Artifact-Based Handoff Rate:")
+    print(f"     Baseline:  {baseline_ctx.get('artifact_handoff_rate', 0):.1%}")
+    print(f"     Optimized: {optimized_ctx.get('artifact_handoff_rate', 0):.1%}")
+    
+    print(f"\n   Avg Context Pollution (lower is better):")
+    print(f"     Baseline:  {baseline_ctx.get('avg_context_pollution', 0):.1%}")
+    print(f"     Optimized: {optimized_ctx.get('avg_context_pollution', 0):.1%}")
+    
+    print(f"\n   Avg Planning Tokens Leaked to Implementation:")
+    print(f"     Baseline:  {baseline_ctx.get('avg_planning_tokens_leaked', 0):,.0f} tokens")
+    print(f"     Optimized: {optimized_ctx.get('avg_planning_tokens_leaked', 0):,.0f} tokens")
+    
+    print(f"\n   Token Savings from Isolation:")
+    print(f"     Optimized: {optimized_ctx.get('token_savings', 0):.1%} reduction")
     
     print("\n" + "=" * 70)
 
