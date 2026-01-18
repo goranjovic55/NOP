@@ -61,6 +61,18 @@ tools: ['read', 'search']
 [RETURN] ← reviewer | verdict: PASS | blockers: 0 | warnings: N
 ```
 
+## Clean Context Input
+When receiving work from code agent, expect a **clean artifact** (max 800 tokens):
+```yaml
+# Expected input artifact
+artifact:
+  type: code_changes
+  summary: "What was implemented"
+  files_modified: ["file1.py", "file2.tsx"]
+  # NO full implementation details, just code to review
+```
+**Rule**: Review against acceptance criteria, not planning details.
+
 ## ⚠️ Gotchas
 - **Rubber-stamp** | Be objective, not approval-biased
 - **No citations** | Cite specific code file:line
@@ -71,6 +83,7 @@ tools: ['read', 'search']
 - **Checklist-driven**: Use checklist for consistent reviews
 - **Severity ordering**: Report blockers before warnings
 - **Pattern matching**: Check known vulnerability patterns first
+- **Clean context**: Only receive code changes, not planning
 
 ## Orchestration
 

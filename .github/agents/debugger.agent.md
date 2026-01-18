@@ -48,11 +48,25 @@ print(f"[DEBUG] EXIT func | result: {result}")
 [RETURN] ← debugger | result: fixed | file: path:line
 ```
 
+### Output Artifact (for code agent)
+```yaml
+# Max 600 tokens - distilled for clean fix context
+artifact:
+  type: bug_diagnosis
+  summary: "Root cause in 1-2 sentences"
+  root_cause_file: "path/file.py"
+  root_cause_line: 123
+  fix_suggestion: "Change X to Y"
+  related_files: ["file1.py"]
+  # NO full debug logs, NO trace history
+```
+
 ## ⚠️ Gotchas
 - **Skip gotchas** | Check project_knowledge.json gotchas FIRST (75% known issues)
 - **No reproduce** | Reproduce before debugging
 - **Log overload** | Minimal logs only
 - **Logs remain** | Clean up after fix
+- **Context pollution** | Output clean artifact, not full trace
 
 ## ⚙️ Optimizations
 - **Test-aware mode**: Check existing tests before debugging, run tests to reproduce ✓
@@ -60,6 +74,7 @@ print(f"[DEBUG] EXIT func | result: {result}")
 - **Knowledge-first**: Check gotchas in project_knowledge.json before file reads ✓
 - **Binary search**: Isolate issue by halving search space
 - **Skills**: debugging, knowledge (auto-loaded)
+- **Clean handoffs**: Produce 600-token artifact for code agent
 
 ## Orchestration
 
@@ -73,5 +88,6 @@ handoffs:
   - label: Implement Fix
     agent: code
     prompt: 'Implement fix for root cause identified by debugger'
+    artifact: bug_diagnosis  # Clean context handoff
 ```
 

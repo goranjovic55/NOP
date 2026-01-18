@@ -43,6 +43,19 @@ tools: ['read', 'edit', 'execute']
 [RETURN] ← devops | result: configured | services: list
 ```
 
+## Clean Context Input
+When receiving work from architect, expect a **clean artifact** (max 1000 tokens):
+```yaml
+# Expected input artifact
+artifact:
+  type: infrastructure_spec
+  summary: "What infrastructure to configure"
+  services: ["backend", "frontend", "db"]
+  requirements: ["resource limits", "health checks"]
+  # Only need service specs, not full design rationale
+```
+**Rule**: Configure based on spec artifact, not planning details.
+
 ## ⚠️ Gotchas
 - **No config test** | Run `docker-compose config` first
 - **Missing limits** | Check resource limits
@@ -54,6 +67,7 @@ tools: ['read', 'edit', 'execute']
 - **Incremental deploys**: Deploy one service at a time
 - **Health-first**: Wait for health checks before proceeding
 - **Skills**: docker (auto-loaded)
+- **Clean context**: Receive 1000-token max artifact
 
 ## Orchestration
 
