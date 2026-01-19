@@ -59,3 +59,7 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Cache | Same skill reloaded | Load skill ONCE per domain, cache list |
 | JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
 | WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |
+| API | 307 redirect on DELETE | Remove trailing slashes from frontend, add fallback routes |
+| Remote | guacd security layer mismatch | Use security_layer=rdp, pass security='rdp' in args |
+| Build | Frontend changes not visible | Clear browser cache with Ctrl+Shift+R |
+| Protocol | VNC asks for username | Use conditional rendering `tab.protocol !== 'vnc'` |
