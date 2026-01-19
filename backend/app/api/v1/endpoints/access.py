@@ -468,8 +468,8 @@ async def guacamole_tunnel(
         "height": str(height),
         "dpi": str(dpi),
         "ignore-cert": "true",
-        "security": "rdp",  # Use RDP security for test server compatibility
-        "color-depth": "24",  # 24-bit color (guacd promotes to 32 for RDP Graphics Pipeline)
+        "security": "any",  # Allow negotiation - guacd 1.6.0+ with FreeRDP 2.x handles this
+        "color-depth": "32",  # 32-bit color required for RDP Graphics Pipeline
         "enable-wallpaper": "false",  # Disable wallpaper for better performance
         "enable-theming": "false",  # Disable theming
         "enable-font-smoothing": "false",  # Disable font smoothing

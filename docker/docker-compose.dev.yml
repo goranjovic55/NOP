@@ -31,8 +31,8 @@ services:
       - GUACD_PORT=14822
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
-      - VNC_HOST=172.21.0.51
-      - RDP_HOST=172.21.0.50
+      - VNC_HOST=172.21.0.50
+      - RDP_HOST=172.21.0.60
     depends_on:
       - postgres
       - redis

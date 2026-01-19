@@ -4,6 +4,43 @@ import { accessService, Credential } from '../services/accessService';
 import { useAuthStore } from '../store/authStore';
 import Guacamole from 'guacamole-common-js';
 
+// Convert DOM KeyboardEvent to X11 keysym
+const getKeysym = (e: KeyboardEvent): number | null => {
+  // Use key code for special keys
+  const specialKeys: { [key: string]: number } = {
+    'Backspace': 0xFF08,
+    'Tab': 0xFF09,
+    'Enter': 0xFF0D,
+    'Escape': 0xFF1B,
+    'Delete': 0xFFFF,
+    'Home': 0xFF50,
+    'End': 0xFF57,
+    'PageUp': 0xFF55,
+    'PageDown': 0xFF56,
+    'ArrowLeft': 0xFF51,
+    'ArrowUp': 0xFF52,
+    'ArrowRight': 0xFF53,
+    'ArrowDown': 0xFF54,
+    'Insert': 0xFF63,
+    'F1': 0xFFBE, 'F2': 0xFFBF, 'F3': 0xFFC0, 'F4': 0xFFC1,
+    'F5': 0xFFC2, 'F6': 0xFFC3, 'F7': 0xFFC4, 'F8': 0xFFC5,
+    'F9': 0xFFC6, 'F10': 0xFFC7, 'F11': 0xFFC8, 'F12': 0xFFC9,
+    'Shift': 0xFFE1, 'Control': 0xFFE3, 'Alt': 0xFFE9, 'Meta': 0xFFEB,
+    'CapsLock': 0xFFE5, 'NumLock': 0xFF7F, 'ScrollLock': 0xFF14,
+  };
+  
+  if (specialKeys[e.key]) {
+    return specialKeys[e.key];
+  }
+  
+  // For printable characters, use char code
+  if (e.key.length === 1) {
+    return e.key.charCodeAt(0);
+  }
+  
+  return null;
+};
+
 interface ProtocolConnectionProps {
   tab: ConnectionTab;
 }
@@ -27,6 +64,9 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   // Guacamole state
   const displayRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<Guacamole.Client | null>(null);
+  // Store event handler refs for proper cleanup
+  const keydownHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  const keyupHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   const [displayAttached, setDisplayAttached] = useState(false);
 
   // Use useLayoutEffect to attach display immediately after DOM update
@@ -59,16 +99,12 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             display.scale(scale);
             console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale);
             
-            // Set up keyboard input
-            const keyboard = new Guacamole.Keyboard(document);
-            keyboard.onkeydown = (keysym: number) => {
-              clientRef.current?.sendKeyEvent(1, keysym);
-            };
-            keyboard.onkeyup = (keysym: number) => {
-              clientRef.current?.sendKeyEvent(0, keysym);
-            };
+            // Make display element focusable for keyboard input
+            displayElement.setAttribute('tabindex', '0');
+            displayElement.style.outline = 'none';
+            displayElement.style.cursor = 'default';
             
-            // Set up mouse input
+            // Set up mouse input - NO pointer lock, just track within element
             const mouse = new Guacamole.Mouse(displayElement);
             const sendMouseState = (state: Guacamole.Mouse.State) => {
               clientRef.current?.sendMouseState(state);
@@ -77,24 +113,12 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             (mouse as any).onmouseup = sendMouseState;
             (mouse as any).onmousemove = sendMouseState;
             
-            // Enable pointer lock on click (grab cursor for RDP/VNC)
+            // Focus display when clicked so keyboard works
             displayElement.addEventListener('click', () => {
-              if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
-                displayElement.requestPointerLock();
-                console.log('[GUACAMOLE-CLIENT] Pointer lock requested');
-              }
+              displayElement.focus();
             });
             
-            // Exit pointer lock with ESC key hint
-            document.addEventListener('pointerlockchange', () => {
-              if (document.pointerLockElement === displayElement) {
-                console.log('[GUACAMOLE-CLIENT] Pointer locked (press ESC to release)');
-              } else {
-                console.log('[GUACAMOLE-CLIENT] Pointer unlocked');
-              }
-            });
-            
-            console.log('[GUACAMOLE-CLIENT] Keyboard and mouse handlers attached');
+            console.log('[GUACAMOLE-CLIENT] Mouse handler attached (no pointer lock)');
           }
         } catch (e) {
           console.error('[GUACAMOLE-CLIENT] Error attaching display:', e);
@@ -132,10 +156,20 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     }
   }, [output]);
 
-  // Reset displayAttached when disconnected
+  // Reset displayAttached and cleanup keyboard when disconnected
   useEffect(() => {
     if (connectionStatus === 'disconnected') {
       setDisplayAttached(false);
+      // Clean up keyboard event listeners from document
+      if (keydownHandlerRef.current) {
+        console.log('[GUACAMOLE-CLIENT] Cleaning up keyboard handlers from document');
+        document.removeEventListener('keydown', keydownHandlerRef.current);
+        keydownHandlerRef.current = null;
+      }
+      if (keyupHandlerRef.current) {
+        document.removeEventListener('keyup', keyupHandlerRef.current);
+        keyupHandlerRef.current = null;
+      }
     }
   }, [connectionStatus]);
 
@@ -464,19 +498,58 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       }
     };
 
-    // Handle mouse and keyboard
-    const mouse = new Guacamole.Mouse(client.getDisplay().getElement());
+    // Handle mouse - NO pointer lock
+    const displayElement = client.getDisplay().getElement();
+    displayElement.style.cursor = 'default';
+    const mouse = new Guacamole.Mouse(displayElement);
     (mouse as any).onmousedown = (mouse as any).onmouseup = (mouse as any).onmousemove = (mouseState: any) => {
       client.sendMouseState(mouseState);
     };
 
-    const keyboard = new Guacamole.Keyboard(document);
-    (keyboard as any).onkeydown = (keysym: number) => {
-      client.sendKeyEvent(1, keysym);
+    // Make display element focusable
+    displayElement.setAttribute('tabindex', '0');
+    displayElement.style.outline = 'none';
+    
+    // Focus display when clicked
+    displayElement.addEventListener('click', () => {
+      displayElement.focus();
+    });
+
+    // Clean up existing keyboard handlers
+    if (keydownHandlerRef.current) {
+      document.removeEventListener('keydown', keydownHandlerRef.current);
+    }
+    if (keyupHandlerRef.current) {
+      document.removeEventListener('keyup', keyupHandlerRef.current);
+    }
+
+    // Use native keyboard events - only capture when display is focused
+    // This allows normal typing in other inputs
+    const keydownHandler = (e: KeyboardEvent) => {
+      // Only send keys if display element is focused
+      if (document.activeElement === displayElement) {
+        const keysym = getKeysym(e);
+        if (keysym) {
+          client.sendKeyEvent(1, keysym);
+          e.preventDefault();
+        }
+      }
     };
-    (keyboard as any).onkeyup = (keysym: number) => {
-      client.sendKeyEvent(0, keysym);
+    
+    const keyupHandler = (e: KeyboardEvent) => {
+      if (document.activeElement === displayElement) {
+        const keysym = getKeysym(e);
+        if (keysym) {
+          client.sendKeyEvent(0, keysym);
+          e.preventDefault();
+        }
+      }
     };
+    
+    keydownHandlerRef.current = keydownHandler;
+    keyupHandlerRef.current = keyupHandler;
+    document.addEventListener('keydown', keydownHandler);
+    document.addEventListener('keyup', keyupHandler);
 
     console.log('[GUACAMOLE-CLIENT] Initiating connection...');
     client.connect('');

@@ -60,6 +60,8 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
 | WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |
 | API | 307 redirect on DELETE | Remove trailing slashes from frontend, add fallback routes |
-| Remote | guacd security layer mismatch | Use security_layer=rdp, pass security='rdp' in args |
+| Remote | guacd security layer mismatch | Use security='any' + XRDP security_layer=negotiate |
 | Build | Frontend changes not visible | Clear browser cache with Ctrl+Shift+R |
 | Protocol | VNC asks for username | Use conditional rendering `tab.protocol !== 'vnc'` |
+| Guacamole | Keyboard stuck after disconnect | Replace Guacamole.Keyboard with native event listeners |
+| Guacamole | Pointer lock traps cursor | Remove requestPointerLock() calls entirely |
