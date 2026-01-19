@@ -468,11 +468,12 @@ async def guacamole_tunnel(
         "height": str(height),
         "dpi": str(dpi),
         "ignore-cert": "true",
-        "security": "any",
-        "color-depth": "16",  # 16-bit color to avoid black screen
+        "security": "rdp",  # Use RDP security for test server compatibility
+        "color-depth": "24",  # 24-bit color (guacd promotes to 32 for RDP Graphics Pipeline)
         "enable-wallpaper": "false",  # Disable wallpaper for better performance
         "enable-theming": "false",  # Disable theming
-        "enable-font-smoothing": "false"  # Disable font smoothing
+        "enable-font-smoothing": "false",  # Disable font smoothing
+        "disable-audio": "true"  # Disable audio for better performance
     }
     
     logger.debug(f"[ACCESS-TUNNEL] Connection args prepared (password hidden)")

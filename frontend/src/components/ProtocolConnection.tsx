@@ -820,20 +820,25 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       )}
 
       <form onSubmit={handleConnect} className="space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Username</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
-            placeholder="admin"
-            required
-          />
-        </div>
+        {/* Username - required for RDP/SSH, optional for VNC */}
+        {tab.protocol !== 'vnc' && (
+          <div>
+            <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-cyber-dark border border-cyber-gray rounded px-3 py-2 text-white font-mono focus:border-cyber-green outline-none transition-colors"
+              placeholder="admin"
+              required={tab.protocol === 'rdp' || tab.protocol === 'ssh'}
+            />
+          </div>
+        )}
 
         <div>
-          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">◆ Password</label>
+          <label className="block text-xs font-bold text-cyber-purple uppercase mb-1 tracking-wider">
+            ◆ Password {tab.protocol === 'vnc' && <span className="text-cyber-gray">(VNC password)</span>}
+          </label>
           <input
             type="password"
             value={password}

@@ -19,8 +19,10 @@ RUN useradd -m -s /bin/bash rdpuser && \
 # Allow anyone to start X server (needed for xrdp)
 RUN sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config 2>/dev/null || true
 
-# Configure xrdp
-RUN sed -i 's/3389/3389/g' /etc/xrdp/xrdp.ini && \
+# Configure xrdp for guacd compatibility
+# Use RDP security (no TLS) for easier connection, lower crypt level
+RUN sed -i 's/security_layer=negotiate/security_layer=rdp/' /etc/xrdp/xrdp.ini && \
+    sed -i 's/crypt_level=high/crypt_level=low/' /etc/xrdp/xrdp.ini && \
     sed -i 's/max_bpp=32/max_bpp=24/g' /etc/xrdp/xrdp.ini && \
     sed -i 's/xserverbpp=24/xserverbpp=24/g' /etc/xrdp/xrdp.ini
 

@@ -27,6 +27,8 @@ services:
       - SECRET_KEY=debug-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - LOG_LEVEL=DEBUG
+      - GUACD_HOST=guacd
+      - GUACD_PORT=14822
     depends_on:
       - postgres
       - redis
@@ -63,8 +65,9 @@ services:
         aliases:
           - guacd
     restart: unless-stopped
+    entrypoint: ["/usr/local/sbin/guacd", "-b", "0.0.0.0", "-l", "14822", "-f"]
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 14822 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

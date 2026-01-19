@@ -207,13 +207,22 @@ async def delete_all_assets(
     Clears all data to provide a clean start for asset discovery.
     In POV mode, only clears assets for that agent.
     """
-    agent_pov = get_agent_pov(request)
-    asset_service = AssetService(db)
-    counts = await asset_service.delete_all_assets(agent_id=agent_pov)
-    return {
-        "message": f"Cleared all data successfully",
-        "deleted": counts
-    }
+    try:
+        agent_pov = get_agent_pov(request)
+        asset_service = AssetService(db)
+        counts = await asset_service.delete_all_assets(agent_id=agent_pov)
+        return {
+            "message": "Cleared all data successfully",
+            "deleted": counts
+        }
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[CLEAR-ALL] Error clearing assets: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to clear assets: {str(e)}"
+        )
 
 
 @router.delete("/{asset_id}")

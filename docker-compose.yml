@@ -20,8 +20,9 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://nop:nop_password@172.54.0.10:5432/nop
       - REDIS_URL=redis://172.54.0.11:6379/0
-      - GUACD_HOST=172.54.0.12
-      - GUACD_PORT=4822
+      # guacd is on host network, accessible via localhost
+      - GUACD_HOST=127.0.0.1
+      - GUACD_PORT=14822
       - SECRET_KEY=your-secret-key-change-this
       - ADMIN_PASSWORD=admin123
       - VNC_HOST=nop-custom-vnc
@@ -58,8 +59,9 @@ services:
     container_name: nop-guacd
     network_mode: host
     environment:
-      - GUACD_LOG_LEVEL=info
-    entrypoint: ["/usr/local/sbin/guacd", "-b", "127.0.0.1", "-l", "14822", "-f"]
+      - GUACD_LOG_LEVEL=debug
+    # Bind to 0.0.0.0 so it's accessible to backend AND can reach external hosts
+    entrypoint: ["/usr/local/sbin/guacd", "-b", "0.0.0.0", "-l", "14822", "-f"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 14822 || exit 1"]

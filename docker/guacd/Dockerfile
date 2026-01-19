@@ -56,9 +56,9 @@ RUN wget https://downloads.apache.org/guacamole/1.6.0/source/guacamole-server-1.
 # Create guacd user
 RUN addgroup -S guacd && adduser -S -G guacd guacd
 
-# Expose default port
-EXPOSE 4822
+# Expose default port (14822 to avoid conflicts with system guacd)
+EXPOSE 14822
 
-# Run guacd
+# Run guacd on high port
 USER guacd
-CMD ["/usr/local/sbin/guacd", "-f"]
+CMD ["/usr/local/sbin/guacd", "-b", "0.0.0.0", "-l", "14822", "-f"]

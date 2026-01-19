@@ -61,14 +61,19 @@ export const assetService = {
     return response.data;
   },
 
-  deleteAllAssets: async (token: string, agentPOV?: string): Promise<void> => {
+  deleteAllAssets: async (token: string, agentPOV?: string): Promise<{ message: string; deleted: Record<string, number> }> => {
+    if (!token) {
+      throw new Error('Authentication token required');
+    }
     const headers: any = { Authorization: `Bearer ${token}` };
     if (agentPOV) {
       headers['X-Agent-POV'] = agentPOV;
     }
-    await axios.delete(`${API_URL}/assets/clear-all`, {
+    // No trailing slash to avoid 307 redirect on DELETE
+    const response = await axios.delete(`${API_URL}/assets/clear-all`, {
       headers
     });
+    return response.data;
   },
 
   getScanStatus: async (token: string, scanId: string): Promise<any> => {

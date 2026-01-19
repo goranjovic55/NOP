@@ -1,0 +1,43 @@
+# Test VNC/RDP hosts in host network mode
+# This allows guacd (also in host network) to connect directly to these services
+# 
+# Usage: docker compose -f docker/test-environment/docker-compose.host-network.yml up -d
+#
+# VNC: Connect to localhost:5900 (password: password)
+# RDP: Connect to localhost:3389 (user: rdpuser, password: rdp123)
+#
+# Note: Since these use host network, they bind directly to host ports.
+# Make sure no other services are using ports 5900 and 3389 on the host.
+
+services:
+  # VNC Server on host network (port 5900)
+  vnc-host:
+    build:
+      context: ../../test-environment/vnc-server
+      dockerfile: Dockerfile
+    container_name: vnc-host-network
+    hostname: vnc-host
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5900 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # RDP Server on host network (port 3389)
+  rdp-host:
+    build:
+      context: ../../test-environment/rdp-server
+      dockerfile: Dockerfile
+    container_name: rdp-host-network
+    hostname: rdp-host
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 3389 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
