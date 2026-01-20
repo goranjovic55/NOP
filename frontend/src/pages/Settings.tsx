@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CyberPageTitle } from '../components/CyberUI';
 import { usePOV, getPOVHeaders } from '../context/POVContext';
+import { useAccessStore, RemoteAccessSettings, defaultRemoteAccessSettings } from '../store/accessStore';
 
 interface ScanSettings {
   profile_name: string;
@@ -102,7 +103,8 @@ interface AllSettings {
 
 const Settings: React.FC = () => {
   const { activeAgent, isAgentPOV } = usePOV();
-  const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'system'>('scan');
+  const { remoteSettings, updateRemoteSettings, resetRemoteSettings } = useAccessStore();
+  const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'remote' | 'system'>('scan');
   const [settings, setSettings] = useState<AllSettings | null>(null);
   const [agentSettings, setAgentSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -198,6 +200,12 @@ const Settings: React.FC = () => {
   };
 
   const handleSave = async () => {
+    // Remote settings are stored locally in accessStore (automatically persisted)
+    if (activeTab === 'remote') {
+      showMessage('success', 'Remote access settings saved');
+      return;
+    }
+    
     if (!settings) return;
     
     try {
@@ -208,7 +216,7 @@ const Settings: React.FC = () => {
         // Merge current tab settings with agent settings
         const updatedAgentSettings = {
           ...agentSettings,
-          [activeTab]: settings[activeTab]
+          [activeTab]: settings[activeTab as keyof AllSettings]
         };
         
         await axios.put('/api/v1/agent-settings/current/settings', updatedAgentSettings, {
@@ -218,7 +226,7 @@ const Settings: React.FC = () => {
         showMessage('success', `Agent "${activeAgent.name}" ${activeTab} settings saved`);
       } else {
         // Save global C2 settings
-        await axios.put(`/api/v1/settings/${activeTab}`, settings[activeTab]);
+        await axios.put(`/api/v1/settings/${activeTab}`, settings[activeTab as keyof AllSettings]);
         showMessage('success', `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings saved successfully`);
       }
     } catch (error) {
@@ -230,6 +238,15 @@ const Settings: React.FC = () => {
   };
 
   const handleReset = async () => {
+    // Remote settings reset is handled by the RemoteAccessSettingsPanel
+    if (activeTab === 'remote') {
+      if (window.confirm('Reset remote access settings to defaults?')) {
+        resetRemoteSettings();
+        showMessage('success', 'Remote access settings reset to defaults');
+      }
+      return;
+    }
+    
     if (!window.confirm(`Reset ${activeTab} settings to defaults?`)) return;
     
     try {
@@ -246,12 +263,16 @@ const Settings: React.FC = () => {
   };
 
   const updateSetting = (key: string, value: string | number | boolean) => {
+    // Remote settings are handled by updateRemoteSettings from accessStore
+    if (activeTab === 'remote') return;
+    
     if (settings) {
+      const settingsKey = activeTab as keyof AllSettings;
       // Update the settings state (works for both C2 and agent POV)
       setSettings({
         ...settings,
-        [activeTab]: {
-          ...settings[activeTab],
+        [settingsKey]: {
+          ...settings[settingsKey],
           [key]: value
         }
       });
@@ -260,8 +281,8 @@ const Settings: React.FC = () => {
       if (isAgentPOV && agentSettings) {
         setAgentSettings({
           ...agentSettings,
-          [activeTab]: {
-            ...(agentSettings[activeTab] || {}),
+          [settingsKey]: {
+            ...(agentSettings[settingsKey] || {}),
             [key]: value
           }
         });
@@ -315,6 +336,16 @@ const Settings: React.FC = () => {
           <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2"/>
           <path d="M8 11V7a4 4 0 118 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'remote' as const, 
+      label: 'Remote Access', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+          <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         </svg>
       )
     },
@@ -387,6 +418,13 @@ const Settings: React.FC = () => {
           />
         )}
         {activeTab === 'access' && <AccessSettingsPanel settings={settings.access} onChange={updateSetting} />}
+        {activeTab === 'remote' && (
+          <RemoteAccessSettingsPanel 
+            settings={remoteSettings} 
+            onChange={(key, value) => updateRemoteSettings({ [key]: value })}
+            onReset={resetRemoteSettings}
+          />
+        )}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
       </div>
 
@@ -1175,6 +1213,196 @@ const SystemSettingsPanel: React.FC<{ settings: SystemSettings; onChange: (key: 
   );
 };
 
+// Remote Access Settings Panel (RDP/VNC)
+const RemoteAccessSettingsPanel: React.FC<{ 
+  settings: RemoteAccessSettings; 
+  onChange: (key: string, value: string | number | boolean) => void;
+  onReset: () => void;
+}> = ({ settings, onChange, onReset }) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-cyber-gray-light text-sm">
+          Configure display settings for RDP and VNC remote connections. These settings apply to all new connections.
+        </p>
+        <button
+          onClick={onReset}
+          className="px-4 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple text-xs uppercase"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6">
+        {/* Resolution Settings */}
+        <SettingsSection title="Display Resolution">
+          <SettingsSelect
+            label="Resolution"
+            value={settings.resolution}
+            options={[
+              { value: 'auto', label: 'Auto (Match Window Size)' },
+              { value: '1920x1080', label: '1920×1080 (Full HD)' },
+              { value: '1680x1050', label: '1680×1050 (WSXGA+)' },
+              { value: '1440x900', label: '1440×900 (WXGA+)' },
+              { value: '1280x1024', label: '1280×1024 (SXGA)' },
+              { value: '1280x720', label: '1280×720 (HD)' },
+              { value: '1024x768', label: '1024×768 (XGA)' },
+              { value: 'custom', label: 'Custom Resolution' }
+            ]}
+            onChange={(val) => onChange('resolution', val)}
+            description="Resolution sent to remote host on connect"
+          />
+          
+          {settings.resolution === 'custom' && (
+            <div className="grid grid-cols-2 gap-4">
+              <SettingsNumberInput
+                label="Width"
+                value={settings.customWidth}
+                min={640}
+                max={3840}
+                onChange={(val) => onChange('customWidth', val)}
+              />
+              <SettingsNumberInput
+                label="Height"
+                value={settings.customHeight}
+                min={480}
+                max={2160}
+                onChange={(val) => onChange('customHeight', val)}
+              />
+            </div>
+          )}
+          
+          <SettingsSelect
+            label="Scaling Mode"
+            value={settings.scalingMode}
+            options={[
+              { value: 'fit', label: 'Fit (Maintain Aspect Ratio)' },
+              { value: 'fill', label: 'Fill (Stretch to Container)' },
+              { value: 'none', label: 'None (1:1 Pixels)' }
+            ]}
+            onChange={(val) => onChange('scalingMode', val)}
+            description="How to scale display when window is resized"
+          />
+        </SettingsSection>
+
+        {/* General Display Settings */}
+        <SettingsSection title="Display Options">
+          <SettingsToggle
+            label="Hide Local Cursor"
+            value={settings.hideCursor}
+            onChange={(val) => onChange('hideCursor', val)}
+            description="Hide local cursor inside remote display (shows remote cursor only)"
+          />
+          
+          <SettingsToggle
+            label="Clipboard Sync"
+            value={settings.clipboardSync}
+            onChange={(val) => onChange('clipboardSync', val)}
+            description="Sync clipboard between local and remote"
+          />
+        </SettingsSection>
+
+        {/* RDP Settings */}
+        <SettingsSection title="RDP Settings">
+          <SettingsSelect
+            label="Color Depth"
+            value={settings.rdpColorDepth.toString()}
+            options={[
+              { value: '16', label: '16-bit (High Color)' },
+              { value: '24', label: '24-bit (True Color)' },
+              { value: '32', label: '32-bit (True Color + Alpha)' }
+            ]}
+            onChange={(val) => onChange('rdpColorDepth', parseInt(val))}
+            description="Higher depth = better quality, more bandwidth"
+          />
+          
+          <div className="space-y-3">
+            <p className="text-xs text-cyber-blue uppercase font-bold">Performance Options</p>
+            <SettingsToggle
+              label="Enable Wallpaper"
+              value={settings.rdpEnableWallpaper}
+              onChange={(val) => onChange('rdpEnableWallpaper', val)}
+            />
+            <SettingsToggle
+              label="Enable Theming"
+              value={settings.rdpEnableTheming}
+              onChange={(val) => onChange('rdpEnableTheming', val)}
+            />
+            <SettingsToggle
+              label="Font Smoothing"
+              value={settings.rdpEnableFontSmoothing}
+              onChange={(val) => onChange('rdpEnableFontSmoothing', val)}
+            />
+          </div>
+          
+          <div className="space-y-3">
+            <p className="text-xs text-cyber-blue uppercase font-bold">Device Redirection</p>
+            <SettingsToggle
+              label="Enable Audio"
+              value={settings.rdpEnableAudio}
+              onChange={(val) => onChange('rdpEnableAudio', val)}
+            />
+            <SettingsToggle
+              label="Enable Printing"
+              value={settings.rdpEnablePrinting}
+              onChange={(val) => onChange('rdpEnablePrinting', val)}
+            />
+            <SettingsToggle
+              label="Enable Drive Mapping"
+              value={settings.rdpEnableDrive}
+              onChange={(val) => onChange('rdpEnableDrive', val)}
+            />
+          </div>
+        </SettingsSection>
+
+        {/* VNC Settings */}
+        <SettingsSection title="VNC Settings">
+          <SettingsSelect
+            label="Color Depth"
+            value={settings.vncColorDepth.toString()}
+            options={[
+              { value: '8', label: '8-bit (256 Colors)' },
+              { value: '16', label: '16-bit (High Color)' },
+              { value: '24', label: '24-bit (True Color)' },
+              { value: '32', label: '32-bit (True Color + Alpha)' }
+            ]}
+            onChange={(val) => onChange('vncColorDepth', parseInt(val))}
+          />
+          
+          <SettingsSlider
+            label="Compression Level"
+            value={settings.vncCompression}
+            min={0}
+            max={9}
+            onChange={(val) => onChange('vncCompression', val)}
+            description="0 = no compression, 9 = max compression"
+          />
+          
+          <SettingsSlider
+            label="JPEG Quality"
+            value={settings.vncQuality}
+            min={0}
+            max={9}
+            onChange={(val) => onChange('vncQuality', val)}
+            description="0 = low quality, 9 = best quality"
+          />
+          
+          <SettingsSelect
+            label="Cursor Mode"
+            value={settings.vncCursor}
+            options={[
+              { value: 'local', label: 'Local (Fast, may drift)' },
+              { value: 'remote', label: 'Remote (Synced, slight lag)' }
+            ]}
+            onChange={(val) => onChange('vncCursor', val)}
+            description="How cursor position is handled"
+          />
+        </SettingsSection>
+      </div>
+    </div>
+  );
+};
+
 // Reusable Components
 const SettingsSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   return (
@@ -1281,6 +1509,30 @@ const SettingsInput: React.FC<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue font-mono focus:border-cyber-red outline-none"
+      />
+      {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
+    </div>
+  );
+};
+
+const SettingsNumberInput: React.FC<{ 
+  label: string; 
+  value: number; 
+  onChange: (value: number) => void; 
+  min?: number;
+  max?: number;
+  description?: string 
+}> = ({ label, value, onChange, min, max, description }) => {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-bold text-cyber-blue uppercase">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+        min={min}
+        max={max}
         className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue font-mono focus:border-cyber-red outline-none"
       />
       {description && <p className="text-xs text-cyber-gray-light">{description}</p>}

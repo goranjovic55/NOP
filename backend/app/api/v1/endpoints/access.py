@@ -2,7 +2,7 @@
 Access hub endpoints for remote connections
 """
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -419,7 +419,20 @@ async def guacamole_tunnel(
     width: int = 1024,
     height: int = 768,
     dpi: int = 96,
-    token: Optional[str] = None
+    token: Optional[str] = None,
+    # RDP/VNC settings from frontend
+    color_depth: str = Query(None, alias="color-depth"),
+    disable_wallpaper: str = Query(None, alias="disable-wallpaper"),
+    disable_theming: str = Query(None, alias="disable-theming"),
+    disable_font_smoothing: str = Query(None, alias="disable-font-smoothing"),
+    disable_audio: str = Query(None, alias="disable-audio"),
+    enable_printing: str = Query(None, alias="enable-printing"),
+    enable_drive: str = Query(None, alias="enable-drive"),
+    disable_copy: str = Query(None, alias="disable-copy"),
+    # VNC specific
+    compression: str = Query(None),
+    quality: str = Query(None),
+    cursor: str = Query(None),
 ):
     import logging
     logger = logging.getLogger(__name__)
@@ -459,6 +472,7 @@ async def guacamole_tunnel(
     guacd_port = int(os.getenv("GUACD_PORT", "14822"))
     tunnel = GuacamoleTunnel(guacd_host, guacd_port)
     
+    # Build connection args with settings from frontend
     connection_args = {
         "hostname": host,
         "port": str(port),
@@ -469,14 +483,36 @@ async def guacamole_tunnel(
         "dpi": str(dpi),
         "ignore-cert": "true",
         "security": "any",  # Allow negotiation - guacd 1.6.0+ with FreeRDP 2.x handles this
-        "color-depth": "32",  # 32-bit color required for RDP Graphics Pipeline
-        "enable-wallpaper": "false",  # Disable wallpaper for better performance
-        "enable-theming": "false",  # Disable theming
-        "enable-font-smoothing": "false",  # Disable font smoothing
-        "disable-audio": "true"  # Disable audio for better performance
     }
     
-    logger.debug(f"[ACCESS-TUNNEL] Connection args prepared (password hidden)")
+    # Apply RDP-specific settings
+    if protocol == "rdp":
+        connection_args["color-depth"] = color_depth if color_depth else "32"
+        connection_args["enable-wallpaper"] = "false" if disable_wallpaper == "true" else "true"
+        connection_args["enable-theming"] = "false" if disable_theming == "true" else "true"
+        connection_args["enable-font-smoothing"] = "false" if disable_font_smoothing == "true" else "true"
+        connection_args["disable-audio"] = disable_audio if disable_audio else "true"
+        if enable_printing == "true":
+            connection_args["enable-printing"] = "true"
+        if enable_drive == "true":
+            connection_args["enable-drive"] = "true"
+            connection_args["drive-name"] = "NOP-Shared"
+            connection_args["drive-path"] = "/tmp/nop-drive"
+        if disable_copy == "true":
+            connection_args["disable-copy"] = "true"
+            connection_args["disable-paste"] = "true"
+    
+    # Apply VNC-specific settings
+    elif protocol == "vnc":
+        connection_args["color-depth"] = color_depth if color_depth else "24"
+        if compression:
+            # VNC compression level (0-9)
+            connection_args["encodings"] = "zlib" if int(compression) > 0 else "raw"
+        if quality:
+            # JPEG quality (0-9) - maps to cursor quality for VNC
+            connection_args["cursor"] = cursor if cursor else "remote"
+    
+    logger.debug(f"[ACCESS-TUNNEL] Connection args prepared: protocol={protocol}, settings applied from frontend")
     
     import uuid
     conn_id = str(uuid.uuid4())

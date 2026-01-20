@@ -46,7 +46,7 @@ interface ProtocolConnectionProps {
 }
 
 const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
-  const { updateTabStatus, updateTabCredentials } = useAccessStore();
+  const { updateTabStatus, updateTabCredentials, remoteSettings } = useAccessStore();
   const { token } = useAuthStore();
   const [username, setUsername] = useState(tab.credentials?.username || '');
   const [password, setPassword] = useState(tab.credentials?.password || '');
@@ -67,7 +67,10 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
   // Store event handler refs for proper cleanup
   const keydownHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   const keyupHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [displayAttached, setDisplayAttached] = useState(false);
+  const [displaySize, setDisplaySize] = useState({ width: 1024, height: 768 });
 
   // Use useLayoutEffect to attach display immediately after DOM update
   useLayoutEffect(() => {
@@ -90,19 +93,32 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
             setDisplayAttached(true);
             console.log('[GUACAMOLE-CLIENT] ✓ Display element attached to DOM successfully');
             
-            // Scale the display to fit the container
+            // Scale the display based on scaling mode
             const containerWidth = displayRef.current.clientWidth || 1024;
             const containerHeight = displayRef.current.clientHeight || 768;
             const displayWidth = display.getWidth() || 1024;
             const displayHeight = display.getHeight() || 768;
-            const scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight, 1);
+            
+            let scale = 1;
+            if (remoteSettings.scalingMode === 'fit') {
+              // Fit: scale to fit container maintaining aspect ratio
+              scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight, 1);
+            } else if (remoteSettings.scalingMode === 'fill') {
+              // Fill: scale to fill container (may crop)
+              scale = Math.max(containerWidth / displayWidth, containerHeight / displayHeight);
+            }
+            // 'none': scale = 1 (1:1 pixels)
+            
             display.scale(scale);
-            console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale);
+            console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale, '(mode:', remoteSettings.scalingMode, ')');
             
             // Make display element focusable for keyboard input
             displayElement.setAttribute('tabindex', '0');
             displayElement.style.outline = 'none';
-            displayElement.style.cursor = 'default';
+            // Hide local cursor based on settings - remote cursor shown by RDP/VNC
+            if (remoteSettings.hideCursor) {
+              displayElement.style.cursor = 'none';
+            }
             
             // Set up mouse input - NO pointer lock, just track within element
             const mouse = new Guacamole.Mouse(displayElement);
@@ -118,7 +134,17 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
               displayElement.focus();
             });
             
-            console.log('[GUACAMOLE-CLIENT] Mouse handler attached (no pointer lock)');
+            // Show cursor when leaving display area, hide when entering (if hideCursor enabled)
+            displayElement.addEventListener('mouseenter', () => {
+              if (remoteSettings.hideCursor) {
+                displayElement.style.cursor = 'none';
+              }
+            });
+            displayElement.addEventListener('mouseleave', () => {
+              displayElement.style.cursor = 'default';
+            });
+            
+            console.log('[GUACAMOLE-CLIENT] Mouse handler attached (hideCursor:', remoteSettings.hideCursor, ')');
           }
         } catch (e) {
           console.error('[GUACAMOLE-CLIENT] Error attaching display:', e);
@@ -170,8 +196,89 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
         document.removeEventListener('keyup', keyupHandlerRef.current);
         keyupHandlerRef.current = null;
       }
+      // Clean up resize observer
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
+      }
     }
   }, [connectionStatus]);
+
+  // Set up resize observer to track container size for dynamic resolution
+  useEffect(() => {
+    if (displayRef.current && (tab.protocol === 'rdp' || tab.protocol === 'vnc')) {
+      const updateSize = () => {
+        if (displayRef.current) {
+          const width = displayRef.current.clientWidth || 1024;
+          const height = displayRef.current.clientHeight || 768;
+          setDisplaySize({ width, height });
+        }
+      };
+      
+      // Initial size
+      updateSize();
+      
+      // Set up resize observer for dynamic resolution
+      resizeObserverRef.current = new ResizeObserver((entries) => {
+        // Debounce resize events
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+        }
+        resizeTimeoutRef.current = setTimeout(() => {
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0) {
+              const newWidth = Math.floor(width);
+              const newHeight = Math.floor(height);
+              setDisplaySize({ width: newWidth, height: newHeight });
+              
+              // If connected, handle resize
+              if (clientRef.current && connectionStatus === 'connected') {
+                const display = clientRef.current.getDisplay();
+                
+                // If auto resolution, send new size to remote host
+                if (remoteSettings.resolution === 'auto') {
+                  // Send resize instruction to Guacamole/remote host
+                  clientRef.current.sendSize(newWidth, newHeight);
+                  console.log('[GUACAMOLE-CLIENT] Sent resize to remote:', newWidth, 'x', newHeight);
+                }
+                
+                // Scale display based on scaling mode
+                const displayWidth = display.getWidth() || 1024;
+                const displayHeight = display.getHeight() || 768;
+                
+                let scale = 1;
+                if (remoteSettings.scalingMode === 'fit') {
+                  scale = Math.min(newWidth / displayWidth, newHeight / displayHeight, 1);
+                } else if (remoteSettings.scalingMode === 'fill') {
+                  scale = Math.max(newWidth / displayWidth, newHeight / displayHeight);
+                }
+                // 'none': scale = 1
+                
+                display.scale(scale);
+                console.log('[GUACAMOLE-CLIENT] Display scaled to:', scale, '(mode:', remoteSettings.scalingMode, ')');
+              }
+            }
+          }
+        }, 300); // Slightly longer debounce for resize events
+      });
+      
+      resizeObserverRef.current.observe(displayRef.current);
+      
+      return () => {
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+        }
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+        }
+      };
+    }
+  }, [tab.protocol, connectionStatus, remoteSettings.resolution]);
 
 
     const fetchFtpFiles = async (path: string) => {
@@ -396,18 +503,57 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     console.log('[GUACAMOLE-CLIENT] Protocol:', tab.protocol);
     console.log('[GUACAMOLE-CLIENT] Username:', username);
     console.log('[GUACAMOLE-CLIENT] Port:', (tab.protocol === 'rdp' ? 3389 : 5900));
+    console.log('[GUACAMOLE-CLIENT] Remote Settings:', remoteSettings);
     
+    // Calculate resolution based on settings
+    let width = displaySize.width;
+    let height = displaySize.height;
+    
+    if (remoteSettings.resolution === 'custom') {
+      width = remoteSettings.customWidth;
+      height = remoteSettings.customHeight;
+    } else if (remoteSettings.resolution !== 'auto') {
+      const [w, h] = remoteSettings.resolution.split('x').map(Number);
+      width = w;
+      height = h;
+    }
+    // 'auto' uses displaySize (container size)
+    
+    // Build base params
     const params = new URLSearchParams({
       host: tab.ip,
       port: (tab.protocol === 'rdp' ? 3389 : 5900).toString(),
       protocol: tab.protocol,
       username: username,
       password: password,
-      width: (displayRef.current?.clientWidth || 1024).toString(),
-      height: (displayRef.current?.clientHeight || 768).toString(),
+      width: width.toString(),
+      height: height.toString(),
       dpi: '96',
       token: token || ''
     });
+    
+    // Add protocol-specific settings
+    if (tab.protocol === 'rdp') {
+      // RDP color depth
+      params.set('color-depth', remoteSettings.rdpColorDepth.toString());
+      
+      // RDP performance options
+      if (!remoteSettings.rdpEnableWallpaper) params.set('disable-wallpaper', 'true');
+      if (!remoteSettings.rdpEnableTheming) params.set('disable-theming', 'true');
+      if (!remoteSettings.rdpEnableFontSmoothing) params.set('disable-font-smoothing', 'true');
+      if (!remoteSettings.rdpEnableAudio) params.set('disable-audio', 'true');
+      if (remoteSettings.rdpEnablePrinting) params.set('enable-printing', 'true');
+      if (remoteSettings.rdpEnableDrive) params.set('enable-drive', 'true');
+    } else if (tab.protocol === 'vnc') {
+      // VNC settings
+      params.set('color-depth', remoteSettings.vncColorDepth.toString());
+      params.set('compression', remoteSettings.vncCompression.toString());
+      params.set('quality', remoteSettings.vncQuality.toString());
+      params.set('cursor', remoteSettings.vncCursor);
+    }
+    
+    // Clipboard sync
+    if (!remoteSettings.clipboardSync) params.set('disable-copy', 'true');
 
     // Use WebSocket tunnel through nginx proxy
     // Nginx proxies /api/v1/access/tunnel to backend WebSocket
@@ -415,7 +561,7 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/access/tunnel?${params.toString()}`;
     
     console.log('[GUACAMOLE-CLIENT] WebSocket URL:', wsUrl.replace(/password=[^&]*/, 'password=***'));
-    console.log('[GUACAMOLE-CLIENT] Display dimensions:', displayRef.current?.clientWidth, 'x', displayRef.current?.clientHeight);
+    console.log('[GUACAMOLE-CLIENT] Display dimensions:', width, 'x', height);
 
     // Create tunnel with explicit subprotocol if needed, but Guacamole.WebSocketTunnel usually handles it
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
@@ -500,7 +646,10 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
     // Handle mouse - NO pointer lock
     const displayElement = client.getDisplay().getElement();
-    displayElement.style.cursor = 'default';
+    // Hide local cursor based on settings - remote cursor shown by RDP/VNC
+    if (remoteSettings.hideCursor) {
+      displayElement.style.cursor = 'none';
+    }
     const mouse = new Guacamole.Mouse(displayElement);
     (mouse as any).onmousedown = (mouse as any).onmouseup = (mouse as any).onmousemove = (mouseState: any) => {
       client.sendMouseState(mouseState);
@@ -513,6 +662,16 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
     // Focus display when clicked
     displayElement.addEventListener('click', () => {
       displayElement.focus();
+    });
+    
+    // Show cursor when leaving display area, hide when entering (if hideCursor enabled)
+    displayElement.addEventListener('mouseenter', () => {
+      if (remoteSettings.hideCursor) {
+        displayElement.style.cursor = 'none';
+      }
+    });
+    displayElement.addEventListener('mouseleave', () => {
+      displayElement.style.cursor = 'default';
     });
 
     // Clean up existing keyboard handlers
@@ -699,13 +858,25 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
 
   if (connectionStatus === 'connected') {
     if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
+      // Determine container styles based on scaling mode
+      const displayContainerStyle: React.CSSProperties = {
+        minHeight: '100%',
+      };
+      
+      // For 'fill' mode, we want the display to stretch to fill
+      // For 'fit' mode, we center the display maintaining aspect ratio
+      // For 'none' mode, we allow scrolling if content is larger
+      const containerClasses = remoteSettings.scalingMode === 'none' 
+        ? 'flex-1 overflow-auto bg-black'
+        : 'flex-1 flex items-center justify-center overflow-hidden bg-black';
+      
       return (
         <div className="h-full flex flex-col bg-black rounded border border-cyber-gray shadow-2xl overflow-hidden">
           <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between border-b border-cyber-gray">
             <span>Connected to {tab.ip} ({tab.protocol.toUpperCase()})</span>
-            <span>{username}</span>
+            <span>{username} | {remoteSettings.resolution === 'auto' ? `${displaySize.width}×${displaySize.height}` : remoteSettings.resolution}</span>
           </div>
-          <div ref={displayRef} className="flex-1 flex items-center justify-center overflow-auto bg-black" style={{minHeight: '500px'}} />
+          <div ref={displayRef} className={containerClasses} style={displayContainerStyle} />
         </div>
       );
     }
