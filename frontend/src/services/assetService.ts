@@ -70,8 +70,10 @@ export const assetService = {
       headers['X-Agent-POV'] = agentPOV;
     }
     // No trailing slash to avoid 307 redirect on DELETE
+    // Added timeout for ARM devices which may be slower
     const response = await axios.delete(`${API_URL}/assets/clear-all`, {
-      headers
+      headers,
+      timeout: 60000  // 60 second timeout for slower ARM devices
     });
     return response.data;
   },

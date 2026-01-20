@@ -304,14 +304,24 @@ class AssetService:
         except Exception as e:
             print(f"[CLEAR] Could not delete vulnerabilities: {e}")
         
-        # Finally, delete assets
-        if agent_id:
-            result = await self.db.execute(delete(Asset).where(Asset.agent_id == agent_id))
-        else:
-            result = await self.db.execute(delete(Asset))
-        counts["assets"] = result.rowcount
+        # Finally, delete assets - wrap in try/except for better error handling on ARM
+        try:
+            if agent_id:
+                result = await self.db.execute(delete(Asset).where(Asset.agent_id == agent_id))
+            else:
+                result = await self.db.execute(delete(Asset))
+            counts["assets"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete assets: {e}")
+            # Re-raise since assets are the main target
+            raise
         
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception as e:
+            print(f"[CLEAR] Commit failed, attempting rollback: {e}")
+            await self.db.rollback()
+            raise
         
         print(f"[CLEAR] Deleted records: {counts}")
         return counts

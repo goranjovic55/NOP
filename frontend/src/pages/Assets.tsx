@@ -501,17 +501,20 @@ const Assets: React.FC = () => {
             <button 
               onClick={async () => {
                 if (window.confirm('Are you sure you want to clear all assets? This will also clear scan results, topology data, and traffic history. This cannot be undone.')) {
+                  setError(null);
                   try {
-                    await assetService.deleteAllAssets(token || '', activeAgent?.id);
+                    const result = await assetService.deleteAllAssets(token || '', activeAgent?.id);
+                    console.log('Clear all result:', result);
                     // Also clear local scan results cache
                     localStorage.removeItem('nop_local_scan_results');
                     // Refresh the assets list
                     setAssets([]);
                     setSelectedAsset(null);
                     fetchAssets(true);
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error('Failed to clear assets:', err);
-                    setError('Failed to clear assets. Please try again.');
+                    const errorMessage = err?.response?.data?.detail || err?.message || 'Unknown error';
+                    setError(`Failed to clear assets: ${errorMessage}`);
                   }
                 }
               }} 
