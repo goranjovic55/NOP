@@ -195,7 +195,8 @@ class AssetService:
             "topology_edges": 0,
             "flows": 0,
             "events": 0,
-            "vulnerabilities": 0
+            "vulnerabilities": 0,
+            "credentials": 0
         }
         
         # Import models here to avoid circular imports
@@ -303,6 +304,26 @@ class AssetService:
                 counts["vulnerabilities"] = result.rowcount
         except Exception as e:
             print(f"[CLEAR] Could not delete vulnerabilities: {e}")
+        
+        # Delete credentials (has FK to assets) - must be deleted before assets
+        try:
+            from app.models.credential import Credential
+            if agent_id:
+                # Get asset IDs for this agent
+                asset_ids_query = select(Asset.id).where(Asset.agent_id == agent_id)
+                asset_ids_result = await self.db.execute(asset_ids_query)
+                asset_ids = [row[0] for row in asset_ids_result.all()]
+                
+                if asset_ids:
+                    result = await self.db.execute(
+                        delete(Credential).where(Credential.asset_id.in_(asset_ids))
+                    )
+                    counts["credentials"] = result.rowcount
+            else:
+                result = await self.db.execute(delete(Credential))
+                counts["credentials"] = result.rowcount
+        except Exception as e:
+            print(f"[CLEAR] Could not delete credentials: {e}")
         
         # Finally, delete assets - wrap in try/except for better error handling on ARM
         try:
