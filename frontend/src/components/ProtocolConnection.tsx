@@ -43,9 +43,10 @@ const getKeysym = (e: KeyboardEvent): number | null => {
 
 interface ProtocolConnectionProps {
   tab: ConnectionTab;
+  isFullscreen?: boolean;
 }
 
-const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
+const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscreen }) => {
   const { updateTabStatus, updateTabCredentials, remoteSettings } = useAccessStore();
   const { token } = useAuthStore();
   const [username, setUsername] = useState(tab.credentials?.username || '');
@@ -279,6 +280,46 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab }) => {
       };
     }
   }, [tab.protocol, connectionStatus, remoteSettings.resolution]);
+
+  // Trigger immediate resize when fullscreen changes
+  useEffect(() => {
+    if (displayRef.current && clientRef.current && connectionStatus === 'connected' && (tab.protocol === 'rdp' || tab.protocol === 'vnc')) {
+      // Small delay to let the DOM update after fullscreen toggle
+      const timeoutId = setTimeout(() => {
+        if (displayRef.current && clientRef.current) {
+          const newWidth = Math.floor(displayRef.current.clientWidth);
+          const newHeight = Math.floor(displayRef.current.clientHeight);
+          
+          if (newWidth > 0 && newHeight > 0) {
+            setDisplaySize({ width: newWidth, height: newHeight });
+            
+            // If auto resolution, send new size to remote host
+            if (remoteSettings.resolution === 'auto') {
+              clientRef.current.sendSize(newWidth, newHeight);
+              console.log('[GUACAMOLE-CLIENT] Fullscreen resize to remote:', newWidth, 'x', newHeight);
+            }
+            
+            // Scale display based on scaling mode
+            const display = clientRef.current.getDisplay();
+            const displayWidth = display.getWidth() || 1024;
+            const displayHeight = display.getHeight() || 768;
+            
+            let scale = 1;
+            if (remoteSettings.scalingMode === 'fit') {
+              scale = Math.min(newWidth / displayWidth, newHeight / displayHeight, 1);
+            } else if (remoteSettings.scalingMode === 'fill') {
+              scale = Math.max(newWidth / displayWidth, newHeight / displayHeight);
+            }
+            
+            display.scale(scale);
+            console.log('[GUACAMOLE-CLIENT] Fullscreen scale applied:', scale);
+          }
+        }
+      }, 100); // Short delay for DOM to update
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isFullscreen, connectionStatus, tab.protocol, remoteSettings.resolution, remoteSettings.scalingMode]);
 
 
     const fetchFtpFiles = async (path: string) => {

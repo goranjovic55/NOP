@@ -26,6 +26,15 @@ const AccessHub: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectionHeight, setConnectionHeight] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
+  // Left sidebar state for assets panel
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('access-left-sidebar-width');
+    return saved ? parseInt(saved, 10) : 280;
+  });
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('access-left-sidebar-collapsed') === 'true';
+  });
+  const [isResizingLeftSidebar, setIsResizingLeftSidebar] = useState(false);
   const [showVault, setShowVault] = useState(false);
   const [discoveredAssets, setDiscoveredAssets] = useState<Asset[]>([]);
   const [showDiscoveredAssets, setShowDiscoveredAssets] = useState(true);
@@ -163,6 +172,50 @@ const AccessHub: React.FC = () => {
     };
   }, [isResizing]);
 
+  // Left sidebar resizing
+  const handleLeftSidebarMouseDown = (e: React.MouseEvent) => {
+    setIsResizingLeftSidebar(true);
+    e.preventDefault();
+  };
+
+  const handleLeftSidebarMouseMove = (e: MouseEvent) => {
+    if (isResizingLeftSidebar) {
+      const newWidth = e.clientX - 16; // Account for padding
+      if (newWidth >= 200 && newWidth <= 500) {
+        setLeftSidebarWidth(newWidth);
+        localStorage.setItem('access-left-sidebar-width', newWidth.toString());
+      } else if (newWidth < 100) {
+        // Collapse if dragged very small
+        setLeftSidebarCollapsed(true);
+        localStorage.setItem('access-left-sidebar-collapsed', 'true');
+      }
+    }
+  };
+
+  const handleLeftSidebarMouseUp = () => {
+    setIsResizingLeftSidebar(false);
+  };
+
+  React.useEffect(() => {
+    if (isResizingLeftSidebar) {
+      document.addEventListener('mousemove', handleLeftSidebarMouseMove);
+      document.addEventListener('mouseup', handleLeftSidebarMouseUp);
+    } else {
+      document.removeEventListener('mousemove', handleLeftSidebarMouseMove);
+      document.removeEventListener('mouseup', handleLeftSidebarMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleLeftSidebarMouseMove);
+      document.removeEventListener('mouseup', handleLeftSidebarMouseUp);
+    };
+  }, [isResizingLeftSidebar]);
+
+  const toggleLeftSidebar = () => {
+    const newValue = !leftSidebarCollapsed;
+    setLeftSidebarCollapsed(newValue);
+    localStorage.setItem('access-left-sidebar-collapsed', newValue.toString());
+  };
+
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -291,18 +344,86 @@ const AccessHub: React.FC = () => {
   };
 
   return (
-    <div className={`h-full flex ${isFullscreen ? 'fixed inset-0 z-50 bg-cyber-dark p-4' : ''}`}>
-      <div className={`flex-1 flex flex-col ${isFullscreen ? '' : 'space-y-4'}`}>
+    <div className={`h-full flex ${isFullscreen ? 'fixed inset-0 z-50 bg-cyber-dark' : ''}`}>
+      {/* Collapsible Left Sidebar - Assets Panel */}
+      {!isFullscreen && (
+        <>
+          <div 
+            className={`bg-cyber-darker border-r border-cyber-gray flex flex-col transition-all duration-200 ${leftSidebarCollapsed ? 'w-10' : ''}`}
+            style={!leftSidebarCollapsed ? { width: leftSidebarWidth } : undefined}
+          >
+            {leftSidebarCollapsed ? (
+              /* Collapsed sidebar - just a toggle button */
+              <button
+                onClick={toggleLeftSidebar}
+                className="h-full flex items-center justify-center text-cyber-purple hover:bg-cyber-dark transition-colors"
+                title="Expand assets panel"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            ) : (
+              /* Expanded sidebar content */
+              <>
+                <div className="p-3 border-b border-cyber-gray flex justify-between items-center">
+                  <span className="text-cyber-purple font-bold uppercase text-xs tracking-widest">
+                    {isAgentPOV ? `◎ Agent Targets` : '◎ Targets'}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-cyber-gray">{discoveredAssets.length}</span>
+                    <button
+                      onClick={toggleLeftSidebar}
+                      className="text-cyber-gray hover:text-cyber-purple transition-colors"
+                      title="Collapse panel"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {discoveredAssets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      onClick={() => handleAssetConnect(asset)}
+                      className="w-full bg-cyber-dark border border-cyber-gray hover:border-cyber-purple p-2 rounded text-left transition-colors group"
+                    >
+                      <div className="text-xs text-cyber-purple font-mono truncate">{asset.ip_address}</div>
+                      <div className="text-xs text-cyber-gray truncate">{asset.hostname || 'Unknown'}</div>
+                      {asset.open_ports && asset.open_ports.length > 0 && (
+                        <div className="text-xs text-cyber-green mt-1">
+                          {asset.open_ports.slice(0, 3).join(', ')}{asset.open_ports.length > 3 ? '...' : ''}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                  {discoveredAssets.length === 0 && (
+                    <div className="text-center py-8 text-cyber-gray text-xs">
+                      No online targets found
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Resizable divider */}
+          {!leftSidebarCollapsed && (
+            <div
+              className="w-1 bg-cyber-gray hover:bg-cyber-purple cursor-ew-resize transition-colors flex-shrink-0"
+              onMouseDown={handleLeftSidebarMouseDown}
+              style={{ cursor: isResizingLeftSidebar ? 'ew-resize' : 'ew-resize' }}
+            />
+          )}
+        </>
+      )}
+
+      <div className={`flex-1 flex flex-col ${isFullscreen ? 'p-4' : 'space-y-4 p-4'}`}>
         {!isFullscreen && (
           <div className="flex justify-between items-center">
             <CyberPageTitle color="red">ACCESS</CyberPageTitle>
             <div className="flex space-x-2">
-              <button 
-                onClick={() => setShowDiscoveredAssets(!showDiscoveredAssets)}
-                className={`btn-cyber px-4 py-2 ${showDiscoveredAssets ? 'border-cyber-purple text-cyber-purple bg-cyber-purple bg-opacity-10' : 'border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-black'}`}
-              >
-                ◎ Targets ({discoveredAssets.length})
-              </button>
               <button 
                 onClick={toggleVault}
                 className={`btn-cyber px-4 py-2 ${showVault ? 'border-cyber-green text-cyber-green bg-cyber-green bg-opacity-10' : 'border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-black'}`}
@@ -318,40 +439,6 @@ const AccessHub: React.FC = () => {
             </div>
           </div>
         )}
-
-      {/* Discovered Assets Panel */}
-      {showDiscoveredAssets && !isFullscreen && discoveredAssets.length > 0 && (
-        <div className="bg-cyber-darker border border-cyber-purple p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-cyber-purple font-bold uppercase text-xs tracking-widest">
-              {isAgentPOV ? `◎ Agent Targets (${activeAgent?.name})` : '◎ Discovered Targets'}
-            </span>
-            <span className="text-xs text-cyber-gray">{discoveredAssets.length} online</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-            {discoveredAssets.slice(0, 12).map((asset) => (
-              <button
-                key={asset.id}
-                onClick={() => handleAssetConnect(asset)}
-                className="bg-cyber-dark border border-cyber-gray hover:border-cyber-purple p-2 rounded text-left transition-colors group"
-              >
-                <div className="text-xs text-cyber-purple font-mono truncate">{asset.ip_address}</div>
-                <div className="text-xs text-cyber-gray truncate">{asset.hostname || 'Unknown'}</div>
-                {asset.open_ports && asset.open_ports.length > 0 && (
-                  <div className="text-xs text-cyber-green mt-1">
-                    {asset.open_ports.slice(0, 3).join(', ')}{asset.open_ports.length > 3 ? '...' : ''}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-          {discoveredAssets.length > 12 && (
-            <div className="text-xs text-cyber-gray mt-2 text-center">
-              +{discoveredAssets.length - 12} more targets
-            </div>
-          )}
-        </div>
-      )}
 
       {/* New Connection Modal */}
       {showNewConnectionModal && (
@@ -487,22 +574,24 @@ const AccessHub: React.FC = () => {
       >
         {activeTab ? (
           <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-cyber-gray bg-cyber-dark flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <span className="text-cyber-purple font-bold uppercase text-xs">Target: {activeTab.ip}</span>
-                <span className={`text-xs font-bold uppercase px-2 py-0.5 border ${
-                  activeTab.status === 'connected' ? 'border-cyber-green text-cyber-green' :
-                  activeTab.status === 'connecting' ? 'border-cyber-blue text-cyber-blue animate-pulse' :
-                  activeTab.status === 'failed' ? 'border-cyber-red text-cyber-red' :
-                  'border-cyber-gray text-cyber-gray'
-                }`}>
-                  {activeTab.status}
-                </span>
-              </div>
+            <div className={`border-b border-cyber-gray bg-cyber-dark flex justify-between items-center ${isFullscreen ? 'p-1 absolute top-0 right-0 z-10 border-0 bg-opacity-0 hover:bg-opacity-90 transition-all' : 'p-4'}`}>
+              {!isFullscreen && (
+                <div className="flex items-center space-x-4">
+                  <span className="text-cyber-purple font-bold uppercase text-xs">Target: {activeTab.ip}</span>
+                  <span className={`text-xs font-bold uppercase px-2 py-0.5 border ${
+                    activeTab.status === 'connected' ? 'border-cyber-green text-cyber-green' :
+                    activeTab.status === 'connecting' ? 'border-cyber-blue text-cyber-blue animate-pulse' :
+                    activeTab.status === 'failed' ? 'border-cyber-red text-cyber-red' :
+                    'border-cyber-gray text-cyber-gray'
+                  }`}>
+                    {activeTab.status}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <button
                   onClick={toggleFullscreen}
-                  className="text-cyber-gray-light hover:text-cyber-blue transition-colors p-1"
+                  className={`transition-colors p-1 ${isFullscreen ? 'text-cyber-red hover:text-white bg-cyber-dark bg-opacity-80 rounded' : 'text-cyber-gray-light hover:text-cyber-blue'}`}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? (
@@ -517,8 +606,8 @@ const AccessHub: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-1 p-6 overflow-auto">
-              <ProtocolConnection key={activeTab.id} tab={activeTab} />
+            <div className={`flex-1 overflow-auto ${isFullscreen ? 'p-0' : 'p-6'}`}>
+              <ProtocolConnection key={activeTab.id} tab={activeTab} isFullscreen={isFullscreen} />
             </div>
             {!isFullscreen && (
               <div
