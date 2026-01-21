@@ -172,6 +172,14 @@ const AccessHub: React.FC = () => {
     };
   }, [isResizing]);
 
+  // Auto-collapse sidebar when connected to maximize screen space
+  useEffect(() => {
+    if (activeTab && activeTab.status === 'connected') {
+      setLeftSidebarCollapsed(true);
+      localStorage.setItem('access-left-sidebar-collapsed', 'true');
+    }
+  }, [activeTab?.status]);
+
   // Left sidebar resizing
   const handleLeftSidebarMouseDown = (e: React.MouseEvent) => {
     setIsResizingLeftSidebar(true);
@@ -606,7 +614,7 @@ const AccessHub: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className={`flex-1 overflow-auto ${isFullscreen ? 'p-0' : 'p-6'}`}>
+            <div className={`flex-1 overflow-hidden ${isFullscreen ? 'p-0' : ''}`}>
               <ProtocolConnection key={activeTab.id} tab={activeTab} isFullscreen={isFullscreen} />
             </div>
             {!isFullscreen && (
