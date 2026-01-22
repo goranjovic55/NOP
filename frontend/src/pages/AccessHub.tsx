@@ -173,12 +173,15 @@ const AccessHub: React.FC = () => {
   }, [isResizing]);
 
   // Auto-collapse sidebar when connected to maximize screen space
+  // Watch tabs array from store to detect status changes
   useEffect(() => {
-    if (activeTab && activeTab.status === 'connected') {
+    const connectedTab = tabs.find(t => t.id === activeTabId && t.status === 'connected');
+    if (connectedTab && !leftSidebarCollapsed) {
+      console.log('[AccessHub] Auto-collapsing sidebar - tab connected:', connectedTab.ip);
       setLeftSidebarCollapsed(true);
       localStorage.setItem('access-left-sidebar-collapsed', 'true');
     }
-  }, [activeTab?.status]);
+  }, [tabs, activeTabId]);
 
   // Left sidebar resizing
   const handleLeftSidebarMouseDown = (e: React.MouseEvent) => {
@@ -615,7 +618,16 @@ const AccessHub: React.FC = () => {
               </div>
             </div>
             <div className={`flex-1 overflow-hidden ${isFullscreen ? 'p-0' : ''}`}>
-              <ProtocolConnection key={activeTab.id} tab={activeTab} isFullscreen={isFullscreen} />
+              <ProtocolConnection 
+                key={activeTab.id} 
+                tab={activeTab} 
+                isFullscreen={isFullscreen}
+                onConnected={() => {
+                  console.log('[AccessHub] onConnected callback - collapsing sidebar');
+                  setLeftSidebarCollapsed(true);
+                  localStorage.setItem('access-left-sidebar-collapsed', 'true');
+                }}
+              />
             </div>
             {!isFullscreen && (
               <div

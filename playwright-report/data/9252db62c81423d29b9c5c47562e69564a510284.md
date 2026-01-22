@@ -1,0 +1,650 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e9]: ◉
+          - generic [ref=e10]: NOP
+        - button "◀" [ref=e11] [cursor=pointer]
+      - navigation [ref=e12]:
+        - list [ref=e13]:
+          - listitem [ref=e14]:
+            - link "▣ Dashboard" [ref=e15] [cursor=pointer]:
+              - /url: /dashboard
+              - generic [ref=e16]: ▣
+              - generic [ref=e17]: Dashboard
+          - listitem [ref=e18]:
+            - link "⬢ Assets" [ref=e19] [cursor=pointer]:
+              - /url: /assets
+              - generic [ref=e20]: ⬢
+              - generic [ref=e21]: Assets
+          - listitem [ref=e22]:
+            - link "◎ Topology" [ref=e23] [cursor=pointer]:
+              - /url: /topology
+              - generic [ref=e24]: ◎
+              - generic [ref=e25]: Topology
+          - listitem [ref=e26]:
+            - link "≋ Traffic" [ref=e27] [cursor=pointer]:
+              - /url: /traffic
+              - generic [ref=e28]: ≋
+              - generic [ref=e29]: Traffic
+          - listitem [ref=e30]:
+            - link "◈ Scans" [ref=e31] [cursor=pointer]:
+              - /url: /scans
+              - generic [ref=e32]: ◈
+              - generic [ref=e33]: Scans
+          - listitem [ref=e34]:
+            - link "◉ ACCESS" [ref=e35] [cursor=pointer]:
+              - /url: /access
+              - generic [ref=e36]: ◉
+              - generic [ref=e37]: ACCESS
+          - listitem [ref=e38]:
+            - link "◇ Flows" [ref=e39] [cursor=pointer]:
+              - /url: /flows
+              - generic [ref=e40]: ◇
+              - generic [ref=e41]: Flows
+          - listitem [ref=e42]:
+            - link "◆ Agents" [ref=e43] [cursor=pointer]:
+              - /url: /agents
+              - generic [ref=e44]: ◆
+              - generic [ref=e45]: Agents
+          - listitem [ref=e46]:
+            - link "◐ Host" [ref=e47] [cursor=pointer]:
+              - /url: /host
+              - generic [ref=e48]: ◐
+              - generic [ref=e49]: Host
+          - listitem [ref=e50]:
+            - link "⚙ Settings" [ref=e51] [cursor=pointer]:
+              - /url: /settings
+              - generic [ref=e52]: ⚙
+              - generic [ref=e53]: Settings
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e57]: A
+          - generic [ref=e58]:
+            - paragraph [ref=e59]: admin
+            - paragraph [ref=e60]: admin
+        - button "> logout" [ref=e61] [cursor=pointer]
+    - generic [ref=e62]:
+      - banner [ref=e63]:
+        - generic [ref=e64]:
+          - heading "ACCESS" [level=1] [ref=e65]
+          - generic [ref=e66]:
+            - generic [ref=e69]: System Online
+            - generic [ref=e70]: 14:42:52
+      - main [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]:
+                - heading "◆ Access Control" [level=2] [ref=e76]:
+                  - generic [ref=e77]: ◆
+                  - text: Access Control
+                - paragraph [ref=e78]: Connect to assets via login or exploit vulnerabilities
+              - generic [ref=e79]:
+                - button "◉ LOGIN" [ref=e80] [cursor=pointer]
+                - button "◆ EXPLOIT" [ref=e81] [cursor=pointer]
+                - button "◈ VAULT" [ref=e82] [cursor=pointer]
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - generic [ref=e85]:
+                  - generic [ref=e86]:
+                    - heading "◈ Assets (103)" [level=3] [ref=e87]:
+                      - generic [ref=e88]: ◈
+                      - text: Assets (103)
+                    - generic [ref=e89]:
+                      - button "All" [ref=e90] [cursor=pointer]
+                      - button "Scanned" [ref=e91] [cursor=pointer]
+                      - button "Vulnerable" [ref=e92] [cursor=pointer]
+                  - generic [ref=e93]:
+                    - textbox "Filter by IP or hostname..." [ref=e95]
+                    - button "⊞ Add" [ref=e96] [cursor=pointer]
+                - generic [ref=e98]:
+                  - generic [ref=e100] [cursor=pointer]:
+                    - generic [ref=e101]:
+                      - generic [ref=e102]: ◉
+                      - generic [ref=e103]:
+                        - heading "127.0.0.1" [level=4] [ref=e104]
+                        - generic [ref=e105]: "OS: Unknown"
+                    - generic [ref=e106]: No services detected
+                  - generic [ref=e108] [cursor=pointer]:
+                    - generic [ref=e110]:
+                      - heading "20.103.221.187" [level=4] [ref=e111]
+                      - generic [ref=e112]: "OS: Unknown"
+                    - generic [ref=e113]: No services detected
+                  - generic [ref=e115] [cursor=pointer]:
+                    - generic [ref=e117]:
+                      - heading "140.82.121.6" [level=4] [ref=e118]
+                      - generic [ref=e119]: "OS: Unknown"
+                    - generic [ref=e120]: No services detected
+                  - generic [ref=e122] [cursor=pointer]:
+                    - generic [ref=e124]:
+                      - heading "20.209.230.193" [level=4] [ref=e125]
+                      - generic [ref=e126]: "OS: Unknown"
+                    - generic [ref=e127]: No services detected
+                  - generic [ref=e129] [cursor=pointer]:
+                    - generic [ref=e131]:
+                      - heading "51.137.3.17" [level=4] [ref=e132]
+                      - generic [ref=e133]: "OS: Unknown"
+                    - generic [ref=e134]: No services detected
+                  - generic [ref=e136] [cursor=pointer]:
+                    - generic [ref=e138]:
+                      - heading "140.82.121.5" [level=4] [ref=e139]
+                      - generic [ref=e140]: "OS: Unknown"
+                    - generic [ref=e141]: No services detected
+                  - generic [ref=e143] [cursor=pointer]:
+                    - generic [ref=e145]:
+                      - heading "20.189.173.18" [level=4] [ref=e146]
+                      - generic [ref=e147]: "OS: Unknown"
+                    - generic [ref=e148]: No services detected
+                  - generic [ref=e150] [cursor=pointer]:
+                    - generic [ref=e152]:
+                      - heading "3.227.14.67" [level=4] [ref=e153]
+                      - generic [ref=e154]: "OS: Unknown"
+                    - generic [ref=e155]: No services detected
+                  - generic [ref=e157] [cursor=pointer]:
+                    - generic [ref=e159]:
+                      - heading "10.0.10.158" [level=4] [ref=e160]
+                      - generic [ref=e161]: "OS: Unknown"
+                    - generic [ref=e162]: No services detected
+                  - generic [ref=e164] [cursor=pointer]:
+                    - generic [ref=e166]:
+                      - heading "140.82.121.14" [level=4] [ref=e167]
+                      - generic [ref=e168]: "OS: Unknown"
+                    - generic [ref=e169]: No services detected
+                  - generic [ref=e171] [cursor=pointer]:
+                    - generic [ref=e173]:
+                      - heading "20.199.39.224" [level=4] [ref=e174]
+                      - generic [ref=e175]: "OS: Unknown"
+                    - generic [ref=e176]: No services detected
+                  - generic [ref=e178] [cursor=pointer]:
+                    - generic [ref=e180]:
+                      - heading "13.216.38.234" [level=4] [ref=e181]
+                      - generic [ref=e182]: "OS: Unknown"
+                    - generic [ref=e183]: No services detected
+                  - generic [ref=e185] [cursor=pointer]:
+                    - generic [ref=e187]:
+                      - heading "20.42.73.27" [level=4] [ref=e188]
+                      - generic [ref=e189]: "OS: Unknown"
+                    - generic [ref=e190]: No services detected
+                  - generic [ref=e192] [cursor=pointer]:
+                    - generic [ref=e194]:
+                      - heading "140.82.112.22" [level=4] [ref=e195]
+                      - generic [ref=e196]: "OS: Unknown"
+                    - generic [ref=e197]: No services detected
+                  - generic [ref=e199] [cursor=pointer]:
+                    - generic [ref=e201]:
+                      - heading "13.107.213.67" [level=4] [ref=e202]
+                      - generic [ref=e203]: "OS: Unknown"
+                    - generic [ref=e204]: No services detected
+                  - generic [ref=e206] [cursor=pointer]:
+                    - generic [ref=e208]:
+                      - heading "140.82.112.21" [level=4] [ref=e209]
+                      - generic [ref=e210]: "OS: Unknown"
+                    - generic [ref=e211]: No services detected
+                  - generic [ref=e213] [cursor=pointer]:
+                    - generic [ref=e215]:
+                      - heading "140.82.121.3" [level=4] [ref=e216]
+                      - generic [ref=e217]: "OS: Unknown"
+                    - generic [ref=e218]: No services detected
+                  - generic [ref=e220] [cursor=pointer]:
+                    - generic [ref=e222]:
+                      - heading "140.82.114.22" [level=4] [ref=e223]
+                      - generic [ref=e224]: "OS: Unknown"
+                    - generic [ref=e225]: No services detected
+                  - generic [ref=e227] [cursor=pointer]:
+                    - generic [ref=e229]:
+                      - heading "13.107.5.93" [level=4] [ref=e230]
+                      - generic [ref=e231]: "OS: Unknown"
+                    - generic [ref=e232]: No services detected
+                  - generic [ref=e234] [cursor=pointer]:
+                    - generic [ref=e236]:
+                      - heading "20.42.65.93" [level=4] [ref=e237]
+                      - generic [ref=e238]: "OS: Unknown"
+                    - generic [ref=e239]: No services detected
+                  - generic [ref=e241] [cursor=pointer]:
+                    - generic [ref=e243]:
+                      - heading "20.189.172.73" [level=4] [ref=e244]
+                      - generic [ref=e245]: "OS: Unknown"
+                    - generic [ref=e246]: No services detected
+                  - generic [ref=e248] [cursor=pointer]:
+                    - generic [ref=e250]:
+                      - heading "104.208.16.95" [level=4] [ref=e251]
+                      - generic [ref=e252]: "OS: Unknown"
+                    - generic [ref=e253]: No services detected
+                  - generic [ref=e255] [cursor=pointer]:
+                    - generic [ref=e257]:
+                      - heading "20.50.73.10" [level=4] [ref=e258]
+                      - generic [ref=e259]: "OS: Unknown"
+                    - generic [ref=e260]: No services detected
+                  - generic [ref=e262] [cursor=pointer]:
+                    - generic [ref=e264]:
+                      - heading "18.207.43.79" [level=4] [ref=e265]
+                      - generic [ref=e266]: "OS: Unknown"
+                    - generic [ref=e267]: No services detected
+                  - generic [ref=e269] [cursor=pointer]:
+                    - generic [ref=e271]:
+                      - heading "20.150.122.101" [level=4] [ref=e272]
+                      - generic [ref=e273]: "OS: Unknown"
+                    - generic [ref=e274]: No services detected
+                  - generic [ref=e276] [cursor=pointer]:
+                    - generic [ref=e278]:
+                      - heading "20.60.251.37" [level=4] [ref=e279]
+                      - generic [ref=e280]: "OS: Unknown"
+                    - generic [ref=e281]: No services detected
+                  - generic [ref=e283] [cursor=pointer]:
+                    - generic [ref=e285]:
+                      - heading "20.189.173.1" [level=4] [ref=e286]
+                      - generic [ref=e287]: "OS: Unknown"
+                    - generic [ref=e288]: No services detected
+                  - generic [ref=e290] [cursor=pointer]:
+                    - generic [ref=e292]:
+                      - heading "20.209.109.161" [level=4] [ref=e293]
+                      - generic [ref=e294]: "OS: Unknown"
+                    - generic [ref=e295]: No services detected
+                  - generic [ref=e297] [cursor=pointer]:
+                    - generic [ref=e299]:
+                      - heading "13.69.239.68" [level=4] [ref=e300]
+                      - generic [ref=e301]: "OS: Unknown"
+                    - generic [ref=e302]: No services detected
+                  - generic [ref=e304] [cursor=pointer]:
+                    - generic [ref=e306]:
+                      - heading "52.168.117.175" [level=4] [ref=e307]
+                      - generic [ref=e308]: "OS: Unknown"
+                    - generic [ref=e309]: No services detected
+                  - generic [ref=e311] [cursor=pointer]:
+                    - generic [ref=e313]:
+                      - heading "104.208.16.91" [level=4] [ref=e314]
+                      - generic [ref=e315]: "OS: Unknown"
+                    - generic [ref=e316]: No services detected
+                  - generic [ref=e318] [cursor=pointer]:
+                    - generic [ref=e320]:
+                      - heading "104.46.162.224" [level=4] [ref=e321]
+                      - generic [ref=e322]: "OS: Unknown"
+                    - generic [ref=e323]: No services detected
+                  - generic [ref=e325] [cursor=pointer]:
+                    - generic [ref=e327]:
+                      - heading "52.182.143.210" [level=4] [ref=e328]
+                      - generic [ref=e329]: "OS: Unknown"
+                    - generic [ref=e330]: No services detected
+                  - generic [ref=e332] [cursor=pointer]:
+                    - generic [ref=e334]:
+                      - heading "140.82.113.21" [level=4] [ref=e335]
+                      - generic [ref=e336]: "OS: Unknown"
+                    - generic [ref=e337]: No services detected
+                  - generic [ref=e339] [cursor=pointer]:
+                    - generic [ref=e341]:
+                      - heading "168.63.129.16" [level=4] [ref=e342]
+                      - generic [ref=e343]: "OS: Unknown"
+                    - generic [ref=e344]: No services detected
+                  - generic [ref=e346] [cursor=pointer]:
+                    - generic [ref=e348]:
+                      - heading "20.42.73.30" [level=4] [ref=e349]
+                      - generic [ref=e350]: "OS: Unknown"
+                    - generic [ref=e351]: No services detected
+                  - generic [ref=e353] [cursor=pointer]:
+                    - generic [ref=e355]:
+                      - heading "10.0.11.128" [level=4] [ref=e356]
+                      - generic [ref=e357]: "OS: Unknown"
+                    - generic [ref=e358]: No services detected
+                  - generic [ref=e360] [cursor=pointer]:
+                    - generic [ref=e362]:
+                      - heading "20.52.64.200" [level=4] [ref=e363]
+                      - generic [ref=e364]: "OS: Unknown"
+                    - generic [ref=e365]: No services detected
+                  - generic [ref=e367] [cursor=pointer]:
+                    - generic [ref=e369]:
+                      - heading "20.50.73.4" [level=4] [ref=e370]
+                      - generic [ref=e371]: "OS: Unknown"
+                    - generic [ref=e372]: No services detected
+                  - generic [ref=e374] [cursor=pointer]:
+                    - generic [ref=e376]:
+                      - heading "13.89.179.13" [level=4] [ref=e377]
+                      - generic [ref=e378]: "OS: Unknown"
+                    - generic [ref=e379]: No services detected
+                  - generic [ref=e381] [cursor=pointer]:
+                    - generic [ref=e383]:
+                      - heading "52.178.17.232" [level=4] [ref=e384]
+                      - generic [ref=e385]: "OS: Unknown"
+                    - generic [ref=e386]: No services detected
+                  - generic [ref=e388] [cursor=pointer]:
+                    - generic [ref=e390]:
+                      - heading "104.208.16.92" [level=4] [ref=e391]
+                      - generic [ref=e392]: "OS: Unknown"
+                    - generic [ref=e393]: No services detected
+                  - generic [ref=e395] [cursor=pointer]:
+                    - generic [ref=e397]:
+                      - heading "52.168.112.66" [level=4] [ref=e398]
+                      - generic [ref=e399]: "OS: Unknown"
+                    - generic [ref=e400]: No services detected
+                  - generic [ref=e402] [cursor=pointer]:
+                    - generic [ref=e404]:
+                      - heading "10.0.10.234" [level=4] [ref=e405]
+                      - generic [ref=e406]: "OS: Unknown"
+                    - generic [ref=e407]: No services detected
+                  - generic [ref=e409] [cursor=pointer]:
+                    - generic [ref=e411]:
+                      - heading "20.189.172.32" [level=4] [ref=e412]
+                      - generic [ref=e413]: "OS: Unknown"
+                    - generic [ref=e414]: No services detected
+                  - generic [ref=e416] [cursor=pointer]:
+                    - generic [ref=e418]:
+                      - heading "20.42.65.88" [level=4] [ref=e419]
+                      - generic [ref=e420]: "OS: Unknown"
+                    - generic [ref=e421]: No services detected
+                  - generic [ref=e423] [cursor=pointer]:
+                    - generic [ref=e425]:
+                      - heading "20.189.173.2" [level=4] [ref=e426]
+                      - generic [ref=e427]: "OS: Unknown"
+                    - generic [ref=e428]: No services detected
+                  - generic [ref=e430] [cursor=pointer]:
+                    - generic [ref=e432]:
+                      - heading "140.82.113.22" [level=4] [ref=e433]
+                      - generic [ref=e434]: "OS: Unknown"
+                    - generic [ref=e435]: No services detected
+                  - generic [ref=e437] [cursor=pointer]:
+                    - generic [ref=e439]:
+                      - heading "52.168.117.174" [level=4] [ref=e440]
+                      - generic [ref=e441]: "OS: Unknown"
+                    - generic [ref=e442]: No services detected
+                  - generic [ref=e444] [cursor=pointer]:
+                    - generic [ref=e446]:
+                      - heading "57.150.2.1" [level=4] [ref=e447]
+                      - generic [ref=e448]: "OS: Unknown"
+                    - generic [ref=e449]: No services detected
+                  - generic [ref=e451] [cursor=pointer]:
+                    - generic [ref=e453]:
+                      - heading "52.168.117.171" [level=4] [ref=e454]
+                      - generic [ref=e455]: "OS: Unknown"
+                    - generic [ref=e456]: No services detected
+                  - generic [ref=e458] [cursor=pointer]:
+                    - generic [ref=e460]:
+                      - heading "20.42.73.24" [level=4] [ref=e461]
+                      - generic [ref=e462]: "OS: Unknown"
+                    - generic [ref=e463]: No services detected
+                  - generic [ref=e465] [cursor=pointer]:
+                    - generic [ref=e467]:
+                      - heading "20.189.173.3" [level=4] [ref=e468]
+                      - generic [ref=e469]: "OS: Unknown"
+                    - generic [ref=e470]: No services detected
+                  - generic [ref=e472] [cursor=pointer]:
+                    - generic [ref=e474]:
+                      - heading "40.87.188.0" [level=4] [ref=e475]
+                      - generic [ref=e476]: "OS: Unknown"
+                    - generic [ref=e477]: No services detected
+                  - generic [ref=e479] [cursor=pointer]:
+                    - generic [ref=e481]:
+                      - heading "20.209.231.1" [level=4] [ref=e482]
+                      - generic [ref=e483]: "OS: Unknown"
+                    - generic [ref=e484]: No services detected
+                  - generic [ref=e486] [cursor=pointer]:
+                    - generic [ref=e488]:
+                      - heading "104.208.16.88" [level=4] [ref=e489]
+                      - generic [ref=e490]: "OS: Unknown"
+                    - generic [ref=e491]: No services detected
+                  - generic [ref=e493] [cursor=pointer]:
+                    - generic [ref=e495]:
+                      - heading "140.82.121.4" [level=4] [ref=e496]
+                      - generic [ref=e497]: "OS: Unknown"
+                    - generic [ref=e498]: No services detected
+                  - generic [ref=e500] [cursor=pointer]:
+                    - generic [ref=e502]:
+                      - heading "13.107.246.67" [level=4] [ref=e503]
+                      - generic [ref=e504]: "OS: Unknown"
+                    - generic [ref=e505]: No services detected
+                  - generic [ref=e507] [cursor=pointer]:
+                    - generic [ref=e509]:
+                      - heading "172.21.0.1" [level=4] [ref=e510]
+                      - generic [ref=e511]: "OS: Unknown"
+                    - generic [ref=e512]: No services detected
+                  - generic [ref=e514] [cursor=pointer]:
+                    - generic [ref=e516]:
+                      - heading "172.21.0.50" [level=4] [ref=e517]
+                      - generic [ref=e518]: "OS: Unknown"
+                    - generic [ref=e519]: No services detected
+                  - generic [ref=e521] [cursor=pointer]:
+                    - generic [ref=e523]:
+                      - heading "4.225.11.192" [level=4] [ref=e524]
+                      - generic [ref=e525]: "OS: Unknown"
+                    - generic [ref=e526]: No services detected
+                  - generic [ref=e528] [cursor=pointer]:
+                    - generic [ref=e530]:
+                      - heading "40.119.104.0" [level=4] [ref=e531]
+                      - generic [ref=e532]: "OS: Unknown"
+                    - generic [ref=e533]: No services detected
+                  - generic [ref=e535] [cursor=pointer]:
+                    - generic [ref=e537]:
+                      - heading "52.168.117.168" [level=4] [ref=e538]
+                      - generic [ref=e539]: "OS: Unknown"
+                    - generic [ref=e540]: No services detected
+                  - generic [ref=e542] [cursor=pointer]:
+                    - generic [ref=e544]:
+                      - heading "140.82.114.21" [level=4] [ref=e545]
+                      - generic [ref=e546]: "OS: Unknown"
+                    - generic [ref=e547]: No services detected
+                  - generic [ref=e549] [cursor=pointer]:
+                    - generic [ref=e551]:
+                      - heading "40.119.108.0" [level=4] [ref=e552]
+                      - generic [ref=e553]: "OS: Unknown"
+                    - generic [ref=e554]: No services detected
+                  - generic [ref=e556] [cursor=pointer]:
+                    - generic [ref=e558]:
+                      - heading "52.182.143.213" [level=4] [ref=e559]
+                      - generic [ref=e560]: "OS: Unknown"
+                    - generic [ref=e561]: No services detected
+                  - generic [ref=e563] [cursor=pointer]:
+                    - generic [ref=e565]:
+                      - heading "20.189.173.6" [level=4] [ref=e566]
+                      - generic [ref=e567]: "OS: Unknown"
+                    - generic [ref=e568]: No services detected
+                  - generic [ref=e570] [cursor=pointer]:
+                    - generic [ref=e572]:
+                      - heading "20.189.172.33" [level=4] [ref=e573]
+                      - generic [ref=e574]: "OS: Unknown"
+                    - generic [ref=e575]: No services detected
+                  - generic [ref=e577] [cursor=pointer]:
+                    - generic [ref=e579]:
+                      - heading "13.89.179.9" [level=4] [ref=e580]
+                      - generic [ref=e581]: "OS: Unknown"
+                    - generic [ref=e582]: No services detected
+                  - generic [ref=e584] [cursor=pointer]:
+                    - generic [ref=e586]:
+                      - heading "13.89.179.10" [level=4] [ref=e587]
+                      - generic [ref=e588]: "OS: Unknown"
+                    - generic [ref=e589]: No services detected
+                  - generic [ref=e591] [cursor=pointer]:
+                    - generic [ref=e593]:
+                      - heading "20.189.172.76" [level=4] [ref=e594]
+                      - generic [ref=e595]: "OS: Unknown"
+                    - generic [ref=e596]: No services detected
+                  - generic [ref=e598] [cursor=pointer]:
+                    - generic [ref=e600]:
+                      - heading "52.182.141.63" [level=4] [ref=e601]
+                      - generic [ref=e602]: "OS: Unknown"
+                    - generic [ref=e603]: No services detected
+                  - generic [ref=e605] [cursor=pointer]:
+                    - generic [ref=e607]:
+                      - heading "20.189.173.15" [level=4] [ref=e608]
+                      - generic [ref=e609]: "OS: Unknown"
+                    - generic [ref=e610]: No services detected
+                  - generic [ref=e612] [cursor=pointer]:
+                    - generic [ref=e614]:
+                      - heading "40.79.150.122" [level=4] [ref=e615]
+                      - generic [ref=e616]: "OS: Unknown"
+                    - generic [ref=e617]: No services detected
+                  - generic [ref=e619] [cursor=pointer]:
+                    - generic [ref=e621]:
+                      - heading "54.247.62.1" [level=4] [ref=e622]
+                      - generic [ref=e623]: "OS: Unknown"
+                    - generic [ref=e624]: No services detected
+                  - generic [ref=e626] [cursor=pointer]:
+                    - generic [ref=e628]:
+                      - heading "20.189.173.5" [level=4] [ref=e629]
+                      - generic [ref=e630]: "OS: Unknown"
+                    - generic [ref=e631]: No services detected
+                  - generic [ref=e633] [cursor=pointer]:
+                    - generic [ref=e635]:
+                      - heading "20.60.222.111" [level=4] [ref=e636]
+                      - generic [ref=e637]: "OS: Unknown"
+                    - generic [ref=e638]: No services detected
+                  - generic [ref=e640] [cursor=pointer]:
+                    - generic [ref=e642]:
+                      - heading "20.42.65.84" [level=4] [ref=e643]
+                      - generic [ref=e644]: "OS: Unknown"
+                    - generic [ref=e645]: No services detected
+                  - generic [ref=e647] [cursor=pointer]:
+                    - generic [ref=e649]:
+                      - heading "52.168.112.67" [level=4] [ref=e650]
+                      - generic [ref=e651]: "OS: Unknown"
+                    - generic [ref=e652]: No services detected
+                  - generic [ref=e654] [cursor=pointer]:
+                    - generic [ref=e656]:
+                      - heading "20.50.201.195" [level=4] [ref=e657]
+                      - generic [ref=e658]: "OS: Unknown"
+                    - generic [ref=e659]: No services detected
+                  - generic [ref=e661] [cursor=pointer]:
+                    - generic [ref=e663]:
+                      - heading "51.104.15.252" [level=4] [ref=e664]
+                      - generic [ref=e665]: "OS: Unknown"
+                    - generic [ref=e666]: No services detected
+                  - generic [ref=e668] [cursor=pointer]:
+                    - generic [ref=e670]:
+                      - heading "51.104.15.253" [level=4] [ref=e671]
+                      - generic [ref=e672]: "OS: Unknown"
+                    - generic [ref=e673]: No services detected
+                  - generic [ref=e675] [cursor=pointer]:
+                    - generic [ref=e677]:
+                      - heading "13.107.253.67" [level=4] [ref=e678]
+                      - generic [ref=e679]: "OS: Unknown"
+                    - generic [ref=e680]: No services detected
+                  - generic [ref=e682] [cursor=pointer]:
+                    - generic [ref=e684]:
+                      - heading "20.52.64.201" [level=4] [ref=e685]
+                      - generic [ref=e686]: "OS: Unknown"
+                    - generic [ref=e687]: No services detected
+                  - generic [ref=e689] [cursor=pointer]:
+                    - generic [ref=e691]:
+                      - heading "20.189.173.8" [level=4] [ref=e692]
+                      - generic [ref=e693]: "OS: Unknown"
+                    - generic [ref=e694]: No services detected
+                  - generic [ref=e696] [cursor=pointer]:
+                    - generic [ref=e698]:
+                      - heading "52.168.117.170" [level=4] [ref=e699]
+                      - generic [ref=e700]: "OS: Unknown"
+                    - generic [ref=e701]: No services detected
+                  - generic [ref=e703] [cursor=pointer]:
+                    - generic [ref=e705]:
+                      - heading "20.189.173.10" [level=4] [ref=e706]
+                      - generic [ref=e707]: "OS: Unknown"
+                    - generic [ref=e708]: No services detected
+                  - generic [ref=e710] [cursor=pointer]:
+                    - generic [ref=e712]:
+                      - heading "20.42.65.91" [level=4] [ref=e713]
+                      - generic [ref=e714]: "OS: Unknown"
+                    - generic [ref=e715]: No services detected
+                  - generic [ref=e717] [cursor=pointer]:
+                    - generic [ref=e719]:
+                      - heading "20.189.173.23" [level=4] [ref=e720]
+                      - generic [ref=e721]: "OS: Unknown"
+                    - generic [ref=e722]: No services detected
+                  - generic [ref=e724] [cursor=pointer]:
+                    - generic [ref=e726]:
+                      - heading "20.209.72.161" [level=4] [ref=e727]
+                      - generic [ref=e728]: "OS: Unknown"
+                    - generic [ref=e729]: No services detected
+                  - generic [ref=e731] [cursor=pointer]:
+                    - generic [ref=e733]:
+                      - heading "172.21.0.60" [level=4] [ref=e734]
+                      - generic [ref=e735]: "OS: Unknown"
+                    - generic [ref=e736]: No services detected
+                  - generic [ref=e738] [cursor=pointer]:
+                    - generic [ref=e740]:
+                      - heading "20.42.65.94" [level=4] [ref=e741]
+                      - generic [ref=e742]: "OS: Unknown"
+                    - generic [ref=e743]: No services detected
+                  - generic [ref=e745] [cursor=pointer]:
+                    - generic [ref=e747]:
+                      - heading "20.42.73.31" [level=4] [ref=e748]
+                      - generic [ref=e749]: "OS: Unknown"
+                    - generic [ref=e750]: No services detected
+                  - generic [ref=e752] [cursor=pointer]:
+                    - generic [ref=e754]:
+                      - heading "40.74.98.194" [level=4] [ref=e755]
+                      - generic [ref=e756]: "OS: Unknown"
+                    - generic [ref=e757]: No services detected
+                  - generic [ref=e759] [cursor=pointer]:
+                    - generic [ref=e761]:
+                      - heading "104.16.7.34" [level=4] [ref=e762]
+                      - generic [ref=e763]: "OS: Unknown"
+                    - generic [ref=e764]: No services detected
+                  - generic [ref=e766] [cursor=pointer]:
+                    - generic [ref=e768]:
+                      - heading "51.116.246.105" [level=4] [ref=e769]
+                      - generic [ref=e770]: "OS: Unknown"
+                    - generic [ref=e771]: No services detected
+                  - generic [ref=e773] [cursor=pointer]:
+                    - generic [ref=e775]:
+                      - heading "20.42.73.25" [level=4] [ref=e776]
+                      - generic [ref=e777]: "OS: Unknown"
+                    - generic [ref=e778]: No services detected
+                  - generic [ref=e780] [cursor=pointer]:
+                    - generic [ref=e782]:
+                      - heading "52.182.143.208" [level=4] [ref=e783]
+                      - generic [ref=e784]: "OS: Unknown"
+                    - generic [ref=e785]: No services detected
+                  - generic [ref=e787] [cursor=pointer]:
+                    - generic [ref=e789]:
+                      - heading "20.42.65.90" [level=4] [ref=e790]
+                      - generic [ref=e791]: "OS: Unknown"
+                    - generic [ref=e792]: No services detected
+                  - generic [ref=e794] [cursor=pointer]:
+                    - generic [ref=e796]:
+                      - heading "20.189.173.27" [level=4] [ref=e797]
+                      - generic [ref=e798]: "OS: Unknown"
+                    - generic [ref=e799]: No services detected
+                  - generic [ref=e801] [cursor=pointer]:
+                    - generic [ref=e803]:
+                      - heading "52.182.143.214" [level=4] [ref=e804]
+                      - generic [ref=e805]: "OS: Unknown"
+                    - generic [ref=e806]: No services detected
+                  - generic [ref=e808] [cursor=pointer]:
+                    - generic [ref=e810]:
+                      - heading "20.44.10.122" [level=4] [ref=e811]
+                      - generic [ref=e812]: "OS: Unknown"
+                    - generic [ref=e813]: No services detected
+                  - generic [ref=e815] [cursor=pointer]:
+                    - generic [ref=e817]:
+                      - heading "20.189.173.28" [level=4] [ref=e818]
+                      - generic [ref=e819]: "OS: Unknown"
+                    - generic [ref=e820]: No services detected
+              - generic [ref=e825]:
+                - img [ref=e827]
+                - paragraph [ref=e829]: No Active Connections
+                - paragraph [ref=e830]: Select an asset and click to connect
+          - generic [ref=e832]:
+            - generic [ref=e833]:
+              - heading "◉ Login to 127.0.0.1" [level=3] [ref=e834]:
+                - generic [ref=e835]: ◉
+                - text: Login to 127.0.0.1
+              - button "×" [ref=e836] [cursor=pointer]
+            - generic [ref=e837]:
+              - generic [ref=e838]:
+                - paragraph [ref=e839]: ◆ Detected Port(s)
+                - paragraph [ref=e840]: ◇ No ports detected - manual selection required
+              - generic [ref=e841]:
+                - generic [ref=e842]: ◆ Select Protocol
+                - combobox [ref=e843]:
+                  - option "◉ SSH - Secure Shell"
+                  - option "◉ RDP - Remote Desktop"
+                  - option "◉ VNC - Virtual Network" [selected]
+                  - option "◉ TELNET - Terminal"
+                  - option "◉ FTP - File Transfer"
+                  - option "◉ WEB - HTTP Interface"
+            - generic [ref=e844]:
+              - button "◉ Login" [ref=e845] [cursor=pointer]
+              - button "Cancel" [ref=e846] [cursor=pointer]
+  - generic [ref=e847]: "200000"
+```

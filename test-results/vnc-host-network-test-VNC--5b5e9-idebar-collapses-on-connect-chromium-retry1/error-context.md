@@ -1,0 +1,818 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e9]: ◉
+          - generic [ref=e10]: NOP
+        - button "◀" [ref=e11] [cursor=pointer]
+      - navigation [ref=e12]:
+        - list [ref=e13]:
+          - listitem [ref=e14]:
+            - link "▣ Dashboard" [ref=e15] [cursor=pointer]:
+              - /url: /dashboard
+              - generic [ref=e16]: ▣
+              - generic [ref=e17]: Dashboard
+          - listitem [ref=e18]:
+            - link "⬢ Assets" [ref=e19] [cursor=pointer]:
+              - /url: /assets
+              - generic [ref=e20]: ⬢
+              - generic [ref=e21]: Assets
+          - listitem [ref=e22]:
+            - link "◎ Topology" [ref=e23] [cursor=pointer]:
+              - /url: /topology
+              - generic [ref=e24]: ◎
+              - generic [ref=e25]: Topology
+          - listitem [ref=e26]:
+            - link "≋ Traffic" [ref=e27] [cursor=pointer]:
+              - /url: /traffic
+              - generic [ref=e28]: ≋
+              - generic [ref=e29]: Traffic
+          - listitem [ref=e30]:
+            - link "◈ Scans" [ref=e31] [cursor=pointer]:
+              - /url: /scans
+              - generic [ref=e32]: ◈
+              - generic [ref=e33]: Scans
+          - listitem [ref=e34]:
+            - link "◉ ACCESS" [active] [ref=e35] [cursor=pointer]:
+              - /url: /access
+              - generic [ref=e36]: ◉
+              - generic [ref=e37]: ACCESS
+          - listitem [ref=e38]:
+            - link "◇ Flows" [ref=e39] [cursor=pointer]:
+              - /url: /flows
+              - generic [ref=e40]: ◇
+              - generic [ref=e41]: Flows
+          - listitem [ref=e42]:
+            - link "◆ Agents" [ref=e43] [cursor=pointer]:
+              - /url: /agents
+              - generic [ref=e44]: ◆
+              - generic [ref=e45]: Agents
+          - listitem [ref=e46]:
+            - link "◐ Host" [ref=e47] [cursor=pointer]:
+              - /url: /host
+              - generic [ref=e48]: ◐
+              - generic [ref=e49]: Host
+          - listitem [ref=e50]:
+            - link "⚙ Settings" [ref=e51] [cursor=pointer]:
+              - /url: /settings
+              - generic [ref=e52]: ⚙
+              - generic [ref=e53]: Settings
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e57]: A
+          - generic [ref=e58]:
+            - paragraph [ref=e59]: admin
+            - paragraph [ref=e60]: admin
+        - button "> logout" [ref=e61] [cursor=pointer]
+    - generic [ref=e62]:
+      - banner [ref=e63]:
+        - generic [ref=e64]:
+          - heading "ACCESS" [level=1] [ref=e65]
+          - generic [ref=e66]:
+            - generic [ref=e69]: System Online
+            - generic [ref=e70]: 14:44:57
+      - main [ref=e71]:
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - heading "◆ Access Control" [level=2] [ref=e76]:
+                - generic [ref=e77]: ◆
+                - text: Access Control
+              - paragraph [ref=e78]: Connect to assets via login or exploit vulnerabilities
+            - generic [ref=e79]:
+              - button "◉ LOGIN" [ref=e80] [cursor=pointer]
+              - button "◆ EXPLOIT" [ref=e81] [cursor=pointer]
+              - button "◈ VAULT" [ref=e82] [cursor=pointer]
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e86]:
+                  - heading "◈ Assets (102)" [level=3] [ref=e87]:
+                    - generic [ref=e88]: ◈
+                    - text: Assets (102)
+                  - generic [ref=e89]:
+                    - button "All" [ref=e90] [cursor=pointer]
+                    - button "Scanned" [ref=e91] [cursor=pointer]
+                    - button "Vulnerable" [ref=e92] [cursor=pointer]
+                - generic [ref=e93]:
+                  - textbox "Filter by IP or hostname..." [ref=e95]
+                  - button "⊞ Add" [ref=e96] [cursor=pointer]
+              - generic [ref=e98]:
+                - generic [ref=e100] [cursor=pointer]:
+                  - generic [ref=e101]:
+                    - generic "Passive discovery" [ref=e102]
+                    - generic [ref=e103]:
+                      - heading "20.103.221.187" [level=4] [ref=e104]
+                      - generic [ref=e105]: "OS: Unknown"
+                  - generic [ref=e106]: No services detected
+                - generic [ref=e108] [cursor=pointer]:
+                  - generic [ref=e109]:
+                    - generic "Passive discovery" [ref=e110]
+                    - generic [ref=e111]:
+                      - heading "140.82.121.6" [level=4] [ref=e112]
+                      - generic [ref=e113]: "OS: Unknown"
+                  - generic [ref=e114]: No services detected
+                - generic [ref=e116] [cursor=pointer]:
+                  - generic [ref=e117]:
+                    - generic "Passive discovery" [ref=e118]
+                    - generic [ref=e119]:
+                      - heading "20.209.230.193" [level=4] [ref=e120]
+                      - generic [ref=e121]: "OS: Unknown"
+                  - generic [ref=e122]: No services detected
+                - generic [ref=e124] [cursor=pointer]:
+                  - generic [ref=e125]:
+                    - generic "Passive discovery" [ref=e126]
+                    - generic [ref=e127]:
+                      - heading "51.137.3.17" [level=4] [ref=e128]
+                      - generic [ref=e129]: "OS: Unknown"
+                  - generic [ref=e130]: No services detected
+                - generic [ref=e132] [cursor=pointer]:
+                  - generic [ref=e133]:
+                    - generic "Passive discovery" [ref=e134]
+                    - generic [ref=e135]:
+                      - heading "140.82.121.5" [level=4] [ref=e136]
+                      - generic [ref=e137]: "OS: Unknown"
+                  - generic [ref=e138]: No services detected
+                - generic [ref=e140] [cursor=pointer]:
+                  - generic [ref=e141]:
+                    - generic "Passive discovery" [ref=e142]
+                    - generic [ref=e143]:
+                      - heading "20.189.173.18" [level=4] [ref=e144]
+                      - generic [ref=e145]: "OS: Unknown"
+                  - generic [ref=e146]: No services detected
+                - generic [ref=e148] [cursor=pointer]:
+                  - generic [ref=e149]:
+                    - generic "Passive discovery" [ref=e150]
+                    - generic [ref=e151]:
+                      - heading "3.227.14.67" [level=4] [ref=e152]
+                      - generic [ref=e153]: "OS: Unknown"
+                  - generic [ref=e154]: No services detected
+                - generic [ref=e156] [cursor=pointer]:
+                  - generic [ref=e157]:
+                    - generic "Passive discovery" [ref=e158]
+                    - generic [ref=e159]:
+                      - heading "10.0.10.158" [level=4] [ref=e160]
+                      - generic [ref=e161]: "OS: Unknown"
+                  - generic [ref=e162]: No services detected
+                - generic [ref=e164] [cursor=pointer]:
+                  - generic [ref=e165]:
+                    - generic "Passive discovery" [ref=e166]
+                    - generic [ref=e167]:
+                      - heading "140.82.121.14" [level=4] [ref=e168]
+                      - generic [ref=e169]: "OS: Unknown"
+                  - generic [ref=e170]: No services detected
+                - generic [ref=e172] [cursor=pointer]:
+                  - generic [ref=e173]:
+                    - generic "Passive discovery" [ref=e174]
+                    - generic [ref=e175]:
+                      - heading "20.199.39.224" [level=4] [ref=e176]
+                      - generic [ref=e177]: "OS: Unknown"
+                  - generic [ref=e178]: No services detected
+                - generic [ref=e180] [cursor=pointer]:
+                  - generic [ref=e181]:
+                    - generic "Passive discovery" [ref=e182]
+                    - generic [ref=e183]:
+                      - heading "13.216.38.234" [level=4] [ref=e184]
+                      - generic [ref=e185]: "OS: Unknown"
+                  - generic [ref=e186]: No services detected
+                - generic [ref=e188] [cursor=pointer]:
+                  - generic [ref=e189]:
+                    - generic "Passive discovery" [ref=e190]
+                    - generic [ref=e191]:
+                      - heading "20.42.73.27" [level=4] [ref=e192]
+                      - generic [ref=e193]: "OS: Unknown"
+                  - generic [ref=e194]: No services detected
+                - generic [ref=e196] [cursor=pointer]:
+                  - generic [ref=e197]:
+                    - generic "Passive discovery" [ref=e198]
+                    - generic [ref=e199]:
+                      - heading "140.82.112.22" [level=4] [ref=e200]
+                      - generic [ref=e201]: "OS: Unknown"
+                  - generic [ref=e202]: No services detected
+                - generic [ref=e204] [cursor=pointer]:
+                  - generic [ref=e205]:
+                    - generic "Passive discovery" [ref=e206]
+                    - generic [ref=e207]:
+                      - heading "13.107.213.67" [level=4] [ref=e208]
+                      - generic [ref=e209]: "OS: Unknown"
+                  - generic [ref=e210]: No services detected
+                - generic [ref=e212] [cursor=pointer]:
+                  - generic [ref=e213]:
+                    - generic "Passive discovery" [ref=e214]
+                    - generic [ref=e215]:
+                      - heading "140.82.112.21" [level=4] [ref=e216]
+                      - generic [ref=e217]: "OS: Unknown"
+                  - generic [ref=e218]: No services detected
+                - generic [ref=e220] [cursor=pointer]:
+                  - generic [ref=e221]:
+                    - generic "Passive discovery" [ref=e222]
+                    - generic [ref=e223]:
+                      - heading "140.82.121.3" [level=4] [ref=e224]
+                      - generic [ref=e225]: "OS: Unknown"
+                  - generic [ref=e226]: No services detected
+                - generic [ref=e228] [cursor=pointer]:
+                  - generic [ref=e229]:
+                    - generic "Passive discovery" [ref=e230]
+                    - generic [ref=e231]:
+                      - heading "140.82.114.22" [level=4] [ref=e232]
+                      - generic [ref=e233]: "OS: Unknown"
+                  - generic [ref=e234]: No services detected
+                - generic [ref=e236] [cursor=pointer]:
+                  - generic [ref=e237]:
+                    - generic "Passive discovery" [ref=e238]
+                    - generic [ref=e239]:
+                      - heading "13.107.5.93" [level=4] [ref=e240]
+                      - generic [ref=e241]: "OS: Unknown"
+                  - generic [ref=e242]: No services detected
+                - generic [ref=e244] [cursor=pointer]:
+                  - generic [ref=e245]:
+                    - generic "Passive discovery" [ref=e246]
+                    - generic [ref=e247]:
+                      - heading "20.42.65.93" [level=4] [ref=e248]
+                      - generic [ref=e249]: "OS: Unknown"
+                  - generic [ref=e250]: No services detected
+                - generic [ref=e252] [cursor=pointer]:
+                  - generic [ref=e253]:
+                    - generic "Passive discovery" [ref=e254]
+                    - generic [ref=e255]:
+                      - heading "20.189.172.73" [level=4] [ref=e256]
+                      - generic [ref=e257]: "OS: Unknown"
+                  - generic [ref=e258]: No services detected
+                - generic [ref=e260] [cursor=pointer]:
+                  - generic [ref=e261]:
+                    - generic "Passive discovery" [ref=e262]
+                    - generic [ref=e263]:
+                      - heading "104.208.16.95" [level=4] [ref=e264]
+                      - generic [ref=e265]: "OS: Unknown"
+                  - generic [ref=e266]: No services detected
+                - generic [ref=e268] [cursor=pointer]:
+                  - generic [ref=e269]:
+                    - generic "Passive discovery" [ref=e270]
+                    - generic [ref=e271]:
+                      - heading "20.50.73.10" [level=4] [ref=e272]
+                      - generic [ref=e273]: "OS: Unknown"
+                  - generic [ref=e274]: No services detected
+                - generic [ref=e276] [cursor=pointer]:
+                  - generic [ref=e277]:
+                    - generic "Passive discovery" [ref=e278]
+                    - generic [ref=e279]:
+                      - heading "18.207.43.79" [level=4] [ref=e280]
+                      - generic [ref=e281]: "OS: Unknown"
+                  - generic [ref=e282]: No services detected
+                - generic [ref=e284] [cursor=pointer]:
+                  - generic [ref=e285]:
+                    - generic "Passive discovery" [ref=e286]
+                    - generic [ref=e287]:
+                      - heading "20.150.122.101" [level=4] [ref=e288]
+                      - generic [ref=e289]: "OS: Unknown"
+                  - generic [ref=e290]: No services detected
+                - generic [ref=e292] [cursor=pointer]:
+                  - generic [ref=e293]:
+                    - generic "Passive discovery" [ref=e294]
+                    - generic [ref=e295]:
+                      - heading "20.60.251.37" [level=4] [ref=e296]
+                      - generic [ref=e297]: "OS: Unknown"
+                  - generic [ref=e298]: No services detected
+                - generic [ref=e300] [cursor=pointer]:
+                  - generic [ref=e301]:
+                    - generic "Passive discovery" [ref=e302]
+                    - generic [ref=e303]:
+                      - heading "20.189.173.1" [level=4] [ref=e304]
+                      - generic [ref=e305]: "OS: Unknown"
+                  - generic [ref=e306]: No services detected
+                - generic [ref=e308] [cursor=pointer]:
+                  - generic [ref=e309]:
+                    - generic "Passive discovery" [ref=e310]
+                    - generic [ref=e311]:
+                      - heading "20.209.109.161" [level=4] [ref=e312]
+                      - generic [ref=e313]: "OS: Unknown"
+                  - generic [ref=e314]: No services detected
+                - generic [ref=e316] [cursor=pointer]:
+                  - generic [ref=e317]:
+                    - generic "Passive discovery" [ref=e318]
+                    - generic [ref=e319]:
+                      - heading "13.69.239.68" [level=4] [ref=e320]
+                      - generic [ref=e321]: "OS: Unknown"
+                  - generic [ref=e322]: No services detected
+                - generic [ref=e324] [cursor=pointer]:
+                  - generic [ref=e325]:
+                    - generic "Passive discovery" [ref=e326]
+                    - generic [ref=e327]:
+                      - heading "52.168.117.175" [level=4] [ref=e328]
+                      - generic [ref=e329]: "OS: Unknown"
+                  - generic [ref=e330]: No services detected
+                - generic [ref=e332] [cursor=pointer]:
+                  - generic [ref=e333]:
+                    - generic "Passive discovery" [ref=e334]
+                    - generic [ref=e335]:
+                      - heading "104.208.16.91" [level=4] [ref=e336]
+                      - generic [ref=e337]: "OS: Unknown"
+                  - generic [ref=e338]: No services detected
+                - generic [ref=e340] [cursor=pointer]:
+                  - generic [ref=e341]:
+                    - generic "Passive discovery" [ref=e342]
+                    - generic [ref=e343]:
+                      - heading "104.46.162.224" [level=4] [ref=e344]
+                      - generic [ref=e345]: "OS: Unknown"
+                  - generic [ref=e346]: No services detected
+                - generic [ref=e348] [cursor=pointer]:
+                  - generic [ref=e349]:
+                    - generic "Passive discovery" [ref=e350]
+                    - generic [ref=e351]:
+                      - heading "52.182.143.210" [level=4] [ref=e352]
+                      - generic [ref=e353]: "OS: Unknown"
+                  - generic [ref=e354]: No services detected
+                - generic [ref=e356] [cursor=pointer]:
+                  - generic [ref=e357]:
+                    - generic "Passive discovery" [ref=e358]
+                    - generic [ref=e359]:
+                      - heading "140.82.113.21" [level=4] [ref=e360]
+                      - generic [ref=e361]: "OS: Unknown"
+                  - generic [ref=e362]: No services detected
+                - generic [ref=e364] [cursor=pointer]:
+                  - generic [ref=e365]:
+                    - generic "Passive discovery" [ref=e366]
+                    - generic [ref=e367]:
+                      - heading "168.63.129.16" [level=4] [ref=e368]
+                      - generic [ref=e369]: "OS: Unknown"
+                  - generic [ref=e370]: No services detected
+                - generic [ref=e372] [cursor=pointer]:
+                  - generic [ref=e373]:
+                    - generic "Passive discovery" [ref=e374]
+                    - generic [ref=e375]:
+                      - heading "20.42.73.30" [level=4] [ref=e376]
+                      - generic [ref=e377]: "OS: Unknown"
+                  - generic [ref=e378]: No services detected
+                - generic [ref=e380] [cursor=pointer]:
+                  - generic [ref=e381]:
+                    - generic "Passive discovery" [ref=e382]
+                    - generic [ref=e383]:
+                      - heading "10.0.11.128" [level=4] [ref=e384]
+                      - generic [ref=e385]: "OS: Unknown"
+                  - generic [ref=e386]: No services detected
+                - generic [ref=e388] [cursor=pointer]:
+                  - generic [ref=e389]:
+                    - generic "Passive discovery" [ref=e390]
+                    - generic [ref=e391]:
+                      - heading "20.52.64.200" [level=4] [ref=e392]
+                      - generic [ref=e393]: "OS: Unknown"
+                  - generic [ref=e394]: No services detected
+                - generic [ref=e396] [cursor=pointer]:
+                  - generic [ref=e397]:
+                    - generic "Passive discovery" [ref=e398]
+                    - generic [ref=e399]:
+                      - heading "20.50.73.4" [level=4] [ref=e400]
+                      - generic [ref=e401]: "OS: Unknown"
+                  - generic [ref=e402]: No services detected
+                - generic [ref=e404] [cursor=pointer]:
+                  - generic [ref=e405]:
+                    - generic "Passive discovery" [ref=e406]
+                    - generic [ref=e407]:
+                      - heading "13.89.179.13" [level=4] [ref=e408]
+                      - generic [ref=e409]: "OS: Unknown"
+                  - generic [ref=e410]: No services detected
+                - generic [ref=e412] [cursor=pointer]:
+                  - generic [ref=e413]:
+                    - generic "Passive discovery" [ref=e414]
+                    - generic [ref=e415]:
+                      - heading "52.178.17.232" [level=4] [ref=e416]
+                      - generic [ref=e417]: "OS: Unknown"
+                  - generic [ref=e418]: No services detected
+                - generic [ref=e420] [cursor=pointer]:
+                  - generic [ref=e421]:
+                    - generic "Passive discovery" [ref=e422]
+                    - generic [ref=e423]:
+                      - heading "104.208.16.92" [level=4] [ref=e424]
+                      - generic [ref=e425]: "OS: Unknown"
+                  - generic [ref=e426]: No services detected
+                - generic [ref=e428] [cursor=pointer]:
+                  - generic [ref=e429]:
+                    - generic "Passive discovery" [ref=e430]
+                    - generic [ref=e431]:
+                      - heading "52.168.112.66" [level=4] [ref=e432]
+                      - generic [ref=e433]: "OS: Unknown"
+                  - generic [ref=e434]: No services detected
+                - generic [ref=e436] [cursor=pointer]:
+                  - generic [ref=e437]:
+                    - generic "Passive discovery" [ref=e438]
+                    - generic [ref=e439]:
+                      - heading "10.0.10.234" [level=4] [ref=e440]
+                      - generic [ref=e441]: "OS: Unknown"
+                  - generic [ref=e442]: No services detected
+                - generic [ref=e444] [cursor=pointer]:
+                  - generic [ref=e445]:
+                    - generic "Passive discovery" [ref=e446]
+                    - generic [ref=e447]:
+                      - heading "20.189.172.32" [level=4] [ref=e448]
+                      - generic [ref=e449]: "OS: Unknown"
+                  - generic [ref=e450]: No services detected
+                - generic [ref=e452] [cursor=pointer]:
+                  - generic [ref=e453]:
+                    - generic "Passive discovery" [ref=e454]
+                    - generic [ref=e455]:
+                      - heading "20.42.65.88" [level=4] [ref=e456]
+                      - generic [ref=e457]: "OS: Unknown"
+                  - generic [ref=e458]: No services detected
+                - generic [ref=e460] [cursor=pointer]:
+                  - generic [ref=e461]:
+                    - generic "Passive discovery" [ref=e462]
+                    - generic [ref=e463]:
+                      - heading "20.189.173.2" [level=4] [ref=e464]
+                      - generic [ref=e465]: "OS: Unknown"
+                  - generic [ref=e466]: No services detected
+                - generic [ref=e468] [cursor=pointer]:
+                  - generic [ref=e469]:
+                    - generic "Passive discovery" [ref=e470]
+                    - generic [ref=e471]:
+                      - heading "140.82.113.22" [level=4] [ref=e472]
+                      - generic [ref=e473]: "OS: Unknown"
+                  - generic [ref=e474]: No services detected
+                - generic [ref=e476] [cursor=pointer]:
+                  - generic [ref=e477]:
+                    - generic "Passive discovery" [ref=e478]
+                    - generic [ref=e479]:
+                      - heading "52.168.117.174" [level=4] [ref=e480]
+                      - generic [ref=e481]: "OS: Unknown"
+                  - generic [ref=e482]: No services detected
+                - generic [ref=e484] [cursor=pointer]:
+                  - generic [ref=e485]:
+                    - generic "Passive discovery" [ref=e486]
+                    - generic [ref=e487]:
+                      - heading "57.150.2.1" [level=4] [ref=e488]
+                      - generic [ref=e489]: "OS: Unknown"
+                  - generic [ref=e490]: No services detected
+                - generic [ref=e492] [cursor=pointer]:
+                  - generic [ref=e493]:
+                    - generic "Passive discovery" [ref=e494]
+                    - generic [ref=e495]:
+                      - heading "52.168.117.171" [level=4] [ref=e496]
+                      - generic [ref=e497]: "OS: Unknown"
+                  - generic [ref=e498]: No services detected
+                - generic [ref=e500] [cursor=pointer]:
+                  - generic [ref=e501]:
+                    - generic "Passive discovery" [ref=e502]
+                    - generic [ref=e503]:
+                      - heading "20.42.73.24" [level=4] [ref=e504]
+                      - generic [ref=e505]: "OS: Unknown"
+                  - generic [ref=e506]: No services detected
+                - generic [ref=e508] [cursor=pointer]:
+                  - generic [ref=e509]:
+                    - generic "Passive discovery" [ref=e510]
+                    - generic [ref=e511]:
+                      - heading "20.189.173.3" [level=4] [ref=e512]
+                      - generic [ref=e513]: "OS: Unknown"
+                  - generic [ref=e514]: No services detected
+                - generic [ref=e516] [cursor=pointer]:
+                  - generic [ref=e517]:
+                    - generic "Passive discovery" [ref=e518]
+                    - generic [ref=e519]:
+                      - heading "40.87.188.0" [level=4] [ref=e520]
+                      - generic [ref=e521]: "OS: Unknown"
+                  - generic [ref=e522]: No services detected
+                - generic [ref=e524] [cursor=pointer]:
+                  - generic [ref=e525]:
+                    - generic "Passive discovery" [ref=e526]
+                    - generic [ref=e527]:
+                      - heading "20.209.231.1" [level=4] [ref=e528]
+                      - generic [ref=e529]: "OS: Unknown"
+                  - generic [ref=e530]: No services detected
+                - generic [ref=e532] [cursor=pointer]:
+                  - generic [ref=e533]:
+                    - generic "Passive discovery" [ref=e534]
+                    - generic [ref=e535]:
+                      - heading "104.208.16.88" [level=4] [ref=e536]
+                      - generic [ref=e537]: "OS: Unknown"
+                  - generic [ref=e538]: No services detected
+                - generic [ref=e540] [cursor=pointer]:
+                  - generic [ref=e541]:
+                    - generic "Passive discovery" [ref=e542]
+                    - generic [ref=e543]:
+                      - heading "140.82.121.4" [level=4] [ref=e544]
+                      - generic [ref=e545]: "OS: Unknown"
+                  - generic [ref=e546]: No services detected
+                - generic [ref=e548] [cursor=pointer]:
+                  - generic [ref=e549]:
+                    - generic "Passive discovery" [ref=e550]
+                    - generic [ref=e551]:
+                      - heading "13.107.246.67" [level=4] [ref=e552]
+                      - generic [ref=e553]: "OS: Unknown"
+                  - generic [ref=e554]: No services detected
+                - generic [ref=e556] [cursor=pointer]:
+                  - generic [ref=e558]:
+                    - heading "172.21.0.1" [level=4] [ref=e559]
+                    - generic [ref=e560]: "OS: Unknown"
+                  - generic [ref=e561]: No services detected
+                - generic [ref=e563] [cursor=pointer]:
+                  - generic [ref=e565]:
+                    - heading "172.21.0.50" [level=4] [ref=e566]
+                    - generic [ref=e567]: "OS: Unknown"
+                  - generic [ref=e568]: No services detected
+                - generic [ref=e570] [cursor=pointer]:
+                  - generic [ref=e571]:
+                    - generic "Passive discovery" [ref=e572]
+                    - generic [ref=e573]:
+                      - heading "4.225.11.192" [level=4] [ref=e574]
+                      - generic [ref=e575]: "OS: Unknown"
+                  - generic [ref=e576]: No services detected
+                - generic [ref=e578] [cursor=pointer]:
+                  - generic [ref=e579]:
+                    - generic "Passive discovery" [ref=e580]
+                    - generic [ref=e581]:
+                      - heading "40.119.104.0" [level=4] [ref=e582]
+                      - generic [ref=e583]: "OS: Unknown"
+                  - generic [ref=e584]: No services detected
+                - generic [ref=e586] [cursor=pointer]:
+                  - generic [ref=e587]:
+                    - generic "Passive discovery" [ref=e588]
+                    - generic [ref=e589]:
+                      - heading "52.168.117.168" [level=4] [ref=e590]
+                      - generic [ref=e591]: "OS: Unknown"
+                  - generic [ref=e592]: No services detected
+                - generic [ref=e594] [cursor=pointer]:
+                  - generic [ref=e595]:
+                    - generic "Passive discovery" [ref=e596]
+                    - generic [ref=e597]:
+                      - heading "140.82.114.21" [level=4] [ref=e598]
+                      - generic [ref=e599]: "OS: Unknown"
+                  - generic [ref=e600]: No services detected
+                - generic [ref=e602] [cursor=pointer]:
+                  - generic [ref=e603]:
+                    - generic "Passive discovery" [ref=e604]
+                    - generic [ref=e605]:
+                      - heading "40.119.108.0" [level=4] [ref=e606]
+                      - generic [ref=e607]: "OS: Unknown"
+                  - generic [ref=e608]: No services detected
+                - generic [ref=e610] [cursor=pointer]:
+                  - generic [ref=e611]:
+                    - generic "Passive discovery" [ref=e612]
+                    - generic [ref=e613]:
+                      - heading "52.182.143.213" [level=4] [ref=e614]
+                      - generic [ref=e615]: "OS: Unknown"
+                  - generic [ref=e616]: No services detected
+                - generic [ref=e618] [cursor=pointer]:
+                  - generic [ref=e619]:
+                    - generic "Passive discovery" [ref=e620]
+                    - generic [ref=e621]:
+                      - heading "20.189.173.6" [level=4] [ref=e622]
+                      - generic [ref=e623]: "OS: Unknown"
+                  - generic [ref=e624]: No services detected
+                - generic [ref=e626] [cursor=pointer]:
+                  - generic [ref=e627]:
+                    - generic "Passive discovery" [ref=e628]
+                    - generic [ref=e629]:
+                      - heading "20.189.172.33" [level=4] [ref=e630]
+                      - generic [ref=e631]: "OS: Unknown"
+                  - generic [ref=e632]: No services detected
+                - generic [ref=e634] [cursor=pointer]:
+                  - generic [ref=e635]:
+                    - generic "Passive discovery" [ref=e636]
+                    - generic [ref=e637]:
+                      - heading "13.89.179.9" [level=4] [ref=e638]
+                      - generic [ref=e639]: "OS: Unknown"
+                  - generic [ref=e640]: No services detected
+                - generic [ref=e642] [cursor=pointer]:
+                  - generic [ref=e643]:
+                    - generic "Passive discovery" [ref=e644]
+                    - generic [ref=e645]:
+                      - heading "13.89.179.10" [level=4] [ref=e646]
+                      - generic [ref=e647]: "OS: Unknown"
+                  - generic [ref=e648]: No services detected
+                - generic [ref=e650] [cursor=pointer]:
+                  - generic [ref=e651]:
+                    - generic "Passive discovery" [ref=e652]
+                    - generic [ref=e653]:
+                      - heading "20.189.172.76" [level=4] [ref=e654]
+                      - generic [ref=e655]: "OS: Unknown"
+                  - generic [ref=e656]: No services detected
+                - generic [ref=e658] [cursor=pointer]:
+                  - generic [ref=e659]:
+                    - generic "Passive discovery" [ref=e660]
+                    - generic [ref=e661]:
+                      - heading "52.182.141.63" [level=4] [ref=e662]
+                      - generic [ref=e663]: "OS: Unknown"
+                  - generic [ref=e664]: No services detected
+                - generic [ref=e666] [cursor=pointer]:
+                  - generic [ref=e667]:
+                    - generic "Passive discovery" [ref=e668]
+                    - generic [ref=e669]:
+                      - heading "20.189.173.15" [level=4] [ref=e670]
+                      - generic [ref=e671]: "OS: Unknown"
+                  - generic [ref=e672]: No services detected
+                - generic [ref=e674] [cursor=pointer]:
+                  - generic [ref=e675]:
+                    - generic "Passive discovery" [ref=e676]
+                    - generic [ref=e677]:
+                      - heading "40.79.150.122" [level=4] [ref=e678]
+                      - generic [ref=e679]: "OS: Unknown"
+                  - generic [ref=e680]: No services detected
+                - generic [ref=e682] [cursor=pointer]:
+                  - generic [ref=e683]:
+                    - generic "Passive discovery" [ref=e684]
+                    - generic [ref=e685]:
+                      - heading "54.247.62.1" [level=4] [ref=e686]
+                      - generic [ref=e687]: "OS: Unknown"
+                  - generic [ref=e688]: No services detected
+                - generic [ref=e690] [cursor=pointer]:
+                  - generic [ref=e691]:
+                    - generic "Passive discovery" [ref=e692]
+                    - generic [ref=e693]:
+                      - heading "20.189.173.5" [level=4] [ref=e694]
+                      - generic [ref=e695]: "OS: Unknown"
+                  - generic [ref=e696]: No services detected
+                - generic [ref=e698] [cursor=pointer]:
+                  - generic [ref=e699]:
+                    - generic "Passive discovery" [ref=e700]
+                    - generic [ref=e701]:
+                      - heading "20.60.222.111" [level=4] [ref=e702]
+                      - generic [ref=e703]: "OS: Unknown"
+                  - generic [ref=e704]: No services detected
+                - generic [ref=e706] [cursor=pointer]:
+                  - generic [ref=e707]:
+                    - generic "Passive discovery" [ref=e708]
+                    - generic [ref=e709]:
+                      - heading "20.42.65.84" [level=4] [ref=e710]
+                      - generic [ref=e711]: "OS: Unknown"
+                  - generic [ref=e712]: No services detected
+                - generic [ref=e714] [cursor=pointer]:
+                  - generic [ref=e715]:
+                    - generic "Passive discovery" [ref=e716]
+                    - generic [ref=e717]:
+                      - heading "52.168.112.67" [level=4] [ref=e718]
+                      - generic [ref=e719]: "OS: Unknown"
+                  - generic [ref=e720]: No services detected
+                - generic [ref=e722] [cursor=pointer]:
+                  - generic [ref=e723]:
+                    - generic "Passive discovery" [ref=e724]
+                    - generic [ref=e725]:
+                      - heading "20.50.201.195" [level=4] [ref=e726]
+                      - generic [ref=e727]: "OS: Unknown"
+                  - generic [ref=e728]: No services detected
+                - generic [ref=e730] [cursor=pointer]:
+                  - generic [ref=e731]:
+                    - generic "Passive discovery" [ref=e732]
+                    - generic [ref=e733]:
+                      - heading "51.104.15.252" [level=4] [ref=e734]
+                      - generic [ref=e735]: "OS: Unknown"
+                  - generic [ref=e736]: No services detected
+                - generic [ref=e738] [cursor=pointer]:
+                  - generic [ref=e739]:
+                    - generic "Passive discovery" [ref=e740]
+                    - generic [ref=e741]:
+                      - heading "51.104.15.253" [level=4] [ref=e742]
+                      - generic [ref=e743]: "OS: Unknown"
+                  - generic [ref=e744]: No services detected
+                - generic [ref=e746] [cursor=pointer]:
+                  - generic [ref=e747]:
+                    - generic "Passive discovery" [ref=e748]
+                    - generic [ref=e749]:
+                      - heading "13.107.253.67" [level=4] [ref=e750]
+                      - generic [ref=e751]: "OS: Unknown"
+                  - generic [ref=e752]: No services detected
+                - generic [ref=e754] [cursor=pointer]:
+                  - generic [ref=e755]:
+                    - generic "Passive discovery" [ref=e756]
+                    - generic [ref=e757]:
+                      - heading "20.52.64.201" [level=4] [ref=e758]
+                      - generic [ref=e759]: "OS: Unknown"
+                  - generic [ref=e760]: No services detected
+                - generic [ref=e762] [cursor=pointer]:
+                  - generic [ref=e763]:
+                    - generic "Passive discovery" [ref=e764]
+                    - generic [ref=e765]:
+                      - heading "20.189.173.8" [level=4] [ref=e766]
+                      - generic [ref=e767]: "OS: Unknown"
+                  - generic [ref=e768]: No services detected
+                - generic [ref=e770] [cursor=pointer]:
+                  - generic [ref=e771]:
+                    - generic "Passive discovery" [ref=e772]
+                    - generic [ref=e773]:
+                      - heading "52.168.117.170" [level=4] [ref=e774]
+                      - generic [ref=e775]: "OS: Unknown"
+                  - generic [ref=e776]: No services detected
+                - generic [ref=e778] [cursor=pointer]:
+                  - generic [ref=e779]:
+                    - generic "Passive discovery" [ref=e780]
+                    - generic [ref=e781]:
+                      - heading "20.189.173.10" [level=4] [ref=e782]
+                      - generic [ref=e783]: "OS: Unknown"
+                  - generic [ref=e784]: No services detected
+                - generic [ref=e786] [cursor=pointer]:
+                  - generic [ref=e787]:
+                    - generic "Passive discovery" [ref=e788]
+                    - generic [ref=e789]:
+                      - heading "20.42.65.91" [level=4] [ref=e790]
+                      - generic [ref=e791]: "OS: Unknown"
+                  - generic [ref=e792]: No services detected
+                - generic [ref=e794] [cursor=pointer]:
+                  - generic [ref=e795]:
+                    - generic "Passive discovery" [ref=e796]
+                    - generic [ref=e797]:
+                      - heading "20.189.173.23" [level=4] [ref=e798]
+                      - generic [ref=e799]: "OS: Unknown"
+                  - generic [ref=e800]: No services detected
+                - generic [ref=e802] [cursor=pointer]:
+                  - generic [ref=e803]:
+                    - generic "Passive discovery" [ref=e804]
+                    - generic [ref=e805]:
+                      - heading "20.209.72.161" [level=4] [ref=e806]
+                      - generic [ref=e807]: "OS: Unknown"
+                  - generic [ref=e808]: No services detected
+                - generic [ref=e810] [cursor=pointer]:
+                  - generic [ref=e812]:
+                    - heading "172.21.0.60" [level=4] [ref=e813]
+                    - generic [ref=e814]: "OS: Unknown"
+                  - generic [ref=e815]: No services detected
+                - generic [ref=e817] [cursor=pointer]:
+                  - generic [ref=e818]:
+                    - generic "Passive discovery" [ref=e819]
+                    - generic [ref=e820]:
+                      - heading "20.42.65.94" [level=4] [ref=e821]
+                      - generic [ref=e822]: "OS: Unknown"
+                  - generic [ref=e823]: No services detected
+                - generic [ref=e825] [cursor=pointer]:
+                  - generic [ref=e826]:
+                    - generic "Passive discovery" [ref=e827]
+                    - generic [ref=e828]:
+                      - heading "20.42.73.31" [level=4] [ref=e829]
+                      - generic [ref=e830]: "OS: Unknown"
+                  - generic [ref=e831]: No services detected
+                - generic [ref=e833] [cursor=pointer]:
+                  - generic [ref=e834]:
+                    - generic "Passive discovery" [ref=e835]
+                    - generic [ref=e836]:
+                      - heading "40.74.98.194" [level=4] [ref=e837]
+                      - generic [ref=e838]: "OS: Unknown"
+                  - generic [ref=e839]: No services detected
+                - generic [ref=e841] [cursor=pointer]:
+                  - generic [ref=e842]:
+                    - generic "Passive discovery" [ref=e843]
+                    - generic [ref=e844]:
+                      - heading "104.16.7.34" [level=4] [ref=e845]
+                      - generic [ref=e846]: "OS: Unknown"
+                  - generic [ref=e847]: No services detected
+                - generic [ref=e849] [cursor=pointer]:
+                  - generic [ref=e850]:
+                    - generic "Passive discovery" [ref=e851]
+                    - generic [ref=e852]:
+                      - heading "51.116.246.105" [level=4] [ref=e853]
+                      - generic [ref=e854]: "OS: Unknown"
+                  - generic [ref=e855]: No services detected
+                - generic [ref=e857] [cursor=pointer]:
+                  - generic [ref=e858]:
+                    - generic "Passive discovery" [ref=e859]
+                    - generic [ref=e860]:
+                      - heading "20.42.73.25" [level=4] [ref=e861]
+                      - generic [ref=e862]: "OS: Unknown"
+                  - generic [ref=e863]: No services detected
+                - generic [ref=e865] [cursor=pointer]:
+                  - generic [ref=e866]:
+                    - generic "Passive discovery" [ref=e867]
+                    - generic [ref=e868]:
+                      - heading "52.182.143.208" [level=4] [ref=e869]
+                      - generic [ref=e870]: "OS: Unknown"
+                  - generic [ref=e871]: No services detected
+                - generic [ref=e873] [cursor=pointer]:
+                  - generic [ref=e874]:
+                    - generic "Passive discovery" [ref=e875]
+                    - generic [ref=e876]:
+                      - heading "20.42.65.90" [level=4] [ref=e877]
+                      - generic [ref=e878]: "OS: Unknown"
+                  - generic [ref=e879]: No services detected
+                - generic [ref=e881] [cursor=pointer]:
+                  - generic [ref=e882]:
+                    - generic "Passive discovery" [ref=e883]
+                    - generic [ref=e884]:
+                      - heading "20.189.173.27" [level=4] [ref=e885]
+                      - generic [ref=e886]: "OS: Unknown"
+                  - generic [ref=e887]: No services detected
+                - generic [ref=e889] [cursor=pointer]:
+                  - generic [ref=e890]:
+                    - generic "Passive discovery" [ref=e891]
+                    - generic [ref=e892]:
+                      - heading "52.182.143.214" [level=4] [ref=e893]
+                      - generic [ref=e894]: "OS: Unknown"
+                  - generic [ref=e895]: No services detected
+                - generic [ref=e897] [cursor=pointer]:
+                  - generic [ref=e898]:
+                    - generic "Passive discovery" [ref=e899]
+                    - generic [ref=e900]:
+                      - heading "20.44.10.122" [level=4] [ref=e901]
+                      - generic [ref=e902]: "OS: Unknown"
+                  - generic [ref=e903]: No services detected
+                - generic [ref=e905] [cursor=pointer]:
+                  - generic [ref=e906]:
+                    - generic "Passive discovery" [ref=e907]
+                    - generic [ref=e908]:
+                      - heading "20.189.173.28" [level=4] [ref=e909]
+                      - generic [ref=e910]: "OS: Unknown"
+                  - generic [ref=e911]: No services detected
+            - generic [ref=e916]:
+              - img [ref=e918]
+              - paragraph [ref=e920]: No Active Connections
+              - paragraph [ref=e921]: Select an asset and click to connect
+  - generic [ref=e922]: "6500"
+```

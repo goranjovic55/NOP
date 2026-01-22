@@ -44,9 +44,11 @@ const getKeysym = (e: KeyboardEvent): number | null => {
 interface ProtocolConnectionProps {
   tab: ConnectionTab;
   isFullscreen?: boolean;
+  sidebarCollapsed?: boolean;
+  onConnected?: () => void;
 }
 
-const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscreen }) => {
+const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscreen, sidebarCollapsed, onConnected }) => {
   const { updateTabStatus, updateTabCredentials, remoteSettings } = useAccessStore();
   const { token } = useAuthStore();
   const [username, setUsername] = useState(tab.credentials?.username || '');
@@ -102,8 +104,8 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
             
             let scale = 1;
             if (remoteSettings.scalingMode === 'fit') {
-              // Fit: scale to fit container maintaining aspect ratio
-              scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight, 1);
+              // Fit: scale to fit container maintaining aspect ratio (can scale up or down)
+              scale = Math.min(containerWidth / displayWidth, containerHeight / displayHeight);
             } else if (remoteSettings.scalingMode === 'fill') {
               // Fill: scale to fill container (may crop)
               scale = Math.max(containerWidth / displayWidth, containerHeight / displayHeight);
@@ -254,8 +256,8 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
                     const displayWidth = display.getWidth() || newWidth;
                     const displayHeight = display.getHeight() || newHeight;
                     
-                    // Always fit to container for best UX
-                    const scale = Math.min(newWidth / displayWidth, newHeight / displayHeight, 1);
+                    // Fit to container - allow scaling up to fill available space
+                    const scale = Math.min(newWidth / displayWidth, newHeight / displayHeight);
                     display.scale(scale);
                     console.log('[GUACAMOLE-CLIENT] Display scaled to fit:', scale, 'container:', newWidth, 'x', newHeight, 'remote:', displayWidth, 'x', displayHeight);
                   }
@@ -279,21 +281,24 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
     }
   }, [tab.protocol, connectionStatus]);
 
-  // Trigger immediate resize when fullscreen changes
+  // Trigger immediate resize when fullscreen or sidebar changes - reuse existing connection
   useEffect(() => {
     if (displayRef.current && clientRef.current && connectionStatus === 'connected' && (tab.protocol === 'rdp' || tab.protocol === 'vnc')) {
-      // Small delay to let the DOM update after fullscreen toggle
+      // Delay to let the DOM update after fullscreen/sidebar toggle
       const timeoutId = setTimeout(() => {
         if (displayRef.current && clientRef.current) {
           const newWidth = Math.floor(displayRef.current.clientWidth);
           const newHeight = Math.floor(displayRef.current.clientHeight);
           
           if (newWidth > 0 && newHeight > 0) {
+            console.log('[GUACAMOLE-CLIENT] Container size changed, reusing existing connection');
+            console.log('[GUACAMOLE-CLIENT] New container size:', newWidth, 'x', newHeight);
             setDisplaySize({ width: newWidth, height: newHeight });
             
-            // Always send size to remote on fullscreen toggle for automatic resolution adjustment
+            // Send resize request to remote - this tells RDP/VNC to change resolution
+            // The existing connection stays open, just the resolution changes
             clientRef.current.sendSize(newWidth, newHeight);
-            console.log('[GUACAMOLE-CLIENT] Fullscreen resize to remote:', newWidth, 'x', newHeight);
+            console.log('[GUACAMOLE-CLIENT] Sent resize to remote (reusing connection):', newWidth, 'x', newHeight);
             
             // Scale display to fit after remote responds
             setTimeout(() => {
@@ -302,19 +307,19 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
                 const displayWidth = display.getWidth() || newWidth;
                 const displayHeight = display.getHeight() || newHeight;
                 
-                // Fit to container
-                const scale = Math.min(newWidth / displayWidth, newHeight / displayHeight, 1);
+                // Fit to container - use maximum available space
+                const scale = Math.min(newWidth / displayWidth, newHeight / displayHeight);
                 display.scale(scale);
-                console.log('[GUACAMOLE-CLIENT] Fullscreen scale applied:', scale, 'container:', newWidth, 'x', newHeight);
+                console.log('[GUACAMOLE-CLIENT] Display scaled to fit:', scale, 'container:', newWidth, 'x', newHeight);
               }
             }, 150);
           }
         }
-      }, 50); // Short delay for DOM to update
+      }, 100); // Wait for DOM to settle after toggle
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isFullscreen, connectionStatus, tab.protocol]);
+  }, [isFullscreen, sidebarCollapsed, connectionStatus, tab.protocol]);
 
 
     const fetchFtpFiles = async (path: string) => {
@@ -533,17 +538,23 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
     }
   };
 
-  const setupGuacamole = () => {
+  const setupGuacamole = (containerWidth?: number, containerHeight?: number) => {
     console.log('[GUACAMOLE-CLIENT] Setting up Guacamole connection');
     console.log('[GUACAMOLE-CLIENT] Target:', tab.ip);
     console.log('[GUACAMOLE-CLIENT] Protocol:', tab.protocol);
     console.log('[GUACAMOLE-CLIENT] Username:', username);
     console.log('[GUACAMOLE-CLIENT] Port:', (tab.protocol === 'rdp' ? 3389 : 5900));
     console.log('[GUACAMOLE-CLIENT] Remote Settings:', remoteSettings);
+    console.log('[GUACAMOLE-CLIENT] Passed container dimensions:', containerWidth, 'x', containerHeight);
     
     // Calculate resolution based on settings
-    let width = displaySize.width;
-    let height = displaySize.height;
+    // Priority: passed dimensions > container measurement > displaySize state > defaults
+    let width = containerWidth || displaySize.width;
+    let height = containerHeight || displaySize.height;
+    
+    // Ensure minimum dimensions
+    width = Math.max(width, 800);
+    height = Math.max(height, 600);
     
     if (remoteSettings.resolution === 'custom') {
       width = remoteSettings.customWidth;
@@ -553,7 +564,9 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
       width = w;
       height = h;
     }
-    // 'auto' uses displaySize (container size)
+    // 'auto' uses the measured container dimensions
+    
+    console.log('[GUACAMOLE-CLIENT] Final resolution for RDP request:', width, 'x', height);
     
     // Build base params
     const params = new URLSearchParams({
@@ -673,6 +686,11 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
         console.log('[GUACAMOLE-CLIENT] ✓ Successfully connected to remote host');
         updateTabStatus(tab.id, 'connected');
         setConnectionStatus('connected');
+        // Notify parent component
+        if (onConnected) {
+          console.log('[GUACAMOLE-CLIENT] Calling onConnected callback');
+          onConnected();
+        }
       } else if (state === 5) { // DISCONNECTED
         console.log('[GUACAMOLE-CLIENT] Disconnected from remote host');
         updateTabStatus(tab.id, 'disconnected');
@@ -775,7 +793,22 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
     }
 
     if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
-      setupGuacamole();
+      // Measure container size RIGHT NOW before connecting
+      // This ensures we request the correct resolution from the remote
+      if (displayRef.current) {
+        const measuredWidth = displayRef.current.clientWidth || window.innerWidth - 200;
+        const measuredHeight = displayRef.current.clientHeight || window.innerHeight - 150;
+        console.log('[GUACAMOLE-CLIENT] Pre-connect container measurement:', measuredWidth, 'x', measuredHeight);
+        setDisplaySize({ width: measuredWidth, height: measuredHeight });
+        // Pass measured size directly to setupGuacamole
+        setupGuacamole(measuredWidth, measuredHeight);
+      } else {
+        // Fallback to window size if container not available
+        const fallbackWidth = window.innerWidth - 200;
+        const fallbackHeight = window.innerHeight - 150;
+        console.log('[GUACAMOLE-CLIENT] Using fallback dimensions:', fallbackWidth, 'x', fallbackHeight);
+        setupGuacamole(fallbackWidth, fallbackHeight);
+      }
       return;
     }
 
@@ -894,25 +927,18 @@ const ProtocolConnection: React.FC<ProtocolConnectionProps> = ({ tab, isFullscre
 
   if (connectionStatus === 'connected') {
     if (tab.protocol === 'rdp' || tab.protocol === 'vnc') {
-      // Determine container styles based on scaling mode
-      const displayContainerStyle: React.CSSProperties = {
-        minHeight: '100%',
-      };
-      
-      // For 'fill' mode, we want the display to stretch to fill
-      // For 'fit' mode, we center the display maintaining aspect ratio
-      // For 'none' mode, we allow scrolling if content is larger
-      const containerClasses = remoteSettings.scalingMode === 'none' 
-        ? 'flex-1 overflow-auto bg-black'
-        : 'flex-1 flex items-center justify-center overflow-hidden bg-black';
-      
+      // For RDP/VNC, use 100% of container and let display scale
       return (
-        <div className="h-full flex flex-col bg-black rounded border border-cyber-gray shadow-2xl overflow-hidden">
-          <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between border-b border-cyber-gray">
+        <div className="h-full w-full flex flex-col bg-black overflow-hidden">
+          <div className="bg-cyber-darker px-4 py-2 text-xs opacity-50 flex justify-between border-b border-cyber-gray shrink-0">
             <span>Connected to {tab.ip} ({tab.protocol.toUpperCase()})</span>
             <span>{username} | {remoteSettings.resolution === 'auto' ? `${displaySize.width}×${displaySize.height}` : remoteSettings.resolution}</span>
           </div>
-          <div ref={displayRef} className={containerClasses} style={displayContainerStyle} />
+          <div 
+            ref={displayRef} 
+            className="flex-1 flex items-center justify-center overflow-hidden bg-black"
+            style={{ minHeight: 0 }}
+          />
         </div>
       );
     }

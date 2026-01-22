@@ -65,3 +65,5 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Protocol | VNC asks for username | Use conditional rendering `tab.protocol !== 'vnc'` |
 | Guacamole | Keyboard stuck after disconnect | Replace Guacamole.Keyboard with native event listeners |
 | Guacamole | Pointer lock traps cursor | Remove requestPointerLock() calls entirely |
+| Fullscreen | Browser extension overlay on maximize | Test in incognito mode to isolate extension interference |
+| Fullscreen | Browser API triggers native controls | Use CSS `fixed inset-0 z-50` instead of requestFullscreen() |

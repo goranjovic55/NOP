@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAccessStore, Protocol } from '../store/accessStore';
 import { useExploitStore, ShellSession } from '../store/exploitStore';
@@ -94,6 +94,7 @@ const Access: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectionHeight, setConnectionHeight] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
@@ -594,9 +595,12 @@ const Access: React.FC = () => {
     }
   });
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
+  // Toggle windowed fullscreen (CSS-based, fills app area - not browser fullscreen API)
+  const toggleFullscreen = useCallback(() => {
+    const newFullscreen = !isFullscreen;
+    setIsFullscreen(newFullscreen);
+    setSidebarCollapsed(newFullscreen);
+  }, [isFullscreen]);
 
   const generatePayload = () => {
     let payload = '';
@@ -884,9 +888,10 @@ const Access: React.FC = () => {
   }, [isResizing]);
 
   return (
-    <div className="h-full flex gap-4">
+    <div className={`h-full flex gap-4 ${isFullscreen ? 'fixed inset-0 z-50 bg-cyber-dark p-0' : ''}`}>
       <div className="flex-1 flex flex-col space-y-4">
-        {/* Header */}
+        {/* Header - hidden in fullscreen */}
+        {!isFullscreen && (
         <div className="flex justify-between items-center">
           <div>
             <CyberPageTitle color="red" className="flex items-center">
@@ -936,10 +941,12 @@ const Access: React.FC = () => {
             </button>
           </div>
         </div>
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* Left Side - Asset List */}
+          {!sidebarCollapsed && (
           <div className="w-1/3 bg-cyber-darker border border-cyber-gray rounded-lg flex flex-col overflow-hidden">
           <div className="p-4 border-b border-cyber-gray bg-cyber-dark">
             <div className="flex items-center justify-between mb-3">
@@ -1158,13 +1165,15 @@ const Access: React.FC = () => {
             )}
           </div>
           </div>
+          )}
 
           {/* Right Side - Connection/Exploit Area */}
-          <div className={`flex-1 bg-cyber-darker border border-cyber-gray rounded-lg overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+          <div className={`flex-1 bg-cyber-darker border border-cyber-gray rounded-lg overflow-hidden flex flex-col ${isFullscreen ? 'border-0 rounded-none' : ''}`}>
           {accessMode === 'login' ? (
             /* Login Mode - Show Active Connections */
             <>
-              {/* Tabs Header */}
+              {/* Tabs Header - hidden in fullscreen */}
+              {!isFullscreen && (
               <div className="flex border-b border-cyber-gray overflow-x-auto custom-scrollbar bg-cyber-dark">
                 {tabs.map(tab => (
                   <div 
@@ -1190,15 +1199,17 @@ const Access: React.FC = () => {
                   </div>
                 ))}
               </div>
+              )}
 
               {/* Connection Content */}
               <div className="flex-1 overflow-hidden" style={!isFullscreen ? { height: `${connectionHeight}px` } : undefined}>
                 {activeTab ? (
                   <div className="h-full flex flex-col">
-                    <div className="p-4 border-b border-cyber-gray bg-cyber-dark flex justify-between items-center">
+                    {/* Connection status bar - minimal in fullscreen */}
+                    <div className={`border-b border-cyber-gray bg-cyber-dark flex justify-between items-center ${isFullscreen ? 'px-2 py-1' : 'p-4'}`}>
                       <div className="flex items-center space-x-4">
-                        <span className="text-cyber-green font-bold uppercase text-xs">Target: {activeTab.ip}</span>
-                        <span className={`text-xs font-bold uppercase px-2 py-0.5 border ${
+                        <span className={`text-cyber-green font-bold uppercase ${isFullscreen ? 'text-[10px]' : 'text-xs'}`}>Target: {activeTab.ip}</span>
+                        <span className={`font-bold uppercase px-2 py-0.5 border ${isFullscreen ? 'text-[10px]' : 'text-xs'} ${
                           activeTab.status === 'connected' ? 'border-cyber-green text-cyber-green' :
                           activeTab.status === 'connecting' ? 'border-cyber-blue text-cyber-blue animate-pulse' :
                           'border-cyber-gray text-cyber-gray'
@@ -1207,25 +1218,41 @@ const Access: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
+                        {/* Sidebar toggle button - hidden in fullscreen */}
+                        {!isFullscreen && (
+                        <button
+                          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                          className={`transition-colors p-1 ${sidebarCollapsed ? 'text-cyber-blue' : 'text-cyber-gray-light hover:text-cyber-blue'}`}
+                          title={sidebarCollapsed ? "Show Assets Sidebar" : "Hide Assets Sidebar"}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            {sidebarCollapsed ? (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                            ) : (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+                            )}
+                          </svg>
+                        </button>
+                        )}
                         <button
                           onClick={toggleFullscreen}
                           className="text-cyber-gray-light hover:text-cyber-blue transition-colors p-1"
-                          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                          title={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"}
                         >
                           {isFullscreen ? (
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
                             </svg>
                           ) : (
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                             </svg>
                           )}
                         </button>
                       </div>
                     </div>
-                    <div className="flex-1 p-6 overflow-auto">
-                      <ProtocolConnection key={activeTab.id} tab={activeTab} />
+                    <div className="flex-1 overflow-hidden">
+                      <ProtocolConnection key={activeTab.id} tab={activeTab} isFullscreen={isFullscreen} sidebarCollapsed={sidebarCollapsed} />
                     </div>
                     {!isFullscreen && (
                       <div

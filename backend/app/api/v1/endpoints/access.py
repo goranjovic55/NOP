@@ -448,14 +448,21 @@ async def guacamole_tunnel(
     logger.info(f"[ACCESS-TUNNEL] Screen: {width}x{height}@{dpi}")
     
     # Handle localhost/127.0.0.1 by remapping to configured container names
+    # ONLY when guacd is not on host network (guacd on host network can reach localhost directly)
     import os
-    if host in ("localhost", "127.0.0.1"):
+    guacd_host = os.getenv("GUACD_HOST", "127.0.0.1")
+    guacd_uses_host_network = guacd_host in ("localhost", "127.0.0.1", "host.docker.internal")
+    
+    if host in ("localhost", "127.0.0.1") and not guacd_uses_host_network:
+        # Only remap when guacd is on Docker network and needs container names
         if protocol == "vnc":
             host = os.environ.get("VNC_HOST", "nop-custom-vnc")
             logger.info(f"[ACCESS-TUNNEL] Remapped localhost to {host} for VNC")
         elif protocol == "rdp":
             host = os.environ.get("RDP_HOST", "nop-custom-rdp")
             logger.info(f"[ACCESS-TUNNEL] Remapped localhost to {host} for RDP")
+    elif host in ("localhost", "127.0.0.1"):
+        logger.info(f"[ACCESS-TUNNEL] Using localhost directly (guacd on host network)")
     
     # Handle Guacamole subprotocol if requested
     subprotocol = None
@@ -492,6 +499,8 @@ async def guacamole_tunnel(
         connection_args["enable-theming"] = "false" if disable_theming == "true" else "true"
         connection_args["enable-font-smoothing"] = "false" if disable_font_smoothing == "true" else "true"
         connection_args["disable-audio"] = disable_audio if disable_audio else "true"
+        # Enable dynamic resolution for RDP - allows sendSize() to work
+        connection_args["resize-method"] = "display-update"
         if enable_printing == "true":
             connection_args["enable-printing"] = "true"
         if enable_drive == "true":
@@ -505,6 +514,9 @@ async def guacamole_tunnel(
     # Apply VNC-specific settings
     elif protocol == "vnc":
         connection_args["color-depth"] = color_depth if color_depth else "24"
+        # VNC uses disable-display-resize (not resize-method which is RDP-only)
+        # Setting to false enables dynamic resizing via sendSize()
+        connection_args["disable-display-resize"] = "false"
         if compression:
             # VNC compression level (0-9)
             connection_args["encodings"] = "zlib" if int(compression) > 0 else "raw"
