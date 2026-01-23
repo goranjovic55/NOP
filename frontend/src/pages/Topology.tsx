@@ -289,14 +289,13 @@ const Topology: React.FC = () => {
   const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
-  // Asset highlighting state - when an asset is clicked, highlight its connections (persistent)
+  // Asset highlighting state - when an asset is clicked, highlight its connections (persistent green)
   const [highlightedAsset, setHighlightedAsset] = useState<string | null>(null);
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
   const [highlightedLinks, setHighlightedLinks] = useState<Set<string>>(new Set());
-
-  // Hover highlighting state (temporary, while hovering)
-  const [hoverHighlightedNodes, setHoverHighlightedNodes] = useState<Set<string>>(new Set());
-  const [hoverHighlightedLinks, setHoverHighlightedLinks] = useState<Set<string>>(new Set());
+  
+  // Link highlighting state - when a link is clicked, it stays green highlighted
+  const [clickedLink, setClickedLink] = useState<GraphLink | null>(null);
 
   // Calculate connected nodes and links for a given node
   const calculateConnections = useCallback((nodeId: string | null): { nodes: Set<string>; links: Set<string> } => {
@@ -323,32 +322,48 @@ const Topology: React.FC = () => {
     return { nodes: connectedNodes, links: connectedLinks };
   }, [graphData.links]);
 
-  // Calculate highlighted nodes and links when an asset is clicked (persistent)
+  // Calculate highlighted nodes and links when an asset OR link is clicked (persistent green)
   useEffect(() => {
     const { nodes, links } = calculateConnections(highlightedAsset);
+    
+    // Also include clicked link in the highlighted set
+    if (clickedLink) {
+      const sourceId = typeof clickedLink.source === 'object' ? clickedLink.source.id : clickedLink.source;
+      const targetId = typeof clickedLink.target === 'object' ? clickedLink.target.id : clickedLink.target;
+      nodes.add(sourceId);
+      nodes.add(targetId);
+      const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+      links.add(`${node1}<->${node2}`);
+    }
+    
     setHighlightedNodes(nodes);
     setHighlightedLinks(links);
-  }, [highlightedAsset, calculateConnections]);
+  }, [highlightedAsset, clickedLink, calculateConnections]);
 
-  // Calculate hover-highlighted nodes and links when hovering over a node OR a link
-  useEffect(() => {
-    // Only apply hover highlighting if there's no persistent highlight
-    if (highlightedAsset) {
-      // Clear hover state when we have a persistent highlight
-      setHoverHighlightedNodes(new Set());
-      setHoverHighlightedLinks(new Set());
-      return;
-    }
-    
-    // If hovering on a node, use that node's connections
+  // Calculate hover-highlighted nodes and links synchronously using useMemo
+  // This ensures the values are available immediately for rendering
+  const { hoverHighlightedNodes, hoverHighlightedLinks } = React.useMemo(() => {
+    // If hovering on a node, use that node's connections (blue hover)
     if (hoveredNode) {
-      const { nodes, links } = calculateConnections(hoveredNode.id);
-      setHoverHighlightedNodes(nodes);
-      setHoverHighlightedLinks(links);
-      return;
+      const connectedNodes = new Set<string>([hoveredNode.id]);
+      const connectedLinks = new Set<string>();
+      
+      graphData.links.forEach(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        if (sourceId === hoveredNode.id || targetId === hoveredNode.id) {
+          connectedNodes.add(sourceId);
+          connectedNodes.add(targetId);
+          const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+          connectedLinks.add(`${node1}<->${node2}`);
+        }
+      });
+      
+      return { hoverHighlightedNodes: connectedNodes, hoverHighlightedLinks: connectedLinks };
     }
     
-    // If hovering on a link, highlight both endpoints and the link
+    // If hovering on a link, highlight both endpoints and the link (blue hover)
     if (hoveredLink) {
       const sourceId = typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source;
       const targetId = typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target;
@@ -357,15 +372,20 @@ const Topology: React.FC = () => {
       const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
       const connectedLinks = new Set<string>([`${node1}<->${node2}`]);
       
-      setHoverHighlightedNodes(connectedNodes);
-      setHoverHighlightedLinks(connectedLinks);
-      return;
+      return { hoverHighlightedNodes: connectedNodes, hoverHighlightedLinks: connectedLinks };
     }
     
-    // Nothing hovered - clear
-    setHoverHighlightedNodes(new Set());
-    setHoverHighlightedLinks(new Set());
-  }, [hoveredNode, hoveredLink, highlightedAsset, calculateConnections]);
+    // Nothing hovered - return empty sets
+    return { hoverHighlightedNodes: new Set<string>(), hoverHighlightedLinks: new Set<string>() };
+  }, [hoveredNode, hoveredLink, graphData.links]);
+
+  // Force graph repaint when hover state or selection changes
+  useEffect(() => {
+    // Trigger a repaint by calling the refresh method if available
+    if (fgRef.current) {
+      fgRef.current.refresh?.();
+    }
+  }, [hoveredNode, hoveredLink, highlightedAsset, clickedLink]);
 
   // Get scan settings for discovery subnet
   const [scanSettings, setScanSettings] = useState(() => {
@@ -1311,14 +1331,30 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
-            // Check if this link is part of the highlighted asset's connections (click)
+            // Check if this link is part of the highlighted asset's connections (click - green)
             const sourceId = start.id;
             const targetId = end.id;
             const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
             const linkKey = `${node1}<->${node2}`;
             const isHighlightedLink = highlightedLinks.has(linkKey);
-            const isHoverHighlightedLink = hoverHighlightedLinks.has(linkKey);
-            const isAnyHighlightActive = highlightedAsset || hoveredNode;
+            
+            // Check if this link is directly hovered OR connected to hovered node
+            // Direct comparison for hovered link (more reliable than Set lookup)
+            let isHoverHighlightedLink = hoverHighlightedLinks.has(linkKey);
+            
+            // Also check direct hover on this specific link
+            if (hoveredLink) {
+              const hoveredSourceId = typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source;
+              const hoveredTargetId = typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target;
+              if ((hoveredSourceId === sourceId && hoveredTargetId === targetId) ||
+                  (hoveredSourceId === targetId && hoveredTargetId === sourceId)) {
+                isHoverHighlightedLink = true;
+              }
+            }
+            
+            // Determine if ANY highlight is active (click OR hover)
+            const isAnyHighlightActive = highlightedAsset || clickedLink || hoveredNode || hoveredLink;
+            // Dim links that are NOT part of click selection AND NOT part of hover
             const isDimmedLink = isAnyHighlightActive && !isHighlightedLink && !isHoverHighlightedLink;
             
             // Check if this link is selected
@@ -1369,7 +1405,8 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw hover-highlighted link glow - cyan for hover (unified with node hover)
+            // Draw hover-highlighted link glow - cyan for hover (works even when something is selected)
+            // Show cyan glow for hover-highlighted links that are NOT part of green selection
             if (isHoverHighlightedLink && !isHighlightedLink) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
@@ -1382,7 +1419,8 @@ const Topology: React.FC = () => {
               ctx.shadowBlur = 0;
             }
             
-            // Draw highlighted link glow - bright green (for clicked/persistent)
+            // Draw highlighted link glow - bright green (for clicked/persistent selection)
+            // Green selection takes precedence and stays visible
             if (isHighlightedLink) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
@@ -1518,25 +1556,50 @@ const Topology: React.FC = () => {
               setSelectedLink(null);
               setContextMenuPosition({ x: event.clientX, y: event.clientY });
             } else {
-              // First click - highlight this asset and its connections
+              // First click - highlight this asset and its connections (green)
               setHighlightedAsset(node.id);
+              setClickedLink(null); // Clear link highlight when selecting node
               setSelectedNode(null);
               setSelectedLink(null);
               setContextMenuPosition(null);
             }
           }}
           onBackgroundClick={() => {
-            // Clear highlighting when clicking on empty space
+            // Clear all highlighting when clicking on empty space
             setHighlightedAsset(null);
+            setClickedLink(null);
             setSelectedNode(null);
             setSelectedLink(null);
             setContextMenuPosition(null);
           }}
           onLinkClick={(link: any, event: MouseEvent) => {
-            // Open context menu for connection
-            setSelectedLink(link);
-            setSelectedNode(null);
-            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+            // Get link key for comparison
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const [node1, node2] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+            const linkKey = `${node1}<->${node2}`;
+            
+            // Check if this link is already clicked
+            const isAlreadyClicked = clickedLink && (() => {
+              const clickedSourceId = typeof clickedLink.source === 'object' ? clickedLink.source.id : clickedLink.source;
+              const clickedTargetId = typeof clickedLink.target === 'object' ? clickedLink.target.id : clickedLink.target;
+              const [n1, n2] = clickedSourceId < clickedTargetId ? [clickedSourceId, clickedTargetId] : [clickedTargetId, clickedSourceId];
+              return `${n1}<->${n2}` === linkKey;
+            })();
+            
+            if (isAlreadyClicked) {
+              // If already highlighted, show context menu
+              setSelectedLink(link);
+              setSelectedNode(null);
+              setContextMenuPosition({ x: event.clientX, y: event.clientY });
+            } else {
+              // First click - highlight this link and its endpoints (green)
+              setClickedLink(link);
+              setHighlightedAsset(null); // Clear asset highlight when selecting link
+              setSelectedNode(null);
+              setSelectedLink(null);
+              setContextMenuPosition(null);
+            }
           }}
           onNodeHover={(node: any) => {
             document.body.style.cursor = node ? 'pointer' : 'default';
@@ -1559,19 +1622,32 @@ const Topology: React.FC = () => {
             const isHighlightedAsset = highlightedAsset === node.id;
             const isConnectedToHighlight = highlightedNodes.has(node.id);
             const isHoverHighlighted = hoveredNode?.id === node.id;
-            const isConnectedToHover = hoverHighlightedNodes.has(node.id);
+            
+            // Check if connected to hover - also check direct link hover
+            let isConnectedToHover = hoverHighlightedNodes.has(node.id);
+            
+            // Also check if this node is an endpoint of the hovered link
+            if (hoveredLink) {
+              const hoveredSourceId = typeof hoveredLink.source === 'object' ? hoveredLink.source.id : hoveredLink.source;
+              const hoveredTargetId = typeof hoveredLink.target === 'object' ? hoveredLink.target.id : hoveredLink.target;
+              if (node.id === hoveredSourceId || node.id === hoveredTargetId) {
+                isConnectedToHover = true;
+              }
+            }
+            
             const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
             const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
             
-            // Dim nodes not connected to highlighted asset or hovered node
-            const isAnyHighlightActive = highlightedAsset || hoveredNode;
+            // Dim nodes that are NOT part of click selection AND NOT part of hover
+            const isAnyHighlightActive = highlightedAsset || clickedLink || hoveredNode || hoveredLink;
             const isDimmed = isAnyHighlightActive && !isConnectedToHighlight && !isConnectedToHover;
             
             // Always show labels, but dim them when there are many nodes
             const dimLabels = (nodeCount > 30 && !isHighlighted) || isDimmed;
             
             // Draw hover highlight ring for nodes connected to hovered node (cyan)
-            if (isConnectedToHover && !isConnectedToHighlight && !isHoverHighlighted && !highlightedAsset) {
+            // Show cyan ring on hover-connected nodes - cyan glow can coexist with green selection
+            if (isConnectedToHover && !isHoverHighlighted && !isHighlightedAsset) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, 12, 0, 2 * Math.PI, false);
               ctx.strokeStyle = '#00f0ff';
@@ -1583,7 +1659,8 @@ const Topology: React.FC = () => {
             }
             
             // Draw hover ring for the hovered node itself (cyan, dashed)
-            if (isHoverHighlighted && !isHighlightedAsset && !highlightedAsset) {
+            // Show cyan ring on hovered node if it's NOT the selected asset (green takes priority)
+            if (isHoverHighlighted && !isHighlightedAsset) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, 14, 0, 2 * Math.PI, false);
               ctx.strokeStyle = '#00f0ff';
@@ -1658,6 +1735,7 @@ const Topology: React.FC = () => {
             ctx.textBaseline = 'middle';
             
             // For highlighted/connected nodes (click - green), show IP prominently
+            // Green selection takes priority over blue hover
             if (isHighlightedAsset || isConnectedToHighlight) {
               // Draw bright IP address
               const ipFontSize = Math.max(8, fontSize * 1.2);
@@ -1675,7 +1753,7 @@ const Topology: React.FC = () => {
                 ctx.fillText(node.name, node.x, node.y + 28);
               }
             } else if (isHoverHighlighted || isConnectedToHover) {
-              // Hover highlighting (cyan) - show IP prominently
+              // Hover highlighting (cyan) - show IP prominently for nodes NOT in green selection
               const ipFontSize = Math.max(8, fontSize * 1.1);
               ctx.font = `bold ${ipFontSize}px Monospace`;
               ctx.fillStyle = isHoverHighlighted ? '#ffffff' : '#00f0ff';
