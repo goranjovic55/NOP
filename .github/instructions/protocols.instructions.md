@@ -1,11 +1,35 @@
 ---
 applyTo: '**'
-description: 'Protocol details: skill triggers, pre-commit gate, simulation stats.'
+description: 'Protocol details: session types, skill triggers, pre-commit gate, simulation stats.'
 ---
 
 # Protocol Details
 
-> Core protocols in copilot-instructions.md. This file: detailed triggers + stats.
+> Core protocols in copilot-instructions.md. This file: session types + detailed triggers + stats.
+
+## Session Type Detection (G2 Enforcement)
+
+**Purpose:** Auto-detect session type → pre-load correct skills → block reloads
+
+| Pattern | Session Type | Pre-load Skills | Accuracy |
+|---------|--------------|-----------------|----------|
+| `.tsx/.jsx` + `.py/backend/` | fullstack | frontend-react + backend-api + debugging | 89% |
+| `.tsx/.jsx/.ts` only | frontend | frontend-react + debugging | 92% |
+| `.py/backend/api/` only | backend | backend-api + debugging | 91% |
+| `Dockerfile/docker-compose` | docker | docker + backend-api | 95% |
+| `.github/skills/agents/` | akis | akis-dev + documentation | 98% |
+| `.md/docs/README` | docs | documentation | 87% |
+
+**Detection Algorithm:**
+1. Analyze initial task description + file paths mentioned
+2. Match against patterns (regex)
+3. Select session type (highest confidence)
+4. Pre-load skills at START
+5. **CACHE skills for session lifetime (G2 BLOCKING)**
+
+**Override:** If auto-detection wrong (13% cases), allow manual skill load ONCE per skill
+
+---
 
 ## Skill Triggers (Detailed)
 
@@ -23,15 +47,29 @@ description: 'Protocol details: skill triggers, pre-commit gate, simulation stat
 | design blueprint architecture | planning | analysis |
 | research compare standards | research | analysis |
 
-## Pre-Commit Gate (G5)
+## Pre-Commit Gate (G5) - BLOCKING
+
+**ENFORCEMENT:** MUST NOT commit if ANY check fails
 
 Before `git commit`:
-1. ✓ Syntax check (no errors)
-2. ✓ Build passes (if applicable)
-3. ✓ Tests pass (if test files edited)
-4. ✓ Workflow log created (sessions >15 min)
+1. ✓ Syntax check (no errors) - **BLOCKING**
+2. ✓ Build passes (if applicable) - **BLOCKING**
+3. ✓ Tests pass (if test files edited) - **BLOCKING**
+4. ✓ Workflow log created (sessions >15 min) - **BLOCKING**
 
-**Block commit if any fails.**
+**Validation Command Chain:**
+```bash
+# Backend
+python -m py_compile file.py && pytest tests/ && git commit
+
+# Frontend  
+npm run build && npm test && git commit
+
+# Fullstack
+pytest tests/ && npm run build && npm test && git commit
+```
+
+**Block commit if any fails. No exceptions.**
 
 ## Simulation Stats (100k)
 

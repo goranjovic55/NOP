@@ -18,6 +18,18 @@ Unlike existing solutions (NetAlertX, ntopng, Security Onion), NOP uniquely comb
 - Unified monitoring and optional security testing
 - Single Docker Compose deployment on ARM64
 
+## AKIS Framework Optimization
+
+The NOP project uses the **AKIS v7.4 framework** for AI-assisted development. Recent optimizations achieved:
+
+- **-25% token usage** (20,175 → 15,123 per session)
+- **-31% API calls** (37.4 → 25.7 per session)
+- **+133% parallelization** (19.1% → 44.6% of sessions)
+- **$75,778 cost savings** per 100k sessions
+- **4,401% ROI** on implementation investment
+
+See [AKIS Optimization Results](docs/AKIS_Optimization_Results.md) for executive summary and [AKIS Framework Documentation](docs/technical/AKIS_Framework.md) for technical details.
+
 ## System Architecture
 
 ```

@@ -10,7 +10,7 @@
 | 4 | No END | Do END |
 | 5 | No verify | Syntax check |
 | 6 | Multi ◆ | One only |
-| 7 | No parallel | Use pairs for 6+ |
+| 7 | No parallel | Use runSubagent pairs for 6+ |
 
 ## START
 1. `head -100 project_knowledge.json` → IN MEMORY: hot_cache, domain_index, gotchas
@@ -53,14 +53,14 @@
 |-------|--------|
 | <3 | Direct |
 | 3-5 | Consider |
-| 6+ | **runSubagent** |
+| 6+ | **runSubagent** (parallel when possible) |
 
 | Agent | Use |
 |-------|-----|
 | architect | Design |
 | code | Implement |
 | debugger | Fix bugs |
-| documentation | Docs (parallel) |
+| documentation | Docs (parallel runSubagent) |
 
 ## Context Isolation (Clean Handoffs)
 | Phase | Handoff |
@@ -72,9 +72,11 @@
 **Rule:** Produce typed artifact, not conversation history. -48.5% tokens.
 
 ## Parallel (G7: 60%)
+**Use runSubagent for parallel execution:**
+
 | Pair | Pattern |
 |------|---------|
-| code + docs | ✓ Parallel |
+| code + docs | ✓ Parallel runSubagent calls |
 | research + code | Sequential |
 
 ## Symbols

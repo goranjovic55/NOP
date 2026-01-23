@@ -55,6 +55,12 @@ Welcome to the Network Observatory Platform documentation. This documentation fo
 | [Agent POV Testing](guides/AGENT-POV-TESTING.md) | Test POV switching functionality |
 | [SOCKS Relay Testing](guides/SOCKS_TESTING_GUIDE.md) | Test SOCKS proxy tunneling |
 
+### AKIS Framework
+
+| Guide | Description |
+|-------|-------------|
+| [AKIS Quick Reference](guides/AKIS_Quick_Reference.md) ⭐ | Quick lookup for session patterns |
+
 ---
 
 ## Reference
@@ -67,6 +73,7 @@ Welcome to the Network Observatory Platform documentation. This documentation fo
 |----------|-------------|
 | [REST API v1](technical/API_rest_v1.md) ⭐ | Complete REST API specification |
 | [Backend Services](technical/SERVICES.md) | Service layer documentation |
+| [AKIS Framework](technical/AKIS_Framework.md) ⭐ | AKIS v7.4 technical documentation |
 
 ### Architecture Reference
 
@@ -138,6 +145,15 @@ Welcome to the Network Observatory Platform documentation. This documentation fo
 
 > **Project-specific** - Analysis reports and metrics (AKIS framework)
 
+### AKIS Framework Optimization
+
+| Document | Description | Status |
+|----------|-------------|--------|
+| [**AKIS Optimization Results**](AKIS_Optimization_Results.md) ⭐ | **Executive summary & ROI** | **Final** |
+| [Workflow Analysis](analysis/workflow_analysis_and_research.md) | Production log analysis (157 sessions) | Final |
+| [Baseline Metrics](analysis/baseline_metrics_100k.md) | Pre-optimization baseline | Final |
+| [Optimization Results](analysis/optimization_results_100k.md) | Post-optimization validation | Final |
+
 ### Framework Analysis
 
 | Document | Description | Status |
@@ -206,6 +222,8 @@ For contributors creating new documentation, use the templates in [`.github/temp
 | Learn about the API | [API Reference](technical/API_rest_v1.md) |
 | Understand the architecture | [System Architecture](architecture/ARCH_system_v1.md) |
 | Contribute code | [Contributing Guide](development/CONTRIBUTING.md) |
+| **Learn about AKIS optimization** | **[AKIS Optimization Results](AKIS_Optimization_Results.md)** |
+| **Use AKIS framework** | **[AKIS Quick Reference](guides/AKIS_Quick_Reference.md)** |
 | Find historical docs | [Archive](archive/INDEX.md) |
 
 ---
@@ -221,8 +239,8 @@ All NOP documentation follows:
 
 ---
 
-**Documentation Version:** 3.0  
-**Last Updated:** 2026-01-14  
-**Total Active Documents:** 56  
+**Documentation Version:** 3.1  
+**Last Updated:** 2026-01-23  
+**Total Active Documents:** 60  
 **Status:** Production
 
