@@ -166,3 +166,20 @@ async def clear_passive_scan_services():
     """Clear all detected services from passive scan"""
     sniffer_service.clear_detected_services()
     return {"message": "Detected services cleared"}
+
+
+@router.get("/passive-scan/enhanced-hosts")
+async def get_enhanced_hosts():
+    """Get all passively discovered hosts with OS, hostname, and service version info"""
+    return {
+        "hosts": sniffer_service.get_all_enhanced_hosts(),
+        "os_detections": len(sniffer_service.host_os_info),
+        "hostname_detections": len(sniffer_service.host_hostnames),
+        "service_versions_detected": sum(len(ports) for ports in sniffer_service.service_versions.values())
+    }
+
+
+@router.get("/passive-scan/host/{ip_address}")
+async def get_enhanced_host_info(ip_address: str):
+    """Get enhanced passive scan info for a specific host"""
+    return sniffer_service.get_enhanced_host_info(ip_address)

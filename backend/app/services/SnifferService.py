@@ -49,6 +49,11 @@ class SnifferService:
         self.passive_scan_enabled = False
         self.detected_services = {}  # Format: {host_ip: {port: {"service": name, "first_seen": ts, "last_seen": ts, "syn_ack_count": n}}}
         
+        # Enhanced passive discovery - OS detection, hostnames, service versions
+        self.host_os_info = {}  # Format: {ip: {"os": "Linux/Windows/...", "ttl": int, "confidence": float}}
+        self.host_hostnames = {}  # Format: {ip: {"hostname": str, "source": "dns/netbios/mdns", "last_seen": ts}}
+        self.service_versions = {}  # Format: {ip: {port: {"banner": str, "version": str, "last_seen": ts}}}
+        
         # Storm-related attributes
         self.is_storming = False
         self.storm_thread: Optional[threading.Thread] = None
@@ -542,6 +547,144 @@ class SnifferService:
         }
         return service_map.get(port, "unknown")
 
+    def _detect_os_from_ttl(self, ip_address: str, ttl: int) -> None:
+        """Detect OS based on TTL value (passive fingerprinting)"""
+        if not self.passive_scan_enabled:
+            return
+            
+        # Common default TTL values:
+        # Linux/Unix: 64, Windows: 128, Cisco/Network devices: 255
+        # Account for hops by checking ranges
+        current_time = time.time()
+        
+        if ttl <= 64:
+            os_guess = "Linux/Unix"
+            confidence = 0.7 if ttl >= 60 else 0.5  # Higher confidence if close to 64
+        elif ttl <= 128:
+            os_guess = "Windows"
+            confidence = 0.7 if ttl >= 120 else 0.5
+        elif ttl <= 255:
+            os_guess = "Network Device"  # Cisco, routers, etc.
+            confidence = 0.6
+        else:
+            return
+        
+        # Only update if we have higher confidence or new entry
+        if ip_address not in self.host_os_info or self.host_os_info[ip_address].get("confidence", 0) <= confidence:
+            self.host_os_info[ip_address] = {
+                "os": os_guess,
+                "ttl": ttl,
+                "confidence": confidence,
+                "last_seen": current_time
+            }
+
+    def _extract_dns_hostname(self, packet) -> None:
+        """Extract hostnames from DNS responses"""
+        if not self.passive_scan_enabled:
+            return
+            
+        try:
+            from scapy.layers.dns import DNS, DNSRR
+            if DNS not in packet:
+                return
+                
+            dns = packet[DNS]
+            # Only process DNS responses with answers
+            if not dns.qr or dns.ancount == 0:
+                return
+                
+            current_time = time.time()
+            
+            # Parse DNS answers
+            for i in range(dns.ancount):
+                try:
+                    rr = dns.an[i]
+                    if hasattr(rr, 'rrname') and hasattr(rr, 'rdata'):
+                        hostname = rr.rrname.decode() if isinstance(rr.rrname, bytes) else str(rr.rrname)
+                        hostname = hostname.rstrip('.')  # Remove trailing dot
+                        
+                        # Get the IP address from the DNS response
+                        if rr.type == 1:  # A record (IPv4)
+                            ip_addr = str(rr.rdata)
+                            self.host_hostnames[ip_addr] = {
+                                "hostname": hostname,
+                                "source": "dns",
+                                "last_seen": current_time
+                            }
+                            logger.debug(f"DNS hostname: {ip_addr} -> {hostname}")
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.debug(f"DNS hostname extraction error: {e}")
+
+    def _extract_service_banner(self, packet, src_ip: str, src_port: int) -> None:
+        """Extract service version from response banners (HTTP, SSH, etc.)"""
+        if not self.passive_scan_enabled:
+            return
+            
+        if Raw not in packet:
+            return
+            
+        try:
+            payload = packet[Raw].load.decode('utf-8', errors='ignore')
+            if not payload:
+                return
+                
+            current_time = time.time()
+            version_info = None
+            banner = None
+            
+            # HTTP Server header
+            if 'HTTP/' in payload and 'Server:' in payload:
+                for line in payload.split('\r\n'):
+                    if line.startswith('Server:'):
+                        version_info = line[7:].strip()
+                        banner = version_info[:100]  # Limit banner length
+                        break
+            
+            # SSH banner (SSH-2.0-OpenSSH_8.9, etc.)
+            elif payload.startswith('SSH-'):
+                banner = payload.split('\r')[0].split('\n')[0][:100]
+                version_info = banner
+            
+            # FTP banner
+            elif src_port == 21 and payload.startswith('220'):
+                banner = payload.split('\r')[0].split('\n')[0][:100]
+                version_info = banner
+            
+            # SMTP banner
+            elif src_port == 25 and payload.startswith('220'):
+                banner = payload.split('\r')[0].split('\n')[0][:100]
+                version_info = banner
+            
+            if version_info:
+                if src_ip not in self.service_versions:
+                    self.service_versions[src_ip] = {}
+                self.service_versions[src_ip][src_port] = {
+                    "banner": banner,
+                    "version": version_info,
+                    "last_seen": current_time
+                }
+                logger.debug(f"Service banner: {src_ip}:{src_port} -> {version_info}")
+                
+        except Exception as e:
+            logger.debug(f"Service banner extraction error: {e}")
+
+    def get_enhanced_host_info(self, ip_address: str) -> Dict[str, Any]:
+        """Get all passively discovered info for a host"""
+        return {
+            "ip_address": ip_address,
+            "os_info": self.host_os_info.get(ip_address),
+            "hostname": self.host_hostnames.get(ip_address),
+            "services": self.detected_services.get(ip_address, {}),
+            "service_versions": self.service_versions.get(ip_address, {})
+        }
+
+    def get_all_enhanced_hosts(self) -> List[Dict[str, Any]]:
+        """Get enhanced info for all passively discovered hosts"""
+        all_ips = set(self.host_os_info.keys()) | set(self.host_hostnames.keys()) | set(self.detected_services.keys())
+        return [self.get_enhanced_host_info(ip) for ip in all_ips]
+
     def _packet_callback(self, packet):
         # Store for PCAP export
         self.captured_packets.append(packet)
@@ -576,6 +719,12 @@ class SnifferService:
             src = packet[IP].src
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
+            
+            # Enhanced passive discovery: OS detection from TTL
+            self._detect_os_from_ttl(src, packet[IP].ttl)
+            
+            # Enhanced passive discovery: DNS hostname extraction
+            self._extract_dns_hostname(packet)
             
             # Track discovered hosts from IP packets
             # Strategy depends on track_source_only setting
@@ -654,6 +803,9 @@ class SnifferService:
                             # Update existing service
                             self.detected_services[host_ip][open_port]["last_seen"] = current_time
                             self.detected_services[host_ip][open_port]["syn_ack_count"] += 1
+                    
+                    # Extract service banners from response packets (HTTP headers, SSH banners, etc.)
+                    self._extract_service_banner(packet, src, tcp_layer.sport)
             elif UDP in packet:
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"

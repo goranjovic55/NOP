@@ -78,12 +78,15 @@ const Assets: React.FC = () => {
 
   const { token } = useAuthStore();
   const { activeAgent } = usePOV();
-  const { setOnScanComplete, tabs: scanTabs, passiveServices } = useScanStore();
+  const { setOnScanComplete, tabs: scanTabs, passiveServices, passiveScanEnabled } = useScanStore();
   const { tabs: accessTabs } = useAccessStore();
   const { setIsDiscovering } = useDiscoveryStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScanTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Enhanced passive scan host info (OS, hostnames, service versions)
+  const [enhancedHostInfo, setEnhancedHostInfo] = useState<Record<string, any>>({});
 
   // Refs for accessing latest state in intervals/timeouts
   const scanSettingsRef = useRef(scanSettings);
@@ -194,13 +197,34 @@ const Assets: React.FC = () => {
       });
 
       setError(null);
+      
+      // Fetch enhanced passive scan host info (OS, hostnames, service versions)
+      if (passiveScanEnabled) {
+        try {
+          const response = await fetch('/api/v1/scans/passive-scan/enhanced-hosts', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const enhancedData = await response.json();
+            const infoMap: Record<string, any> = {};
+            enhancedData.hosts?.forEach((host: any) => {
+              if (host.ip_address) {
+                infoMap[host.ip_address] = host;
+              }
+            });
+            setEnhancedHostInfo(infoMap);
+          }
+        } catch (err) {
+          console.debug('Enhanced host info not available:', err);
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to fetch assets');
     } finally {
       if (showLoading) setLoading(false);
       setTimeout(() => setIsRefreshing(false), 1000);
     }
-  }, [token, statusFilter, activeAgent]);
+  }, [token, statusFilter, activeAgent, passiveScanEnabled]);
 
   useEffect(() => {
     setOnScanComplete((ip, data) => {
@@ -540,6 +564,7 @@ const Assets: React.FC = () => {
                   IP Address {sortField === 'ip' && (sortOrder === 'asc' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Hostname</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">OS</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Status</th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
@@ -565,15 +590,18 @@ const Assets: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+                <tr><td colSpan={9} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
               ) : filteredAndSortedAssets.length === 0 && !error ? (
-                <tr><td colSpan={8} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
+                <tr><td colSpan={9} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (
                 filteredAndSortedAssets.map((asset: any) => {
                   const isScanningThis = scanTabs.some(t => t.ip === asset.ip_address && t.status === 'running');
                   const isConnectedThis = accessTabs.some(t => t.ip === asset.ip_address && t.status === 'connected');
                   const hasPassiveServices = passiveServices.some(ps => ps.host === asset.ip_address);
                   const isPassiveDiscovered = asset.discovery_method === 'passive' || hasPassiveServices;
+                  const enhancedInfo = enhancedHostInfo[asset.ip_address];
+                  const osInfo = enhancedInfo?.os_info;
+                  const passiveHostname = enhancedInfo?.hostname?.hostname;
                   return (
                     <tr
                       key={asset.id}
@@ -598,7 +626,21 @@ const Assets: React.FC = () => {
                           <span className="text-[9px] font-bold uppercase border border-cyber-red text-cyber-red px-1 shadow-[0_0_3px_#ff0040]" title="Previously Exploited">EXPLOIT</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-cyber-gray-light">{asset.hostname || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-cyber-gray-light">{passiveHostname || asset.hostname || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm">
+                        {osInfo ? (
+                          <span className={`text-[10px] font-bold uppercase border px-1.5 py-0.5 ${
+                            osInfo.os?.includes('Linux') ? 'border-cyber-green text-cyber-green' :
+                            osInfo.os?.includes('Windows') ? 'border-cyber-blue text-cyber-blue' :
+                            osInfo.os?.includes('Network') ? 'border-cyber-purple text-cyber-purple' :
+                            'border-cyber-gray text-cyber-gray-light'
+                          }`} title={`TTL: ${osInfo.ttl}, Confidence: ${Math.round((osInfo.confidence || 0) * 100)}%`}>
+                            {osInfo.os}
+                          </span>
+                        ) : (
+                          <span className="text-cyber-gray-light text-[10px] opacity-40">N/A</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${asset.status === 'online' ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_rgba(0,255,65,0.5)]' : 'text-cyber-red border border-cyber-red opacity-60'}`}>
                           {asset.status}

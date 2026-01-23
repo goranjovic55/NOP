@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
@@ -207,10 +207,13 @@ const drawCurvedLine = (
 
 const Topology: React.FC = () => {
   const { token } = useAuthStore();
-  const { passiveServices } = useScanStore();
+  const { passiveServices, passiveScanEnabled } = useScanStore();
   const { activeAgent, isAgentPOV } = usePOV();
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
+  
+  // Enhanced passive scan host info for hover details
+  const [enhancedHostInfo, setEnhancedHostInfo] = useState<Record<string, any>>({});
   
   // Persisted settings - restore from localStorage
   const [trafficThreshold, setTrafficThreshold] = useState<number>(() => {
@@ -284,6 +287,83 @@ const Topology: React.FC = () => {
   const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx?: number; fy?: number }>>(new Map());
   const isInitialLoadRef = useRef(true);
   const simulationCompleteRef = useRef(false); // Track if first simulation has finished
+  const hasInitialCenteringRef = useRef(false); // Track if initial centering on hub was done
+  
+  // Compute connection counts and traffic stats for dynamic sizing
+  const sizingStats = useMemo(() => {
+    const connectionCounts = new Map<string, number>();
+    let maxConnections = 1;
+    let maxTraffic = 1;
+    
+    graphData.links.forEach((link: any) => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      connectionCounts.set(sourceId, (connectionCounts.get(sourceId) || 0) + 1);
+      connectionCounts.set(targetId, (connectionCounts.get(targetId) || 0) + 1);
+      
+      const totalTraffic = (link.value || 0) + (link.reverseValue || 0);
+      if (totalTraffic > maxTraffic) maxTraffic = totalTraffic;
+    });
+    
+    connectionCounts.forEach((count) => {
+      if (count > maxConnections) maxConnections = count;
+    });
+    
+    return { connectionCounts, maxConnections, maxTraffic };
+  }, [graphData.links]);
+  
+  // Calculate node size based on connection count (10% increments, max 100% larger)
+  const getNodeSize = useCallback((nodeId: string, baseSize: number = 6) => {
+    const connections = sizingStats.connectionCounts.get(nodeId) || 0;
+    if (connections === 0 || sizingStats.maxConnections <= 1) return baseSize;
+    
+    // Normalize to 0-1 range, then scale to 0-100% increase in 10% increments
+    const ratio = connections / sizingStats.maxConnections;
+    const increment = Math.floor(ratio * 10) / 10; // Round down to nearest 10%
+    return baseSize * (1 + increment); // baseSize to 2x baseSize
+  }, [sizingStats]);
+  
+  // Calculate link width based on throughput (10% increments, max 100% thicker)
+  const getLinkWidth = useCallback((link: any, baseWidth: number = 1) => {
+    const totalTraffic = (link.value || 0) + (link.reverseValue || 0);
+    if (totalTraffic === 0 || sizingStats.maxTraffic <= 1) return baseWidth;
+    
+    // Normalize to 0-1 range, then scale to 0-100% increase in 10% increments
+    const ratio = totalTraffic / sizingStats.maxTraffic;
+    const increment = Math.floor(ratio * 10) / 10; // Round down to nearest 10%
+    return baseWidth * (1 + increment); // baseWidth to 2x baseWidth
+  }, [sizingStats]);
+  
+  // Center on hub node (largest cluster)
+  const centerOnHub = useCallback(() => {
+    if (!fgRef.current || graphData.nodes.length === 0) return;
+    
+    const connectionCounts = new Map<string, number>();
+    graphData.links.forEach((link: any) => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      connectionCounts.set(sourceId, (connectionCounts.get(sourceId) || 0) + 1);
+      connectionCounts.set(targetId, (connectionCounts.get(targetId) || 0) + 1);
+    });
+    
+    let maxConnections = 0;
+    let hubNodeId: string | null = null;
+    connectionCounts.forEach((count, nodeId) => {
+      if (count > maxConnections) {
+        maxConnections = count;
+        hubNodeId = nodeId;
+      }
+    });
+    
+    if (hubNodeId) {
+      const hubNode = graphData.nodes.find((n: any) => n.id === hubNodeId);
+      if (hubNode && hubNode.x !== undefined && hubNode.y !== undefined) {
+        fgRef.current.centerAt(hubNode.x, hubNode.y, 500);
+        fgRef.current.zoom(1, 500);
+      }
+    }
+  }, [graphData.nodes, graphData.links]);
+  
   // Context menu state for host and connection interactions
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
@@ -918,6 +998,36 @@ const Topology: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, refreshRate, isPlaying]); // Re-create interval when play mode changes
 
+  // Fetch enhanced host info for hover details (OS, hostname, service versions)
+  useEffect(() => {
+    if (!token || !passiveScanEnabled) return;
+    
+    const fetchEnhancedInfo = async () => {
+      try {
+        const response = await fetch('/api/v1/scans/passive-scan/enhanced-hosts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const infoMap: Record<string, any> = {};
+          data.hosts?.forEach((host: any) => {
+            if (host.ip_address) {
+              infoMap[host.ip_address] = host;
+            }
+          });
+          setEnhancedHostInfo(infoMap);
+        }
+      } catch (err) {
+        console.debug('Enhanced host info not available:', err);
+      }
+    };
+    
+    fetchEnhancedInfo();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchEnhancedInfo, 10000);
+    return () => clearInterval(interval);
+  }, [token, passiveScanEnabled]);
+
   // Apply force settings when graph is ready - runs once after first data load
   useEffect(() => {
     if (!fgRef.current || graphData.nodes.length === 0) return;
@@ -1150,6 +1260,15 @@ const Topology: React.FC = () => {
 
         <button onClick={() => fetchData(false, true)} className="btn-cyber px-2 py-1 text-xs">↻</button>
         
+        {/* Center on hub button */}
+        <button 
+          onClick={centerOnHub}
+          className="px-2 py-1 border text-xs rounded border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple transition-colors"
+          title="Center on main traffic hub"
+        >
+          ⊕
+        </button>
+        
         {/* Fullscreen toggle */}
         <button 
           onClick={toggleFullscreen}
@@ -1241,6 +1360,31 @@ const Topology: React.FC = () => {
               });
               // Mark simulation as complete - future data updates won't re-simulate
               simulationCompleteRef.current = true;
+              
+              // Only center on first load, not on every engine stop
+              if (!hasInitialCenteringRef.current) {
+                hasInitialCenteringRef.current = true;
+                
+                // Check if we have saved canvas position to restore
+                const saved = localStorage.getItem('nop_topology_canvas_position');
+                if (saved) {
+                  try {
+                    const pos = JSON.parse(saved);
+                    if (pos.x !== undefined && pos.y !== undefined) {
+                      fgRef.current.centerAt(pos.x, pos.y, 300);
+                      if (pos.zoom) {
+                        fgRef.current.zoom(pos.zoom, 300);
+                      }
+                      return; // Use saved position instead of auto-centering
+                    }
+                  } catch (e) {
+                    console.error('Failed to restore canvas position:', e);
+                  }
+                }
+                
+                // No saved position - center on the node with most connections (largest cluster hub)
+                centerOnHub();
+              }
             }
           }}
           
@@ -1270,9 +1414,9 @@ const Topology: React.FC = () => {
             return applyOpacity(baseColor, opacity);
           }}
           linkWidth={(link: any) => {
-            // Width based on total traffic volume with proper scaling
-            const totalTraffic = link.value + (link.reverseValue || 0);
-            return calculateLinkWidth(totalTraffic);
+            // Width based on total traffic volume (10% increments, max 100% thicker)
+            const baseWidth = 1.5; // Base link width
+            return getLinkWidth(link, baseWidth);
           }}
           linkDirectionalParticles={isPlaying ? (link: any) => {
             // Particle count based on recent packet activity, not historical total
@@ -1370,11 +1514,12 @@ const Topology: React.FC = () => {
             // Calculate curvature based on node IDs for consistent curves
             const curvature = calculateLinkCurvature(start.id, end.id);
             
-            // Calculate link color and width using scaling functions
-            const baseWidth = calculateLinkWidth(totalTraffic);
+            // Calculate link width using dynamic sizing based on throughput (10% increments, max 100% thicker)
+            const baseWidth = getLinkWidth(link, 1.5);
             // Scale with zoom - thinner when zoomed out, thicker when zoomed in
             const zoomScale = Math.max(0.3, Math.min(1.5, globalScale));
-            const highlightWidthMultiplier = isHighlightedLink ? 2.5 : (isHoverHighlightedLink ? 2.0 : (isSelected ? 2 : 1));
+            // Highlight multiplier scales proportionally to maintain relative thickness
+            const highlightWidthMultiplier = isHighlightedLink ? 2.0 : (isHoverHighlightedLink ? 1.8 : (isSelected ? 1.6 : 1));
             const width = baseWidth * highlightWidthMultiplier * zoomScale;
             const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
             
@@ -1572,6 +1717,18 @@ const Topology: React.FC = () => {
             setSelectedLink(null);
             setContextMenuPosition(null);
           }}
+          onZoomEnd={() => {
+            // Save canvas position when user finishes zooming/panning
+            if (fgRef.current) {
+              const zoom = fgRef.current.zoom?.() || 1;
+              const center = fgRef.current.centerAt?.() || { x: 0, y: 0 };
+              localStorage.setItem('nop_topology_canvas_position', JSON.stringify({
+                x: center.x || 0,
+                y: center.y || 0,
+                zoom: zoom
+              }));
+            }
+          }}
           onLinkClick={(link: any, event: MouseEvent) => {
             // Get link key for comparison
             const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
@@ -1645,6 +1802,98 @@ const Topology: React.FC = () => {
             // Always show labels, but dim them when there are many nodes
             const dimLabels = (nodeCount > 30 && !isHighlighted) || isDimmed;
             
+            // OS-based outer halo/glow - draw first so it's behind everything
+            const osInfo = enhancedHostInfo[node.ip]?.os_info;
+            // Calculate dynamic node size for halo (needs to be computed here too)
+            const haloNodeSize = getNodeSize(node.id, 6);
+            
+            // Calculate node's link intensity based on its connections' recency
+            let nodeIntensity = 0.3; // Base intensity for nodes with no recent traffic
+            const nodeLinks = graphData.links.filter((link: any) => {
+              const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+              const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+              return sourceId === node.id || targetId === node.id;
+            });
+            if (nodeLinks.length > 0) {
+              // Get max opacity of connected links (most active link determines node intensity)
+              const linkOpacities = nodeLinks.map((link: any) => 
+                calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count)
+              );
+              nodeIntensity = Math.max(...linkOpacities, 0.3);
+            }
+            
+            if (osInfo && !isDimmed) {
+              let osGlowColor = null;
+              const osName = osInfo.os?.toLowerCase() || '';
+              
+              // Determine OS glow color
+              if (osName.includes('linux') || osName.includes('unix')) {
+                osGlowColor = '#00ff41'; // Green for Linux/Unix
+              } else if (osName.includes('windows')) {
+                osGlowColor = '#00bfff'; // Blue for Windows
+              } else if (osName.includes('android')) {
+                osGlowColor = '#a4c639'; // Android green
+              } else if (osName.includes('ios') || osName.includes('apple') || osName.includes('mac')) {
+                osGlowColor = '#ffffff'; // White for Apple/iOS
+              } else if (osName.includes('network') || osName.includes('router') || osName.includes('switch')) {
+                osGlowColor = '#9b59b6'; // Purple for network devices
+              }
+              
+              // Draw strong neon halo if OS detected
+              if (osGlowColor) {
+                // Halo scales with dynamic node size
+                const baseRadius = isHighlightedAsset ? haloNodeSize * 2 : (isSelected ? haloNodeSize * 1.7 : haloNodeSize * 1.4);
+                
+                // Scale opacity values by node intensity (sync with link brightness)
+                const intensityScale = nodeIntensity;
+                const toHex = (opacity: number) => Math.floor(opacity * intensityScale * 255).toString(16).padStart(2, '0');
+                
+                // Draw multiple layered glows for neon effect
+                // Outer glow - large, soft
+                const outerGradient = ctx.createRadialGradient(
+                  node.x, node.y, baseRadius * 0.3,
+                  node.x, node.y, baseRadius * 1.8
+                );
+                outerGradient.addColorStop(0, `${osGlowColor}${toHex(0.25)}`); // Semi-transparent center
+                outerGradient.addColorStop(0.4, `${osGlowColor}${toHex(0.19)}`);
+                outerGradient.addColorStop(0.7, `${osGlowColor}${toHex(0.08)}`);
+                outerGradient.addColorStop(1, `${osGlowColor}00`);
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, baseRadius * 1.8, 0, 2 * Math.PI, false);
+                ctx.fillStyle = outerGradient;
+                ctx.fill();
+                
+                // Middle glow - medium, brighter
+                const midGradient = ctx.createRadialGradient(
+                  node.x, node.y, baseRadius * 0.4,
+                  node.x, node.y, baseRadius * 1.2
+                );
+                midGradient.addColorStop(0, `${osGlowColor}${toHex(0.38)}`);
+                midGradient.addColorStop(0.5, `${osGlowColor}${toHex(0.25)}`);
+                midGradient.addColorStop(1, `${osGlowColor}00`);
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, baseRadius * 1.2, 0, 2 * Math.PI, false);
+                ctx.fillStyle = midGradient;
+                ctx.fill();
+                
+                // Inner core glow - small, intense
+                const coreGradient = ctx.createRadialGradient(
+                  node.x, node.y, 2,
+                  node.x, node.y, baseRadius * 0.8
+                );
+                coreGradient.addColorStop(0, `${osGlowColor}${toHex(0.56)}`);
+                coreGradient.addColorStop(0.6, `${osGlowColor}${toHex(0.31)}`);
+                coreGradient.addColorStop(1, `${osGlowColor}00`);
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, baseRadius * 0.8, 0, 2 * Math.PI, false);
+                ctx.fillStyle = coreGradient;
+                ctx.fill();
+              }
+            }
+            
             // Draw hover highlight ring for nodes connected to hovered node (cyan)
             // Show cyan ring on hover-connected nodes - cyan glow can coexist with green selection
             if (isConnectedToHover && !isHoverHighlighted && !isHighlightedAsset) {
@@ -1715,15 +1964,22 @@ const Topology: React.FC = () => {
             }
             
             // Draw Node Circle - dimmer when not highlighted
+            // Size based on connection count (10% increments, max 100% larger)
+            // Brightness based on link activity (synced with halo intensity)
+            const dynamicNodeSize = getNodeSize(node.id, 6);
+            const nodeRadius = isHighlightedAsset ? dynamicNodeSize * 1.67 : (isSelected ? dynamicNodeSize * 1.33 : dynamicNodeSize);
             ctx.beginPath();
-            ctx.arc(node.x, node.y, isHighlightedAsset ? 10 : (isSelected ? 8 : 6), 0, 2 * Math.PI, false);
-            ctx.globalAlpha = isDimmed ? 0.2 : (isHighlighted ? 1.0 : 0.6);
+            ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+            // Apply node intensity to opacity - highlighted nodes also respect traffic intensity
+            const baseOpacity = isDimmed ? 0.2 : (isHighlighted ? Math.max(0.6, nodeIntensity) : nodeIntensity * 0.8);
+            ctx.globalAlpha = baseOpacity;
             ctx.fillStyle = nodeColor;
             ctx.fill();
             
-            // Glow effect - only when highlighted
+            // Glow effect - intensity scales with traffic activity
             if (isHighlighted && !isDimmed) {
-              ctx.shadowBlur = isHighlightedAsset ? 20 : (isSelected ? 15 : 10);
+              const glowIntensity = Math.max(0.5, nodeIntensity);
+              ctx.shadowBlur = (isHighlightedAsset ? 20 : (isSelected ? 15 : 10)) * glowIntensity;
               ctx.shadowColor = nodeColor;
             }
             ctx.stroke();
@@ -1735,47 +1991,57 @@ const Topology: React.FC = () => {
             ctx.textBaseline = 'middle';
             
             // For highlighted/connected nodes (click - green), show IP prominently
-            // Green selection takes priority over blue hover
+            // Green selection takes priority over blue hover - intensity based on traffic
             if (isHighlightedAsset || isConnectedToHighlight) {
-              // Draw bright IP address
+              // Draw IP address - brightness scaled by traffic intensity
               const ipFontSize = Math.max(8, fontSize * 1.2);
               ctx.font = `bold ${ipFontSize}px Monospace`;
+              ctx.globalAlpha = Math.max(0.6, nodeIntensity);
               ctx.fillStyle = isHighlightedAsset ? '#ffffff' : '#00ff41';
-              ctx.shadowBlur = 10;
+              ctx.shadowBlur = 10 * nodeIntensity;
               ctx.shadowColor = isHighlightedAsset ? '#ffffff' : '#00ff41';
               ctx.fillText(node.ip, node.x, node.y + 16);
               ctx.shadowBlur = 0;
+              ctx.globalAlpha = 1.0;
               
               // Draw hostname below if different from IP
               if (node.name !== node.ip) {
                 ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.globalAlpha = Math.max(0.5, nodeIntensity * 0.8);
                 ctx.fillStyle = '#00f0ff';
                 ctx.fillText(node.name, node.x, node.y + 28);
+                ctx.globalAlpha = 1.0;
               }
             } else if (isHoverHighlighted || isConnectedToHover) {
-              // Hover highlighting (cyan) - show IP prominently for nodes NOT in green selection
+              // Hover highlighting (cyan) - intensity based on traffic
               const ipFontSize = Math.max(8, fontSize * 1.1);
               ctx.font = `bold ${ipFontSize}px Monospace`;
+              ctx.globalAlpha = Math.max(0.6, nodeIntensity);
               ctx.fillStyle = isHoverHighlighted ? '#ffffff' : '#00f0ff';
-              ctx.shadowBlur = 8;
+              ctx.shadowBlur = 8 * nodeIntensity;
               ctx.shadowColor = '#00f0ff';
               ctx.fillText(node.ip, node.x, node.y + 14);
               ctx.shadowBlur = 0;
+              ctx.globalAlpha = 1.0;
               
               // Draw hostname below if different from IP
               if (node.name !== node.ip) {
                 ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.globalAlpha = Math.max(0.5, nodeIntensity * 0.8);
                 ctx.fillStyle = '#00f0ff';
                 ctx.fillText(node.name, node.x, node.y + 26);
+                ctx.globalAlpha = 1.0;
               }
             } else if (isHovered || isSelected) {
-              // Bright neon cyan when hovered or selected
+              // Bright neon cyan when hovered or selected - intensity based on traffic
+              ctx.globalAlpha = Math.max(0.6, nodeIntensity);
               ctx.fillStyle = '#00f0ff';
-              ctx.shadowBlur = 8;
+              ctx.shadowBlur = 8 * nodeIntensity;
               ctx.shadowColor = '#00f0ff';
               const labelOffset = 12;
               ctx.fillText(label, node.x, node.y + labelOffset);
               ctx.shadowBlur = 0;
+              ctx.globalAlpha = 1.0;
             } else if (dimLabels) {
               // Very dim for crowded view or dimmed nodes - but still visible
               ctx.fillStyle = isDimmed ? '#1a2a30' : '#2a3a40';
@@ -1783,11 +2049,15 @@ const Topology: React.FC = () => {
               const labelOffset = 12;
               ctx.fillText(label, node.x, node.y + labelOffset);
             } else {
-              // Normal dim label
-              ctx.fillStyle = '#4a6670';
+              // Normal label - brightness synced with node traffic intensity
+              // Convert intensity (0.3-1.0) to hex brightness for label color
+              const labelBrightness = Math.floor(0x46 + (nodeIntensity * 0x30)).toString(16).padStart(2, '0');
+              ctx.fillStyle = `#${labelBrightness}${labelBrightness}${labelBrightness}`;
+              ctx.globalAlpha = Math.max(0.4, nodeIntensity);
               ctx.shadowBlur = 0;
               const labelOffset = 12;
               ctx.fillText(label, node.x, node.y + labelOffset);
+              ctx.globalAlpha = 1.0;
             }
             ctx.shadowBlur = 0;
           }}
@@ -1897,6 +2167,151 @@ const Topology: React.FC = () => {
             <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
         </div>
+
+        {/* Hover Details Sidebar - shows enhanced info on node/link hover OR clicked selection */}
+        {/* Stacked vertically: Asset card on top, Connection card below */}
+        {(() => {
+          // Show details for hovered node OR clicked/highlighted asset
+          const displayNode = hoveredNode || (highlightedAsset ? graphData.nodes.find((n: any) => n.ip === highlightedAsset) : null);
+          // Show details for hovered link OR clicked link
+          const displayLink = hoveredLink || clickedLink;
+          const isClickedAsset = !hoveredNode && highlightedAsset;
+          const isClickedLink = !hoveredLink && clickedLink;
+          
+          if (!displayNode && !displayLink) return null;
+          
+          return (
+            <div className="absolute top-4 right-4 w-64 flex flex-col space-y-2 z-30 pointer-events-none">
+              {/* Asset Details Card */}
+              {displayNode && (
+                <div className={`bg-cyber-dark/95 border rounded-lg shadow-lg ${isClickedAsset ? 'border-cyber-green' : 'border-cyber-blue'}`}>
+                  <div className="px-3 py-2 border-b border-cyber-gray flex justify-between items-center">
+                    <div className={`text-xs font-bold uppercase ${isClickedAsset ? 'text-cyber-green' : 'text-cyber-blue'}`}>
+                      Asset Details {isClickedAsset && '(Selected)'}
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">IP:</span>
+                      <span className="text-cyber-green font-mono">{displayNode.ip}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">Name:</span>
+                      <span className="text-white">{enhancedHostInfo[displayNode.ip]?.hostname?.hostname || displayNode.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">Status:</span>
+                      <span className={displayNode.status === 'online' ? 'text-cyber-green' : 'text-cyber-red'}>{displayNode.status}</span>
+                    </div>
+                    {enhancedHostInfo[displayNode.ip]?.os_info && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">OS:</span>
+                        <span className={
+                          enhancedHostInfo[displayNode.ip].os_info.os?.includes('Linux') ? 'text-cyber-green' :
+                          enhancedHostInfo[displayNode.ip].os_info.os?.includes('Windows') ? 'text-cyber-blue' :
+                          'text-cyber-purple'
+                        }>
+                          {enhancedHostInfo[displayNode.ip].os_info.os}
+                          <span className="text-cyber-gray-light ml-1 opacity-60">
+                            ({Math.round((enhancedHostInfo[displayNode.ip].os_info.confidence || 0) * 100)}%)
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {enhancedHostInfo[displayNode.ip]?.service_versions && Object.keys(enhancedHostInfo[displayNode.ip].service_versions).length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-cyber-gray">
+                        <div className="text-cyber-purple text-[10px] uppercase font-bold mb-1">Services:</div>
+                        {Object.entries(enhancedHostInfo[displayNode.ip].service_versions).slice(0, 3).map(([port, info]: [string, any]) => (
+                          <div key={port} className="text-[10px] text-cyber-gray-light font-mono truncate">
+                            <span className="text-cyber-blue">{port}</span>: {info.version?.substring(0, 30) || 'unknown'}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Connections list sorted by traffic strength - no scroll, expand vertically */}
+                    {(() => {
+                      const nodeConnections = graphData.links
+                        .filter((link: any) => {
+                          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                          return sourceId === displayNode.ip || targetId === displayNode.ip;
+                        })
+                        .map((link: any) => {
+                          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                          const peerId = sourceId === displayNode.ip ? targetId : sourceId;
+                          const totalTraffic = (link.value || 0) + (link.reverseValue || 0);
+                          return { peerId, totalTraffic, protocols: link.protocols };
+                        })
+                        .sort((a: any, b: any) => b.totalTraffic - a.totalTraffic);
+                      
+                      if (nodeConnections.length === 0) return null;
+                      
+                      return (
+                        <div className="mt-2 pt-2 border-t border-cyber-gray">
+                          <div className="text-cyber-green text-[10px] uppercase font-bold mb-1">Connections ({nodeConnections.length}):</div>
+                          <div>
+                            {nodeConnections.map((conn: any, idx: number) => (
+                              <div key={conn.peerId} className="text-[10px] font-mono flex justify-between items-center py-0.5">
+                                <span className="text-cyber-blue truncate max-w-[120px]">{conn.peerId}</span>
+                                <span className={`text-right ${idx === 0 ? 'text-cyber-green font-bold' : 'text-cyber-gray-light'}`}>
+                                  {formatTrafficMB(conn.totalTraffic)}MB
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+              
+              {/* Connection Details Card */}
+              {displayLink && (
+                <div className={`bg-cyber-dark/95 border rounded-lg shadow-lg ${isClickedLink ? 'border-cyber-green' : 'border-cyber-purple'}`}>
+                  <div className="px-3 py-2 border-b border-cyber-gray">
+                    <div className={`text-xs font-bold uppercase ${isClickedLink ? 'text-cyber-green' : 'text-cyber-purple'}`}>
+                      Connection Details {isClickedLink && '(Selected)'}
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">Source:</span>
+                      <span className="text-cyber-green font-mono">{typeof displayLink.source === 'object' ? displayLink.source.id : displayLink.source}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">Target:</span>
+                      <span className="text-cyber-blue font-mono">{typeof displayLink.target === 'object' ? displayLink.target.id : displayLink.target}</span>
+                    </div>
+                    {displayLink.protocols && displayLink.protocols.length > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Protocol:</span>
+                        <span className="text-cyber-purple">{displayLink.protocols.join(', ')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-cyber-gray-light">Outbound:</span>
+                      <span className="text-white">{formatTrafficMB(displayLink.value || 0)} MB</span>
+                    </div>
+                    {displayLink.reverseValue !== undefined && displayLink.reverseValue > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Inbound:</span>
+                        <span className="text-white">{formatTrafficMB(displayLink.reverseValue)} MB</span>
+                      </div>
+                    )}
+                    {displayLink.packet_count !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Packets:</span>
+                        <span className="text-white">{displayLink.packet_count.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Context menus inside container for fullscreen support */}
         {/* Host Context Menu */}

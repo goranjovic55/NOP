@@ -1,7 +1,7 @@
 ---
 name: AKIS
 description: 'Workflow enforcement agent with 8-gate quality control, skill-based execution, and knowledge graph integration. Orchestrates all other agents.'
-tools: ['execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment']
+tools: ['execute', 'read', 'agent', 'edit', 'search', 'web', 'pylance-mcp-server/*', 'todo', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment']
 ---
 
 # AKIS v7.4
