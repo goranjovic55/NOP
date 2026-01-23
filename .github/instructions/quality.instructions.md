@@ -67,3 +67,4 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Guacamole | Pointer lock traps cursor | Remove requestPointerLock() calls entirely |
 | Fullscreen | Browser extension overlay on maximize | Test in incognito mode to isolate extension interference |
 | Fullscreen | Browser API triggers native controls | Use CSS `fixed inset-0 z-50` instead of requestFullscreen() |
+| React | useEffect hover state one render behind | Use useMemo for render-dependent state, not useEffect |
