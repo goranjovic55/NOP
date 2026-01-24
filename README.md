@@ -203,7 +203,30 @@ docker compose -f docker-compose.dev.yml up -d --build
 ```bash
 # Start test targets (SSH, VNC, RDP, FTP, Web servers)
 docker compose -f docker-compose.test.yml up -d --build
+
+# Or use comprehensive test environment with validation
+cd test-environment
+docker compose up -d
+cd ..
+./validate-test-hosts.sh
 ```
+
+### Comprehensive Testing
+```bash
+# Run complete test suite with all features against live hosts
+./run-comprehensive-tests.sh
+
+# Or run specific test suites
+npm run test:comprehensive  # 17 feature tests
+npm run test:connections    # 16 connection tests
+npm run test:ui             # Interactive test mode
+npm run validate-hosts      # Validate test environment
+
+# View test results
+npm run test:report
+```
+
+See [Testing Quick Reference](TESTING_QUICK_REFERENCE.md) for detailed testing guide.
 
 ### Access Points
 - **Frontend**: http://localhost:12000
@@ -276,15 +299,67 @@ For detailed agent documentation, see `.github/agents/`.
 
 ## 🧪 Test Credentials
 
+**NOP Platform**:
+- Username: `admin`
+- Password: `admin123` (or check `.env` file)
+
 **Vault Unlock**: `admin123`
 **Reconnect Password**: `admin123`
 
-**Test Servers**:
-- SSH: `testuser:testpass123` or `admin:admin123`
-- VNC: `vncuser:vnc123`
-- RDP: `rdpuser:rdp123`
-- FTP: `ftpuser:ftp123`
-- SMB: `smbuser:smbpass123`
+**Test Hosts** (in test-environment/):
+- SSH: `testuser:testpass123` or `admin:admin123` (172.21.0.10:22)
+- VNC: Password `password` (172.21.0.50:5900)
+- RDP: `rdpuser:rdp123` (172.21.0.60:3389)
+- FTP: `ftpuser:ftp123` (172.21.0.30:21)
+- MySQL: `dbuser:dbpass123` (172.21.0.40:3306)
+- SMB: `smbuser:smbpass123` (172.21.0.70:445)
+
+See [test-environment/README.md](test-environment/README.md) for complete details.
+
+## 🧪 Testing
+
+### Comprehensive Test Suite
+
+The project includes a complete test suite that validates all features against **live test hosts**:
+
+**Quick Start**:
+```bash
+./run-comprehensive-tests.sh
+```
+
+**Test Coverage**:
+- ✅ 34 automated Playwright tests (17 feature + 16 connection + 1 validation)
+- ✅ All major features tested against real services (not mocks)
+- ✅ Live hosts: SSH, VNC, RDP, FTP, Web, MySQL, SMB servers
+- ✅ End-to-end workflows with actual protocol interactions
+- ✅ Visual verification with screenshots
+- ✅ Performance and stability testing
+
+**Features Tested**:
+- Authentication & Authorization
+- Asset Discovery (172.21.0.0/24 test network)
+- Credential Vault Management
+- Remote Access (SSH, VNC, RDP, FTP)
+- Network & Port Scanning
+- Vulnerability Detection
+- Traffic Analysis
+- Workflow Execution
+- Agent Deployment
+- Dashboard & Reporting
+
+**Documentation**:
+- [Testing Quick Reference](TESTING_QUICK_REFERENCE.md) - 5-minute guide
+- [Complete Test Suite Documentation](e2e/TEST_SUITE_README.md) - Detailed docs
+- [Test Environment Details](test-environment/README.md) - Host configuration
+
+**Test Commands**:
+```bash
+npm run test:comprehensive  # 17 feature tests
+npm run test:connections    # 16 connection tests
+npm run test:ui             # Interactive debugging
+npm run validate-hosts      # Verify test environment
+npm run test:report         # View HTML report
+```
 
 ## 📝 License
 
