@@ -774,6 +774,8 @@ class SnifferService:
             if TCP in packet:
                 protocol = "TCP"
                 packet_data["protocol"] = "TCP"
+                packet_data["src_port"] = packet[TCP].sport
+                packet_data["dst_port"] = packet[TCP].dport
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
                 
@@ -809,6 +811,8 @@ class SnifferService:
             elif UDP in packet:
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"
+                packet_data["src_port"] = packet[UDP].sport
+                packet_data["dst_port"] = packet[UDP].dport
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
             elif packet[IP].proto == 1:  # ICMP (Internet Control Message Protocol)
@@ -834,12 +838,18 @@ class SnifferService:
                     "protocols": set(),
                     "first_seen": current_time,
                     "last_seen": current_time,
-                    "packet_count": 0
+                    "packet_count": 0,
+                    "ports": set()  # Track all ports used in this connection
                 }
             self.stats["connections"][conn_key]["bytes"] += len(packet)
             self.stats["connections"][conn_key]["protocols"].add(protocol)
             self.stats["connections"][conn_key]["last_seen"] = current_time
             self.stats["connections"][conn_key]["packet_count"] += 1
+            # Add ports from packet_data if available
+            if "src_port" in packet_data and packet_data["src_port"]:
+                self.stats["connections"][conn_key]["ports"].add(packet_data["src_port"])
+            if "dst_port" in packet_data and packet_data["dst_port"]:
+                self.stats["connections"][conn_key]["ports"].add(packet_data["dst_port"])
             
             # Also track in burst stats if burst capture is active
             if hasattr(self, 'burst_stats') and self.burst_stats is not None:
@@ -849,12 +859,18 @@ class SnifferService:
                         "protocols": set(),
                         "first_seen": current_time,
                         "last_seen": current_time,
-                        "packet_count": 0
+                        "packet_count": 0,
+                        "ports": set()  # Track all ports used in this connection
                     }
                 self.burst_stats["connections"][conn_key]["bytes"] += len(packet)
                 self.burst_stats["connections"][conn_key]["protocols"].add(protocol)
                 self.burst_stats["connections"][conn_key]["last_seen"] = current_time
                 self.burst_stats["connections"][conn_key]["packet_count"] += 1
+                # Add ports from packet_data if available
+                if "src_port" in packet_data and packet_data["src_port"]:
+                    self.burst_stats["connections"][conn_key]["ports"].add(packet_data["src_port"])
+                if "dst_port" in packet_data and packet_data["dst_port"]:
+                    self.burst_stats["connections"][conn_key]["ports"].add(packet_data["dst_port"])
 
         if self.callback:
             self.callback(packet_data)
@@ -916,7 +932,8 @@ class SnifferService:
                 "protocols": list(conn_data["protocols"]),
                 "last_seen": conn_data.get("last_seen"),
                 "first_seen": conn_data.get("first_seen"),
-                "packet_count": conn_data.get("packet_count", 0)
+                "packet_count": conn_data.get("packet_count", 0),
+                "ports": list(conn_data.get("ports", set()))
             })
 
         return {
@@ -969,7 +986,8 @@ class SnifferService:
                 "protocols": list(conn_data["protocols"]),
                 "last_seen": conn_data.get("last_seen"),
                 "first_seen": conn_data.get("first_seen"),
-                "packet_count": conn_data.get("packet_count", 0)
+                "packet_count": conn_data.get("packet_count", 0),
+                "ports": list(conn_data.get("ports", set()))
             })
         
         result = {

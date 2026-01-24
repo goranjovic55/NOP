@@ -376,6 +376,10 @@ const Topology: React.FC = () => {
   
   // Link highlighting state - when a link is clicked, it stays green highlighted
   const [clickedLink, setClickedLink] = useState<GraphLink | null>(null);
+  
+  // Connection list highlighting - when hovering/clicking connections in right panel
+  const [listHighlightedIP, setListHighlightedIP] = useState<string | null>(null);
+  const [listHighlightLocked, setListHighlightLocked] = useState<boolean>(false); // True if clicked (sticky)
 
   // Calculate connected nodes and links for a given node
   const calculateConnections = useCallback((nodeId: string | null): { nodes: Set<string>; links: Set<string> } => {
@@ -502,6 +506,13 @@ const Topology: React.FC = () => {
   // Available subnets discovered from assets
   const [availableSubnets, setAvailableSubnets] = useState<string[]>([]);
   
+  // Network interfaces available for capture
+  const [availableInterfaces, setAvailableInterfaces] = useState<{name: string; address?: string}[]>([]);
+  const [selectedInterface, setSelectedInterface] = useState<string>(() => {
+    const saved = localStorage.getItem('nop_topology_interface');
+    return saved || '';
+  });
+  
   // Helper to merge protocols without duplicates
   const mergeProtocols = (proto1: string[], proto2: string[]): string[] => {
     const set = new Set<string>();
@@ -593,6 +604,45 @@ const Topology: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nop_topology_linkspeed_filter', linkSpeedFilter.toString());
   }, [linkSpeedFilter]);
+
+  // Persist selected interface
+  useEffect(() => {
+    if (selectedInterface) {
+      localStorage.setItem('nop_topology_interface', selectedInterface);
+    }
+  }, [selectedInterface]);
+
+  // Fetch available network interfaces
+  useEffect(() => {
+    if (!token) return;
+    const fetchInterfaces = async () => {
+      try {
+        const interfaces = await trafficService.getInterfaces(token, activeAgent?.id);
+        setAvailableInterfaces(interfaces);
+        // If no interface selected and we have interfaces, select first one
+        if (!selectedInterface && interfaces.length > 0) {
+          setSelectedInterface(interfaces[0].name);
+        }
+      } catch (err) {
+        console.debug('Failed to fetch interfaces:', err);
+      }
+    };
+    fetchInterfaces();
+  }, [token, activeAgent?.id, selectedInterface]);
+
+  // Start capture on selected interface when interface changes
+  useEffect(() => {
+    if (!token || !selectedInterface) return;
+    const startCaptureOnInterface = async () => {
+      try {
+        await trafficService.startCapture(token, selectedInterface, '');
+        console.debug(`Started capture on interface: ${selectedInterface}`);
+      } catch (err) {
+        console.debug('Failed to start capture on interface:', err);
+      }
+    };
+    startCaptureOnInterface();
+  }, [token, selectedInterface]);
 
   // Resize observer
   useEffect(() => {
@@ -1110,6 +1160,25 @@ const Topology: React.FC = () => {
       {/* Compact toolbar - wraps on smaller screens */}
       <div className="flex flex-wrap gap-2 items-center bg-cyber-darker p-2 border border-cyber-gray">
         <CyberPageTitle color="red">Network Topology</CyberPageTitle>
+
+        {/* Interface selector */}
+        {availableInterfaces.length > 0 && (
+          <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-purple">
+            <label className="text-xs text-cyber-purple font-bold">IF:</label>
+            <select
+              value={selectedInterface}
+              onChange={(e) => setSelectedInterface(e.target.value)}
+              className="bg-cyber-darker text-cyber-gray-light text-xs px-1 py-0.5 border border-cyber-gray rounded focus:outline-none focus:border-cyber-purple"
+              title="Select network interface for traffic capture"
+            >
+              {availableInterfaces.map(iface => (
+                <option key={iface.name} value={iface.name}>
+                  {iface.name}{iface.address ? ` (${iface.address})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Filter mode buttons */}
         <div className="flex bg-cyber-dark rounded border border-cyber-gray">
@@ -1704,6 +1773,8 @@ const Topology: React.FC = () => {
               // First click - highlight this asset and its connections (green)
               setHighlightedAsset(node.id);
               setClickedLink(null); // Clear link highlight when selecting node
+              setListHighlightedIP(null); // Clear connection list highlight
+              setListHighlightLocked(false);
               setSelectedNode(null);
               setSelectedLink(null);
               setContextMenuPosition(null);
@@ -1713,6 +1784,8 @@ const Topology: React.FC = () => {
             // Clear all highlighting when clicking on empty space
             setHighlightedAsset(null);
             setClickedLink(null);
+            setListHighlightedIP(null);
+            setListHighlightLocked(false);
             setSelectedNode(null);
             setSelectedLink(null);
             setContextMenuPosition(null);
@@ -1779,6 +1852,7 @@ const Topology: React.FC = () => {
             const isHighlightedAsset = highlightedAsset === node.id;
             const isConnectedToHighlight = highlightedNodes.has(node.id);
             const isHoverHighlighted = hoveredNode?.id === node.id;
+            const isListHighlighted = listHighlightedIP === node.id; // From connection list in right panel
             
             // Check if connected to hover - also check direct link hover
             let isConnectedToHover = hoverHighlightedNodes.has(node.id);
@@ -1792,7 +1866,7 @@ const Topology: React.FC = () => {
               }
             }
             
-            const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
+            const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover || isListHighlighted;
             const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
             
             // Dim nodes that are NOT part of click selection AND NOT part of hover
@@ -1943,6 +2017,20 @@ const Topology: React.FC = () => {
               ctx.setLineDash([6 / globalScale, 3 / globalScale]);
               ctx.shadowBlur = 25;
               ctx.shadowColor = '#00ff41';
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.shadowBlur = 0;
+            }
+            
+            // Draw red highlight ring for node highlighted from connection list (right panel)
+            if (isListHighlighted) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI, false);
+              ctx.strokeStyle = '#ff0040';
+              ctx.lineWidth = 3 / globalScale;
+              ctx.setLineDash([5 / globalScale, 3 / globalScale]);
+              ctx.shadowBlur = 20;
+              ctx.shadowColor = '#ff0040';
               ctx.stroke();
               ctx.setLineDash([]);
               ctx.shadowBlur = 0;
@@ -2248,17 +2336,56 @@ const Topology: React.FC = () => {
                       if (nodeConnections.length === 0) return null;
                       
                       return (
-                        <div className="mt-2 pt-2 border-t border-cyber-gray">
+                        <div className="mt-2 pt-2 border-t border-cyber-gray pointer-events-auto">
                           <div className="text-cyber-green text-[10px] uppercase font-bold mb-1">Connections ({nodeConnections.length}):</div>
                           <div>
-                            {nodeConnections.map((conn: any, idx: number) => (
-                              <div key={conn.peerId} className="text-[10px] font-mono flex justify-between items-center py-0.5">
-                                <span className="text-cyber-blue truncate max-w-[120px]">{conn.peerId}</span>
-                                <span className={`text-right ${idx === 0 ? 'text-cyber-green font-bold' : 'text-cyber-gray-light'}`}>
-                                  {formatTrafficMB(conn.totalTraffic)}MB
-                                </span>
-                              </div>
-                            ))}
+                            {nodeConnections.map((conn: any, idx: number) => {
+                              const isListActive = listHighlightedIP === conn.peerId;
+                              const isLocked = isListActive && listHighlightLocked;
+                              return (
+                                <div 
+                                  key={conn.peerId} 
+                                  className={`text-[10px] font-mono flex justify-between items-center py-0.5 px-1 -mx-1 rounded cursor-pointer transition-colors ${
+                                    isLocked
+                                      ? 'bg-cyber-red/30 border border-cyber-red' 
+                                      : isListActive
+                                        ? 'bg-cyber-red/20'
+                                        : 'hover:bg-cyber-gray/30'
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isLocked) {
+                                      // Already locked on this item - unlock
+                                      setListHighlightLocked(false);
+                                      setListHighlightedIP(null);
+                                    } else {
+                                      // Lock highlight on this item
+                                      setListHighlightedIP(conn.peerId);
+                                      setListHighlightLocked(true);
+                                    }
+                                  }}
+                                  onMouseEnter={() => {
+                                    // Show highlight on hover (unless something else is locked)
+                                    if (!listHighlightLocked) {
+                                      setListHighlightedIP(conn.peerId);
+                                    }
+                                  }}
+                                  onMouseLeave={() => {
+                                    // Clear highlight on leave if not locked
+                                    if (!listHighlightLocked && listHighlightedIP === conn.peerId) {
+                                      setListHighlightedIP(null);
+                                    }
+                                  }}
+                                >
+                                  <span className={`truncate max-w-[120px] ${isListActive ? 'text-cyber-red font-bold' : 'text-cyber-blue'}`}>
+                                    {conn.peerId}
+                                  </span>
+                                  <span className={`text-right ${isListActive ? 'text-cyber-red' : (idx === 0 ? 'text-cyber-green font-bold' : 'text-cyber-gray-light')}`}>
+                                    {formatTrafficMB(conn.totalTraffic)}MB
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );

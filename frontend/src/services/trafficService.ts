@@ -2,6 +2,13 @@ import axios from 'axios';
 
 const API_URL = '/api/v1';
 
+export interface NetworkInterface {
+  name: string;
+  address?: string;
+  is_up?: boolean;
+  activity?: number[];
+}
+
 export interface BurstCaptureConnection {
   source: string;
   target: string;
@@ -112,6 +119,20 @@ export const trafficService = {
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    return response.data;
+  },
+
+  /**
+   * Get available network interfaces
+   */
+  getInterfaces: async (token: string, agentPOV?: string): Promise<NetworkInterface[]> => {
+    const headers: Record<string, string> = { 
+      Authorization: `Bearer ${token}` 
+    };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/traffic/interfaces`, { headers });
     return response.data;
   },
 

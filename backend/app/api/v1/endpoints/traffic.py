@@ -280,9 +280,12 @@ async def get_traffic_stats(
         # Get connections from flows database for this agent
         try:
             # Aggregate flows into connections with last_seen timestamp
+            # Include port info with array_agg for port filtering
             query = select(
                 Flow.src_ip,
                 Flow.dst_ip,
+                Flow.src_port,
+                Flow.dst_port,
                 Flow.protocol,
                 func.sum(Flow.bytes_sent + Flow.bytes_received).label('total_bytes'),
                 func.sum(Flow.packets_sent + Flow.packets_received).label('total_packets'),
@@ -292,8 +295,8 @@ async def get_traffic_stats(
                 Flow.agent_id == agent_pov,
                 Flow.last_seen >= time_window_start  # Only include flows within time window
             ).group_by(
-                Flow.src_ip, Flow.dst_ip, Flow.protocol
-            ).order_by(desc('last_seen')).limit(500)  # Increased limit, sorted by recency
+                Flow.src_ip, Flow.dst_ip, Flow.src_port, Flow.dst_port, Flow.protocol
+            ).order_by(desc('last_seen')).limit(1000)  # Increased limit for port-level granularity
             
             result = await db.execute(query)
             rows = result.fetchall()
@@ -307,11 +310,20 @@ async def get_traffic_stats(
             for row in rows:
                 src_ip = str(row.src_ip)
                 dst_ip = str(row.dst_ip)
+                src_port = row.src_port
+                dst_port = row.dst_port
                 protocol = row.protocol or 'OTHER'
                 bytes_val = row.total_bytes or 0
                 packets_val = row.total_packets or 0
                 last_seen = row.last_seen.isoformat() if row.last_seen else None
                 first_seen = row.first_seen.isoformat() if row.first_seen else None
+                
+                # Build ports array from non-null ports
+                ports = []
+                if src_port:
+                    ports.append(src_port)
+                if dst_port and dst_port not in ports:
+                    ports.append(dst_port)
                 
                 connections.append({
                     "source": src_ip,
@@ -319,7 +331,10 @@ async def get_traffic_stats(
                     "value": bytes_val,
                     "protocols": [protocol],
                     "last_seen": last_seen,
-                    "first_seen": first_seen
+                    "first_seen": first_seen,
+                    "source_port": src_port,
+                    "dest_port": dst_port,
+                    "ports": ports
                 })
                 
                 protocol_counts[protocol] += packets_val

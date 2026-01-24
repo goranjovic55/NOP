@@ -70,4 +70,4 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | React | useEffect hover state one render behind | Use useMemo for render-dependent state, not useEffect |
 | React | useRef with function initializer | useRef doesn't accept functions, compute value outside |
 | React | useMemo not imported | Add useMemo to React import when using memoization |
-| TypeScript | Variable name mismatch | Use consistent naming, check variable scope |
+| TypeScript | Variable name mismatch | Use consistent naming, check variable scope || API | Port filter not working | Backend must include port data in connection stats |
