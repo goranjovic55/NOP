@@ -106,6 +106,7 @@ async def traffic_ws(websocket: WebSocket):
 
 class BurstCaptureRequest(BaseModel):
     duration_seconds: int = 1  # Default 1 second burst capture
+    interface: str = None  # Optional interface to capture on
 
 
 @router.post("/burst-capture")
@@ -113,13 +114,17 @@ async def burst_capture(request: BurstCaptureRequest):
     """
     Perform a burst capture for the specified duration.
     This captures fresh traffic data for a short period (1-10 seconds).
+    If interface is specified, switches to that interface for capture.
     Useful for live topology updates that need recent traffic snapshots.
     """
     duration = max(1, min(10, request.duration_seconds))  # Clamp to 1-10 seconds
     
     try:
-        # Start burst capture
-        sniffer_service.start_burst_capture()
+        # If interface specified, ensure we're capturing on it
+        if request.interface:
+            sniffer_service.start_burst_capture(interface=request.interface)
+        else:
+            sniffer_service.start_burst_capture()
         
         # Wait for the specified duration
         await asyncio.sleep(duration)

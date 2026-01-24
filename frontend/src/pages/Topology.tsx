@@ -693,7 +693,7 @@ const Topology: React.FC = () => {
         setCaptureStatus(isPlaying ? 'Live...' : 'Polling...');
         setIsLiveCapturing(true);
         try {
-          const burstResult = await trafficService.burstCapture(token, captureDuration, activeAgent?.id);
+          const burstResult = await trafficService.burstCapture(token, captureDuration, activeAgent?.id, selectedInterface);
           // Merge burst connections with existing stats
           const existingStats = await dashboardService.getTrafficStats(token, activeAgent?.id);
           trafficStats = {
@@ -992,7 +992,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold]);
+  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface]);
 
   useEffect(() => {
     // Initial load - run simulation
@@ -1025,8 +1025,7 @@ const Topology: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, refreshRate, isPlaying]); // Re-create interval when play mode changes
+  }, [autoRefresh, refreshRate, isPlaying, fetchData]); // Include fetchData to pick up filter changes
 
   // Fetch enhanced host info for hover details (OS, hostname, service versions)
   useEffect(() => {

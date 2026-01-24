@@ -56,7 +56,8 @@ export const trafficService = {
   burstCapture: async (
     token: string, 
     durationSeconds: number = 1,
-    agentPOV?: string
+    agentPOV?: string,
+    iface?: string
   ): Promise<BurstCaptureResult> => {
     const headers: Record<string, string> = { 
       Authorization: `Bearer ${token}`,
@@ -65,9 +66,13 @@ export const trafficService = {
     if (agentPOV) {
       headers['X-Agent-POV'] = agentPOV;
     }
+    const body: { duration_seconds: number; interface?: string } = { duration_seconds: durationSeconds };
+    if (iface) {
+      body.interface = iface;
+    }
     const response = await axios.post(
       `${API_URL}/traffic/burst-capture`,
-      { duration_seconds: durationSeconds },
+      body,
       { headers }
     );
     return response.data;

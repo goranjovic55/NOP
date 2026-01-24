@@ -951,9 +951,10 @@ class SnifferService:
             "interface": self.interface
         }
 
-    def start_burst_capture(self) -> None:
+    def start_burst_capture(self, interface: str = None) -> None:
         """Start a burst capture session to collect fresh traffic data.
-        If sniffer isn't running, start it temporarily for the burst."""
+        If sniffer isn't running, start it temporarily for the burst.
+        If interface is specified and different from current, restart on new interface."""
         self.burst_stats = {
             "connections": {},
             "start_time": time.time()
@@ -962,12 +963,18 @@ class SnifferService:
         # Track if we started sniffing just for this burst
         self._burst_started_sniffer = False
         
-        # If not already sniffing, start sniffing for the burst
-        if not self.is_sniffing:
+        # Determine target interface
+        target_interface = interface or self.interface or "eth0"
+        
+        # If already sniffing but on different interface, restart
+        if self.is_sniffing and interface and self.interface != interface:
+            self.stop_sniffing()
             self._burst_started_sniffer = True
-            # Use default interface
-            interface = self.interface or "eth0"
-            self.start_sniffing(interface, None, None)
+            self.start_sniffing(target_interface, None, None)
+        # If not already sniffing, start sniffing for the burst
+        elif not self.is_sniffing:
+            self._burst_started_sniffer = True
+            self.start_sniffing(target_interface, None, None)
 
     def stop_burst_capture(self) -> Dict[str, Any]:
         """Stop burst capture and return captured connections.
