@@ -21,7 +21,8 @@ from app.api.v1.endpoints import (
     dashboard,
     vulnerabilities,
     scripts,
-    workflows
+    workflows,
+    protocol_analysis
 )
 
 api_router = APIRouter()
@@ -45,3 +46,4 @@ api_router.include_router(agent_settings.router, prefix="/agent-settings", tags=
 api_router.include_router(vulnerabilities.router, prefix="/vulnerabilities", tags=["vulnerabilities"])
 api_router.include_router(scripts.router, prefix="/scripts", tags=["scripts"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+api_router.include_router(protocol_analysis.router, prefix="/protocol-analysis", tags=["protocol-analysis"])

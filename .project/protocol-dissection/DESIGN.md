@@ -618,17 +618,17 @@ Shows:
 ### Phase 1: Core Infrastructure (Week 1-2)
 
 **Sprint 1.1: DPI Service Foundation**
-- [ ] Create `DPIService.py` with basic structure
-- [ ] Implement layer dissectors (L2, L3, L4)
-- [ ] Add VLAN (802.1Q) support
-- [ ] Create data models
-- [ ] Unit tests
+- [x] Create `DPIService.py` with basic structure
+- [x] Implement layer dissectors (L2, L3, L4)
+- [x] Add VLAN (802.1Q) support
+- [x] Create data models
+- [x] Unit tests
 
 **Sprint 1.2: Protocol Registry**
-- [ ] Create `ProtocolRegistry.py`
-- [ ] Import IANA port assignments
+- [x] Create `ProtocolRegistry.py` (integrated into DPIService.PORT_MAP)
+- [x] Import IANA port assignments (50+ common ports)
 - [ ] Create database schema
-- [ ] Port lookup service
+- [x] Port lookup service
 - [ ] IANA auto-update endpoint
 
 **Sprint 1.3: Database Schema**
@@ -640,40 +640,40 @@ Shows:
 ### Phase 2: L2 Discovery (Week 3)
 
 **Sprint 2.1: LLDP/CDP Support**
-- [ ] Implement LLDP parsing
-- [ ] Implement CDP parsing
-- [ ] Create neighbor table
-- [ ] Integration with topology
+- [x] Implement LLDP parsing
+- [x] Implement CDP parsing
+- [x] Create neighbor tracking (in-memory)
+- [x] Integration with topology
 
 **Sprint 2.2: VLAN Analysis**
-- [ ] Track VLAN tags
-- [ ] VLAN topology table
-- [ ] Segmentation detection
+- [x] Track VLAN tags
+- [x] VLAN topology tracking (in-memory)
+- [x] Segmentation detection
 - [ ] UI filtering
 
 **Sprint 2.3: Device Classification**
-- [ ] Device type inference
+- [x] Device type inference
 - [ ] Asset table extensions
-- [ ] Behavior-based classification
+- [x] Behavior-based classification
 
 ### Phase 3: Multicast & Topology (Week 4)
 
 **Sprint 3.1: Multicast Tracking**
-- [ ] IGMP parsing
-- [ ] Group membership tracking
-- [ ] mDNS/SSDP detection
+- [x] IGMP parsing
+- [x] Group membership tracking
+- [x] mDNS/SSDP detection
 
 **Sprint 3.2: Topology Inference**
-- [ ] Bus vs. star detection
-- [ ] STP BPDU parsing
-- [ ] Enhanced topology graph
+- [x] Bus vs. star detection (via multicast analysis)
+- [x] STP BPDU parsing
+- [x] Enhanced topology graph
 
 ### Phase 4: API Endpoints (Week 4-5)
 
 **Sprint 4.1: Protocol Analysis Router**
-- [ ] Create `protocol_analysis.py` endpoint file
-- [ ] Implement protocol statistics endpoints
-- [ ] Implement topology endpoints (LLDP, multicast, VLAN)
+- [x] Create `protocol_analysis.py` endpoint file
+- [x] Implement protocol statistics endpoints
+- [x] Implement topology endpoints (LLDP, multicast, VLAN)
 
 **Sprint 4.2: WebSocket Events**
 - [ ] Add protocol_detected event type
@@ -682,7 +682,7 @@ Shows:
 
 **Sprint 4.3: IANA Database Integration**
 - [ ] IANA update endpoint
-- [ ] Port lookup API
+- [x] Port lookup API
 
 ### Phase 5: Frontend Integration (Week 5)
 
