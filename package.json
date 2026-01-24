@@ -7,7 +7,14 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd e2e && npx playwright test",
+    "test:ui": "cd e2e && npx playwright test --ui",
+    "test:headed": "cd e2e && npx playwright test --headed",
+    "test:comprehensive": "cd e2e && npx playwright test tests/comprehensive-live-hosts.spec.ts",
+    "test:connections": "cd e2e && npx playwright test tests/live-connection-tests.spec.ts",
+    "test:report": "cd e2e && npx playwright show-report",
+    "validate-hosts": "./validate-test-hosts.sh",
+    "test:full": "./run-comprehensive-tests.sh"
   },
   "repository": {
     "type": "git",
