@@ -4,6 +4,7 @@ import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { trafficService, NetworkInterface } from '../services/trafficService';
+import { protocolAnalysisService, TopologySummary, VLANTopology, MulticastGroup, LLDPNeighbor } from '../services/protocolAnalysisService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
@@ -11,6 +12,9 @@ import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
 import ConnectionContextMenu from '../components/ConnectionContextMenu';
 import { DPITopologyPanel } from '../components/DPITopologyPanel';
+
+// DPI-based view modes for topology visualization
+type DPIViewMode = 'standard' | 'vlan' | 'multicast' | 'device-type';
 
 interface GraphNode {
   id: string;
@@ -258,10 +262,52 @@ const Topology: React.FC = () => {
     return saved === 'true';
   });
   
+  // DPI View Mode state
+  const [dpiViewMode, setDpiViewMode] = useState<DPIViewMode>(() => {
+    const saved = localStorage.getItem('nop_topology_dpi_view_mode');
+    return (saved as DPIViewMode) || 'standard';
+  });
+  
+  // DPI data for view modes
+  const [dpiSummary, setDpiSummary] = useState<TopologySummary | null>(null);
+  const [dpiVlans, setDpiVlans] = useState<VLANTopology | null>(null);
+  const [dpiMulticast, setDpiMulticast] = useState<MulticastGroup[]>([]);
+  const [dpiLldpNeighbors, setDpiLldpNeighbors] = useState<LLDPNeighbor[]>([]);
+  
   // Persist DPI panel visibility
   useEffect(() => {
     localStorage.setItem('nop_topology_dpi_panel', showDPIPanel.toString());
   }, [showDPIPanel]);
+  
+  // Persist DPI view mode
+  useEffect(() => {
+    localStorage.setItem('nop_topology_dpi_view_mode', dpiViewMode);
+  }, [dpiViewMode]);
+  
+  // Fetch DPI data for view modes
+  useEffect(() => {
+    const fetchDPIData = async () => {
+      if (!token) return;
+      try {
+        const [summary, vlans, multicast, lldp] = await Promise.all([
+          protocolAnalysisService.getTopologySummary(token, activeAgent),
+          protocolAnalysisService.getVLANTopology(token, activeAgent),
+          protocolAnalysisService.getMulticastGroups(token, activeAgent),
+          protocolAnalysisService.getLLDPNeighbors(token, activeAgent)
+        ]);
+        setDpiSummary(summary);
+        setDpiVlans(vlans);
+        setDpiMulticast(multicast);
+        setDpiLldpNeighbors(lldp);
+      } catch (err) {
+        console.error('Failed to fetch DPI data:', err);
+      }
+    };
+    
+    fetchDPIData();
+    const interval = setInterval(fetchDPIData, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [token, activeAgent]);
 
   // Use browser Fullscreen API for true fullscreen
   const toggleFullscreen = async () => {
@@ -1140,11 +1186,32 @@ const Topology: React.FC = () => {
   useEffect(() => {
     if (!fgRef.current) return;
 
-    // Force Directed layout with spread settings
-    fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
-    fgRef.current.d3Force('link')?.distance(180);
-    fgRef.current.d3Force('center')?.strength(0.05);
-  }, [dimensions]);
+    // Force Directed layout with spread settings - adjust based on DPI view mode
+    if (dpiViewMode === 'vlan' && dpiVlans && dpiVlans.total_vlans > 0) {
+      // VLAN mode: stronger separation, cluster by VLAN
+      fgRef.current.d3Force('charge')?.strength(-1200).distanceMax(600);
+      fgRef.current.d3Force('link')?.distance(120);
+      fgRef.current.d3Force('center')?.strength(0.02);
+    } else if (dpiViewMode === 'multicast' && dpiMulticast.length > 0) {
+      // Multicast mode: hub-and-spoke layout
+      fgRef.current.d3Force('charge')?.strength(-600).distanceMax(400);
+      fgRef.current.d3Force('link')?.distance(100);
+      fgRef.current.d3Force('center')?.strength(0.1);
+    } else if (dpiViewMode === 'device-type' && dpiSummary) {
+      // Device type mode: tiered layout (routers/switches central, hosts peripheral)
+      fgRef.current.d3Force('charge')?.strength(-1000).distanceMax(500);
+      fgRef.current.d3Force('link')?.distance(150);
+      fgRef.current.d3Force('center')?.strength(0.05);
+    } else {
+      // Standard mode
+      fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
+      fgRef.current.d3Force('link')?.distance(180);
+      fgRef.current.d3Force('center')?.strength(0.05);
+    }
+    
+    // Reheat simulation when view mode changes
+    fgRef.current.d3ReheatSimulation?.();
+  }, [dimensions, dpiViewMode, dpiVlans, dpiMulticast, dpiSummary]);
 
   return (
     <div className="h-full flex flex-col space-y-2">
@@ -1353,6 +1420,38 @@ const Topology: React.FC = () => {
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
         )}
         
+        {/* DPI View Mode Selector */}
+        <div className="flex bg-cyber-dark rounded border border-cyber-purple">
+          <button
+            onClick={() => setDpiViewMode('standard')}
+            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'standard' ? 'bg-cyber-purple text-black' : 'text-cyber-gray-light hover:text-cyber-purple'}`}
+            title="Standard force-directed layout"
+          >
+            STD
+          </button>
+          <button
+            onClick={() => setDpiViewMode('vlan')}
+            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'vlan' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-cyber-blue'}`}
+            title="Group nodes by VLAN membership"
+          >
+            VLAN
+          </button>
+          <button
+            onClick={() => setDpiViewMode('multicast')}
+            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'multicast' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-cyber-green'}`}
+            title="Show multicast groups as hubs"
+          >
+            MCAST
+          </button>
+          <button
+            onClick={() => setDpiViewMode('device-type')}
+            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'device-type' ? 'bg-cyber-yellow text-black' : 'text-cyber-gray-light hover:text-cyber-yellow'}`}
+            title="Group by device type (switch/router/host)"
+          >
+            TYPE
+          </button>
+        </div>
+        
         {/* DPI Panel Toggle */}
         <button 
           onClick={() => setShowDPIPanel(!showDPIPanel)}
@@ -1389,6 +1488,63 @@ const Topology: React.FC = () => {
         {loading && graphData.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
             <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
+          </div>
+        )}
+        
+        {/* DPI View Mode Legend */}
+        {dpiViewMode !== 'standard' && (
+          <div className="absolute top-2 left-2 z-20 bg-cyber-dark/90 border border-cyber-gray p-2 rounded text-xs">
+            {dpiViewMode === 'vlan' && (
+              <div>
+                <div className="text-cyber-blue font-bold uppercase mb-1">VLAN View</div>
+                <div className="text-cyber-gray-light">Colors = VLAN membership</div>
+                {dpiVlans && dpiVlans.total_vlans > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {Object.keys(dpiVlans.vlans).slice(0, 6).map((vlanId, i) => {
+                      const colors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+                      return (
+                        <span key={vlanId} className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }}></span>
+                          <span className="text-[10px]">VLAN {vlanId}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {dpiViewMode === 'multicast' && (
+              <div>
+                <div className="text-cyber-green font-bold uppercase mb-1">Multicast View</div>
+                <div className="text-cyber-gray-light">
+                  <span className="text-cyber-green">●</span> Multicast members
+                </div>
+                {dpiMulticast.length > 0 && (
+                  <div className="mt-1 text-[10px] text-cyber-gray-light">
+                    {dpiMulticast.length} group{dpiMulticast.length !== 1 ? 's' : ''} detected
+                  </div>
+                )}
+              </div>
+            )}
+            {dpiViewMode === 'device-type' && (
+              <div>
+                <div className="text-cyber-yellow font-bold uppercase mb-1">Device Type View</div>
+                <div className="flex flex-col gap-1">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[#ffd700]"></span>
+                    <span className="text-cyber-gray-light">Router</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[#8b5cf6]"></span>
+                    <span className="text-cyber-gray-light">Switch</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span>
+                    <span className="text-cyber-gray-light">Host</span>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
         
@@ -1464,6 +1620,39 @@ const Topology: React.FC = () => {
           
           nodeLabel="name"
           nodeColor={node => {
+            // DPI-based coloring depending on view mode
+            if (dpiViewMode === 'device-type' && dpiSummary) {
+              const deviceType = dpiSummary.classified_devices[node.ip] || 
+                                 dpiSummary.classified_devices[node.id];
+              if (deviceType === 'switch') return '#8b5cf6'; // Cyber Purple
+              if (deviceType === 'router') return '#ffd700'; // Gold/Yellow
+              if (deviceType === 'host') return '#00f0ff';   // Cyan
+            }
+            
+            if (dpiViewMode === 'vlan' && dpiVlans) {
+              // Color nodes by VLAN - cycle through colors
+              const vlanColors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+              const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
+              for (let i = 0; i < vlanIds.length; i++) {
+                const vlanId = vlanIds[i];
+                const members = dpiVlans.vlans[vlanId] || [];
+                // Check if node's MAC or IP is in this VLAN
+                if (members.some(m => node.id.includes(m) || m.includes(node.ip))) {
+                  return vlanColors[i % vlanColors.length];
+                }
+              }
+            }
+            
+            if (dpiViewMode === 'multicast') {
+              // Check if node is a multicast group member
+              for (const group of dpiMulticast) {
+                if (group.members.includes(node.ip) || group.members.includes(node.id)) {
+                  return '#00ff41'; // Green for multicast members
+                }
+              }
+            }
+            
+            // Standard coloring
             if (node.group === 'passive') return '#8b5cf6'; // Cyber Purple for passive
             if (node.group === 'online') return '#00ff41'; // Cyber Green
             if (node.group === 'offline') return '#ff0040'; // Cyber Red
