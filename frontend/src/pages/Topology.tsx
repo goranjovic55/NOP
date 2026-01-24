@@ -10,6 +10,7 @@ import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
 import ConnectionContextMenu from '../components/ConnectionContextMenu';
+import { DPITopologyPanel } from '../components/DPITopologyPanel';
 
 interface GraphNode {
   id: string;
@@ -250,6 +251,17 @@ const Topology: React.FC = () => {
     return saved ? parseInt(saved, 10) : 600;
   });
   const [isResizing, setIsResizing] = useState(false);
+  
+  // DPI Panel state
+  const [showDPIPanel, setShowDPIPanel] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_dpi_panel');
+    return saved === 'true';
+  });
+  
+  // Persist DPI panel visibility
+  useEffect(() => {
+    localStorage.setItem('nop_topology_dpi_panel', showDPIPanel.toString());
+  }, [showDPIPanel]);
 
   // Use browser Fullscreen API for true fullscreen
   const toggleFullscreen = async () => {
@@ -1341,6 +1353,15 @@ const Topology: React.FC = () => {
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
         )}
         
+        {/* DPI Panel Toggle */}
+        <button 
+          onClick={() => setShowDPIPanel(!showDPIPanel)}
+          className={`px-2 py-1 border text-xs rounded ${showDPIPanel ? 'border-cyber-purple text-cyber-purple' : 'border-cyber-gray text-cyber-gray-light'}`}
+          title="Toggle Deep Packet Inspection panel"
+        >
+          {showDPIPanel ? '◆DPI' : '◇DPI'}
+        </button>
+        
         {/* Node/Link counts - pushed to end */}
         <div className="flex items-center gap-2 text-xs text-cyber-gray-light ml-auto">
           <span><span className="font-bold text-cyber-blue">{graphData.nodes.length}</span>N</span>
@@ -1348,11 +1369,14 @@ const Topology: React.FC = () => {
         </div>
       </div>
 
-      <div 
-        ref={containerRef} 
-        className="bg-cyber-darker border border-cyber-gray relative overflow-hidden"
-        style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
-      >
+      {/* Main content area with graph and optional DPI panel */}
+      <div className="flex gap-2 flex-1 min-h-0">
+        {/* Graph container */}
+        <div 
+          ref={containerRef} 
+          className={`bg-cyber-darker border border-cyber-gray relative overflow-hidden flex-1 ${showDPIPanel ? 'w-3/4' : 'w-full'}`}
+          style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
+        >
         {/* Fullscreen close button - shown when in browser fullscreen */}
         {isFullscreen && (
           <button
@@ -2412,6 +2436,15 @@ const Topology: React.FC = () => {
             }}
           />
         )}
+      </div>
+
+      {/* DPI Topology Panel - shows VLAN, LLDP, multicast info */}
+      {showDPIPanel && (
+        <DPITopologyPanel 
+          className="w-80 flex-shrink-0"
+          onToggle={() => setShowDPIPanel(false)}
+        />
+      )}
       </div>
 
       {/* Resize Handle - drag to resize graph height */}
