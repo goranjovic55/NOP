@@ -3,7 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
-import { trafficService } from '../services/trafficService';
+import { trafficService, NetworkInterface } from '../services/trafficService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
@@ -499,6 +499,13 @@ const Topology: React.FC = () => {
     return saved ? parseInt(saved, 10) : 0;
   });
 
+  // Interface selection for traffic capture
+  const [availableInterfaces, setAvailableInterfaces] = useState<NetworkInterface[]>([]);
+  const [selectedInterface, setSelectedInterface] = useState<string>(() => {
+    const saved = localStorage.getItem('nop_topology_interface');
+    return saved || 'eth0';
+  });
+
   // Available subnets discovered from assets
   const [availableSubnets, setAvailableSubnets] = useState<string[]>([]);
   
@@ -593,6 +600,29 @@ const Topology: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nop_topology_linkspeed_filter', linkSpeedFilter.toString());
   }, [linkSpeedFilter]);
+
+  // Persist selected interface changes
+  useEffect(() => {
+    localStorage.setItem('nop_topology_interface', selectedInterface);
+  }, [selectedInterface]);
+
+  // Fetch available interfaces on mount
+  useEffect(() => {
+    const fetchInterfaces = async () => {
+      if (!token) return;
+      try {
+        const interfaces = await trafficService.getInterfaces(token, activeAgent?.id);
+        setAvailableInterfaces(interfaces);
+        // If saved interface isn't available, select first one
+        if (interfaces.length > 0 && !interfaces.some(i => i.name === selectedInterface)) {
+          setSelectedInterface(interfaces[0].name);
+        }
+      } catch (error) {
+        console.error('Failed to fetch interfaces:', error);
+      }
+    };
+    fetchInterfaces();
+  }, [token, activeAgent]);
 
   // Resize observer
   useEffect(() => {
@@ -1127,6 +1157,27 @@ const Topology: React.FC = () => {
           >
             Subnet
           </button>
+        </div>
+
+        {/* Interface Selector */}
+        <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-purple">
+          <label className="text-xs text-cyber-purple font-bold">IF:</label>
+          <select
+            value={selectedInterface}
+            onChange={(e) => setSelectedInterface(e.target.value)}
+            className="bg-cyber-darker text-cyber-gray-light text-xs px-1 py-0.5 border border-cyber-gray rounded focus:outline-none focus:border-cyber-purple"
+            title="Select network interface for traffic capture"
+          >
+            {availableInterfaces.length > 0 ? (
+              availableInterfaces.map(iface => (
+                <option key={iface.name} value={iface.name}>
+                  {iface.name} {iface.ip ? `(${iface.ip})` : ''}
+                </option>
+              ))
+            ) : (
+              <option value={selectedInterface}>{selectedInterface}</option>
+            )}
+          </select>
         </div>
 
         {/* IP Filter for All Subnets mode */}

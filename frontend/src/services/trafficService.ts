@@ -169,5 +169,30 @@ export const trafficService = {
     const MAX_SIZE = 15;
     // Base size + log scale of connections
     return Math.min(MAX_SIZE, MIN_SIZE + Math.log10(connectionCount + 1) * 4);
+  },
+
+  /**
+   * Get available network interfaces
+   */
+  getInterfaces: async (token: string, agentPOV?: string): Promise<NetworkInterface[]> => {
+    const headers: Record<string, string> = { 
+      Authorization: `Bearer ${token}` 
+    };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    const response = await axios.get(`${API_URL}/traffic/interfaces`, { headers });
+    return response.data;
   }
 };
+
+/**
+ * Network interface with activity data
+ */
+export interface NetworkInterface {
+  name: string;
+  ip?: string;
+  mac?: string;
+  is_up?: boolean;
+  activity?: number[];
+}

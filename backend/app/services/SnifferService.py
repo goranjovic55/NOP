@@ -774,6 +774,8 @@ class SnifferService:
             if TCP in packet:
                 protocol = "TCP"
                 packet_data["protocol"] = "TCP"
+                packet_data["src_port"] = packet[TCP].sport
+                packet_data["dst_port"] = packet[TCP].dport
                 packet_data["info"] = f"{packet[TCP].sport} -> {packet[TCP].dport} [{packet[TCP].flags}]"
                 self.stats["protocols"]["TCP"] = self.stats["protocols"].get("TCP", 0) + 1
                 
@@ -809,6 +811,8 @@ class SnifferService:
             elif UDP in packet:
                 protocol = "UDP"
                 packet_data["protocol"] = "UDP"
+                packet_data["src_port"] = packet[UDP].sport
+                packet_data["dst_port"] = packet[UDP].dport
                 packet_data["info"] = f"{packet[UDP].sport} -> {packet[UDP].dport}"
                 self.stats["protocols"]["UDP"] = self.stats["protocols"].get("UDP", 0) + 1
             elif packet[IP].proto == 1:  # ICMP (Internet Control Message Protocol)
@@ -825,13 +829,14 @@ class SnifferService:
                 protocol = f"IP_{proto}"
                 self.stats["protocols"][str(proto)] = self.stats["protocols"].get(str(proto), 0) + 1
             
-            # Track connections (src -> dst) with protocol info and timestamps
+            # Track connections (src -> dst) with protocol info, timestamps, and ports
             conn_key = f"{src}-{dst}"
             current_time = time.time()
             if conn_key not in self.stats["connections"]:
                 self.stats["connections"][conn_key] = {
                     "bytes": 0, 
                     "protocols": set(),
+                    "ports": set(),
                     "first_seen": current_time,
                     "last_seen": current_time,
                     "packet_count": 0
@@ -840,6 +845,11 @@ class SnifferService:
             self.stats["connections"][conn_key]["protocols"].add(protocol)
             self.stats["connections"][conn_key]["last_seen"] = current_time
             self.stats["connections"][conn_key]["packet_count"] += 1
+            # Track ports if available
+            if "src_port" in packet_data:
+                self.stats["connections"][conn_key]["ports"].add(packet_data["src_port"])
+            if "dst_port" in packet_data:
+                self.stats["connections"][conn_key]["ports"].add(packet_data["dst_port"])
             
             # Also track in burst stats if burst capture is active
             if hasattr(self, 'burst_stats') and self.burst_stats is not None:
@@ -847,6 +857,7 @@ class SnifferService:
                     self.burst_stats["connections"][conn_key] = {
                         "bytes": 0, 
                         "protocols": set(),
+                        "ports": set(),
                         "first_seen": current_time,
                         "last_seen": current_time,
                         "packet_count": 0
@@ -855,6 +866,11 @@ class SnifferService:
                 self.burst_stats["connections"][conn_key]["protocols"].add(protocol)
                 self.burst_stats["connections"][conn_key]["last_seen"] = current_time
                 self.burst_stats["connections"][conn_key]["packet_count"] += 1
+                # Track ports in burst stats
+                if "src_port" in packet_data:
+                    self.burst_stats["connections"][conn_key]["ports"].add(packet_data["src_port"])
+                if "dst_port" in packet_data:
+                    self.burst_stats["connections"][conn_key]["ports"].add(packet_data["dst_port"])
 
         if self.callback:
             self.callback(packet_data)
@@ -905,15 +921,19 @@ class SnifferService:
         # Sort top talkers and return top 5
         sorted_talkers = sorted(self.stats["top_talkers"].items(), key=lambda x: x[1], reverse=True)[:5]
         
-        # Format connections with protocol information
+        # Format connections with protocol and port information
         connections = []
         for key, conn_data in self.stats["connections"].items():
             src, dst = key.split('-')
+            ports = list(conn_data.get("ports", set()))
             connections.append({
                 "source": src, 
                 "target": dst, 
                 "value": conn_data["bytes"],
                 "protocols": list(conn_data["protocols"]),
+                "ports": ports,
+                "source_port": ports[0] if ports else None,
+                "dest_port": ports[1] if len(ports) > 1 else (ports[0] if ports else None),
                 "last_seen": conn_data.get("last_seen"),
                 "first_seen": conn_data.get("first_seen"),
                 "packet_count": conn_data.get("packet_count", 0)
@@ -958,15 +978,19 @@ class SnifferService:
         current_time = time.time()
         duration = current_time - self.burst_stats.get("start_time", current_time)
         
-        # Format burst connections
+        # Format burst connections with port information
         connections = []
         for key, conn_data in self.burst_stats["connections"].items():
             src, dst = key.split('-')
+            ports = list(conn_data.get("ports", set()))
             connections.append({
                 "source": src, 
                 "target": dst, 
                 "value": conn_data["bytes"],
                 "protocols": list(conn_data["protocols"]),
+                "ports": ports,
+                "source_port": ports[0] if ports else None,
+                "dest_port": ports[1] if len(ports) > 1 else (ports[0] if ports else None),
                 "last_seen": conn_data.get("last_seen"),
                 "first_seen": conn_data.get("first_seen"),
                 "packet_count": conn_data.get("packet_count", 0)
