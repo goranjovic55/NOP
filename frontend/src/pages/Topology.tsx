@@ -54,24 +54,67 @@ interface GraphData {
   links: GraphLink[];
 }
 
-// Color constants for protocol visualization
-const PROTOCOL_COLORS = {
-  TCP: '#00ff41',    // Green
-  UDP: '#00f0ff',    // Blue
-  ICMP: '#ffff00',   // Yellow
-  OTHER_IP: '#ff00ff', // Magenta
-  DEFAULT: '#00f0ff'   // Blue
+// Industry-standard protocol color palette (Wireshark/ntopng inspired)
+const PROTOCOL_COLORS: Record<string, string> = {
+  // Layer 2 - Blues
+  ARP: '#4A90E2',
+  LLDP: '#357ABD',
+  CDP: '#2563EB',
+  STP: '#1E5A8E',
+  VLAN: '#60A5FA',
+  
+  // Layer 3 - Greens
+  IP: '#50C878',
+  ICMP: '#228B22',
+  IGMP: '#22C55E',
+  
+  // Layer 4 - Oranges
+  TCP: '#FF8C42',
+  UDP: '#FFA500',
+  
+  // Application - Purples
+  HTTP: '#9370DB',
+  HTTPS: '#8A2BE2',
+  DNS: '#DA70D6',
+  DHCP: '#DDA0DD',
+  SSH: '#4B0082',
+  FTP: '#6B21A8',
+  SMTP: '#A855F7',
+  NTP: '#C084FC',
+  
+  // Industrial - Teals
+  MODBUS: '#14B8A6',
+  BACNET: '#0D9488',
+  DNP3: '#0F766E',
+  S7: '#115E59',
+  
+  // Multicast/Special - Magentas
+  MULTICAST: '#FF00FF',
+  BROADCAST: '#FFD700',
+  SSDP: '#F472B6',
+  MDNS: '#EC4899',
+  
+  // Default
+  OTHER_IP: '#ff00ff',
+  DEFAULT: '#00f0ff'
+};
+
+// Device type colors (for device-type view mode)
+const DEVICE_TYPE_COLORS: Record<string, string> = {
+  router: '#FFD700',   // Gold
+  switch: '#8B5CF6',   // Purple
+  firewall: '#EF4444', // Red
+  server: '#3B82F6',   // Blue
+  host: '#00F0FF',     // Cyan
+  iot: '#22C55E',      // Green
+  unknown: '#6B7280',  // Gray
 };
 
 // Utility functions
 const getProtocolColor = (protocols?: string[]): string => {
   if (!protocols || protocols.length === 0) return PROTOCOL_COLORS.DEFAULT;
-  const protocol = protocols[0]; // Use primary protocol
-  if (protocol === 'TCP') return PROTOCOL_COLORS.TCP;
-  if (protocol === 'UDP') return PROTOCOL_COLORS.UDP;
-  if (protocol === 'ICMP') return PROTOCOL_COLORS.ICMP;
-  if (protocol.startsWith('IP_')) return PROTOCOL_COLORS.OTHER_IP;
-  return PROTOCOL_COLORS.DEFAULT;
+  const protocol = protocols[0]?.toUpperCase(); // Use primary protocol
+  return PROTOCOL_COLORS[protocol] || PROTOCOL_COLORS.DEFAULT;
 };
 
 const formatTrafficMB = (bytes: number): string => {
@@ -1496,8 +1539,8 @@ const Topology: React.FC = () => {
           <div className="absolute top-2 left-2 z-20 bg-cyber-dark/90 border border-cyber-gray p-2 rounded text-xs">
             {dpiViewMode === 'vlan' && (
               <div>
-                <div className="text-cyber-blue font-bold uppercase mb-1">VLAN View</div>
-                <div className="text-cyber-gray-light">Colors = VLAN membership</div>
+                <div className="text-cyber-blue font-bold uppercase mb-1">◆ VLAN View</div>
+                <div className="text-cyber-gray-light text-[10px]">Nodes colored by VLAN membership</div>
                 {dpiVlans && dpiVlans.total_vlans > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {Object.keys(dpiVlans.vlans).slice(0, 6).map((vlanId, i) => {
@@ -1515,12 +1558,15 @@ const Topology: React.FC = () => {
             )}
             {dpiViewMode === 'multicast' && (
               <div>
-                <div className="text-cyber-green font-bold uppercase mb-1">Multicast View</div>
-                <div className="text-cyber-gray-light">
-                  <span className="text-cyber-green">●</span> Multicast members
+                <div className="text-cyber-green font-bold uppercase mb-1">◆ Multicast View</div>
+                <div className="text-cyber-gray-light text-[10px]">
+                  <span className="text-cyber-green">●</span> Multicast group members
+                </div>
+                <div className="text-cyber-gray-light text-[10px]">
+                  <span className="text-[#6B7280]">●</span> Non-members
                 </div>
                 {dpiMulticast.length > 0 && (
-                  <div className="mt-1 text-[10px] text-cyber-gray-light">
+                  <div className="mt-1 text-[10px] text-cyber-purple">
                     {dpiMulticast.length} group{dpiMulticast.length !== 1 ? 's' : ''} detected
                   </div>
                 )}
@@ -1528,21 +1574,40 @@ const Topology: React.FC = () => {
             )}
             {dpiViewMode === 'device-type' && (
               <div>
-                <div className="text-cyber-yellow font-bold uppercase mb-1">Device Type View</div>
-                <div className="flex flex-col gap-1">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#ffd700]"></span>
-                    <span className="text-cyber-gray-light">Router</span>
+                <div className="text-cyber-yellow font-bold uppercase mb-1">◆ Device Type View</div>
+                <div className="flex flex-col gap-1 mt-1">
+                  <span className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 14 14">
+                      <circle cx="7" cy="7" r="5" fill="#FFD700" stroke="#000" strokeWidth="0.5"/>
+                      <line x1="7" y1="2" x2="7" y2="5" stroke="#000" strokeWidth="1"/>
+                      <line x1="7" y1="9" x2="7" y2="12" stroke="#000" strokeWidth="1"/>
+                      <line x1="2" y1="7" x2="5" y2="7" stroke="#000" strokeWidth="1"/>
+                      <line x1="9" y1="7" x2="12" y2="7" stroke="#000" strokeWidth="1"/>
+                    </svg>
+                    <span className="text-[#FFD700] text-[10px]">Router</span>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#8b5cf6]"></span>
-                    <span className="text-cyber-gray-light">Switch</span>
+                  <span className="flex items-center gap-2">
+                    <svg width="14" height="10" viewBox="0 0 14 10">
+                      <rect x="1" y="1" width="12" height="8" rx="2" fill="#8B5CF6" stroke="#000" strokeWidth="0.5"/>
+                      <rect x="3" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
+                      <rect x="6" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
+                      <rect x="9" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
+                    </svg>
+                    <span className="text-[#8B5CF6] text-[10px]">Switch</span>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span>
-                    <span className="text-cyber-gray-light">Host</span>
+                  <span className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 14 14">
+                      <circle cx="7" cy="7" r="5" fill="#00F0FF"/>
+                    </svg>
+                    <span className="text-[#00F0FF] text-[10px]">Host/Endpoint</span>
                   </span>
                 </div>
+                {dpiSummary && Object.keys(dpiSummary.classified_devices).length > 0 && (
+                  <div className="mt-2 pt-1 border-t border-cyber-gray text-[9px] text-cyber-gray-light">
+                    {Object.values(dpiSummary.classified_devices).filter(t => t === 'router').length} routers,{' '}
+                    {Object.values(dpiSummary.classified_devices).filter(t => t === 'switch').length} switches
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2056,7 +2121,39 @@ const Topology: React.FC = () => {
             }
             
             const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
-            const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            
+            // DPI-aware node coloring based on view mode
+            let nodeColor: string;
+            if (dpiViewMode === 'device-type' && dpiSummary) {
+              const deviceType = dpiSummary.classified_devices[node.ip] || 
+                                 dpiSummary.classified_devices[node.id] || 'host';
+              nodeColor = DEVICE_TYPE_COLORS[deviceType] || DEVICE_TYPE_COLORS.host;
+            } else if (dpiViewMode === 'vlan' && dpiVlans && dpiVlans.total_vlans > 0) {
+              // Color by VLAN
+              const vlanColors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+              const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
+              let foundVlan = false;
+              for (let i = 0; i < vlanIds.length; i++) {
+                const members = dpiVlans.vlans[vlanIds[i]] || [];
+                if (members.some(m => node.id.includes(m) || m.includes(node.ip))) {
+                  nodeColor = vlanColors[i % vlanColors.length];
+                  foundVlan = true;
+                  break;
+                }
+              }
+              if (!foundVlan) {
+                nodeColor = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+              }
+            } else if (dpiViewMode === 'multicast') {
+              // Check if node is multicast member
+              const isMcastMember = dpiMulticast.some(g => 
+                g.members.includes(node.ip) || g.members.includes(node.id)
+              );
+              nodeColor = isMcastMember ? '#22C55E' : (node.group === 'online' ? '#00ff41' : '#6B7280');
+            } else {
+              // Standard mode
+              nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            }
             
             // Dim nodes that are NOT part of click selection AND NOT part of hover
             const isAnyHighlightActive = highlightedAsset || clickedLink || hoveredNode || hoveredLink;
@@ -2226,18 +2323,68 @@ const Topology: React.FC = () => {
               ctx.shadowColor = '#ffffff';
             }
             
-            // Draw Node Circle - dimmer when not highlighted
+            // Draw Node Shape - different shapes for different device types in device-type mode
             // Size based on connection count (10% increments, max 100% larger)
             // Brightness based on link activity (synced with halo intensity)
             const dynamicNodeSize = getNodeSize(node.id, 6);
             const nodeRadius = isHighlightedAsset ? dynamicNodeSize * 1.67 : (isSelected ? dynamicNodeSize * 1.33 : dynamicNodeSize);
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+            
             // Apply node intensity to opacity - highlighted nodes also respect traffic intensity
             const baseOpacity = isDimmed ? 0.2 : (isHighlighted ? Math.max(0.6, nodeIntensity) : nodeIntensity * 0.8);
             ctx.globalAlpha = baseOpacity;
             ctx.fillStyle = nodeColor;
-            ctx.fill();
+            
+            // Get device type for shape selection
+            const deviceType = dpiViewMode === 'device-type' && dpiSummary
+              ? (dpiSummary.classified_devices[node.ip] || dpiSummary.classified_devices[node.id] || 'host')
+              : null;
+            
+            ctx.beginPath();
+            if (deviceType === 'router') {
+              // Router: circle with crosshairs effect
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fill();
+              // Draw router arrows
+              ctx.strokeStyle = '#000';
+              ctx.lineWidth = 1.5;
+              const arrowLen = nodeRadius * 0.6;
+              [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([dx, dy]) => {
+                ctx.beginPath();
+                ctx.moveTo(node.x, node.y);
+                ctx.lineTo(node.x + dx * arrowLen, node.y + dy * arrowLen);
+                ctx.stroke();
+              });
+            } else if (deviceType === 'switch') {
+              // Switch: rounded rectangle
+              const w = nodeRadius * 2.2;
+              const h = nodeRadius * 1.4;
+              const r = 3; // corner radius
+              ctx.beginPath();
+              ctx.moveTo(node.x - w/2 + r, node.y - h/2);
+              ctx.lineTo(node.x + w/2 - r, node.y - h/2);
+              ctx.quadraticCurveTo(node.x + w/2, node.y - h/2, node.x + w/2, node.y - h/2 + r);
+              ctx.lineTo(node.x + w/2, node.y + h/2 - r);
+              ctx.quadraticCurveTo(node.x + w/2, node.y + h/2, node.x + w/2 - r, node.y + h/2);
+              ctx.lineTo(node.x - w/2 + r, node.y + h/2);
+              ctx.quadraticCurveTo(node.x - w/2, node.y + h/2, node.x - w/2, node.y + h/2 - r);
+              ctx.lineTo(node.x - w/2, node.y - h/2 + r);
+              ctx.quadraticCurveTo(node.x - w/2, node.y - h/2, node.x - w/2 + r, node.y - h/2);
+              ctx.closePath();
+              ctx.fill();
+              // Draw port indicators
+              ctx.strokeStyle = '#000';
+              ctx.lineWidth = 0.5;
+              for (let i = 0; i < 4; i++) {
+                const portX = node.x - w/2 + (i + 1) * w/5;
+                ctx.beginPath();
+                ctx.rect(portX - 1.5, node.y + h/2 - 3, 3, 3);
+                ctx.stroke();
+              }
+            } else {
+              // Default: circle for hosts and unknown
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fill();
+            }
             
             // Glow effect - intensity scales with traffic activity
             if (isHighlighted && !isDimmed) {
