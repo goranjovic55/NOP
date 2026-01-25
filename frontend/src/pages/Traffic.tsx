@@ -111,6 +111,25 @@ interface Packet {
       preview: string;
     };
   };
+  // DPI (Deep Packet Inspection) results
+  dpi?: {
+    protocol: string;
+    confidence: number;
+    method: string;  // "signature", "heuristic", "port"
+    category: string;
+    is_encrypted: boolean;
+    service_label: string;
+    evidence: {
+      matched_pattern?: string;
+      port?: number;
+      entropy?: number;
+      [key: string]: any;
+    };
+  };
+  service_label?: string;
+  detected_protocol?: string;
+  is_encrypted?: boolean;
+  protocol_category?: string;
 }
 
 interface Stream {
@@ -781,6 +800,7 @@ const Traffic: React.FC = () => {
                   <th className="px-2 py-2 text-left w-14 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('protocol')}>
                     <div className="flex items-center gap-1">Proto <SortIcon column="protocol" /></div>
                   </th>
+                  <th className="px-2 py-2 text-left w-20">Service</th>
                   <th className="px-2 py-2 text-left w-12 cursor-pointer hover:text-cyber-blue select-none" onClick={() => handleSort('length')}>
                     <div className="flex items-center gap-1">Len <SortIcon column="length" /></div>
                   </th>
@@ -798,6 +818,10 @@ const Traffic: React.FC = () => {
                     <td className="px-2 py-0.5 text-cyber-blue truncate max-w-[112px]">{p.source}</td>
                     <td className="px-2 py-0.5 text-cyber-red truncate max-w-[112px]">{p.destination}</td>
                     <td className={`px-2 py-0.5 font-bold ${getProtocolColor(p.protocol)}`}>{p.protocol}</td>
+                    <td className="px-2 py-0.5 text-yellow-400 truncate max-w-[80px]" title={p.service_label || p.detected_protocol || ''}>
+                      {p.is_encrypted && '🔒'}
+                      {p.service_label || p.detected_protocol || '-'}
+                    </td>
                     <td className="px-2 py-0.5 text-cyber-gray-light">{p.length}</td>
                     <td className="px-2 py-0.5 text-cyber-gray-light truncate">{p.info || p.summary}</td>
                   </tr>
@@ -1722,6 +1746,48 @@ const Traffic: React.FC = () => {
                 </h4>
                 <div className="pl-4 p-2 bg-black border border-cyber-gray text-cyber-blue text-xs font-mono break-all">
                   {selectedPacket.layers.payload.preview}
+                </div>
+              </div>
+            )}
+
+            {/* DPI (Deep Packet Inspection) Results */}
+            {selectedPacket.dpi && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-yellow-400 font-bold uppercase border-b border-yellow-600/50 pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Deep Packet Inspection
+                </h4>
+                <div className="pl-4 grid grid-cols-2 gap-1 text-xs font-mono">
+                  <span className="text-cyber-gray-light">Detected Protocol:</span>
+                  <span className="text-yellow-400 font-bold">{selectedPacket.dpi.protocol}</span>
+                  <span className="text-cyber-gray-light">Service:</span>
+                  <span className="text-cyber-green">{selectedPacket.dpi.service_label || selectedPacket.service_label || 'N/A'}</span>
+                  <span className="text-cyber-gray-light">Confidence:</span>
+                  <span className={selectedPacket.dpi.confidence >= 0.8 ? 'text-green-400' : selectedPacket.dpi.confidence >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
+                    {(selectedPacket.dpi.confidence * 100).toFixed(0)}%
+                  </span>
+                  <span className="text-cyber-gray-light">Detection Method:</span>
+                  <span className="text-cyber-blue">{selectedPacket.dpi.method}</span>
+                  <span className="text-cyber-gray-light">Category:</span>
+                  <span className="text-cyber-purple">{selectedPacket.dpi.category}</span>
+                  <span className="text-cyber-gray-light">Encrypted:</span>
+                  <span className={selectedPacket.dpi.is_encrypted ? 'text-green-400' : 'text-gray-400'}>
+                    {selectedPacket.dpi.is_encrypted ? '🔒 Yes' : 'No'}
+                  </span>
+                  {selectedPacket.dpi.evidence?.entropy !== undefined && (
+                    <>
+                      <span className="text-cyber-gray-light">Entropy:</span>
+                      <span className={selectedPacket.dpi.evidence.entropy > 7.0 ? 'text-orange-400' : 'text-cyber-blue'}>
+                        {selectedPacket.dpi.evidence.entropy.toFixed(2)}
+                        {selectedPacket.dpi.evidence.entropy > 7.0 && ' (encrypted/compressed)'}
+                      </span>
+                    </>
+                  )}
+                  {selectedPacket.dpi.evidence?.matched_pattern && (
+                    <>
+                      <span className="text-cyber-gray-light">Pattern Match:</span>
+                      <span className="text-cyber-green font-mono text-[10px]">{selectedPacket.dpi.evidence.matched_pattern}</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}

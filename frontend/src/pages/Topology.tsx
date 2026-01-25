@@ -42,6 +42,12 @@ interface GraphLink {
   sourcePort?: number; // primary source port
   targetPort?: number; // primary destination port
   bytesPerSecond?: number; // calculated throughput for filtering
+  
+  // DPI (Deep Packet Inspection) fields
+  detected_protocols?: string[]; // L7 protocols detected by DPI
+  service_label?: string; // Service label (e.g., "HTTP:80", "SSH:22")
+  is_encrypted?: boolean; // Whether traffic is encrypted
+  protocol_category?: string; // Category (web, mail, database, etc.)
 }
 
 interface GraphData {
@@ -49,19 +55,58 @@ interface GraphData {
   links: GraphLink[];
 }
 
-// Color constants for protocol visualization
-const PROTOCOL_COLORS = {
+// Color constants for protocol visualization (L4 + L7)
+// Color constants for protocol visualization (L4 + L7)
+const PROTOCOL_COLORS: Record<string, string> = {
+  // L4 Transport protocols
   TCP: '#00ff41',    // Green
   UDP: '#00f0ff',    // Blue
   ICMP: '#ffff00',   // Yellow
   OTHER_IP: '#ff00ff', // Magenta
-  DEFAULT: '#00f0ff'   // Blue
+  
+  // L7 Application protocols (DPI detected)
+  HTTP: '#00ff00',     // Bright green
+  HTTPS: '#00aa00',    // Dark green (encrypted web)
+  DNS: '#ff9900',      // Orange
+  SSH: '#9900ff',      // Purple
+  SMB: '#ff0099',      // Pink
+  RDP: '#ff6600',      // Orange-red
+  FTP: '#66ff00',      // Lime green
+  SMTP: '#0099ff',     // Light blue
+  MYSQL: '#ff9966',    // Peach
+  POSTGRESQL: '#336699', // Steel blue
+  REDIS: '#cc0000',    // Redis red
+  MONGODB: '#47a248',  // MongoDB green
+  TLS: '#008800',      // Dark green (encrypted)
+  VNC: '#5555ff',      // Blue
+  LDAP: '#999900',     // Olive
+  NTP: '#cc99ff',      // Light purple
+  SNMP: '#996633',     // Brown
+  SIP: '#00cccc',      // Teal (VoIP)
+  MODBUS: '#ff3300',   // Industrial red
+  
+  // Special categories
+  ENCRYPTED: '#006600', // Very dark green for encrypted
+  UNKNOWN: '#666666',   // Gray for unknown
+  DEFAULT: '#00f0ff'    // Blue default
 };
 
 // Utility functions
-const getProtocolColor = (protocols?: string[]): string => {
+const getProtocolColor = (protocols?: string[], detectedProtocol?: string): string => {
+  // Prefer L7 detected protocol if available
+  if (detectedProtocol && PROTOCOL_COLORS[detectedProtocol.toUpperCase()]) {
+    return PROTOCOL_COLORS[detectedProtocol.toUpperCase()];
+  }
+  
   if (!protocols || protocols.length === 0) return PROTOCOL_COLORS.DEFAULT;
-  const protocol = protocols[0]; // Use primary protocol
+  const protocol = protocols[0].toUpperCase(); // Use primary protocol
+  
+  // Check L7 protocols first
+  if (PROTOCOL_COLORS[protocol]) {
+    return PROTOCOL_COLORS[protocol];
+  }
+  
+  // L4 fallbacks
   if (protocol === 'TCP') return PROTOCOL_COLORS.TCP;
   if (protocol === 'UDP') return PROTOCOL_COLORS.UDP;
   if (protocol === 'ICMP') return PROTOCOL_COLORS.ICMP;
@@ -1451,8 +1496,9 @@ const Topology: React.FC = () => {
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return '#00f0ff20'; // Very dim blue for no traffic
             
-            // Use utility function for protocol coloring
-            const color = getProtocolColor(link.protocols);
+                        // Use utility function for protocol coloring (prefer DPI detected protocols)
+            const detectedProto = link.detected_protocols?.[0] || undefined;
+            const color = getProtocolColor(link.protocols, detectedProto);
             
             // Fallback to bidirectional coloring if no protocol info
             const baseColor = (color === '#00f0ff' && link.bidirectional) 
@@ -1571,7 +1617,8 @@ const Topology: React.FC = () => {
             // Highlight multiplier scales proportionally to maintain relative thickness
             const highlightWidthMultiplier = isHighlightedLink ? 2.0 : (isHoverHighlightedLink ? 1.8 : (isSelected ? 1.6 : 1));
             const width = baseWidth * highlightWidthMultiplier * zoomScale;
-            const baseColor = getProtocolColor(link.protocols) || (link.bidirectional ? '#00ff41' : '#00f0ff');
+            const detectedProtocolForColor = link.detected_protocols?.[0] || undefined;
+            const baseColor = getProtocolColor(link.protocols, detectedProtocolForColor) || (link.bidirectional ? '#00ff41' : '#00f0ff');
             
             // Apply opacity based on recency and traffic activity - more visible fading
             // But keep highlighted links bright
@@ -1660,15 +1707,26 @@ const Topology: React.FC = () => {
               const curveMidX = 0.25 * start.x + 0.5 * ctrlX + 0.25 * end.x;
               const curveMidY = 0.25 * start.y + 0.5 * ctrlY + 0.25 * end.y;
               
-              // Build label text: protocols, ports, and traffic info
-              const protocols = link.protocols?.join('/') || 'IP';
+              // Build label text: prefer service_label (from DPI) > detected_protocols > protocols
+              let labelProtocol: string;
+              if (link.service_label) {
+                labelProtocol = link.service_label;  // e.g., "HTTP:80"
+              } else if (link.detected_protocols && link.detected_protocols.length > 0) {
+                const port = link.targetPort || (link.ports?.length ? link.ports[0] : '');
+                labelProtocol = `${link.detected_protocols[0]}${port ? ':' + port : ''}`;
+              } else {
+                const protocols = link.protocols?.join('/') || 'IP';
+                const portInfo = link.targetPort ? `:${link.targetPort}` : (link.ports?.length ? `:${link.ports[0]}` : '');
+                labelProtocol = `${protocols}${portInfo}`;
+              }
+              
               const trafficMB = formatTrafficMB(totalTraffic);
-              const portInfo = link.targetPort ? `:${link.targetPort}` : (link.ports?.length ? `:${link.ports[0]}` : '');
+              const encryptedIcon = link.is_encrypted ? '🔒' : '';
               
               // Draw label background
               const labelFontSize = Math.max(8, 10 / globalScale);
               ctx.font = `bold ${labelFontSize}px Monospace`;
-              const labelText = `${protocols}${portInfo} ${trafficMB}MB`;
+              const labelText = `${encryptedIcon}${labelProtocol} ${trafficMB}MB`;
               const labelWidth = ctx.measureText(labelText).width + 8;
               const labelHeight = labelFontSize + 4;
               
@@ -2177,7 +2235,7 @@ const Topology: React.FC = () => {
             <span className="uppercase tracking-wide">External/Unknown</span>
           </div>
           
-          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Connections</div>
+          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L4 Transport</div>
           <div className="flex items-center space-x-2 mb-1.5">
             <span className="w-5 h-0.5 bg-cyber-green shadow-[0_0_3px_#00ff41]"></span>
             <span className="uppercase tracking-wide">TCP Traffic</span>
@@ -2190,9 +2248,31 @@ const Topology: React.FC = () => {
             <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.ICMP}`}}></span>
             <span className="uppercase tracking-wide">ICMP Traffic</span>
           </div>
-          <div className="flex items-center space-x-2 mb-1.5">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.OTHER_IP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.OTHER_IP}`}}></span>
-            <span className="uppercase tracking-wide">Other IP</span>
+          
+          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L7 Applications (DPI)</div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.HTTP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.HTTP}`}}></span>
+            <span className="uppercase tracking-wide">HTTP/Web</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.TLS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.TLS}`}}></span>
+            <span className="uppercase tracking-wide">TLS/Encrypted</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SSH, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SSH}`}}></span>
+            <span className="uppercase tracking-wide">SSH</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.DNS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.DNS}`}}></span>
+            <span className="uppercase tracking-wide">DNS</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SMB, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SMB}`}}></span>
+            <span className="uppercase tracking-wide">SMB/File</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.MYSQL, boxShadow: `0 0 3px ${PROTOCOL_COLORS.MYSQL}`}}></span>
+            <span className="uppercase tracking-wide">Database</span>
           </div>
           
           <div className="font-bold text-cyber-red mb-2 mt-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Intensity</div>
@@ -2211,9 +2291,8 @@ const Topology: React.FC = () => {
           
           <div className="text-[10px] mt-3 pt-3 border-t border-cyber-gray text-cyber-gray uppercase tracking-wide">
             <div>Line width = traffic volume</div>
-            <div>Curved lines = reduce overlapping</div>
+            <div>Line color = protocol type</div>
             <div>Node size = connections</div>
-            <div>Particles = active flow</div>
             <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
         </div>
@@ -2334,10 +2413,34 @@ const Topology: React.FC = () => {
                       <span className="text-cyber-gray-light">Target:</span>
                       <span className="text-cyber-blue font-mono">{typeof displayLink.target === 'object' ? displayLink.target.id : displayLink.target}</span>
                     </div>
+                    {/* Service Label from DPI */}
+                    {displayLink.service_label && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Service:</span>
+                        <span className="text-cyber-green font-bold">{displayLink.service_label}</span>
+                      </div>
+                    )}
+                    {/* L7 Detected Protocols from DPI */}
+                    {displayLink.detected_protocols && displayLink.detected_protocols.length > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">App Protocol:</span>
+                        <span className="text-yellow-400">{displayLink.detected_protocols.join(', ')}</span>
+                      </div>
+                    )}
+                    {/* L4 Transport Protocol */}
                     {displayLink.protocols && displayLink.protocols.length > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-cyber-gray-light">Protocol:</span>
+                        <span className="text-cyber-gray-light">Transport:</span>
                         <span className="text-cyber-purple">{displayLink.protocols.join(', ')}</span>
+                      </div>
+                    )}
+                    {/* Encryption status */}
+                    {displayLink.is_encrypted !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Encrypted:</span>
+                        <span className={displayLink.is_encrypted ? 'text-green-400' : 'text-gray-400'}>
+                          {displayLink.is_encrypted ? '🔒 Yes' : 'No'}
+                        </span>
                       </div>
                     )}
                     <div className="flex justify-between">
