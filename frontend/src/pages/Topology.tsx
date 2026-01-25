@@ -4,12 +4,17 @@ import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
 import { trafficService, NetworkInterface } from '../services/trafficService';
+import { protocolAnalysisService, TopologySummary, VLANTopology, MulticastGroup, LLDPNeighbor } from '../services/protocolAnalysisService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
 import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
 import ConnectionContextMenu from '../components/ConnectionContextMenu';
+import { DPITopologyPanel } from '../components/DPITopologyPanel';
+
+// DPI-based view modes for topology visualization
+type DPIViewMode = 'standard' | 'vlan' | 'multicast' | 'device-type';
 
 interface GraphNode {
   id: string;
@@ -49,24 +54,67 @@ interface GraphData {
   links: GraphLink[];
 }
 
-// Color constants for protocol visualization
-const PROTOCOL_COLORS = {
-  TCP: '#00ff41',    // Green
-  UDP: '#00f0ff',    // Blue
-  ICMP: '#ffff00',   // Yellow
-  OTHER_IP: '#ff00ff', // Magenta
-  DEFAULT: '#00f0ff'   // Blue
+// Cyberpunk-themed protocol color palette
+const PROTOCOL_COLORS: Record<string, string> = {
+  // Layer 2 - Cyber Blues
+  ARP: '#00d4ff',      // cyber-blue
+  LLDP: '#00a8cc',     // cyber-blue-dark
+  CDP: '#00d4ff',      // cyber-blue
+  STP: '#0099b3',      // cyber-blue muted
+  VLAN: '#00d4ff',     // cyber-blue
+  
+  // Layer 3 - Cyber Greens
+  IP: '#00ff88',       // cyber-green
+  ICMP: '#00cc6a',     // cyber-green-dark
+  IGMP: '#00ff88',     // cyber-green
+  
+  // Layer 4 - Cyber Red/Yellow accent
+  TCP: '#ff0040',      // cyber-red
+  UDP: '#ffff00',      // cyber-yellow
+  
+  // Application - Cyber Purples
+  HTTP: '#8b5cf6',     // cyber-purple
+  HTTPS: '#7c3aed',    // cyber-purple-dark
+  DNS: '#a78bfa',      // cyber-purple-light
+  DHCP: '#8b5cf6',     // cyber-purple
+  SSH: '#7c3aed',      // cyber-purple-dark
+  FTP: '#a78bfa',      // cyber-purple-light
+  SMTP: '#8b5cf6',     // cyber-purple
+  NTP: '#a78bfa',      // cyber-purple-light
+  
+  // Industrial - Cyber accents (teal-ish greens)
+  MODBUS: '#00ff88',   // cyber-green
+  BACNET: '#00cc6a',   // cyber-green-dark
+  DNP3: '#00ff88',     // cyber-green
+  S7: '#00cc6a',       // cyber-green-dark
+  
+  // Multicast/Special - Cyber Red/Purple
+  MULTICAST: '#ff0040', // cyber-red
+  BROADCAST: '#ffff00', // cyber-yellow
+  SSDP: '#ff0040',      // cyber-red
+  MDNS: '#8b5cf6',      // cyber-purple
+  
+  // Default
+  OTHER_IP: '#8b5cf6',  // cyber-purple
+  DEFAULT: '#00d4ff'    // cyber-blue
+};
+
+// Cyberpunk device type colors
+const DEVICE_TYPE_COLORS: Record<string, string> = {
+  router: '#ffff00',    // cyber-yellow (warning/important)
+  switch: '#8b5cf6',    // cyber-purple (secondary accent)
+  firewall: '#ff0040',  // cyber-red (primary accent)
+  server: '#00d4ff',    // cyber-blue (info)
+  host: '#00ff88',      // cyber-green (positive/active)
+  iot: '#00cc6a',       // cyber-green-dark
+  unknown: '#3a3a3a',   // cyber-gray-light
 };
 
 // Utility functions
 const getProtocolColor = (protocols?: string[]): string => {
   if (!protocols || protocols.length === 0) return PROTOCOL_COLORS.DEFAULT;
-  const protocol = protocols[0]; // Use primary protocol
-  if (protocol === 'TCP') return PROTOCOL_COLORS.TCP;
-  if (protocol === 'UDP') return PROTOCOL_COLORS.UDP;
-  if (protocol === 'ICMP') return PROTOCOL_COLORS.ICMP;
-  if (protocol.startsWith('IP_')) return PROTOCOL_COLORS.OTHER_IP;
-  return PROTOCOL_COLORS.DEFAULT;
+  const protocol = protocols[0]?.toUpperCase(); // Use primary protocol
+  return PROTOCOL_COLORS[protocol] || PROTOCOL_COLORS.DEFAULT;
 };
 
 const formatTrafficMB = (bytes: number): string => {
@@ -250,6 +298,59 @@ const Topology: React.FC = () => {
     return saved ? parseInt(saved, 10) : 600;
   });
   const [isResizing, setIsResizing] = useState(false);
+  
+  // DPI Panel state
+  const [showDPIPanel, setShowDPIPanel] = useState(() => {
+    const saved = localStorage.getItem('nop_topology_dpi_panel');
+    return saved === 'true';
+  });
+  
+  // DPI View Mode state
+  const [dpiViewMode, setDpiViewMode] = useState<DPIViewMode>(() => {
+    const saved = localStorage.getItem('nop_topology_dpi_view_mode');
+    return (saved as DPIViewMode) || 'standard';
+  });
+  
+  // DPI data for view modes
+  const [dpiSummary, setDpiSummary] = useState<TopologySummary | null>(null);
+  const [dpiVlans, setDpiVlans] = useState<VLANTopology | null>(null);
+  const [dpiMulticast, setDpiMulticast] = useState<MulticastGroup[]>([]);
+  const [dpiLldpNeighbors, setDpiLldpNeighbors] = useState<LLDPNeighbor[]>([]);
+  
+  // Persist DPI panel visibility
+  useEffect(() => {
+    localStorage.setItem('nop_topology_dpi_panel', showDPIPanel.toString());
+  }, [showDPIPanel]);
+  
+  // Persist DPI view mode
+  useEffect(() => {
+    localStorage.setItem('nop_topology_dpi_view_mode', dpiViewMode);
+  }, [dpiViewMode]);
+  
+  // Fetch DPI data for view modes
+  useEffect(() => {
+    const fetchDPIData = async () => {
+      if (!token) return;
+      try {
+        const [summary, vlans, multicast, lldp] = await Promise.all([
+          protocolAnalysisService.getTopologySummary(token, activeAgent),
+          protocolAnalysisService.getVLANTopology(token, activeAgent),
+          protocolAnalysisService.getMulticastGroups(token, activeAgent),
+          protocolAnalysisService.getLLDPNeighbors(token, activeAgent)
+        ]);
+        setDpiSummary(summary);
+        setDpiVlans(vlans);
+        setDpiMulticast(multicast);
+        setDpiLldpNeighbors(lldp);
+      } catch (err) {
+        console.error('Failed to fetch DPI data:', err);
+      }
+    };
+    
+    fetchDPIData();
+    const interval = setInterval(fetchDPIData, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [token, activeAgent]);
 
   // Use browser Fullscreen API for true fullscreen
   const toggleFullscreen = async () => {
@@ -1128,11 +1229,32 @@ const Topology: React.FC = () => {
   useEffect(() => {
     if (!fgRef.current) return;
 
-    // Force Directed layout with spread settings
-    fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
-    fgRef.current.d3Force('link')?.distance(180);
-    fgRef.current.d3Force('center')?.strength(0.05);
-  }, [dimensions]);
+    // Force Directed layout with spread settings - adjust based on DPI view mode
+    if (dpiViewMode === 'vlan' && dpiVlans && dpiVlans.total_vlans > 0) {
+      // VLAN mode: stronger separation, cluster by VLAN
+      fgRef.current.d3Force('charge')?.strength(-1200).distanceMax(600);
+      fgRef.current.d3Force('link')?.distance(120);
+      fgRef.current.d3Force('center')?.strength(0.02);
+    } else if (dpiViewMode === 'multicast' && dpiMulticast.length > 0) {
+      // Multicast mode: hub-and-spoke layout
+      fgRef.current.d3Force('charge')?.strength(-600).distanceMax(400);
+      fgRef.current.d3Force('link')?.distance(100);
+      fgRef.current.d3Force('center')?.strength(0.1);
+    } else if (dpiViewMode === 'device-type' && dpiSummary) {
+      // Device type mode: tiered layout (routers/switches central, hosts peripheral)
+      fgRef.current.d3Force('charge')?.strength(-1000).distanceMax(500);
+      fgRef.current.d3Force('link')?.distance(150);
+      fgRef.current.d3Force('center')?.strength(0.05);
+    } else {
+      // Standard mode
+      fgRef.current.d3Force('charge')?.strength(-800).distanceMax(400);
+      fgRef.current.d3Force('link')?.distance(180);
+      fgRef.current.d3Force('center')?.strength(0.05);
+    }
+    
+    // Reheat simulation when view mode changes
+    fgRef.current.d3ReheatSimulation?.();
+  }, [dimensions, dpiViewMode, dpiVlans, dpiMulticast, dpiSummary]);
 
   return (
     <div className="h-full flex flex-col space-y-2">
@@ -1341,18 +1463,69 @@ const Topology: React.FC = () => {
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
         )}
         
-        {/* Node/Link counts - pushed to end */}
-        <div className="flex items-center gap-2 text-xs text-cyber-gray-light ml-auto">
-          <span><span className="font-bold text-cyber-blue">{graphData.nodes.length}</span>N</span>
-          <span><span className="font-bold text-cyber-green">{graphData.links.length}</span>L</span>
+        {/* DPI View Mode Selector - Cyberpunk Styled */}
+        <div className="flex bg-cyber-black rounded border border-cyber-red/50 shadow-cyber">
+          <button
+            onClick={() => setDpiViewMode('standard')}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'standard' ? 'bg-cyber-red text-cyber-black shadow-cyber' : 'text-cyber-gray-light hover:text-cyber-red hover:bg-cyber-red/10'}`}
+            title="Standard force-directed layout"
+          >
+            STD
+          </button>
+          <button
+            onClick={() => setDpiViewMode('vlan')}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'vlan' ? 'bg-cyber-blue text-cyber-black shadow-cyber-blue' : 'text-cyber-gray-light hover:text-cyber-blue hover:bg-cyber-blue/10'}`}
+            title="Group nodes by VLAN membership"
+          >
+            VLAN
+          </button>
+          <button
+            onClick={() => setDpiViewMode('multicast')}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'multicast' ? 'bg-cyber-green text-cyber-black shadow-cyber-green' : 'text-cyber-gray-light hover:text-cyber-green hover:bg-cyber-green/10'}`}
+            title="Show multicast groups as hubs"
+          >
+            MCAST
+          </button>
+          <button
+            onClick={() => setDpiViewMode('device-type')}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'device-type' ? 'bg-cyber-yellow text-cyber-black' : 'text-cyber-gray-light hover:text-cyber-yellow hover:bg-cyber-yellow/10'}`}
+            style={dpiViewMode === 'device-type' ? { boxShadow: '0 0 10px rgba(255, 255, 0, 0.3)' } : {}}
+            title="Group by device type (switch/router/host)"
+          >
+            TYPE
+          </button>
+        </div>
+        
+        {/* DPI Panel Toggle - Cyberpunk Styled */}
+        <button 
+          onClick={() => setShowDPIPanel(!showDPIPanel)}
+          className={`px-3 py-1 border text-xs font-mono font-bold uppercase tracking-wider rounded transition-all ${showDPIPanel ? 'border-cyber-red text-cyber-red bg-cyber-red/10 shadow-cyber' : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-red/50 hover:text-cyber-red'}`}
+          title="Toggle Deep Packet Inspection panel"
+        >
+          {showDPIPanel ? '◆ DPI' : '◇ DPI'}
+        </button>
+        
+        {/* Node/Link counts - Cyberpunk styled */}
+        <div className="flex items-center gap-3 text-xs font-mono ml-auto">
+          <span className="flex items-center gap-1">
+            <span className="font-bold text-cyber-blue" style={{ textShadow: '0 0 4px #00d4ff' }}>{graphData.nodes.length}</span>
+            <span className="text-cyber-gray-light uppercase tracking-wider text-[9px]">nodes</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="font-bold text-cyber-green" style={{ textShadow: '0 0 4px #00ff88' }}>{graphData.links.length}</span>
+            <span className="text-cyber-gray-light uppercase tracking-wider text-[9px]">links</span>
+          </span>
         </div>
       </div>
 
-      <div 
-        ref={containerRef} 
-        className="bg-cyber-darker border border-cyber-gray relative overflow-hidden"
-        style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
-      >
+      {/* Main content area with graph and optional DPI panel */}
+      <div className="flex gap-2 flex-1 min-h-0">
+        {/* Graph container */}
+        <div 
+          ref={containerRef} 
+          className={`bg-cyber-darker border border-cyber-gray relative overflow-hidden flex-1 ${showDPIPanel ? 'w-3/4' : 'w-full'}`}
+          style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
+        >
         {/* Fullscreen close button - shown when in browser fullscreen */}
         {isFullscreen && (
           <button
@@ -1365,6 +1538,130 @@ const Topology: React.FC = () => {
         {loading && graphData.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
             <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
+          </div>
+        )}
+        
+        {/* DPI View Mode Legend - Cyberpunk Styled */}
+        {dpiViewMode !== 'standard' && (
+          <div className="absolute top-2 left-2 z-20 bg-cyber-black/95 border border-cyber-red/50 p-3 rounded font-mono text-xs shadow-cyber">
+            {dpiViewMode === 'vlan' && (
+              <div>
+                <div className="text-cyber-blue font-bold uppercase mb-2 tracking-wider cyber-glow" style={{ textShadow: '0 0 8px #00d4ff' }}>
+                  ◆ VLAN VIEW
+                </div>
+                <div className="text-cyber-gray-light text-[10px] mb-2">Nodes colored by VLAN membership</div>
+                {dpiVlans && dpiVlans.total_vlans > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {Object.keys(dpiVlans.vlans).slice(0, 6).map((vlanId, i) => {
+                      // Cyberpunk VLAN colors
+                      const colors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
+                      return (
+                        <span key={vlanId} className="flex items-center gap-1">
+                          <span 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ 
+                              backgroundColor: colors[i % colors.length],
+                              boxShadow: `0 0 6px ${colors[i % colors.length]}`
+                            }}
+                          ></span>
+                          <span className="text-[10px] text-cyber-gray-light">VLAN {vlanId}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {dpiViewMode === 'multicast' && (
+              <div>
+                <div className="text-cyber-green font-bold uppercase mb-2 tracking-wider" style={{ textShadow: '0 0 8px #00ff88' }}>
+                  ◆ MULTICAST VIEW
+                </div>
+                <div className="text-cyber-gray-light text-[10px] flex items-center gap-1">
+                  <span className="text-cyber-green" style={{ textShadow: '0 0 4px #00ff88' }}>●</span> 
+                  Multicast group members
+                </div>
+                <div className="text-cyber-gray-light text-[10px] flex items-center gap-1">
+                  <span className="text-cyber-gray">●</span> 
+                  Non-members
+                </div>
+                {dpiMulticast.length > 0 && (
+                  <div className="mt-2 pt-1 border-t border-cyber-gray/50 text-[10px] text-cyber-purple">
+                    {dpiMulticast.length} group{dpiMulticast.length !== 1 ? 's' : ''} detected
+                  </div>
+                )}
+              </div>
+            )}
+            {dpiViewMode === 'device-type' && (
+              <div>
+                <div className="text-cyber-yellow font-bold uppercase mb-2 tracking-wider" style={{ textShadow: '0 0 8px #ffff00' }}>
+                  ◆ DEVICE TYPE VIEW
+                </div>
+                <div className="flex flex-col gap-2 mt-1">
+                  {/* Router icon - cyber-yellow with glow */}
+                  <span className="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                      <defs>
+                        <filter id="glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="8" cy="8" r="5" fill="#ffff00" filter="url(#glow-yellow)" stroke="#0a0a0a" strokeWidth="0.5"/>
+                      <line x1="8" y1="2" x2="8" y2="5" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="8" y1="11" x2="8" y2="14" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="2" y1="8" x2="5" y2="8" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="11" y1="8" x2="14" y2="8" stroke="#0a0a0a" strokeWidth="1.5"/>
+                    </svg>
+                    <span className="text-cyber-yellow text-[10px] tracking-wide">ROUTER</span>
+                  </span>
+                  {/* Switch icon - cyber-purple with glow */}
+                  <span className="flex items-center gap-2">
+                    <svg width="16" height="12" viewBox="0 0 16 12">
+                      <defs>
+                        <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <rect x="1" y="1" width="14" height="10" rx="2" fill="#8b5cf6" filter="url(#glow-purple)" stroke="#0a0a0a" strokeWidth="0.5"/>
+                      <rect x="3" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
+                      <rect x="7" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
+                      <rect x="11" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
+                    </svg>
+                    <span className="text-cyber-purple text-[10px] tracking-wide">SWITCH</span>
+                  </span>
+                  {/* Host icon - cyber-green with glow */}
+                  <span className="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                      <defs>
+                        <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="8" cy="8" r="5" fill="#00ff88" filter="url(#glow-green)" stroke="#0a0a0a" strokeWidth="0.5"/>
+                    </svg>
+                    <span className="text-cyber-green text-[10px] tracking-wide">HOST</span>
+                  </span>
+                </div>
+                {dpiSummary && Object.keys(dpiSummary.classified_devices).length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-cyber-red/30 text-[9px] text-cyber-gray-light font-mono">
+                    <span className="text-cyber-yellow">{Object.values(dpiSummary.classified_devices).filter(t => t === 'router').length}</span> routers · 
+                    <span className="text-cyber-purple ml-1">{Object.values(dpiSummary.classified_devices).filter(t => t === 'switch').length}</span> switches
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         
@@ -1440,8 +1737,41 @@ const Topology: React.FC = () => {
           
           nodeLabel="name"
           nodeColor={node => {
+            // DPI-based coloring depending on view mode
+            if (dpiViewMode === 'device-type' && dpiSummary) {
+              const deviceType = dpiSummary.classified_devices[node.ip] || 
+                                 dpiSummary.classified_devices[node.id];
+              if (deviceType === 'switch') return '#8b5cf6'; // Cyber Purple
+              if (deviceType === 'router') return '#ffd700'; // Gold/Yellow
+              if (deviceType === 'host') return '#00ff88';   // Cyber Green
+            }
+            
+            if (dpiViewMode === 'vlan' && dpiVlans) {
+              // Color nodes by VLAN - use cyberpunk colors
+              const vlanColors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
+              const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
+              for (let i = 0; i < vlanIds.length; i++) {
+                const vlanId = vlanIds[i];
+                const members = dpiVlans.vlans[vlanId] || [];
+                // Check if node's MAC or IP is in this VLAN
+                if (members.some(m => node.id.includes(m) || m.includes(node.ip))) {
+                  return vlanColors[i % vlanColors.length];
+                }
+              }
+            }
+            
+            if (dpiViewMode === 'multicast') {
+              // Check if node is a multicast group member
+              for (const group of dpiMulticast) {
+                if (group.members.includes(node.ip) || group.members.includes(node.id)) {
+                  return '#00ff88'; // Cyber Green for multicast members
+                }
+              }
+            }
+            
+            // Standard coloring - cyberpunk theme
             if (node.group === 'passive') return '#8b5cf6'; // Cyber Purple for passive
-            if (node.group === 'online') return '#00ff41'; // Cyber Green
+            if (node.group === 'online') return '#00ff88'; // Cyber Green
             if (node.group === 'offline') return '#ff0040'; // Cyber Red
             return '#8b5cf6'; // Cyber Purple (External/Unknown)
           }}
@@ -1843,7 +2173,39 @@ const Topology: React.FC = () => {
             }
             
             const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
-            const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            
+            // DPI-aware node coloring based on view mode
+            let nodeColor: string;
+            if (dpiViewMode === 'device-type' && dpiSummary) {
+              const deviceType = dpiSummary.classified_devices[node.ip] || 
+                                 dpiSummary.classified_devices[node.id] || 'host';
+              nodeColor = DEVICE_TYPE_COLORS[deviceType] || DEVICE_TYPE_COLORS.host;
+            } else if (dpiViewMode === 'vlan' && dpiVlans && dpiVlans.total_vlans > 0) {
+              // Color by VLAN - cyberpunk colors
+              const vlanColors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
+              const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
+              let foundVlan = false;
+              for (let i = 0; i < vlanIds.length; i++) {
+                const members = dpiVlans.vlans[vlanIds[i]] || [];
+                if (members.some(m => node.id.includes(m) || m.includes(node.ip))) {
+                  nodeColor = vlanColors[i % vlanColors.length];
+                  foundVlan = true;
+                  break;
+                }
+              }
+              if (!foundVlan) {
+                nodeColor = node.group === 'online' ? '#00ff88' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+              }
+            } else if (dpiViewMode === 'multicast') {
+              // Check if node is multicast member - cyberpunk colors
+              const isMcastMember = dpiMulticast.some(g => 
+                g.members.includes(node.ip) || g.members.includes(node.id)
+              );
+              nodeColor = isMcastMember ? '#00ff88' : (node.group === 'online' ? '#00cc6a' : '#3a3a3a');
+            } else {
+              // Standard mode - cyberpunk colors
+              nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff88' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            }
             
             // Dim nodes that are NOT part of click selection AND NOT part of hover
             const isAnyHighlightActive = highlightedAsset || clickedLink || hoveredNode || hoveredLink;
@@ -2013,18 +2375,82 @@ const Topology: React.FC = () => {
               ctx.shadowColor = '#ffffff';
             }
             
-            // Draw Node Circle - dimmer when not highlighted
+            // Draw Node Shape - different shapes for different device types in device-type mode
             // Size based on connection count (10% increments, max 100% larger)
             // Brightness based on link activity (synced with halo intensity)
             const dynamicNodeSize = getNodeSize(node.id, 6);
             const nodeRadius = isHighlightedAsset ? dynamicNodeSize * 1.67 : (isSelected ? dynamicNodeSize * 1.33 : dynamicNodeSize);
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+            
             // Apply node intensity to opacity - highlighted nodes also respect traffic intensity
             const baseOpacity = isDimmed ? 0.2 : (isHighlighted ? Math.max(0.6, nodeIntensity) : nodeIntensity * 0.8);
             ctx.globalAlpha = baseOpacity;
             ctx.fillStyle = nodeColor;
-            ctx.fill();
+            
+            // Get device type for shape selection
+            const deviceType = dpiViewMode === 'device-type' && dpiSummary
+              ? (dpiSummary.classified_devices[node.ip] || dpiSummary.classified_devices[node.id] || 'host')
+              : null;
+            
+            // Add glow effect for device types in device-type view mode
+            if (deviceType && !isDimmed) {
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = nodeColor;
+            }
+            
+            ctx.beginPath();
+            if (deviceType === 'router') {
+              // Router: circle with crosshairs effect - Cyberpunk yellow with glow
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fill();
+              // Draw router arrows with dark contrast
+              ctx.shadowBlur = 0; // Disable glow for arrows
+              ctx.strokeStyle = '#0a0a0a'; // cyber-black
+              ctx.lineWidth = 1.5;
+              const arrowLen = nodeRadius * 0.7;
+              [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([dx, dy]) => {
+                ctx.beginPath();
+                ctx.moveTo(node.x, node.y);
+                ctx.lineTo(node.x + dx * arrowLen, node.y + dy * arrowLen);
+                ctx.stroke();
+              });
+            } else if (deviceType === 'switch') {
+              // Switch: rounded rectangle - Cyberpunk purple with glow
+              const w = nodeRadius * 2.2;
+              const h = nodeRadius * 1.4;
+              const r = 3; // corner radius
+              ctx.beginPath();
+              ctx.moveTo(node.x - w/2 + r, node.y - h/2);
+              ctx.lineTo(node.x + w/2 - r, node.y - h/2);
+              ctx.quadraticCurveTo(node.x + w/2, node.y - h/2, node.x + w/2, node.y - h/2 + r);
+              ctx.lineTo(node.x + w/2, node.y + h/2 - r);
+              ctx.quadraticCurveTo(node.x + w/2, node.y + h/2, node.x + w/2 - r, node.y + h/2);
+              ctx.lineTo(node.x - w/2 + r, node.y + h/2);
+              ctx.quadraticCurveTo(node.x - w/2, node.y + h/2, node.x - w/2, node.y + h/2 - r);
+              ctx.lineTo(node.x - w/2, node.y - h/2 + r);
+              ctx.quadraticCurveTo(node.x - w/2, node.y - h/2, node.x - w/2 + r, node.y - h/2);
+              ctx.closePath();
+              ctx.fill();
+              // Draw port indicators with dark contrast
+              ctx.shadowBlur = 0;
+              ctx.strokeStyle = '#0a0a0a'; // cyber-black
+              ctx.fillStyle = '#0a0a0a40'; // semi-transparent dark
+              ctx.lineWidth = 0.5;
+              for (let i = 0; i < 4; i++) {
+                const portX = node.x - w/2 + (i + 1) * w/5;
+                ctx.beginPath();
+                ctx.rect(portX - 1.5, node.y + h/2 - 4, 3, 3);
+                ctx.fill();
+                ctx.stroke();
+              }
+              ctx.fillStyle = nodeColor; // Reset fill style
+            } else {
+              // Default: circle for hosts - Cyberpunk green with glow
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fill();
+            }
+            
+            // Reset shadow for non-device-type modes
+            ctx.shadowBlur = 0;
             
             // Glow effect - intensity scales with traffic activity
             if (isHighlighted && !isDimmed) {
@@ -2412,6 +2838,15 @@ const Topology: React.FC = () => {
             }}
           />
         )}
+      </div>
+
+      {/* DPI Topology Panel - shows VLAN, LLDP, multicast info */}
+      {showDPIPanel && (
+        <DPITopologyPanel 
+          className="w-80 flex-shrink-0"
+          onToggle={() => setShowDPIPanel(false)}
+        />
+      )}
       </div>
 
       {/* Resize Handle - drag to resize graph height */}

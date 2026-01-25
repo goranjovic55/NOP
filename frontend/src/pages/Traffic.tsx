@@ -7,6 +7,7 @@ import { trafficService } from '../services/trafficService';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
 import { CyberTabs, CyberPageTitle } from '../components/CyberUI';
+import { DPIProtocolStats } from '../components/DPIProtocolStats';
 
 interface Packet {
   id: string;
@@ -743,6 +744,11 @@ const Traffic: React.FC = () => {
         >
           {isExporting ? 'Exporting...' : 'Export PCAP'}
         </button>
+        
+        {/* DPI Protocol Stats - pushed to end */}
+        <div className="flex-1 flex justify-end">
+          <DPIProtocolStats className="text-xs" />
+        </div>
       </div>
 
       {/* Main Content - Vertical Split View */}
