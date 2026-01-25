@@ -11,6 +11,9 @@ import os
 import socket
 import struct
 
+# Import DPI service for deep packet inspection
+from app.services.DPIOrchestrationService import dpi_service, DPIResult
+
 logger = logging.getLogger(__name__)
 
 class SnifferService:
@@ -53,6 +56,10 @@ class SnifferService:
         self.host_os_info = {}  # Format: {ip: {"os": "Linux/Windows/...", "ttl": int, "confidence": float}}
         self.host_hostnames = {}  # Format: {ip: {"hostname": str, "source": "dns/netbios/mdns", "last_seen": ts}}
         self.service_versions = {}  # Format: {ip: {port: {"banner": str, "version": str, "last_seen": ts}}}
+        
+        # DPI (Deep Packet Inspection) settings
+        self.dpi_enabled = True  # Enable DPI by default
+        self.dpi_service = dpi_service  # Reference to singleton DPI service
         
         # Storm-related attributes
         self.is_storming = False
@@ -478,6 +485,30 @@ class SnifferService:
         
         return layers
     
+    def _extract_payload(self, packet) -> bytes:
+        """Extract payload bytes from packet for DPI analysis"""
+        try:
+            # Try to get payload from TCP/UDP layer
+            if TCP in packet and Raw in packet:
+                return bytes(packet[Raw].load)
+            elif UDP in packet and Raw in packet:
+                return bytes(packet[Raw].load)
+            elif Raw in packet:
+                return bytes(packet[Raw].load)
+            
+            # Try nested payload access
+            if hasattr(packet, 'payload') and hasattr(packet.payload, 'payload'):
+                if hasattr(packet.payload.payload, 'payload'):
+                    inner = packet.payload.payload.payload
+                    if inner and hasattr(inner, 'load'):
+                        return bytes(inner.load)
+                    elif inner:
+                        return bytes(inner)
+            
+            return b""
+        except Exception:
+            return b""
+    
     def _detect_application(self, sport: int, dport: int, packet) -> Dict[str, Any]:
         """Detect application layer protocol based on ports and content"""
         app = {"protocol": "Unknown", "details": {}}
@@ -872,6 +903,44 @@ class SnifferService:
                 if "dst_port" in packet_data:
                     self.burst_stats["connections"][conn_key]["ports"].add(packet_data["dst_port"])
 
+        # ===== Deep Packet Inspection (DPI) =====
+        # Run DPI if enabled and packet has relevant layers
+        if self.dpi_enabled and IP in packet:
+            try:
+                # Extract payload for DPI analysis
+                payload = self._extract_payload(packet)
+                sport = packet_data.get("src_port", 0)
+                dport = packet_data.get("dst_port", 0)
+                transport = packet_data.get("protocol", "IP")
+                
+                # Check if packet should be inspected
+                packet_summary = {
+                    "protocol": transport,
+                    "length": len(payload) if payload else 0
+                }
+                
+                if self.dpi_service.should_deep_inspect(packet_summary):
+                    dpi_result = self.dpi_service.process_packet(
+                        payload=payload,
+                        sport=sport,
+                        dport=dport,
+                        transport_protocol=transport,
+                        packet_length=len(packet)
+                    )
+                    
+                    if dpi_result:
+                        # Enrich packet data with DPI results
+                        packet_data = self.dpi_service.enrich_topology_metadata(packet_data, dpi_result)
+                        
+                        # Update connection stats with L7 protocol
+                        if conn_key in self.stats["connections"]:
+                            if "detected_protocols" not in self.stats["connections"][conn_key]:
+                                self.stats["connections"][conn_key]["detected_protocols"] = set()
+                            self.stats["connections"][conn_key]["detected_protocols"].add(dpi_result.protocol)
+                            self.stats["connections"][conn_key]["service_label"] = dpi_result.service_label
+            except Exception as e:
+                logger.debug(f"DPI processing error: {e}")
+
         if self.callback:
             self.callback(packet_data)
 
@@ -936,7 +1005,10 @@ class SnifferService:
                 "dest_port": ports[1] if len(ports) > 1 else (ports[0] if ports else None),
                 "last_seen": conn_data.get("last_seen"),
                 "first_seen": conn_data.get("first_seen"),
-                "packet_count": conn_data.get("packet_count", 0)
+                "packet_count": conn_data.get("packet_count", 0),
+                # DPI enhancements
+                "detected_protocols": list(conn_data.get("detected_protocols", set())),
+                "service_label": conn_data.get("service_label")
             })
 
         return {
@@ -948,8 +1020,30 @@ class SnifferService:
             "connections": connections,
             "current_time": time.time(),
             "is_sniffing": self.is_sniffing,
-            "interface": self.interface
+            "interface": self.interface,
+            # DPI stats
+            "dpi_enabled": self.dpi_enabled,
+            "dpi_stats": self.dpi_service.get_stats() if self.dpi_enabled else None,
+            "protocol_breakdown": self.dpi_service.get_protocol_breakdown() if self.dpi_enabled else None
         }
+
+    def set_dpi_enabled(self, enabled: bool):
+        """Enable or disable Deep Packet Inspection"""
+        self.dpi_enabled = enabled
+        logger.info(f"DPI enabled: {enabled}")
+    
+    def get_dpi_stats(self) -> Dict[str, Any]:
+        """Get DPI-specific statistics"""
+        return {
+            "enabled": self.dpi_enabled,
+            "stats": self.dpi_service.get_stats(),
+            "protocol_breakdown": self.dpi_service.get_protocol_breakdown()
+        }
+    
+    def reset_dpi_stats(self):
+        """Reset DPI statistics"""
+        self.dpi_service.reset_stats()
+        logger.info("DPI stats reset")
 
     def start_burst_capture(self, interface: str = None) -> None:
         """Start a burst capture session to collect fresh traffic data.

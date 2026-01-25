@@ -502,3 +502,55 @@ async def advanced_ping(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ========== Deep Packet Inspection (DPI) Endpoints ==========
+
+class DPISettingsRequest(BaseModel):
+    enabled: bool
+
+
+@router.get("/dpi/stats")
+async def get_dpi_stats():
+    """Get Deep Packet Inspection statistics"""
+    return sniffer_service.get_dpi_stats()
+
+
+@router.post("/dpi/settings")
+async def update_dpi_settings(request: DPISettingsRequest):
+    """Enable or disable Deep Packet Inspection"""
+    sniffer_service.set_dpi_enabled(request.enabled)
+    return {
+        "success": True,
+        "dpi_enabled": request.enabled
+    }
+
+
+@router.post("/dpi/reset")
+async def reset_dpi_stats():
+    """Reset DPI statistics"""
+    sniffer_service.reset_dpi_stats()
+    return {"success": True, "message": "DPI statistics reset"}
+
+
+@router.get("/protocols")
+async def get_protocol_breakdown():
+    """Get protocol breakdown with bytes and packet counts"""
+    breakdown = sniffer_service.dpi_service.get_protocol_breakdown()
+    
+    # Convert to list format for frontend
+    protocols = []
+    for protocol, stats in breakdown.items():
+        protocols.append({
+            "protocol": protocol,
+            "packets": stats["packets"],
+            "bytes": stats["bytes"],
+            "packet_percentage": stats["packet_percentage"],
+            "byte_percentage": stats["byte_percentage"]
+        })
+    
+    return {
+        "protocols": protocols,
+        "total_protocols": len(protocols),
+        "dpi_enabled": sniffer_service.dpi_enabled
+    }
+

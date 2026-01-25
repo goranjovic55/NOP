@@ -14,6 +14,9 @@ from .settings import Settings
 from .agent import Agent
 from .cve_cache import CVECache
 from .exploit_module import ExploitModule
+from .protocol_signature import ProtocolSignature
+from .unknown_protocol import UnknownProtocol
+from .protocol_stats import ProtocolStats
 
 __all__ = [
     "User",
@@ -28,5 +31,8 @@ __all__ = [
     "Settings",
     "Agent",
     "CVECache",
-    "ExploitModule"
+    "ExploitModule",
+    "ProtocolSignature",
+    "UnknownProtocol",
+    "ProtocolStats"
 ]

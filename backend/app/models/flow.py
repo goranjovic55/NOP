@@ -2,8 +2,8 @@
 Network flow model for traffic analysis
 """
 
-from sqlalchemy import Column, String, DateTime, Integer, BigInteger, Float, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, INET
+from sqlalchemy import Column, String, DateTime, Integer, BigInteger, Float, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
 from sqlalchemy.sql import func
 import uuid
 
@@ -37,6 +37,28 @@ class Flow(Base):
     # Application information (from DPI)
     application = Column(String(100), nullable=True, index=True)
     application_category = Column(String(50), nullable=True)
+    
+    # ========== DPI Metadata Fields (NEW) ==========
+    # Deep Packet Inspection results stored as JSONB for flexibility
+    # Example: {"http_method": "GET", "http_host": "example.com", "tls_sni": "secure.example.com",
+    #           "dns_queries": ["google.com"], "service_version": "Apache/2.4.41"}
+    dpi_metadata = Column(JSONB, nullable=True)
+    
+    # Service label for topology visualization (e.g., "HTTP:80", "SSH:22")
+    service_label = Column(String(100), nullable=True, index=True)
+    
+    # Detected L7 protocol (more specific than transport protocol)
+    detected_protocol = Column(String(50), nullable=True, index=True)
+    
+    # Confidence score for protocol detection (0.0 - 1.0)
+    protocol_confidence = Column(Float, default=0.0)
+    
+    # Detection method: "signature", "heuristic", "port", "unknown"
+    detection_method = Column(String(20), nullable=True)
+    
+    # Is this multicast/broadcast traffic?
+    is_multicast = Column(Boolean, default=False)
+    is_broadcast = Column(Boolean, default=False)
     
     # Quality metrics
     latency_ms = Column(Float, nullable=True)
