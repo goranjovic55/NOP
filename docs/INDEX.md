@@ -99,6 +99,7 @@ Welcome to the Network Observatory Platform documentation. This documentation fo
 | [Storm Feature](features/STORM_FEATURE.md) | Traffic generation engine |
 | [Granular Traffic Filtering](features/GRANULAR_TRAFFIC_FILTERING.md) | Filter system explained |
 | [Live Traffic Topology](features/live-traffic-topology.md) | Real-time visualization |
+| [Deep Packet Inspection](features/deep-packet-inspection.md) ⭐ | DPI for L7 protocol analysis |
 | [Implemented Features](features/IMPLEMENTED_FEATURES.md) | Complete feature list |
 | [Feature Proposals](features/FEATURE_PROPOSALS.md) | Planned enhancements |
 
