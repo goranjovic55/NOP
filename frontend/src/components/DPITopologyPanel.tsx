@@ -1,5 +1,5 @@
 /**
- * DPI Topology Panel Component
+ * DPI Topology Panel Component - Cyberpunk Styled
  * 
  * Displays Deep Packet Inspection information including:
  * - VLAN topology
@@ -84,11 +84,11 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
   if (collapsed) {
     return (
       <div 
-        className={`bg-cyber-darker border border-cyber-gray p-2 cursor-pointer hover:border-cyber-purple transition-colors ${className}`}
+        className={`bg-cyber-black border border-cyber-red/30 p-2 cursor-pointer hover:border-cyber-red hover:shadow-cyber transition-all ${className}`}
         onClick={onToggle}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs text-cyber-purple font-bold uppercase">DPI</span>
+          <span className="text-xs text-cyber-red font-mono font-bold uppercase tracking-wider">DPI</span>
           <span className="text-cyber-gray-light text-xs">▸</span>
         </div>
       </div>
@@ -96,38 +96,42 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
   }
 
   return (
-    <div className={`bg-cyber-darker border border-cyber-gray flex flex-col ${className}`}>
-      {/* Header */}
-      <div className="p-3 border-b border-cyber-gray flex items-center justify-between">
-        <span className="text-xs text-cyber-purple font-bold uppercase tracking-widest flex items-center">
-          <span className="mr-2">◆</span> Deep Packet Inspection
+    <div className={`bg-cyber-black border border-cyber-red/30 flex flex-col shadow-cyber ${className}`}>
+      {/* Header - Cyberpunk styled */}
+      <div className="p-3 border-b border-cyber-red/30 flex items-center justify-between bg-cyber-dark/50">
+        <span 
+          className="text-xs text-cyber-red font-mono font-bold uppercase tracking-widest flex items-center"
+          style={{ textShadow: '0 0 8px rgba(255, 0, 64, 0.5)' }}
+        >
+          <span className="mr-2">◆</span> DEEP PACKET INSPECTION
         </span>
         {onToggle && (
           <button 
             onClick={onToggle}
-            className="text-cyber-gray-light hover:text-cyber-purple text-xs"
+            className="text-cyber-gray-light hover:text-cyber-red text-xs transition-colors"
           >
             ◂
           </button>
         )}
       </div>
 
-      {/* Section Tabs */}
-      <div className="flex border-b border-cyber-gray">
+      {/* Section Tabs - Cyberpunk styled */}
+      <div className="flex border-b border-cyber-gray/50 bg-cyber-dark/30">
         {[
-          { id: 'summary', label: 'Summary' },
-          { id: 'vlans', label: 'VLANs' },
-          { id: 'multicast', label: 'Multicast' },
-          { id: 'neighbors', label: 'Neighbors' }
+          { id: 'summary', label: 'SUMMARY', color: 'red' },
+          { id: 'vlans', label: 'VLANS', color: 'blue' },
+          { id: 'multicast', label: 'MCAST', color: 'green' },
+          { id: 'neighbors', label: 'NEIGHBOR', color: 'purple' }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveSection(tab.id as any)}
-            className={`flex-1 px-2 py-1.5 text-[10px] font-bold uppercase transition-colors ${
+            className={`flex-1 px-2 py-2 text-[9px] font-mono font-bold uppercase tracking-wider transition-all ${
               activeSection === tab.id 
-                ? 'text-cyber-purple border-b-2 border-cyber-purple bg-cyber-purple/10' 
-                : 'text-cyber-gray-light hover:text-cyber-blue'
+                ? `text-cyber-${tab.color} border-b-2 border-cyber-${tab.color} bg-cyber-${tab.color}/10` 
+                : 'text-cyber-gray-light hover:text-cyber-gray-light hover:bg-cyber-gray/10'
             }`}
+            style={activeSection === tab.id ? { textShadow: `0 0 6px var(--tw-shadow-color)` } : {}}
           >
             {tab.label}
           </button>
@@ -138,52 +142,77 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
         {loading && !summary ? (
           <div className="flex items-center justify-center py-4">
-            <span className="text-cyber-gray-light text-xs animate-pulse">Loading DPI data...</span>
+            <span className="text-cyber-red text-xs font-mono animate-pulse">LOADING DPI DATA...</span>
           </div>
         ) : error ? (
-          <div className="text-cyber-red text-xs text-center py-4">{error}</div>
+          <div className="text-cyber-red text-xs text-center py-4 font-mono">{error}</div>
         ) : (
           <>
             {/* Summary Section */}
             {activeSection === 'summary' && summary && (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-cyber-dark p-2 border border-cyber-gray">
-                    <div className="text-[10px] text-cyber-gray-light uppercase">VLANs</div>
-                    <div className="text-lg text-cyber-blue font-bold">{summary.vlans.length}</div>
+                  <div className="bg-cyber-dark p-3 border border-cyber-blue/30 hover:border-cyber-blue transition-colors">
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider">VLANs</div>
+                    <div 
+                      className="text-xl text-cyber-blue font-mono font-bold"
+                      style={{ textShadow: '0 0 10px #00d4ff' }}
+                    >
+                      {summary.vlans.length}
+                    </div>
                   </div>
-                  <div className="bg-cyber-dark p-2 border border-cyber-gray">
-                    <div className="text-[10px] text-cyber-gray-light uppercase">Multicast Groups</div>
-                    <div className="text-lg text-cyber-green font-bold">{summary.multicast_groups}</div>
+                  <div className="bg-cyber-dark p-3 border border-cyber-green/30 hover:border-cyber-green transition-colors">
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider">Multicast</div>
+                    <div 
+                      className="text-xl text-cyber-green font-mono font-bold"
+                      style={{ textShadow: '0 0 10px #00ff88' }}
+                    >
+                      {summary.multicast_groups}
+                    </div>
                   </div>
-                  <div className="bg-cyber-dark p-2 border border-cyber-gray">
-                    <div className="text-[10px] text-cyber-gray-light uppercase">LLDP Neighbors</div>
-                    <div className="text-lg text-cyber-purple font-bold">{summary.lldp_neighbors}</div>
+                  <div className="bg-cyber-dark p-3 border border-cyber-purple/30 hover:border-cyber-purple transition-colors">
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider">LLDP</div>
+                    <div 
+                      className="text-xl text-cyber-purple font-mono font-bold"
+                      style={{ textShadow: '0 0 10px #8b5cf6' }}
+                    >
+                      {summary.lldp_neighbors}
+                    </div>
                   </div>
-                  <div className="bg-cyber-dark p-2 border border-cyber-gray">
-                    <div className="text-[10px] text-cyber-gray-light uppercase">CDP Neighbors</div>
-                    <div className="text-lg text-cyber-yellow font-bold">{summary.cdp_neighbors}</div>
+                  <div className="bg-cyber-dark p-3 border border-cyber-yellow/30 hover:border-cyber-yellow transition-colors">
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider">CDP</div>
+                    <div 
+                      className="text-xl text-cyber-yellow font-mono font-bold"
+                      style={{ textShadow: '0 0 10px #ffff00' }}
+                    >
+                      {summary.cdp_neighbors}
+                    </div>
                   </div>
                 </div>
                 
                 {summary.stp_root_bridge && (
-                  <div className="bg-cyber-dark p-2 border border-cyber-purple">
-                    <div className="text-[10px] text-cyber-gray-light uppercase">STP Root Bridge</div>
-                    <div className="text-xs text-cyber-purple font-mono mt-1">{summary.stp_root_bridge}</div>
+                  <div className="bg-cyber-dark p-3 border border-cyber-red/50">
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider">STP ROOT BRIDGE</div>
+                    <div 
+                      className="text-xs text-cyber-red font-mono mt-1"
+                      style={{ textShadow: '0 0 6px #ff0040' }}
+                    >
+                      {summary.stp_root_bridge}
+                    </div>
                   </div>
                 )}
 
                 {Object.keys(summary.classified_devices).length > 0 && (
                   <div>
-                    <div className="text-[10px] text-cyber-gray-light uppercase mb-2">Classified Devices</div>
+                    <div className="text-[9px] text-cyber-gray-light uppercase font-mono tracking-wider mb-2">CLASSIFIED DEVICES</div>
                     <div className="space-y-1">
                       {Object.entries(summary.classified_devices).map(([id, type]) => (
-                        <div key={id} className="flex justify-between text-xs font-mono">
-                          <span className="text-cyber-blue truncate max-w-[150px]">{id}</span>
-                          <span className={`font-bold ${
+                        <div key={id} className="flex justify-between text-xs font-mono bg-cyber-dark/50 p-1.5 border border-cyber-gray/20">
+                          <span className="text-cyber-blue truncate max-w-[140px]">{id}</span>
+                          <span className={`font-bold uppercase tracking-wider ${
                             type === 'switch' ? 'text-cyber-purple' :
                             type === 'router' ? 'text-cyber-yellow' :
-                            'text-cyber-gray-light'
+                            'text-cyber-green'
                           }`}>{type}</span>
                         </div>
                       ))}
@@ -197,24 +226,29 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
             {activeSection === 'vlans' && vlans && (
               <div className="space-y-2">
                 {vlans.total_vlans === 0 ? (
-                  <div className="text-cyber-gray-light text-xs text-center py-4">
-                    No VLANs detected. Capture VLAN-tagged traffic to see VLANs.
+                  <div className="text-cyber-gray-light text-xs text-center py-4 font-mono">
+                    NO VLANS DETECTED
                   </div>
                 ) : (
                   Object.entries(vlans.vlans).map(([vlanId, macs]) => (
-                    <div key={vlanId} className="bg-cyber-dark p-2 border border-cyber-gray">
+                    <div key={vlanId} className="bg-cyber-dark p-2 border border-cyber-blue/30 hover:border-cyber-blue transition-colors">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-cyber-blue font-bold">VLAN {vlanId}</span>
-                        <span className="text-[10px] text-cyber-gray-light">{macs.length} devices</span>
+                        <span 
+                          className="text-xs text-cyber-blue font-mono font-bold"
+                          style={{ textShadow: '0 0 6px #00d4ff' }}
+                        >
+                          VLAN {vlanId}
+                        </span>
+                        <span className="text-[9px] text-cyber-gray-light font-mono">{macs.length} devices</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {macs.slice(0, 5).map(mac => (
-                          <span key={mac} className="text-[9px] text-cyber-gray-light font-mono bg-cyber-darker px-1">
+                          <span key={mac} className="text-[8px] text-cyber-gray-light font-mono bg-cyber-black px-1 border border-cyber-gray/30">
                             {mac}
                           </span>
                         ))}
                         {macs.length > 5 && (
-                          <span className="text-[9px] text-cyber-purple">+{macs.length - 5} more</span>
+                          <span className="text-[8px] text-cyber-purple font-mono">+{macs.length - 5}</span>
                         )}
                       </div>
                     </div>
@@ -227,34 +261,39 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
             {activeSection === 'multicast' && (
               <div className="space-y-2">
                 {multicastGroups.length === 0 ? (
-                  <div className="text-cyber-gray-light text-xs text-center py-4">
-                    No multicast groups detected. Capture multicast traffic to see groups.
+                  <div className="text-cyber-gray-light text-xs text-center py-4 font-mono">
+                    NO MULTICAST GROUPS DETECTED
                   </div>
                 ) : (
                   multicastGroups.map(group => (
-                    <div key={group.group_address} className="bg-cyber-dark p-2 border border-cyber-gray">
+                    <div key={group.group_address} className="bg-cyber-dark p-2 border border-cyber-green/30 hover:border-cyber-green transition-colors">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-cyber-green font-mono">{group.group_address}</span>
-                        <span className={`text-[9px] font-bold uppercase px-1 ${
-                          group.protocol === 'mDNS' ? 'text-cyber-blue bg-cyber-blue/20' :
-                          group.protocol === 'SSDP' ? 'text-cyber-purple bg-cyber-purple/20' :
-                          group.protocol === 'IGMP' ? 'text-cyber-yellow bg-cyber-yellow/20' :
-                          'text-cyber-gray-light bg-cyber-gray/20'
+                        <span 
+                          className="text-xs text-cyber-green font-mono"
+                          style={{ textShadow: '0 0 6px #00ff88' }}
+                        >
+                          {group.group_address}
+                        </span>
+                        <span className={`text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 ${
+                          group.protocol === 'mDNS' ? 'text-cyber-blue bg-cyber-blue/20 border border-cyber-blue/30' :
+                          group.protocol === 'SSDP' ? 'text-cyber-purple bg-cyber-purple/20 border border-cyber-purple/30' :
+                          group.protocol === 'IGMP' ? 'text-cyber-yellow bg-cyber-yellow/20 border border-cyber-yellow/30' :
+                          'text-cyber-gray-light bg-cyber-gray/20 border border-cyber-gray/30'
                         }`}>{group.protocol}</span>
                       </div>
-                      <div className="flex justify-between text-[10px]">
+                      <div className="flex justify-between text-[9px] font-mono">
                         <span className="text-cyber-gray-light">{group.members.length} members</span>
-                        <span className="text-cyber-gray-light">{group.packet_count} packets</span>
+                        <span className="text-cyber-gray-light">{group.packet_count} pkts</span>
                       </div>
                       {group.members.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
                           {group.members.slice(0, 3).map(member => (
-                            <span key={member} className="text-[9px] text-cyber-blue font-mono">
+                            <span key={member} className="text-[8px] text-cyber-blue font-mono">
                               {member}
                             </span>
                           ))}
                           {group.members.length > 3 && (
-                            <span className="text-[9px] text-cyber-purple">+{group.members.length - 3}</span>
+                            <span className="text-[8px] text-cyber-purple font-mono">+{group.members.length - 3}</span>
                           )}
                         </div>
                       )}
@@ -269,24 +308,29 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
               <div className="space-y-3">
                 {/* LLDP Neighbors */}
                 <div>
-                  <div className="text-[10px] text-cyber-purple font-bold uppercase mb-2">LLDP Neighbors</div>
+                  <div 
+                    className="text-[9px] text-cyber-purple font-mono font-bold uppercase tracking-wider mb-2"
+                    style={{ textShadow: '0 0 6px #8b5cf6' }}
+                  >
+                    LLDP NEIGHBORS
+                  </div>
                   {lldpNeighbors.length === 0 ? (
-                    <div className="text-cyber-gray-light text-[10px] text-center py-2">
-                      No LLDP neighbors detected
+                    <div className="text-cyber-gray-light text-[10px] text-center py-2 font-mono">
+                      NO LLDP NEIGHBORS
                     </div>
                   ) : (
                     lldpNeighbors.map(neighbor => (
-                      <div key={neighbor.chassis_id} className="bg-cyber-dark p-2 border border-cyber-purple mb-1">
-                        <div className="text-xs text-cyber-purple font-bold">
+                      <div key={neighbor.chassis_id} className="bg-cyber-dark p-2 border border-cyber-purple/30 mb-1 hover:border-cyber-purple transition-colors">
+                        <div className="text-xs text-cyber-purple font-mono font-bold">
                           {neighbor.system_name || neighbor.chassis_id}
                         </div>
-                        <div className="text-[9px] text-cyber-gray-light font-mono mt-1">
+                        <div className="text-[8px] text-cyber-gray-light font-mono mt-1">
                           Chassis: {neighbor.chassis_id}
                         </div>
                         {neighbor.capabilities.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {neighbor.capabilities.map(cap => (
-                              <span key={cap} className="text-[8px] text-cyber-blue bg-cyber-blue/20 px-1">
+                              <span key={cap} className="text-[7px] text-cyber-blue font-mono bg-cyber-blue/20 px-1 border border-cyber-blue/30">
                                 {cap}
                               </span>
                             ))}
@@ -299,20 +343,25 @@ export const DPITopologyPanel: React.FC<DPITopologyPanelProps> = ({
 
                 {/* CDP Neighbors */}
                 <div>
-                  <div className="text-[10px] text-cyber-yellow font-bold uppercase mb-2">CDP Neighbors</div>
+                  <div 
+                    className="text-[9px] text-cyber-yellow font-mono font-bold uppercase tracking-wider mb-2"
+                    style={{ textShadow: '0 0 6px #ffff00' }}
+                  >
+                    CDP NEIGHBORS
+                  </div>
                   {cdpNeighbors.length === 0 ? (
-                    <div className="text-cyber-gray-light text-[10px] text-center py-2">
-                      No CDP neighbors detected
+                    <div className="text-cyber-gray-light text-[10px] text-center py-2 font-mono">
+                      NO CDP NEIGHBORS
                     </div>
                   ) : (
                     cdpNeighbors.map(neighbor => (
-                      <div key={neighbor.device_id} className="bg-cyber-dark p-2 border border-cyber-yellow mb-1">
-                        <div className="text-xs text-cyber-yellow font-bold">{neighbor.device_id}</div>
+                      <div key={neighbor.device_id} className="bg-cyber-dark p-2 border border-cyber-yellow/30 mb-1 hover:border-cyber-yellow transition-colors">
+                        <div className="text-xs text-cyber-yellow font-mono font-bold">{neighbor.device_id}</div>
                         {neighbor.platform && (
-                          <div className="text-[9px] text-cyber-gray-light mt-1">{neighbor.platform}</div>
+                          <div className="text-[8px] text-cyber-gray-light font-mono mt-1">{neighbor.platform}</div>
                         )}
                         {neighbor.addresses.length > 0 && (
-                          <div className="text-[9px] text-cyber-blue font-mono mt-1">
+                          <div className="text-[8px] text-cyber-blue font-mono mt-1">
                             {neighbor.addresses.join(', ')}
                           </div>
                         )}

@@ -1,5 +1,5 @@
 /**
- * DPI Protocol Stats Component
+ * DPI Protocol Stats Component - Cyberpunk Styled
  * 
  * A compact stats bar showing protocol classification statistics
  * from Deep Packet Inspection data. Used in the Traffic page.
@@ -42,8 +42,8 @@ export const DPIProtocolStats: React.FC<DPIProtocolStatsProps> = ({ className = 
 
   if (loading && !summary) {
     return (
-      <div className={`flex items-center gap-4 text-xs ${className}`}>
-        <span className="text-cyber-gray-light animate-pulse">Loading DPI stats...</span>
+      <div className={`flex items-center gap-4 text-xs font-mono ${className}`}>
+        <span className="text-cyber-red animate-pulse uppercase tracking-wider">Loading DPI...</span>
       </div>
     );
   }
@@ -60,47 +60,89 @@ export const DPIProtocolStats: React.FC<DPIProtocolStatsProps> = ({ className = 
   };
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* DPI Badge */}
-      <span className="text-[9px] text-cyber-purple font-bold uppercase bg-cyber-purple/20 px-1.5 py-0.5 border border-cyber-purple">
-        DPI
+    <div className={`flex items-center gap-3 font-mono ${className}`}>
+      {/* DPI Badge - Cyberpunk styled */}
+      <span 
+        className="text-[9px] text-cyber-red font-bold uppercase bg-cyber-red/20 px-2 py-0.5 border border-cyber-red/50 tracking-wider"
+        style={{ textShadow: '0 0 6px rgba(255, 0, 64, 0.5)' }}
+      >
+        ◆ DPI
       </span>
       
       {/* VLANs */}
       <div className="flex items-center gap-1" title="VLAN IDs detected">
-        <span className="text-cyber-blue font-bold">{summary.vlans.length}</span>
-        <span className="text-cyber-gray-light text-[10px]">VLANs</span>
+        <span 
+          className="text-cyber-blue font-bold"
+          style={{ textShadow: '0 0 6px #00d4ff' }}
+        >
+          {summary.vlans.length}
+        </span>
+        <span className="text-cyber-gray-light text-[9px] uppercase tracking-wider">VLANs</span>
       </div>
       
       {/* Multicast Groups */}
       <div className="flex items-center gap-1" title="Multicast groups detected">
-        <span className="text-cyber-green font-bold">{summary.multicast_groups}</span>
-        <span className="text-cyber-gray-light text-[10px]">MCast</span>
+        <span 
+          className="text-cyber-green font-bold"
+          style={{ textShadow: '0 0 6px #00ff88' }}
+        >
+          {summary.multicast_groups}
+        </span>
+        <span className="text-cyber-gray-light text-[9px] uppercase tracking-wider">MCast</span>
       </div>
       
       {/* LLDP/CDP Neighbors */}
       <div className="flex items-center gap-1" title="Network devices discovered via LLDP/CDP">
-        <span className="text-cyber-purple font-bold">{summary.lldp_neighbors + summary.cdp_neighbors}</span>
-        <span className="text-cyber-gray-light text-[10px]">Nbrs</span>
+        <span 
+          className="text-cyber-purple font-bold"
+          style={{ textShadow: '0 0 6px #8b5cf6' }}
+        >
+          {summary.lldp_neighbors + summary.cdp_neighbors}
+        </span>
+        <span className="text-cyber-gray-light text-[9px] uppercase tracking-wider">Nbrs</span>
       </div>
       
       {/* Device Classification */}
       {(deviceCounts.switches > 0 || deviceCounts.routers > 0) && (
-        <div className="flex items-center gap-1 border-l border-cyber-gray pl-2" title="Classified network devices">
+        <div className="flex items-center gap-2 border-l border-cyber-red/30 pl-3" title="Classified network devices">
           {deviceCounts.switches > 0 && (
-            <span className="text-cyber-purple text-[10px]">{deviceCounts.switches} sw</span>
+            <span className="flex items-center gap-1">
+              <span 
+                className="text-cyber-purple text-[9px] font-bold"
+                style={{ textShadow: '0 0 4px #8b5cf6' }}
+              >
+                {deviceCounts.switches}
+              </span>
+              <span className="text-cyber-gray-light text-[8px] uppercase">SW</span>
+            </span>
           )}
           {deviceCounts.routers > 0 && (
-            <span className="text-cyber-yellow text-[10px]">{deviceCounts.routers} rt</span>
+            <span className="flex items-center gap-1">
+              <span 
+                className="text-cyber-yellow text-[9px] font-bold"
+                style={{ textShadow: '0 0 4px #ffff00' }}
+              >
+                {deviceCounts.routers}
+              </span>
+              <span className="text-cyber-gray-light text-[8px] uppercase">RT</span>
+            </span>
           )}
         </div>
       )}
       
       {/* STP Root Bridge */}
       {summary.stp_root_bridge && (
-        <div className="flex items-center gap-1 border-l border-cyber-gray pl-2" title={`STP Root Bridge: ${summary.stp_root_bridge}`}>
-          <span className="text-cyber-yellow text-[10px]">STP</span>
-          <span className="text-cyber-yellow">●</span>
+        <div 
+          className="flex items-center gap-1 border-l border-cyber-red/30 pl-3" 
+          title={`STP Root Bridge: ${summary.stp_root_bridge}`}
+        >
+          <span 
+            className="text-cyber-yellow text-[9px] font-bold uppercase tracking-wider"
+            style={{ textShadow: '0 0 4px #ffff00' }}
+          >
+            STP
+          </span>
+          <span className="text-cyber-yellow animate-pulse">●</span>
         </div>
       )}
     </div>

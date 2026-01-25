@@ -54,60 +54,60 @@ interface GraphData {
   links: GraphLink[];
 }
 
-// Industry-standard protocol color palette (Wireshark/ntopng inspired)
+// Cyberpunk-themed protocol color palette
 const PROTOCOL_COLORS: Record<string, string> = {
-  // Layer 2 - Blues
-  ARP: '#4A90E2',
-  LLDP: '#357ABD',
-  CDP: '#2563EB',
-  STP: '#1E5A8E',
-  VLAN: '#60A5FA',
+  // Layer 2 - Cyber Blues
+  ARP: '#00d4ff',      // cyber-blue
+  LLDP: '#00a8cc',     // cyber-blue-dark
+  CDP: '#00d4ff',      // cyber-blue
+  STP: '#0099b3',      // cyber-blue muted
+  VLAN: '#00d4ff',     // cyber-blue
   
-  // Layer 3 - Greens
-  IP: '#50C878',
-  ICMP: '#228B22',
-  IGMP: '#22C55E',
+  // Layer 3 - Cyber Greens
+  IP: '#00ff88',       // cyber-green
+  ICMP: '#00cc6a',     // cyber-green-dark
+  IGMP: '#00ff88',     // cyber-green
   
-  // Layer 4 - Oranges
-  TCP: '#FF8C42',
-  UDP: '#FFA500',
+  // Layer 4 - Cyber Red/Yellow accent
+  TCP: '#ff0040',      // cyber-red
+  UDP: '#ffff00',      // cyber-yellow
   
-  // Application - Purples
-  HTTP: '#9370DB',
-  HTTPS: '#8A2BE2',
-  DNS: '#DA70D6',
-  DHCP: '#DDA0DD',
-  SSH: '#4B0082',
-  FTP: '#6B21A8',
-  SMTP: '#A855F7',
-  NTP: '#C084FC',
+  // Application - Cyber Purples
+  HTTP: '#8b5cf6',     // cyber-purple
+  HTTPS: '#7c3aed',    // cyber-purple-dark
+  DNS: '#a78bfa',      // cyber-purple-light
+  DHCP: '#8b5cf6',     // cyber-purple
+  SSH: '#7c3aed',      // cyber-purple-dark
+  FTP: '#a78bfa',      // cyber-purple-light
+  SMTP: '#8b5cf6',     // cyber-purple
+  NTP: '#a78bfa',      // cyber-purple-light
   
-  // Industrial - Teals
-  MODBUS: '#14B8A6',
-  BACNET: '#0D9488',
-  DNP3: '#0F766E',
-  S7: '#115E59',
+  // Industrial - Cyber accents (teal-ish greens)
+  MODBUS: '#00ff88',   // cyber-green
+  BACNET: '#00cc6a',   // cyber-green-dark
+  DNP3: '#00ff88',     // cyber-green
+  S7: '#00cc6a',       // cyber-green-dark
   
-  // Multicast/Special - Magentas
-  MULTICAST: '#FF00FF',
-  BROADCAST: '#FFD700',
-  SSDP: '#F472B6',
-  MDNS: '#EC4899',
+  // Multicast/Special - Cyber Red/Purple
+  MULTICAST: '#ff0040', // cyber-red
+  BROADCAST: '#ffff00', // cyber-yellow
+  SSDP: '#ff0040',      // cyber-red
+  MDNS: '#8b5cf6',      // cyber-purple
   
   // Default
-  OTHER_IP: '#ff00ff',
-  DEFAULT: '#00f0ff'
+  OTHER_IP: '#8b5cf6',  // cyber-purple
+  DEFAULT: '#00d4ff'    // cyber-blue
 };
 
-// Device type colors (for device-type view mode)
+// Cyberpunk device type colors
 const DEVICE_TYPE_COLORS: Record<string, string> = {
-  router: '#FFD700',   // Gold
-  switch: '#8B5CF6',   // Purple
-  firewall: '#EF4444', // Red
-  server: '#3B82F6',   // Blue
-  host: '#00F0FF',     // Cyan
-  iot: '#22C55E',      // Green
-  unknown: '#6B7280',  // Gray
+  router: '#ffff00',    // cyber-yellow (warning/important)
+  switch: '#8b5cf6',    // cyber-purple (secondary accent)
+  firewall: '#ff0040',  // cyber-red (primary accent)
+  server: '#00d4ff',    // cyber-blue (info)
+  host: '#00ff88',      // cyber-green (positive/active)
+  iot: '#00cc6a',       // cyber-green-dark
+  unknown: '#3a3a3a',   // cyber-gray-light
 };
 
 // Utility functions
@@ -1463,51 +1463,58 @@ const Topology: React.FC = () => {
           <span className="text-xs text-cyber-red animate-pulse">●REC</span>
         )}
         
-        {/* DPI View Mode Selector */}
-        <div className="flex bg-cyber-dark rounded border border-cyber-purple">
+        {/* DPI View Mode Selector - Cyberpunk Styled */}
+        <div className="flex bg-cyber-black rounded border border-cyber-red/50 shadow-cyber">
           <button
             onClick={() => setDpiViewMode('standard')}
-            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'standard' ? 'bg-cyber-purple text-black' : 'text-cyber-gray-light hover:text-cyber-purple'}`}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'standard' ? 'bg-cyber-red text-cyber-black shadow-cyber' : 'text-cyber-gray-light hover:text-cyber-red hover:bg-cyber-red/10'}`}
             title="Standard force-directed layout"
           >
             STD
           </button>
           <button
             onClick={() => setDpiViewMode('vlan')}
-            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'vlan' ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-cyber-blue'}`}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'vlan' ? 'bg-cyber-blue text-cyber-black shadow-cyber-blue' : 'text-cyber-gray-light hover:text-cyber-blue hover:bg-cyber-blue/10'}`}
             title="Group nodes by VLAN membership"
           >
             VLAN
           </button>
           <button
             onClick={() => setDpiViewMode('multicast')}
-            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'multicast' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-cyber-green'}`}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'multicast' ? 'bg-cyber-green text-cyber-black shadow-cyber-green' : 'text-cyber-gray-light hover:text-cyber-green hover:bg-cyber-green/10'}`}
             title="Show multicast groups as hubs"
           >
             MCAST
           </button>
           <button
             onClick={() => setDpiViewMode('device-type')}
-            className={`px-2 py-1 text-[10px] font-bold uppercase ${dpiViewMode === 'device-type' ? 'bg-cyber-yellow text-black' : 'text-cyber-gray-light hover:text-cyber-yellow'}`}
+            className={`px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${dpiViewMode === 'device-type' ? 'bg-cyber-yellow text-cyber-black' : 'text-cyber-gray-light hover:text-cyber-yellow hover:bg-cyber-yellow/10'}`}
+            style={dpiViewMode === 'device-type' ? { boxShadow: '0 0 10px rgba(255, 255, 0, 0.3)' } : {}}
             title="Group by device type (switch/router/host)"
           >
             TYPE
           </button>
         </div>
         
-        {/* DPI Panel Toggle */}
+        {/* DPI Panel Toggle - Cyberpunk Styled */}
         <button 
           onClick={() => setShowDPIPanel(!showDPIPanel)}
-          className={`px-2 py-1 border text-xs rounded ${showDPIPanel ? 'border-cyber-purple text-cyber-purple' : 'border-cyber-gray text-cyber-gray-light'}`}
+          className={`px-3 py-1 border text-xs font-mono font-bold uppercase tracking-wider rounded transition-all ${showDPIPanel ? 'border-cyber-red text-cyber-red bg-cyber-red/10 shadow-cyber' : 'border-cyber-gray text-cyber-gray-light hover:border-cyber-red/50 hover:text-cyber-red'}`}
           title="Toggle Deep Packet Inspection panel"
         >
-          {showDPIPanel ? '◆DPI' : '◇DPI'}
+          {showDPIPanel ? '◆ DPI' : '◇ DPI'}
         </button>
         
-        {/* Node/Link counts - pushed to end */}
-        <div className="flex items-center gap-2 text-xs text-cyber-gray-light ml-auto">
-          <span><span className="font-bold text-cyber-blue">{graphData.nodes.length}</span>N</span>
-          <span><span className="font-bold text-cyber-green">{graphData.links.length}</span>L</span>
+        {/* Node/Link counts - Cyberpunk styled */}
+        <div className="flex items-center gap-3 text-xs font-mono ml-auto">
+          <span className="flex items-center gap-1">
+            <span className="font-bold text-cyber-blue" style={{ textShadow: '0 0 4px #00d4ff' }}>{graphData.nodes.length}</span>
+            <span className="text-cyber-gray-light uppercase tracking-wider text-[9px]">nodes</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="font-bold text-cyber-green" style={{ textShadow: '0 0 4px #00ff88' }}>{graphData.links.length}</span>
+            <span className="text-cyber-gray-light uppercase tracking-wider text-[9px]">links</span>
+          </span>
         </div>
       </div>
 
@@ -1534,21 +1541,30 @@ const Topology: React.FC = () => {
           </div>
         )}
         
-        {/* DPI View Mode Legend */}
+        {/* DPI View Mode Legend - Cyberpunk Styled */}
         {dpiViewMode !== 'standard' && (
-          <div className="absolute top-2 left-2 z-20 bg-cyber-dark/90 border border-cyber-gray p-2 rounded text-xs">
+          <div className="absolute top-2 left-2 z-20 bg-cyber-black/95 border border-cyber-red/50 p-3 rounded font-mono text-xs shadow-cyber">
             {dpiViewMode === 'vlan' && (
               <div>
-                <div className="text-cyber-blue font-bold uppercase mb-1">◆ VLAN View</div>
-                <div className="text-cyber-gray-light text-[10px]">Nodes colored by VLAN membership</div>
+                <div className="text-cyber-blue font-bold uppercase mb-2 tracking-wider cyber-glow" style={{ textShadow: '0 0 8px #00d4ff' }}>
+                  ◆ VLAN VIEW
+                </div>
+                <div className="text-cyber-gray-light text-[10px] mb-2">Nodes colored by VLAN membership</div>
                 {dpiVlans && dpiVlans.total_vlans > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className="mt-1 flex flex-wrap gap-2">
                     {Object.keys(dpiVlans.vlans).slice(0, 6).map((vlanId, i) => {
-                      const colors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+                      // Cyberpunk VLAN colors
+                      const colors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
                       return (
                         <span key={vlanId} className="flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }}></span>
-                          <span className="text-[10px]">VLAN {vlanId}</span>
+                          <span 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ 
+                              backgroundColor: colors[i % colors.length],
+                              boxShadow: `0 0 6px ${colors[i % colors.length]}`
+                            }}
+                          ></span>
+                          <span className="text-[10px] text-cyber-gray-light">VLAN {vlanId}</span>
                         </span>
                       );
                     })}
@@ -1558,15 +1574,19 @@ const Topology: React.FC = () => {
             )}
             {dpiViewMode === 'multicast' && (
               <div>
-                <div className="text-cyber-green font-bold uppercase mb-1">◆ Multicast View</div>
-                <div className="text-cyber-gray-light text-[10px]">
-                  <span className="text-cyber-green">●</span> Multicast group members
+                <div className="text-cyber-green font-bold uppercase mb-2 tracking-wider" style={{ textShadow: '0 0 8px #00ff88' }}>
+                  ◆ MULTICAST VIEW
                 </div>
-                <div className="text-cyber-gray-light text-[10px]">
-                  <span className="text-[#6B7280]">●</span> Non-members
+                <div className="text-cyber-gray-light text-[10px] flex items-center gap-1">
+                  <span className="text-cyber-green" style={{ textShadow: '0 0 4px #00ff88' }}>●</span> 
+                  Multicast group members
+                </div>
+                <div className="text-cyber-gray-light text-[10px] flex items-center gap-1">
+                  <span className="text-cyber-gray">●</span> 
+                  Non-members
                 </div>
                 {dpiMulticast.length > 0 && (
-                  <div className="mt-1 text-[10px] text-cyber-purple">
+                  <div className="mt-2 pt-1 border-t border-cyber-gray/50 text-[10px] text-cyber-purple">
                     {dpiMulticast.length} group{dpiMulticast.length !== 1 ? 's' : ''} detected
                   </div>
                 )}
@@ -1574,38 +1594,70 @@ const Topology: React.FC = () => {
             )}
             {dpiViewMode === 'device-type' && (
               <div>
-                <div className="text-cyber-yellow font-bold uppercase mb-1">◆ Device Type View</div>
-                <div className="flex flex-col gap-1 mt-1">
+                <div className="text-cyber-yellow font-bold uppercase mb-2 tracking-wider" style={{ textShadow: '0 0 8px #ffff00' }}>
+                  ◆ DEVICE TYPE VIEW
+                </div>
+                <div className="flex flex-col gap-2 mt-1">
+                  {/* Router icon - cyber-yellow with glow */}
                   <span className="flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 14 14">
-                      <circle cx="7" cy="7" r="5" fill="#FFD700" stroke="#000" strokeWidth="0.5"/>
-                      <line x1="7" y1="2" x2="7" y2="5" stroke="#000" strokeWidth="1"/>
-                      <line x1="7" y1="9" x2="7" y2="12" stroke="#000" strokeWidth="1"/>
-                      <line x1="2" y1="7" x2="5" y2="7" stroke="#000" strokeWidth="1"/>
-                      <line x1="9" y1="7" x2="12" y2="7" stroke="#000" strokeWidth="1"/>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                      <defs>
+                        <filter id="glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="8" cy="8" r="5" fill="#ffff00" filter="url(#glow-yellow)" stroke="#0a0a0a" strokeWidth="0.5"/>
+                      <line x1="8" y1="2" x2="8" y2="5" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="8" y1="11" x2="8" y2="14" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="2" y1="8" x2="5" y2="8" stroke="#0a0a0a" strokeWidth="1.5"/>
+                      <line x1="11" y1="8" x2="14" y2="8" stroke="#0a0a0a" strokeWidth="1.5"/>
                     </svg>
-                    <span className="text-[#FFD700] text-[10px]">Router</span>
+                    <span className="text-cyber-yellow text-[10px] tracking-wide">ROUTER</span>
                   </span>
+                  {/* Switch icon - cyber-purple with glow */}
                   <span className="flex items-center gap-2">
-                    <svg width="14" height="10" viewBox="0 0 14 10">
-                      <rect x="1" y="1" width="12" height="8" rx="2" fill="#8B5CF6" stroke="#000" strokeWidth="0.5"/>
-                      <rect x="3" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
-                      <rect x="6" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
-                      <rect x="9" y="6" width="2" height="2" fill="#000" opacity="0.3"/>
+                    <svg width="16" height="12" viewBox="0 0 16 12">
+                      <defs>
+                        <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <rect x="1" y="1" width="14" height="10" rx="2" fill="#8b5cf6" filter="url(#glow-purple)" stroke="#0a0a0a" strokeWidth="0.5"/>
+                      <rect x="3" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
+                      <rect x="7" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
+                      <rect x="11" y="7" width="2" height="2" fill="#0a0a0a" opacity="0.5"/>
                     </svg>
-                    <span className="text-[#8B5CF6] text-[10px]">Switch</span>
+                    <span className="text-cyber-purple text-[10px] tracking-wide">SWITCH</span>
                   </span>
+                  {/* Host icon - cyber-green with glow */}
                   <span className="flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 14 14">
-                      <circle cx="7" cy="7" r="5" fill="#00F0FF"/>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                      <defs>
+                        <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="8" cy="8" r="5" fill="#00ff88" filter="url(#glow-green)" stroke="#0a0a0a" strokeWidth="0.5"/>
                     </svg>
-                    <span className="text-[#00F0FF] text-[10px]">Host/Endpoint</span>
+                    <span className="text-cyber-green text-[10px] tracking-wide">HOST</span>
                   </span>
                 </div>
                 {dpiSummary && Object.keys(dpiSummary.classified_devices).length > 0 && (
-                  <div className="mt-2 pt-1 border-t border-cyber-gray text-[9px] text-cyber-gray-light">
-                    {Object.values(dpiSummary.classified_devices).filter(t => t === 'router').length} routers,{' '}
-                    {Object.values(dpiSummary.classified_devices).filter(t => t === 'switch').length} switches
+                  <div className="mt-2 pt-2 border-t border-cyber-red/30 text-[9px] text-cyber-gray-light font-mono">
+                    <span className="text-cyber-yellow">{Object.values(dpiSummary.classified_devices).filter(t => t === 'router').length}</span> routers · 
+                    <span className="text-cyber-purple ml-1">{Object.values(dpiSummary.classified_devices).filter(t => t === 'switch').length}</span> switches
                   </div>
                 )}
               </div>
@@ -1691,12 +1743,12 @@ const Topology: React.FC = () => {
                                  dpiSummary.classified_devices[node.id];
               if (deviceType === 'switch') return '#8b5cf6'; // Cyber Purple
               if (deviceType === 'router') return '#ffd700'; // Gold/Yellow
-              if (deviceType === 'host') return '#00f0ff';   // Cyan
+              if (deviceType === 'host') return '#00ff88';   // Cyber Green
             }
             
             if (dpiViewMode === 'vlan' && dpiVlans) {
-              // Color nodes by VLAN - cycle through colors
-              const vlanColors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+              // Color nodes by VLAN - use cyberpunk colors
+              const vlanColors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
               const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
               for (let i = 0; i < vlanIds.length; i++) {
                 const vlanId = vlanIds[i];
@@ -1712,14 +1764,14 @@ const Topology: React.FC = () => {
               // Check if node is a multicast group member
               for (const group of dpiMulticast) {
                 if (group.members.includes(node.ip) || group.members.includes(node.id)) {
-                  return '#00ff41'; // Green for multicast members
+                  return '#00ff88'; // Cyber Green for multicast members
                 }
               }
             }
             
-            // Standard coloring
+            // Standard coloring - cyberpunk theme
             if (node.group === 'passive') return '#8b5cf6'; // Cyber Purple for passive
-            if (node.group === 'online') return '#00ff41'; // Cyber Green
+            if (node.group === 'online') return '#00ff88'; // Cyber Green
             if (node.group === 'offline') return '#ff0040'; // Cyber Red
             return '#8b5cf6'; // Cyber Purple (External/Unknown)
           }}
@@ -2129,8 +2181,8 @@ const Topology: React.FC = () => {
                                  dpiSummary.classified_devices[node.id] || 'host';
               nodeColor = DEVICE_TYPE_COLORS[deviceType] || DEVICE_TYPE_COLORS.host;
             } else if (dpiViewMode === 'vlan' && dpiVlans && dpiVlans.total_vlans > 0) {
-              // Color by VLAN
-              const vlanColors = ['#00ff41', '#00f0ff', '#ff0040', '#ffd700', '#8b5cf6', '#ff6b00'];
+              // Color by VLAN - cyberpunk colors
+              const vlanColors = ['#00ff88', '#00d4ff', '#ff0040', '#ffff00', '#8b5cf6', '#00cc6a'];
               const vlanIds = Object.keys(dpiVlans.vlans).map(Number);
               let foundVlan = false;
               for (let i = 0; i < vlanIds.length; i++) {
@@ -2142,17 +2194,17 @@ const Topology: React.FC = () => {
                 }
               }
               if (!foundVlan) {
-                nodeColor = node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
+                nodeColor = node.group === 'online' ? '#00ff88' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6');
               }
             } else if (dpiViewMode === 'multicast') {
-              // Check if node is multicast member
+              // Check if node is multicast member - cyberpunk colors
               const isMcastMember = dpiMulticast.some(g => 
                 g.members.includes(node.ip) || g.members.includes(node.id)
               );
-              nodeColor = isMcastMember ? '#22C55E' : (node.group === 'online' ? '#00ff41' : '#6B7280');
+              nodeColor = isMcastMember ? '#00ff88' : (node.group === 'online' ? '#00cc6a' : '#3a3a3a');
             } else {
-              // Standard mode
-              nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+              // Standard mode - cyberpunk colors
+              nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff88' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
             }
             
             // Dim nodes that are NOT part of click selection AND NOT part of hover
@@ -2339,15 +2391,22 @@ const Topology: React.FC = () => {
               ? (dpiSummary.classified_devices[node.ip] || dpiSummary.classified_devices[node.id] || 'host')
               : null;
             
+            // Add glow effect for device types in device-type view mode
+            if (deviceType && !isDimmed) {
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = nodeColor;
+            }
+            
             ctx.beginPath();
             if (deviceType === 'router') {
-              // Router: circle with crosshairs effect
+              // Router: circle with crosshairs effect - Cyberpunk yellow with glow
               ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
               ctx.fill();
-              // Draw router arrows
-              ctx.strokeStyle = '#000';
+              // Draw router arrows with dark contrast
+              ctx.shadowBlur = 0; // Disable glow for arrows
+              ctx.strokeStyle = '#0a0a0a'; // cyber-black
               ctx.lineWidth = 1.5;
-              const arrowLen = nodeRadius * 0.6;
+              const arrowLen = nodeRadius * 0.7;
               [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([dx, dy]) => {
                 ctx.beginPath();
                 ctx.moveTo(node.x, node.y);
@@ -2355,7 +2414,7 @@ const Topology: React.FC = () => {
                 ctx.stroke();
               });
             } else if (deviceType === 'switch') {
-              // Switch: rounded rectangle
+              // Switch: rounded rectangle - Cyberpunk purple with glow
               const w = nodeRadius * 2.2;
               const h = nodeRadius * 1.4;
               const r = 3; // corner radius
@@ -2371,20 +2430,27 @@ const Topology: React.FC = () => {
               ctx.quadraticCurveTo(node.x - w/2, node.y - h/2, node.x - w/2 + r, node.y - h/2);
               ctx.closePath();
               ctx.fill();
-              // Draw port indicators
-              ctx.strokeStyle = '#000';
+              // Draw port indicators with dark contrast
+              ctx.shadowBlur = 0;
+              ctx.strokeStyle = '#0a0a0a'; // cyber-black
+              ctx.fillStyle = '#0a0a0a40'; // semi-transparent dark
               ctx.lineWidth = 0.5;
               for (let i = 0; i < 4; i++) {
                 const portX = node.x - w/2 + (i + 1) * w/5;
                 ctx.beginPath();
-                ctx.rect(portX - 1.5, node.y + h/2 - 3, 3, 3);
+                ctx.rect(portX - 1.5, node.y + h/2 - 4, 3, 3);
+                ctx.fill();
                 ctx.stroke();
               }
+              ctx.fillStyle = nodeColor; // Reset fill style
             } else {
-              // Default: circle for hosts and unknown
+              // Default: circle for hosts - Cyberpunk green with glow
               ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
               ctx.fill();
             }
+            
+            // Reset shadow for non-device-type modes
+            ctx.shadowBlur = 0;
             
             // Glow effect - intensity scales with traffic activity
             if (isHighlighted && !isDimmed) {
