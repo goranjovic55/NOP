@@ -121,10 +121,12 @@ class DPIOrchestrationService:
         logger.info(f"DPI Orchestration Service initialized with config: {self.config}")
     
     def _generate_cache_key(self, payload: bytes, sport: int, dport: int) -> str:
-        """Generate cache key from payload prefix and ports"""
-        # Use first 32 bytes of payload + ports for caching
+        """Generate cache key from payload prefix, length, and ports"""
+        # Use first 32 bytes of payload + length + ports for caching
+        # Include length to avoid cache collisions for payloads with same prefix
         payload_prefix = payload[:32] if payload else b""
-        key_data = f"{payload_prefix.hex()}:{sport}:{dport}"
+        payload_len = len(payload) if payload else 0
+        key_data = f"{payload_prefix.hex()}:{payload_len}:{sport}:{dport}"
         return hashlib.md5(key_data.encode()).hexdigest()
     
     def _check_rate_limit(self) -> bool:

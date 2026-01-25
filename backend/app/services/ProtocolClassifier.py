@@ -128,21 +128,37 @@ class SignatureDetector:
         (b"\x04\x01", "SOCKS4", "proxy"),
     ]
     
+    # Maximum pattern length to prevent memory exhaustion
+    MAX_PATTERN_LENGTH = 256
+    # Maximum number of custom signatures
+    MAX_CUSTOM_SIGNATURES = 100
+    
     def __init__(self, custom_signatures: Optional[List[Dict]] = None):
         """Initialize with optional custom signatures from database"""
         self.signatures = list(self.SIGNATURES)
         if custom_signatures:
+            custom_count = 0
             for sig in custom_signatures:
+                if custom_count >= self.MAX_CUSTOM_SIGNATURES:
+                    logger.warning(f"Max custom signatures ({self.MAX_CUSTOM_SIGNATURES}) reached, skipping remaining")
+                    break
                 try:
                     if sig.get('pattern_type') == 'bytes':
                         pattern = bytes.fromhex(sig['pattern'])
                     else:
                         pattern = sig['pattern'].encode()
+                    
+                    # Validate pattern length to prevent memory exhaustion
+                    if len(pattern) > self.MAX_PATTERN_LENGTH:
+                        logger.warning(f"Pattern too long ({len(pattern)} bytes) for signature {sig.get('name')}, truncating")
+                        pattern = pattern[:self.MAX_PATTERN_LENGTH]
+                    
                     self.signatures.append((
                         pattern,
                         sig['protocol'],
                         sig.get('category', 'custom')
                     ))
+                    custom_count += 1
                 except Exception as e:
                     logger.warning(f"Failed to load custom signature {sig.get('name')}: {e}")
     

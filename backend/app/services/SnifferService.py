@@ -485,27 +485,33 @@ class SnifferService:
         
         return layers
     
+    # Maximum payload size to extract for DPI (prevents memory exhaustion)
+    DPI_MAX_PAYLOAD_SIZE = 2000
+    
     def _extract_payload(self, packet) -> bytes:
-        """Extract payload bytes from packet for DPI analysis"""
+        """Extract payload bytes from packet for DPI analysis (size-limited)"""
         try:
+            payload = b""
+            
             # Try to get payload from TCP/UDP layer
             if TCP in packet and Raw in packet:
-                return bytes(packet[Raw].load)
+                payload = bytes(packet[Raw].load)
             elif UDP in packet and Raw in packet:
-                return bytes(packet[Raw].load)
+                payload = bytes(packet[Raw].load)
             elif Raw in packet:
-                return bytes(packet[Raw].load)
+                payload = bytes(packet[Raw].load)
+            else:
+                # Try nested payload access
+                if hasattr(packet, 'payload') and hasattr(packet.payload, 'payload'):
+                    if hasattr(packet.payload.payload, 'payload'):
+                        inner = packet.payload.payload.payload
+                        if inner and hasattr(inner, 'load'):
+                            payload = bytes(inner.load)
+                        elif inner:
+                            payload = bytes(inner)
             
-            # Try nested payload access
-            if hasattr(packet, 'payload') and hasattr(packet.payload, 'payload'):
-                if hasattr(packet.payload.payload, 'payload'):
-                    inner = packet.payload.payload.payload
-                    if inner and hasattr(inner, 'load'):
-                        return bytes(inner.load)
-                    elif inner:
-                        return bytes(inner)
-            
-            return b""
+            # Truncate to prevent memory exhaustion from large payloads
+            return payload[:self.DPI_MAX_PAYLOAD_SIZE] if payload else b""
         except Exception:
             return b""
     
