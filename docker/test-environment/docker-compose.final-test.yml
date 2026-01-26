@@ -1,0 +1,416 @@
+# Final Comprehensive Network Test - Multi-Layer Detection
+# 
+# Network Topology:
+# ==================
+#
+#   VLAN 10 (Office)          VLAN 20 (Industrial)
+#   ================          ====================
+#        |                           |
+#   [SW-CORE-1]---STP---[SW-CORE-2]
+#        |                           |
+#   +----+----+               +------+------+
+#   |         |               |             |
+# [SW-1]   [SW-2]         [SW-3]        [SW-4]
+#   |         |               |             |
+#  REP Ring A              REP Ring B
+#   |         |               |             |
+# [PC-1]   [SRV-1]       [PLC-1]      [IOT-1]
+#           |                           |
+#        [Legacy-SW]              [SCADA-SRV]
+#        (unmanaged)
+#
+# Traffic:
+# - L2: MAC, VLAN, STP, REP, LLDP
+# - L3: IP routing, ICMP, ARP
+# - L4: TCP (HTTP, SSH, Modbus), UDP (DNS, NTP, SNMP)
+# - L5: TLS sessions, RPC
+# - L7: HTTP, SSH, Modbus, MQTT, OPC-UA, VPN tunnel
+
+services:
+  # ============================================
+  # Core Infrastructure - STP Bridge
+  # ============================================
+  
+  sw-core-1:
+    image: python:3.11-slim
+    container_name: nop-final-sw-core-1
+    hostname: sw-core-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.0.10
+    mac_address: "00:aa:bb:01:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/core_switch.py \
+          --name "sw-core-1" \
+          --stp-priority 4096 \
+          --vlan 10 \
+          --lldp-ip 172.31.0.10 \
+          --is-root
+      '
+    restart: unless-stopped
+
+  sw-core-2:
+    image: python:3.11-slim
+    container_name: nop-final-sw-core-2
+    hostname: sw-core-2
+    networks:
+      final-test:
+        ipv4_address: 172.31.0.11
+    mac_address: "00:aa:bb:01:00:02"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/core_switch.py \
+          --name "sw-core-2" \
+          --stp-priority 8192 \
+          --vlan 20 \
+          --lldp-ip 172.31.0.11
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # VLAN 10 - Office Network - REP Ring A
+  # ============================================
+  
+  sw-office-1:
+    image: python:3.11-slim
+    container_name: nop-final-sw-office-1
+    hostname: sw-office-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.10.1
+    mac_address: "00:aa:bb:10:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/access_switch.py \
+          --name "sw-office-1" \
+          --ring-protocol rep \
+          --ring-id 1 \
+          --node-id 1 \
+          --vlan 10 \
+          --lldp-ip 172.31.10.1
+      '
+    restart: unless-stopped
+
+  sw-office-2:
+    image: python:3.11-slim
+    container_name: nop-final-sw-office-2
+    hostname: sw-office-2
+    networks:
+      final-test:
+        ipv4_address: 172.31.10.2
+    mac_address: "00:aa:bb:10:00:02"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/access_switch.py \
+          --name "sw-office-2" \
+          --ring-protocol rep \
+          --ring-id 1 \
+          --node-id 2 \
+          --vlan 10 \
+          --lldp-ip 172.31.10.2
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # VLAN 20 - Industrial Network - REP Ring B
+  # ============================================
+  
+  sw-industrial-1:
+    image: python:3.11-slim
+    container_name: nop-final-sw-industrial-1
+    hostname: sw-industrial-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.20.1
+    mac_address: "00:aa:bb:20:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/access_switch.py \
+          --name "sw-industrial-1" \
+          --ring-protocol rep \
+          --ring-id 2 \
+          --node-id 1 \
+          --vlan 20 \
+          --lldp-ip 172.31.20.1
+      '
+    restart: unless-stopped
+
+  sw-industrial-2:
+    image: python:3.11-slim
+    container_name: nop-final-sw-industrial-2
+    hostname: sw-industrial-2
+    networks:
+      final-test:
+        ipv4_address: 172.31.20.2
+    mac_address: "00:aa:bb:20:00:02"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/access_switch.py \
+          --name "sw-industrial-2" \
+          --ring-protocol rep \
+          --ring-id 2 \
+          --node-id 2 \
+          --vlan 20 \
+          --lldp-ip 172.31.20.2
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # Unmanaged Legacy Switch (L2 only - MAC, no IP)
+  # ============================================
+  
+  legacy-switch:
+    image: python:3.11-slim
+    container_name: nop-final-legacy-sw
+    hostname: legacy-switch
+    networks:
+      final-test:
+        # Note: NO ipv4_address - this is a pure L2 device
+    mac_address: "00:cc:dd:ee:ff:00"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/legacy_switch.py \
+          --name "legacy-switch" \
+          --mac "00:cc:dd:ee:ff:00"
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # VLAN 10 Hosts - Office Devices
+  # ============================================
+  
+  # Office PC - Full workstation with TCP/UDP/HTTP traffic
+  pc-office-1:
+    image: python:3.11-slim
+    container_name: nop-final-pc-office-1
+    hostname: pc-office-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.10.100
+    mac_address: "00:de:ad:10:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy requests --quiet
+        python3 /scripts/office_pc.py \
+          --name "pc-office-1" \
+          --vlan 10 \
+          --targets "172.31.10.101,172.31.20.100,172.31.20.101" \
+          --protocols "http,ssh,dns,ntp"
+      '
+    restart: unless-stopped
+    depends_on:
+      - sw-office-1
+
+  # File/Print Server - TCP services
+  server-office-1:
+    image: python:3.11-slim
+    container_name: nop-final-srv-office-1
+    hostname: server-office-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.10.101
+    mac_address: "00:de:ad:10:00:02"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy flask --quiet
+        python3 /scripts/office_server.py \
+          --name "server-office-1" \
+          --vlan 10 \
+          --services "http,ssh,smb,dns"
+      '
+    restart: unless-stopped
+    depends_on:
+      - sw-office-2
+
+  # ============================================
+  # VLAN 20 Hosts - Industrial Devices
+  # ============================================
+  
+  # PLC Controller - Modbus/TCP
+  plc-industrial-1:
+    image: python:3.11-slim
+    container_name: nop-final-plc-1
+    hostname: plc-industrial-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.20.100
+    mac_address: "00:de:ad:20:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/plc_device.py \
+          --name "plc-industrial-1" \
+          --vlan 20 \
+          --modbus-server "172.31.20.102" \
+          --mqtt-broker "172.31.20.102"
+      '
+    restart: unless-stopped
+    depends_on:
+      - sw-industrial-1
+
+  # IoT Sensor Gateway - MQTT/CoAP
+  iot-gateway-1:
+    image: python:3.11-slim
+    container_name: nop-final-iot-gw-1
+    hostname: iot-gateway-1
+    networks:
+      final-test:
+        ipv4_address: 172.31.20.101
+    mac_address: "00:de:ad:20:00:02"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/iot_device.py \
+          --name "iot-gateway-1" \
+          --vlan 20 \
+          --mqtt-broker "172.31.20.102"
+      '
+    restart: unless-stopped
+    depends_on:
+      - sw-industrial-2
+
+  # SCADA Server - OPC-UA, Modbus
+  scada-server:
+    image: python:3.11-slim
+    container_name: nop-final-scada-srv
+    hostname: scada-server
+    networks:
+      final-test:
+        ipv4_address: 172.31.20.102
+    mac_address: "00:de:ad:20:00:03"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/scada_server.py \
+          --name "scada-server" \
+          --vlan 20
+      '
+    restart: unless-stopped
+    depends_on:
+      - sw-industrial-2
+
+  # ============================================
+  # Cross-VLAN Communication - Router/Firewall
+  # ============================================
+  
+  router-core:
+    image: python:3.11-slim
+    container_name: nop-final-router
+    hostname: router-core
+    networks:
+      final-test:
+        ipv4_address: 172.31.0.254
+    mac_address: "00:aa:bb:00:00:01"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/router.py \
+          --name "router-core"
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # VPN/Overlay Network - L7 Virtual Network
+  # ============================================
+  
+  vpn-server:
+    image: python:3.11-slim
+    container_name: nop-final-vpn-srv
+    hostname: vpn-server
+    networks:
+      final-test:
+        ipv4_address: 172.31.0.50
+    mac_address: "00:aa:bb:00:00:50"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./final-test-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/vpn_server.py \
+          --name "vpn-server"
+      '
+    restart: unless-stopped
+
+networks:
+  final-test:
+    name: nop-final-test
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16

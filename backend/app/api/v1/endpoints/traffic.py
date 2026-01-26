@@ -554,3 +554,74 @@ async def get_protocol_breakdown():
         "dpi_enabled": sniffer_service.dpi_enabled
     }
 
+
+# ========== L2 Layer Topology Endpoints ==========
+
+@router.get("/l2/topology")
+async def get_l2_topology():
+    """Get L2 (MAC-level) topology data for layer 2 visualization"""
+    return sniffer_service.get_l2_topology()
+
+
+@router.get("/l2/entities")
+async def get_l2_entities():
+    """Get all discovered L2 entities (MAC addresses)"""
+    return {
+        "entities": sniffer_service.get_l2_entities(),
+        "count": len(sniffer_service.l2_entities)
+    }
+
+
+@router.get("/l2/connections")
+async def get_l2_connections():
+    """Get L2 connections (MAC to MAC)"""
+    return {
+        "connections": sniffer_service.get_l2_connections(),
+        "count": len(sniffer_service.l2_connections)
+    }
+
+
+@router.get("/l2/multicast-groups")
+async def get_l2_multicast_groups():
+    """Get multicast group memberships for bus topology detection"""
+    return {
+        "groups": sniffer_service.get_l2_multicast_groups(),
+        "count": len(sniffer_service.l2_multicast_groups)
+    }
+
+
+# ========== Pattern Detection Endpoints (L7 Analysis) ==========
+
+@router.get("/patterns/flows")
+async def get_flow_patterns():
+    """Get detected flow patterns (cyclic, master-slave, etc.)"""
+    return {
+        "patterns": sniffer_service.dpi_service.get_flow_patterns()
+    }
+
+
+@router.get("/patterns/multicast-bus")
+async def get_multicast_bus_topology():
+    """Get detected multicast bus groups from pattern detection"""
+    return {
+        "bus_groups": sniffer_service.dpi_service.get_multicast_bus_topology()
+    }
+
+
+class LabelFingerprintRequest(BaseModel):
+    fingerprint: str
+    label: str
+
+
+@router.post("/patterns/label")
+async def label_protocol_fingerprint(request: LabelFingerprintRequest):
+    """Associate a custom label with a detected protocol fingerprint"""
+    sniffer_service.dpi_service.label_protocol_fingerprint(
+        request.fingerprint, 
+        request.label
+    )
+    return {
+        "success": True,
+        "fingerprint": request.fingerprint,
+        "label": request.label
+    }

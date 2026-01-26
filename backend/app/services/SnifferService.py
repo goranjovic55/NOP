@@ -3,13 +3,26 @@ import json
 import logging
 import threading
 import multiprocessing
-from typing import Dict, List, Optional, Callable, Any
-from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sendp, sendpfast, sr1, ICMP, Raw
+from typing import Dict, List, Optional, Callable, Any, Set
+from scapy.all import sniff, IP, TCP, UDP, ARP, Ether, wrpcap, send, sendp, sendpfast, sr1, ICMP, Raw, Dot1Q, STP, LLC
 import psutil
 import time
 import os
 import socket
 import struct
+
+# Import L2 protocol layers for industrial/enterprise detection
+try:
+    from scapy.contrib.lldp import LLDPDU, LLDPDUChassisID, LLDPDUPortID, LLDPDUSystemName, LLDPDUSystemDescription, LLDPDUManagementAddress
+    LLDP_AVAILABLE = True
+except ImportError:
+    LLDP_AVAILABLE = False
+
+try:
+    from scapy.contrib.cdp import CDPv2_HDR, CDPMsgDeviceID, CDPMsgAddr, CDPMsgPortID, CDPMsgPlatform
+    CDP_AVAILABLE = True
+except ImportError:
+    CDP_AVAILABLE = False
 
 # Import DPI service for deep packet inspection
 from app.services.DPIOrchestrationService import dpi_service, DPIResult
@@ -60,6 +73,20 @@ class SnifferService:
         # DPI (Deep Packet Inspection) settings
         self.dpi_enabled = True  # Enable DPI by default
         self.dpi_service = dpi_service  # Reference to singleton DPI service
+        
+        # L2 Layer tracking for switch detection and MAC-based topology
+        self.l2_entities = {}  # Format: {mac: {"first_seen": ts, "last_seen": ts, "ips": set(), "vendors": str, "packets": int}}
+        self.l2_connections = {}  # Format: {"src_mac-dst_mac": {"packets": int, "bytes": int, "ethertype": set()}}
+        self.l2_switch_candidates = {}  # MACs that forward traffic between multiple other MACs
+        self.l2_multicast_groups = {}  # Format: {multicast_mac: {"sources": set(), "packets": int}}
+        
+        # Enhanced L2 protocol tracking
+        self.l2_vlans = {}  # Format: {vlan_id: {"name": str, "members": set(mac), "trunk_ports": set(), "packets": int}}
+        self.l2_stp_bridges = {}  # Format: {bridge_mac: {"root_id": int, "bridge_id": int, "port_roles": {}, "state": str}}
+        self.l2_lldp_neighbors = {}  # Format: {mac: {"system_name": str, "port_id": str, "mgmt_ip": str, "capabilities": []}}
+        self.l2_cdp_neighbors = {}  # Format: {mac: {"device_id": str, "platform": str, "port_id": str, "ip": str}}
+        self.l2_ring_topologies = {}  # Format: {"ring_id": {"protocol": str, "members": [], "state": str}}
+        self.l2_lacp_groups = {}  # Format: {actor_key: {"members": set(mac), "partner": str, "state": str}}
         
         # Storm-related attributes
         self.is_storming = False
@@ -156,6 +183,148 @@ class SnifferService:
                 "last_seen": info.get("last_seen")
             })
         return hosts
+    
+    def get_l2_entities(self) -> List[Dict[str, Any]]:
+        """Return list of L2 (MAC-level) entities for topology"""
+        entities = []
+        for mac, info in self.l2_entities.items():
+            entities.append({
+                "mac": mac,
+                "first_seen": info.get("first_seen"),
+                "last_seen": info.get("last_seen"),
+                "ips": list(info.get("ips", set())),
+                "packets": info.get("packets", 0),
+                "bytes": info.get("bytes", 0)
+            })
+        return entities
+    
+    def get_l2_connections(self) -> List[Dict[str, Any]]:
+        """Return L2 connections (MAC to MAC) for topology"""
+        connections = []
+        for conn_key, info in self.l2_connections.items():
+            src_mac, dst_mac = conn_key.split("->")
+            connections.append({
+                "src_mac": src_mac,
+                "dst_mac": dst_mac,
+                "packets": info.get("packets", 0),
+                "bytes": info.get("bytes", 0),
+                "ethertypes": [hex(t) for t in info.get("ethertypes", set())],
+                "l2_protocols": list(info.get("l2_protocols", set())),
+                "is_control": info.get("is_control", False),
+                "first_seen": info.get("first_seen"),
+                "last_seen": info.get("last_seen")
+            })
+        return connections
+    
+    def get_l2_multicast_groups(self) -> List[Dict[str, Any]]:
+        """Return multicast groups for bus/ring topology detection"""
+        groups = []
+        for group_mac, info in self.l2_multicast_groups.items():
+            groups.append({
+                "group_mac": group_mac,
+                "sources": list(info.get("sources", set())),
+                "source_count": len(info.get("sources", set())),
+                "packets": info.get("packets", 0),
+                "bytes": info.get("bytes", 0)
+            })
+        return groups
+    
+    def get_l2_topology(self) -> Dict[str, Any]:
+        """Get complete L2 topology data for visualization"""
+        return {
+            "entities": self.get_l2_entities(),
+            "connections": self.get_l2_connections(),
+            "multicast_groups": self.get_l2_multicast_groups(),
+            "vlans": self.get_l2_vlans(),
+            "stp_bridges": self.get_l2_stp_bridges(),
+            "lldp_neighbors": self.get_l2_lldp_neighbors(),
+            "cdp_neighbors": self.get_l2_cdp_neighbors(),
+            "ring_topologies": self.get_l2_ring_topologies(),
+            "entity_count": len(self.l2_entities),
+            "connection_count": len(self.l2_connections),
+            "multicast_group_count": len(self.l2_multicast_groups)
+        }
+    
+    def get_l2_vlans(self) -> List[Dict[str, Any]]:
+        """Return detected VLANs with members"""
+        vlans = []
+        for vlan_id, info in self.l2_vlans.items():
+            vlans.append({
+                "vlan_id": vlan_id,
+                "name": info.get("name", f"VLAN{vlan_id}"),
+                "members": list(info.get("members", set())),
+                "trunk_ports": list(info.get("trunk_ports", set())),
+                "packets": info.get("packets", 0),
+                "bytes": info.get("bytes", 0),
+                "tagged": info.get("tagged", True)
+            })
+        return vlans
+    
+    def get_l2_stp_bridges(self) -> List[Dict[str, Any]]:
+        """Return STP/RSTP/MSTP bridge information"""
+        bridges = []
+        for bridge_mac, info in self.l2_stp_bridges.items():
+            bridges.append({
+                "bridge_mac": bridge_mac,
+                "root_id": info.get("root_id"),
+                "root_mac": info.get("root_mac"),
+                "bridge_id": info.get("bridge_id"),
+                "path_cost": info.get("path_cost", 0),
+                "port_id": info.get("port_id"),
+                "is_root": info.get("is_root", False),
+                "topology_change": info.get("topology_change", False),
+                "protocol_version": info.get("version", "STP"),
+                "last_seen": info.get("last_seen")
+            })
+        return bridges
+    
+    def get_l2_lldp_neighbors(self) -> List[Dict[str, Any]]:
+        """Return LLDP neighbor information"""
+        neighbors = []
+        for mac, info in self.l2_lldp_neighbors.items():
+            neighbors.append({
+                "mac": mac,
+                "chassis_id": info.get("chassis_id"),
+                "port_id": info.get("port_id"),
+                "system_name": info.get("system_name"),
+                "system_description": info.get("system_description"),
+                "mgmt_ip": info.get("mgmt_ip"),
+                "capabilities": info.get("capabilities", []),
+                "last_seen": info.get("last_seen")
+            })
+        return neighbors
+    
+    def get_l2_cdp_neighbors(self) -> List[Dict[str, Any]]:
+        """Return CDP neighbor information (Cisco)"""
+        neighbors = []
+        for mac, info in self.l2_cdp_neighbors.items():
+            neighbors.append({
+                "mac": mac,
+                "device_id": info.get("device_id"),
+                "platform": info.get("platform"),
+                "port_id": info.get("port_id"),
+                "ip": info.get("ip"),
+                "software_version": info.get("software_version"),
+                "capabilities": info.get("capabilities", []),
+                "last_seen": info.get("last_seen")
+            })
+        return neighbors
+    
+    def get_l2_ring_topologies(self) -> List[Dict[str, Any]]:
+        """Return detected ring topologies (REP, MRP, DLR, etc.)"""
+        rings = []
+        for ring_id, info in self.l2_ring_topologies.items():
+            rings.append({
+                "ring_id": ring_id,
+                "protocol": info.get("protocol", "Unknown"),
+                "members": list(info.get("members", [])),
+                "state": info.get("state", "unknown"),
+                "primary_edge": info.get("primary_edge"),
+                "secondary_edge": info.get("secondary_edge"),
+                "vlan_id": info.get("vlan_id"),
+                "last_seen": info.get("last_seen")
+            })
+        return rings
     
     def set_track_source_only(self, enabled: bool):
         """Update the track_source_only setting for passive discovery"""
@@ -266,6 +435,245 @@ class SnifferService:
                 return False
         
         return True
+    
+    def _parse_l2_protocols(self, packet, src_mac: str, dst_mac: str, current_time: float, pkt_len: int):
+        """Parse detailed L2 protocol information (VLAN, STP, LLDP, CDP, etc.)"""
+        
+        # ===== VLAN (802.1Q) parsing =====
+        if Dot1Q in packet:
+            vlan = packet[Dot1Q]
+            vlan_id = vlan.vlan
+            
+            if vlan_id not in self.l2_vlans:
+                self.l2_vlans[vlan_id] = {
+                    "name": f"VLAN{vlan_id}",
+                    "members": set(),
+                    "trunk_ports": set(),
+                    "packets": 0,
+                    "bytes": 0,
+                    "tagged": True,
+                    "priority": vlan.prio,
+                    "first_seen": current_time
+                }
+            self.l2_vlans[vlan_id]["members"].add(src_mac)
+            if dst_mac != "ff:ff:ff:ff:ff:ff":
+                self.l2_vlans[vlan_id]["members"].add(dst_mac)
+            self.l2_vlans[vlan_id]["packets"] += 1
+            self.l2_vlans[vlan_id]["bytes"] += pkt_len
+            self.l2_vlans[vlan_id]["last_seen"] = current_time
+            
+            # Track trunk port (source that sends tagged traffic)
+            self.l2_vlans[vlan_id]["trunk_ports"].add(src_mac)
+            
+            # Add VLAN info to L2 entity
+            if src_mac in self.l2_entities:
+                if "vlans" not in self.l2_entities[src_mac]:
+                    self.l2_entities[src_mac]["vlans"] = set()
+                self.l2_entities[src_mac]["vlans"].add(vlan_id)
+        
+        # ===== STP/RSTP/MSTP parsing =====
+        if STP in packet:
+            stp = packet[STP]
+            bridge_mac = src_mac
+            
+            # Determine STP version
+            version_names = {0: "STP", 2: "RSTP", 3: "MSTP"}
+            version = version_names.get(stp.version, f"STP-v{stp.version}")
+            
+            # Check if this bridge is the root
+            is_root = (stp.rootmac == stp.bridgemac) and (stp.rootid == stp.bridgeid)
+            
+            # Parse BPDU flags for topology change
+            topology_change = bool(stp.bpduflags & 0x01)
+            topology_change_ack = bool(stp.bpduflags & 0x80)
+            
+            self.l2_stp_bridges[bridge_mac] = {
+                "root_id": stp.rootid,
+                "root_mac": stp.rootmac,
+                "bridge_id": stp.bridgeid,
+                "bridge_mac": stp.bridgemac,
+                "path_cost": stp.pathcost,
+                "port_id": stp.portid,
+                "is_root": is_root,
+                "topology_change": topology_change,
+                "topology_change_ack": topology_change_ack,
+                "version": version,
+                "max_age": stp.maxage / 256,  # Convert to seconds
+                "hello_time": stp.hellotime / 256,
+                "forward_delay": stp.fwddelay / 256,
+                "last_seen": current_time
+            }
+            
+            # Mark as network infrastructure in L2 entity
+            if bridge_mac in self.l2_entities:
+                self.l2_entities[bridge_mac]["device_type"] = "switch"
+                self.l2_entities[bridge_mac]["stp_info"] = {
+                    "is_root": is_root,
+                    "version": version
+                }
+        
+        # ===== LLDP parsing =====
+        if LLDP_AVAILABLE and packet.haslayer('LLDPDU'):
+            try:
+                lldp = packet['LLDPDU']
+                lldp_info = {
+                    "last_seen": current_time
+                }
+                
+                # Parse all LLDP TLVs
+                current_layer = lldp
+                while current_layer:
+                    layer_name = current_layer.__class__.__name__
+                    
+                    if 'ChassisID' in layer_name:
+                        lldp_info["chassis_id"] = str(current_layer.id) if hasattr(current_layer, 'id') else None
+                    elif 'PortID' in layer_name:
+                        lldp_info["port_id"] = str(current_layer.id) if hasattr(current_layer, 'id') else None
+                    elif 'SystemName' in layer_name:
+                        lldp_info["system_name"] = str(current_layer.system_name) if hasattr(current_layer, 'system_name') else None
+                    elif 'SystemDescription' in layer_name:
+                        lldp_info["system_description"] = str(current_layer.description) if hasattr(current_layer, 'description') else None
+                    elif 'ManagementAddress' in layer_name:
+                        if hasattr(current_layer, 'management_address'):
+                            lldp_info["mgmt_ip"] = str(current_layer.management_address)
+                    elif 'SystemCapabilities' in layer_name:
+                        if hasattr(current_layer, 'capabilities'):
+                            caps = []
+                            cap_bits = current_layer.capabilities
+                            if cap_bits & 0x0001: caps.append("Other")
+                            if cap_bits & 0x0002: caps.append("Repeater")
+                            if cap_bits & 0x0004: caps.append("Bridge")
+                            if cap_bits & 0x0008: caps.append("WLAN-AP")
+                            if cap_bits & 0x0010: caps.append("Router")
+                            if cap_bits & 0x0020: caps.append("Telephone")
+                            if cap_bits & 0x0040: caps.append("DOCSIS")
+                            if cap_bits & 0x0080: caps.append("Station")
+                            lldp_info["capabilities"] = caps
+                    
+                    current_layer = current_layer.payload if hasattr(current_layer, 'payload') and current_layer.payload else None
+                
+                self.l2_lldp_neighbors[src_mac] = lldp_info
+                
+                # Update L2 entity with LLDP info
+                if src_mac in self.l2_entities:
+                    self.l2_entities[src_mac]["device_type"] = "network_device"
+                    if lldp_info.get("system_name"):
+                        self.l2_entities[src_mac]["hostname"] = lldp_info["system_name"]
+                    if lldp_info.get("mgmt_ip"):
+                        self.l2_entities[src_mac]["ips"].add(lldp_info["mgmt_ip"])
+                        
+            except Exception as e:
+                logger.debug(f"LLDP parsing error: {e}")
+        
+        # ===== CDP parsing (Cisco) =====
+        if CDP_AVAILABLE and dst_mac == "01:00:0c:cc:cc:cc":
+            try:
+                # Try to parse CDP
+                if packet.haslayer('CDPv2_HDR'):
+                    cdp = packet['CDPv2_HDR']
+                    cdp_info = {
+                        "last_seen": current_time
+                    }
+                    
+                    # Parse CDP TLVs
+                    current_layer = cdp
+                    while current_layer:
+                        layer_name = current_layer.__class__.__name__
+                        
+                        if 'DeviceID' in layer_name:
+                            cdp_info["device_id"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                        elif 'Platform' in layer_name:
+                            cdp_info["platform"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                        elif 'PortID' in layer_name:
+                            cdp_info["port_id"] = str(current_layer.iface) if hasattr(current_layer, 'iface') else None
+                        elif 'Addr' in layer_name:
+                            if hasattr(current_layer, 'addr'):
+                                cdp_info["ip"] = str(current_layer.addr)
+                        elif 'SoftwareVersion' in layer_name:
+                            cdp_info["software_version"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                        elif 'Capabilities' in layer_name:
+                            if hasattr(current_layer, 'cap'):
+                                caps = []
+                                cap_bits = current_layer.cap
+                                if cap_bits & 0x01: caps.append("Router")
+                                if cap_bits & 0x02: caps.append("TB-Bridge")
+                                if cap_bits & 0x04: caps.append("SR-Bridge")
+                                if cap_bits & 0x08: caps.append("Switch")
+                                if cap_bits & 0x10: caps.append("Host")
+                                if cap_bits & 0x20: caps.append("IGMP")
+                                if cap_bits & 0x40: caps.append("Repeater")
+                                cdp_info["capabilities"] = caps
+                        
+                        current_layer = current_layer.payload if hasattr(current_layer, 'payload') and current_layer.payload else None
+                    
+                    self.l2_cdp_neighbors[src_mac] = cdp_info
+                    
+                    # Update L2 entity with CDP info
+                    if src_mac in self.l2_entities:
+                        self.l2_entities[src_mac]["device_type"] = "cisco_device"
+                        if cdp_info.get("device_id"):
+                            self.l2_entities[src_mac]["hostname"] = cdp_info["device_id"]
+                        if cdp_info.get("ip"):
+                            self.l2_entities[src_mac]["ips"].add(cdp_info["ip"])
+                        if cdp_info.get("platform"):
+                            self.l2_entities[src_mac]["platform"] = cdp_info["platform"]
+                            
+            except Exception as e:
+                logger.debug(f"CDP parsing error: {e}")
+        
+        # ===== Industrial Ring Protocol Detection =====
+        # REP (Cisco Resilient Ethernet Protocol) - uses multicast 01:00:0c:cc:cc:cd
+        # MRP (Media Redundancy Protocol - IEC 62439) - uses multicast 01:15:4e:00:00:xx
+        # DLR (Device Level Ring - EtherNet/IP) - uses multicast 01:21:6c:00:00:xx
+        
+        is_rep = dst_mac == "01:00:0c:cc:cc:cd"
+        is_mrp = dst_mac.startswith("01:15:4e:00:00:")
+        is_dlr = dst_mac.startswith("01:21:6c:00:00:")
+        is_prp = dst_mac == "01:15:4e:00:01:00"  # Parallel Redundancy Protocol
+        is_hsr = dst_mac == "01:15:4e:00:01:01"  # High-availability Seamless Redundancy
+        
+        if is_rep or is_mrp or is_dlr or is_prp or is_hsr:
+            # Determine protocol
+            if is_rep:
+                protocol = "REP"
+                ring_id = "rep_ring"
+            elif is_mrp:
+                protocol = "MRP"
+                ring_id = f"mrp_{dst_mac[-2:]}"
+            elif is_dlr:
+                protocol = "DLR"
+                ring_id = f"dlr_{dst_mac[-2:]}"
+            elif is_prp:
+                protocol = "PRP"
+                ring_id = "prp_ring"
+            elif is_hsr:
+                protocol = "HSR"
+                ring_id = "hsr_ring"
+            else:
+                protocol = "Unknown"
+                ring_id = "unknown_ring"
+            
+            if ring_id not in self.l2_ring_topologies:
+                self.l2_ring_topologies[ring_id] = {
+                    "protocol": protocol,
+                    "members": set(),
+                    "state": "unknown",
+                    "first_seen": current_time
+                }
+            
+            self.l2_ring_topologies[ring_id]["members"].add(src_mac)
+            self.l2_ring_topologies[ring_id]["last_seen"] = current_time
+            
+            # Mark as ring member in L2 entity
+            if src_mac in self.l2_entities:
+                self.l2_entities[src_mac]["device_type"] = "ring_member"
+                self.l2_entities[src_mac]["ring_protocol"] = protocol
+                self.l2_entities[src_mac]["ring_id"] = ring_id
+            
+            # Add to connection protocols
+            l2_ctrl_key = f"{src_mac}->CONTROL"
+            if l2_ctrl_key in self.l2_connections:
+                self.l2_connections[l2_ctrl_key]["l2_protocols"].add(protocol)
 
     def _dissect_packet(self, packet) -> Dict[str, Any]:
         """Full protocol dissection for packet inspector"""
@@ -744,10 +1152,114 @@ class SnifferService:
         if Ether in packet:
             packet_data["source"] = packet[Ether].src
             packet_data["destination"] = packet[Ether].dst
+            
+            # ===== L2 Entity and Connection Tracking =====
+            src_mac = packet[Ether].src
+            dst_mac = packet[Ether].dst
+            ether_type = packet[Ether].type
+            current_time = time.time()
+            pkt_len = len(packet)
+            
+            # Track source MAC entity
+            if src_mac not in self.l2_entities:
+                self.l2_entities[src_mac] = {
+                    "first_seen": current_time,
+                    "last_seen": current_time,
+                    "ips": set(),
+                    "packets": 0,
+                    "bytes": 0
+                }
+            self.l2_entities[src_mac]["last_seen"] = current_time
+            self.l2_entities[src_mac]["packets"] += 1
+            self.l2_entities[src_mac]["bytes"] += pkt_len
+            
+            # Detect L2 control protocols by destination MAC
+            is_stp = dst_mac.startswith("01:80:c2:00:00:")  # STP/RSTP/MSTP
+            is_lldp = dst_mac in ("01:80:c2:00:00:0e", "01:80:c2:00:00:03", "01:80:c2:00:00:00")  # LLDP destinations
+            is_cdp = dst_mac == "01:00:0c:cc:cc:cc"  # Cisco CDP
+            is_pvst = dst_mac.startswith("01:00:0c:cc:cc:")  # Cisco PVST+
+            
+            # Track dst MAC for non-broadcast
+            is_broadcast = dst_mac == "ff:ff:ff:ff:ff:ff"
+            is_multicast = dst_mac.startswith(("01:00:5e", "33:33:"))  # IPv4/IPv6 multicast
+            
+            if not is_broadcast:
+                if is_multicast:
+                    # Track multicast group membership
+                    if dst_mac not in self.l2_multicast_groups:
+                        self.l2_multicast_groups[dst_mac] = {"sources": set(), "packets": 0, "bytes": 0}
+                    self.l2_multicast_groups[dst_mac]["sources"].add(src_mac)
+                    self.l2_multicast_groups[dst_mac]["packets"] += 1
+                    self.l2_multicast_groups[dst_mac]["bytes"] += pkt_len
+                else:
+                    # Track unicast destination
+                    if dst_mac not in self.l2_entities:
+                        self.l2_entities[dst_mac] = {
+                            "first_seen": current_time,
+                            "last_seen": current_time,
+                            "ips": set(),
+                            "packets": 0,
+                            "bytes": 0
+                        }
+                    self.l2_entities[dst_mac]["last_seen"] = current_time
+                    
+                    # Track L2 connection (src_mac -> dst_mac)
+                    l2_conn_key = f"{src_mac}->{dst_mac}"
+                    if l2_conn_key not in self.l2_connections:
+                        self.l2_connections[l2_conn_key] = {
+                            "packets": 0,
+                            "bytes": 0,
+                            "ethertypes": set(),
+                            "l2_protocols": set(),  # Human-readable L2 protocol names
+                            "first_seen": current_time,
+                            "last_seen": current_time
+                        }
+                    self.l2_connections[l2_conn_key]["packets"] += 1
+                    self.l2_connections[l2_conn_key]["bytes"] += pkt_len
+                    self.l2_connections[l2_conn_key]["ethertypes"].add(ether_type)
+                    self.l2_connections[l2_conn_key]["last_seen"] = current_time
+                    
+                    # Add detected L2 control protocols
+                    if is_stp or is_pvst:
+                        self.l2_connections[l2_conn_key]["l2_protocols"].add("STP")
+                    if is_lldp:
+                        self.l2_connections[l2_conn_key]["l2_protocols"].add("LLDP")
+                    if is_cdp:
+                        self.l2_connections[l2_conn_key]["l2_protocols"].add("CDP")
+            
+            # Track L2 control protocols even for multicast destinations
+            if is_stp or is_pvst or is_lldp or is_cdp:
+                # Create a pseudo-connection to track control protocol source
+                l2_ctrl_key = f"{src_mac}->CONTROL"
+                if l2_ctrl_key not in self.l2_connections:
+                    self.l2_connections[l2_ctrl_key] = {
+                        "packets": 0,
+                        "bytes": 0,
+                        "ethertypes": set(),
+                        "l2_protocols": set(),
+                        "first_seen": current_time,
+                        "last_seen": current_time,
+                        "is_control": True
+                    }
+                self.l2_connections[l2_ctrl_key]["packets"] += 1
+                self.l2_connections[l2_ctrl_key]["bytes"] += pkt_len
+                self.l2_connections[l2_ctrl_key]["ethertypes"].add(ether_type)
+                self.l2_connections[l2_ctrl_key]["last_seen"] = current_time
+                if is_stp or is_pvst:
+                    self.l2_connections[l2_ctrl_key]["l2_protocols"].add("STP")
+                if is_lldp:
+                    self.l2_connections[l2_ctrl_key]["l2_protocols"].add("LLDP")
+                if is_cdp:
+                    self.l2_connections[l2_ctrl_key]["l2_protocols"].add("CDP")
+            
+            # ===== Parse detailed L2 protocol information =====
+            self._parse_l2_protocols(packet, src_mac, dst_mac, current_time, pkt_len)
 
         if IP in packet:
             packet_data["source"] = packet[IP].src
             packet_data["destination"] = packet[IP].dst
+            packet_data["src_ip"] = packet[IP].src
+            packet_data["dst_ip"] = packet[IP].dst
 
             # Update stats
             self.stats["total_bytes"] += len(packet)
@@ -756,6 +1268,15 @@ class SnifferService:
             src = packet[IP].src
             dst = packet[IP].dst
             self.stats["top_talkers"][src] = self.stats["top_talkers"].get(src, 0) + len(packet)
+            
+            # Associate IP with MAC in L2 entities
+            if Ether in packet:
+                src_mac = packet[Ether].src
+                dst_mac = packet[Ether].dst
+                if src_mac in self.l2_entities:
+                    self.l2_entities[src_mac]["ips"].add(src)
+                if dst_mac in self.l2_entities and dst_mac != "ff:ff:ff:ff:ff:ff":
+                    self.l2_entities[dst_mac]["ips"].add(dst)
             
             # Enhanced passive discovery: OS detection from TTL
             self._detect_os_from_ttl(src, packet[IP].ttl)
@@ -918,6 +1439,9 @@ class SnifferService:
                 sport = packet_data.get("src_port", 0)
                 dport = packet_data.get("dst_port", 0)
                 transport = packet_data.get("protocol", "IP")
+                src_ip = packet_data.get("src_ip", "")
+                dst_ip = packet_data.get("dst_ip", "")
+                timestamp = packet_data.get("timestamp")
                 
                 # Check if packet should be inspected
                 packet_summary = {
@@ -931,7 +1455,10 @@ class SnifferService:
                         sport=sport,
                         dport=dport,
                         transport_protocol=transport,
-                        packet_length=len(packet)
+                        packet_length=len(packet),
+                        src_ip=src_ip,
+                        dst_ip=dst_ip,
+                        timestamp=timestamp
                     )
                     
                     if dpi_result:

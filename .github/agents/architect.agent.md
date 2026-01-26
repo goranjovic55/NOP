@@ -1,7 +1,7 @@
 ---
 name: architect
 description: 'Design blueprints before implementation. Analyzes constraints, evaluates alternatives, documents tradeoffs. Returns design trace to AKIS.'
-tools: ['read', 'search']
+tools: ['execute/getTerminalOutput', 'execute/runTask', 'execute/createAndRunTask', 'execute/runTests', 'execute/runNotebookCell', 'execute/testFailure', 'execute/runInTerminal', 'read/terminalSelection', 'read/terminalLastCommand', 'read/getTaskOutput', 'read/getNotebookSummary', 'read/problems', 'read/readFile', 'read/readNotebookCellOutput', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/searchResults', 'search/textSearch', 'search/usages', 'web/fetch', 'web/githubRepo']
 ---
 
 # Architect Agent

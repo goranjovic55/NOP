@@ -1,0 +1,508 @@
+# Full OSI Layer Traffic Generator for NOP Testing
+# Generates traffic across L2, L3, L4, L5, L7 for comprehensive testing
+
+services:
+  # ============================================
+  # L2 - MAC Layer / Switch Simulation
+  # ============================================
+  
+  # L2 Switch simulator - generates ARP, broadcast traffic
+  l2-switch-sim:
+    image: alpine:3.19
+    container_name: nop-l2-switch
+    hostname: l2-switch
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.200
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: |
+      sh -c '
+        apk add --no-cache arping iproute2 tcpdump
+        echo "L2 Switch Simulator - Generating MAC/ARP traffic..."
+        while true; do
+          # ARP requests to discover network
+          arping -c 1 -I eth0 172.29.0.101 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.0.102 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.0.110 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.0.120 2>/dev/null || true
+          # Broadcast ping for L2 visibility
+          ping -c 1 -b 172.29.255.255 2>/dev/null || true
+          sleep 2
+        done
+      '
+    restart: unless-stopped
+
+  # L2 VLAN-like traffic (802.1Q simulation via tagged traffic)
+  l2-vlan-sim:
+    image: alpine:3.19
+    container_name: nop-l2-vlan
+    hostname: l2-vlan
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.201
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: |
+      sh -c '
+        apk add --no-cache iproute2 nmap-ncat
+        echo "L2 VLAN Traffic Generator..."
+        while true; do
+          # Generate traffic to multiple hosts (simulates VLAN switching)
+          for ip in 172.29.0.101 172.29.0.102 172.29.0.103 172.29.0.110 172.29.0.120; do
+            echo "VLAN_FRAME" | nc -u -w1 $ip 8000 2>/dev/null || true
+          done
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # L3 - Network Layer (IP, ICMP)
+  # ============================================
+  
+  # ICMP Traffic Generator
+  l3-icmp-gen:
+    image: alpine:3.19
+    container_name: nop-l3-icmp
+    hostname: l3-icmp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.210
+    command: |
+      sh -c '
+        apk add --no-cache iputils
+        echo "L3 ICMP Traffic Generator..."
+        while true; do
+          # Ping various hosts
+          ping -c 3 172.29.0.101
+          ping -c 3 172.29.0.110
+          ping -c 3 172.29.0.120
+          ping -c 3 172.29.0.130
+          # Traceroute-like behavior
+          ping -c 1 -t 1 172.29.0.140 2>/dev/null || true
+          ping -c 1 -t 2 172.29.0.140 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # IP Multicast Generator (L3 multicast)
+  l3-multicast:
+    image: alpine:3.19
+    container_name: nop-l3-multicast
+    hostname: l3-multicast
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.211
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache socat
+        echo "L3 Multicast Traffic Generator..."
+        while true; do
+          # Send to multicast group 224.0.0.100
+          echo "MULTICAST_L3_MSG_$(date +%s)" | socat - UDP4-DATAGRAM:224.0.0.100:5000,broadcast 2>/dev/null || true
+          # Another multicast group
+          echo "MULTICAST_L3_CTRL" | socat - UDP4-DATAGRAM:224.0.0.101:5001,broadcast 2>/dev/null || true
+          sleep 1
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # L4 - Transport Layer (TCP, UDP)
+  # ============================================
+  
+  # TCP Traffic Generator
+  l4-tcp-gen:
+    image: alpine:3.19
+    container_name: nop-l4-tcp
+    hostname: l4-tcp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.220
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat curl
+        echo "L4 TCP Traffic Generator..."
+        while true; do
+          # TCP connections to web server
+          curl -s --connect-timeout 2 http://172.29.0.101:80/ > /dev/null 2>&1 || true
+          # TCP to SSH port
+          echo "TCP_TEST" | nc -w1 172.29.0.100 22 2>/dev/null || true
+          # TCP to various ports
+          echo "TCP_DATA_STREAM" | nc -w1 172.29.0.101 8080 2>/dev/null || true
+          echo "TCP_CONTROL" | nc -w1 172.29.0.110 502 2>/dev/null || true
+          sleep 2
+        done
+      '
+    restart: unless-stopped
+
+  # UDP Traffic Generator
+  l4-udp-gen:
+    image: alpine:3.19
+    container_name: nop-l4-udp
+    hostname: l4-udp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.221
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L4 UDP Traffic Generator..."
+        while true; do
+          # UDP to various hosts
+          echo "UDP_DATAGRAM_01" | nc -u -w1 172.29.0.101 5000 2>/dev/null || true
+          echo "UDP_DATAGRAM_02" | nc -u -w1 172.29.0.110 502 2>/dev/null || true
+          echo "UDP_STREAM" | nc -u -w1 172.29.0.120 5000 2>/dev/null || true
+          echo "UDP_STATUS" | nc -u -w1 172.29.0.130 8000 2>/dev/null || true
+          sleep 1
+        done
+      '
+    restart: unless-stopped
+
+  # TCP Server for receiving connections
+  l4-tcp-server:
+    image: alpine:3.19
+    container_name: nop-l4-tcp-server
+    hostname: l4-tcp-server
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.222
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L4 TCP Server running on ports 8000, 8001, 8002..."
+        nc -lk -p 8000 &
+        nc -lk -p 8001 &
+        nc -lk -p 8002 &
+        wait
+      '
+    restart: unless-stopped
+
+  # UDP Server
+  l4-udp-server:
+    image: alpine:3.19
+    container_name: nop-l4-udp-server
+    hostname: l4-udp-server
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.223
+    command: |
+      sh -c '
+        apk add --no-cache socat
+        echo "L4 UDP Server running on ports 5000, 5001..."
+        socat -u UDP-RECVFROM:5000,fork STDOUT &
+        socat -u UDP-RECVFROM:5001,fork STDOUT &
+        wait
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # L5 - Session Layer (TLS/SSL, RPC, NetBIOS)
+  # ============================================
+  
+  # TLS/SSL Traffic Generator (Session establishment)
+  l5-tls-gen:
+    image: alpine:3.19
+    container_name: nop-l5-tls
+    hostname: l5-tls
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.230
+    command: |
+      sh -c '
+        apk add --no-cache openssl curl
+        echo "L5 TLS/SSL Session Traffic Generator..."
+        while true; do
+          # TLS handshakes
+          timeout 5 openssl s_client -connect google.com:443 </dev/null 2>/dev/null | head -5 || true
+          # HTTPS connections
+          curl -sk --connect-timeout 3 https://google.com > /dev/null 2>&1 || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # RPC-like Traffic (simulated)
+  l5-rpc-sim:
+    image: alpine:3.19
+    container_name: nop-l5-rpc
+    hostname: l5-rpc
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.231
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L5 RPC-like Traffic Generator..."
+        while true; do
+          # Simulated RPC calls with session headers
+          printf "RPC_CALL_ID:001|SESSION:$(date +%s)|METHOD:getStatus\n" | nc -w1 172.29.0.222 8000 2>/dev/null || true
+          printf "RPC_CALL_ID:002|SESSION:$(date +%s)|METHOD:getData\n" | nc -w1 172.29.0.222 8001 2>/dev/null || true
+          printf "RPC_RESPONSE|SESSION:$(date +%s)|STATUS:OK\n" | nc -w1 172.29.0.222 8002 2>/dev/null || true
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  # SMB/NetBIOS Traffic (Session Layer)
+  l5-smb-sim:
+    image: alpine:3.19
+    container_name: nop-l5-smb
+    hostname: l5-smb
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.232
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L5 SMB/NetBIOS-like Traffic..."
+        while true; do
+          # SMB-like session packets
+          printf "\x00\x00\x00\x45\xffSMB\x72\x00\x00\x00\x00" | nc -w1 172.29.0.222 445 2>/dev/null || true
+          # NetBIOS name query
+          printf "\x82\x00\x00\x00" | nc -u -w1 172.29.0.222 137 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # L7 - Application Layer (HTTP, DNS, FTP, SNMP)
+  # ============================================
+  
+  # HTTP Traffic Generator
+  l7-http-gen:
+    image: alpine:3.19
+    container_name: nop-l7-http
+    hostname: l7-http
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.240
+    command: |
+      sh -c '
+        apk add --no-cache curl wget
+        echo "L7 HTTP Traffic Generator..."
+        while true; do
+          # HTTP GET requests
+          curl -s http://172.29.0.101/ > /dev/null 2>&1 || true
+          curl -s http://172.29.0.101/index.html > /dev/null 2>&1 || true
+          # HTTP POST
+          curl -s -X POST -d "data=test&value=123" http://172.29.0.101/api 2>/dev/null || true
+          # HTTP HEAD
+          curl -sI http://172.29.0.101/ 2>/dev/null | head -3 || true
+          # wget
+          wget -q -O /dev/null http://172.29.0.101/ 2>/dev/null || true
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  # DNS Traffic Generator
+  l7-dns-gen:
+    image: alpine:3.19
+    container_name: nop-l7-dns
+    hostname: l7-dns
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.241
+    command: |
+      sh -c '
+        apk add --no-cache bind-tools
+        echo "L7 DNS Traffic Generator..."
+        while true; do
+          # DNS queries
+          dig @8.8.8.8 google.com A +short 2>/dev/null || true
+          dig @8.8.8.8 github.com AAAA +short 2>/dev/null || true
+          dig @8.8.8.8 amazon.com MX +short 2>/dev/null || true
+          nslookup microsoft.com 8.8.4.4 2>/dev/null | head -3 || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # FTP Traffic Simulation
+  l7-ftp-sim:
+    image: alpine:3.19
+    container_name: nop-l7-ftp
+    hostname: l7-ftp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.242
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L7 FTP-like Traffic..."
+        while true; do
+          # FTP command simulation
+          printf "USER anonymous\r\nPASS test@test.com\r\nPWD\r\nLIST\r\nQUIT\r\n" | nc -w2 ftp.gnu.org 21 2>/dev/null | head -10 || true
+          sleep 10
+        done
+      '
+    restart: unless-stopped
+
+  # SNMP Traffic Generator
+  l7-snmp-gen:
+    image: alpine:3.19
+    container_name: nop-l7-snmp
+    hostname: l7-snmp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.243
+    command: |
+      sh -c '
+        apk add --no-cache net-snmp-tools || apk add --no-cache nmap-ncat
+        echo "L7 SNMP-like Traffic..."
+        while true; do
+          # SNMP-like UDP packets to port 161
+          printf "\x30\x26\x02\x01\x00\x04\x06public\xa0\x19\x02\x01\x00" | nc -u -w1 172.29.0.222 161 2>/dev/null || true
+          sleep 8
+        done
+      '
+    restart: unless-stopped
+
+  # Redis Traffic Generator
+  l7-redis-gen:
+    image: alpine:3.19
+    container_name: nop-l7-redis
+    hostname: l7-redis
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.244
+    command: |
+      sh -c '
+        apk add --no-cache redis
+        echo "L7 Redis Traffic Generator..."
+        while true; do
+          # Redis commands to the NOP Redis instance
+          redis-cli -h 172.29.0.11 PING 2>/dev/null || true
+          redis-cli -h 172.29.0.11 INFO server 2>/dev/null | head -5 || true
+          redis-cli -h 172.29.0.11 SET test_key "value_$(date +%s)" 2>/dev/null || true
+          redis-cli -h 172.29.0.11 GET test_key 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # MQTT-like IoT Traffic
+  l7-mqtt-sim:
+    image: alpine:3.19
+    container_name: nop-l7-mqtt
+    hostname: l7-mqtt
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.245
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L7 MQTT-like IoT Traffic..."
+        while true; do
+          # MQTT CONNECT-like packet
+          printf "\x10\x1a\x00\x04MQTT\x04\x02\x00\x3c\x00\x0enop-iot-device" | nc -w1 172.29.0.222 1883 2>/dev/null || true
+          # MQTT PUBLISH-like packet
+          printf "\x30\x15\x00\x0bsensors/temp\x25.5" | nc -w1 172.29.0.222 1883 2>/dev/null || true
+          sleep 4
+        done
+      '
+    restart: unless-stopped
+
+  # SSH Traffic (actual SSH connections)
+  l7-ssh-gen:
+    image: alpine:3.19
+    container_name: nop-l7-ssh
+    hostname: l7-ssh
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.246
+    command: |
+      sh -c '
+        apk add --no-cache openssh-client
+        echo "L7 SSH Traffic Generator..."
+        mkdir -p /root/.ssh
+        echo "StrictHostKeyChecking no" > /root/.ssh/config
+        while true; do
+          # SSH connection attempts
+          timeout 5 ssh -o ConnectTimeout=2 root@172.29.0.100 "echo test" 2>/dev/null || true
+          sleep 10
+        done
+      '
+    restart: unless-stopped
+
+  # NTP Traffic Generator
+  l7-ntp-gen:
+    image: alpine:3.19
+    container_name: nop-l7-ntp
+    hostname: l7-ntp
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.247
+    command: |
+      sh -c '
+        apk add --no-cache openntpd || apk add --no-cache nmap-ncat
+        echo "L7 NTP Traffic Generator..."
+        while true; do
+          # NTP queries
+          ntpd -d -q -p pool.ntp.org 2>&1 | head -5 || true
+          sleep 30
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # Industrial Protocol Simulators (L7)
+  # ============================================
+  
+  # Modbus TCP Simulator (Industrial)
+  l7-modbus-sim:
+    image: alpine:3.19
+    container_name: nop-l7-modbus
+    hostname: l7-modbus
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.250
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L7 Modbus TCP Simulator..."
+        while true; do
+          # Modbus Read Holding Registers (Function 03)
+          printf "\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a" | nc -w1 172.29.0.110 502 2>/dev/null || true
+          # Modbus Write Single Register (Function 06)
+          printf "\x00\x02\x00\x00\x00\x06\x01\x06\x00\x00\x00\x64" | nc -w1 172.29.0.111 502 2>/dev/null || true
+          # Modbus Read Input Registers (Function 04)
+          printf "\x00\x03\x00\x00\x00\x06\x01\x04\x00\x00\x00\x05" | nc -w1 172.29.0.112 502 2>/dev/null || true
+          sleep 2
+        done
+      '
+    restart: unless-stopped
+
+  # OPC UA-like Traffic (Industrial L7)
+  l7-opcua-sim:
+    image: alpine:3.19
+    container_name: nop-l7-opcua
+    hostname: l7-opcua
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.0.251
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat
+        echo "L7 OPC UA-like Traffic..."
+        while true; do
+          # OPC UA Hello message simulation
+          printf "HEL\x00\x00\x00\x39\x00\x00\x00" | nc -w1 172.29.0.110 4840 2>/dev/null || true
+          printf "OPN\x00\x00\x00\x41\x00\x00\x00" | nc -w1 172.29.0.110 4840 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+networks:
+  nop-internal:
+    external: true
+    name: docker_nop-internal

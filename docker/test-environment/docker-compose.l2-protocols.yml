@@ -1,0 +1,344 @@
+# L2 Protocol Traffic Generator for NOP Testing
+# Generates actual L2 protocol frames: VLAN (802.1Q), STP, LLDP, CDP, Ring protocols
+# Uses scapy for proper protocol frame generation
+
+services:
+  # ============================================
+  # L2 Protocol Frame Generator (Master - uses scapy)
+  # ============================================
+  
+  l2-protocol-master:
+    image: python:3.11-slim
+    container_name: nop-l2-master
+    hostname: l2-master
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        echo "L2 Protocol Master - Generating L2 frames with scapy..."
+        python3 /scripts/l2_traffic_generator.py
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # STP Root Bridge Simulator
+  # ============================================
+  
+  l2-stp-root:
+    image: python:3.11-slim
+    container_name: nop-l2-stp-root
+    hostname: stp-root-bridge
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.11
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/stp_bridge.py --root --bridge-id 4096 --mac 00:00:00:00:00:01
+      '
+    restart: unless-stopped
+
+  l2-stp-bridge1:
+    image: python:3.11-slim
+    container_name: nop-l2-stp-bridge1
+    hostname: stp-bridge-1
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.12
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/stp_bridge.py --bridge-id 8192 --mac 00:00:00:00:00:02
+      '
+    restart: unless-stopped
+
+  l2-stp-bridge2:
+    image: python:3.11-slim
+    container_name: nop-l2-stp-bridge2
+    hostname: stp-bridge-2
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.13
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/stp_bridge.py --bridge-id 12288 --mac 00:00:00:00:00:03
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # LLDP Neighbor Simulators
+  # ============================================
+  
+  l2-lldp-switch1:
+    image: python:3.11-slim
+    container_name: nop-l2-lldp-sw1
+    hostname: switch-core-01
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.21
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/lldp_sender.py \
+          --system-name "switch-core-01" \
+          --system-desc "NOP Test Core Switch" \
+          --mgmt-ip 172.30.0.21 \
+          --port-id "GigabitEthernet0/1" \
+          --capabilities bridge,router
+      '
+    restart: unless-stopped
+
+  l2-lldp-switch2:
+    image: python:3.11-slim
+    container_name: nop-l2-lldp-sw2
+    hostname: switch-access-01
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.22
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/lldp_sender.py \
+          --system-name "switch-access-01" \
+          --system-desc "NOP Test Access Switch" \
+          --mgmt-ip 172.30.0.22 \
+          --port-id "FastEthernet0/24" \
+          --capabilities bridge
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # VLAN Traffic Generators (802.1Q tagged)
+  # ============================================
+  
+  l2-vlan10-host1:
+    image: python:3.11-slim
+    container_name: nop-l2-vlan10-h1
+    hostname: vlan10-host1
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.31
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/vlan_traffic.py --vlan-id 10 --dest-mac ff:ff:ff:ff:ff:ff
+      '
+    restart: unless-stopped
+
+  l2-vlan10-host2:
+    image: python:3.11-slim
+    container_name: nop-l2-vlan10-h2
+    hostname: vlan10-host2
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.32
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/vlan_traffic.py --vlan-id 10 --dest-ip 172.30.0.31
+      '
+    restart: unless-stopped
+
+  l2-vlan20-host1:
+    image: python:3.11-slim
+    container_name: nop-l2-vlan20-h1
+    hostname: vlan20-host1
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.41
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/vlan_traffic.py --vlan-id 20 --dest-mac ff:ff:ff:ff:ff:ff
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # Ring Protocol Simulators (REP, MRP)
+  # ============================================
+  
+  l2-ring-node1:
+    image: python:3.11-slim
+    container_name: nop-l2-ring1
+    hostname: ring-node-1
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.51
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/ring_protocol.py --protocol rep --node-id 1
+      '
+    restart: unless-stopped
+
+  l2-ring-node2:
+    image: python:3.11-slim
+    container_name: nop-l2-ring2
+    hostname: ring-node-2
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.52
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/ring_protocol.py --protocol rep --node-id 2
+      '
+    restart: unless-stopped
+
+  l2-ring-node3:
+    image: python:3.11-slim
+    container_name: nop-l2-ring3
+    hostname: ring-node-3
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.53
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/ring_protocol.py --protocol mrp --node-id 3
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # CDP Simulator (Cisco Discovery Protocol)
+  # ============================================
+  
+  l2-cdp-router:
+    image: python:3.11-slim
+    container_name: nop-l2-cdp-router
+    hostname: cisco-router-01
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.61
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet
+        python3 /scripts/cdp_sender.py \
+          --device-id "cisco-router-01.nop.local" \
+          --platform "Cisco IOS Software, C3750 Software" \
+          --port-id "GigabitEthernet1/0/1" \
+          --ip 172.30.0.61 \
+          --capabilities router,switch
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # Regular L2 traffic hosts
+  # ============================================
+  
+  l2-host-a:
+    image: alpine:3.19
+    container_name: nop-l2-host-a
+    hostname: host-a
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.101
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache arping iputils
+        while true; do
+          arping -c 2 -I eth0 172.30.0.102 2>/dev/null || true
+          ping -c 2 172.30.0.102 2>/dev/null || true
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  l2-host-b:
+    image: alpine:3.19
+    container_name: nop-l2-host-b
+    hostname: host-b
+    networks:
+      nop-l2-test:
+        ipv4_address: 172.30.0.102
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache arping iputils
+        while true; do
+          arping -c 2 -I eth0 172.30.0.101 2>/dev/null || true
+          ping -c 2 172.30.0.101 2>/dev/null || true
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+networks:
+  nop-l2-test:
+    name: nop-l2-test
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1

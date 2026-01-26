@@ -39,6 +39,9 @@ description: Load when encountering errors, tracebacks, or investigating bugs. P
 | Credentials | Params missing | Validate block config completeness |
 | JS | Empty object {} is truthy | Use `Object.keys(obj).length > 0` check |
 | WebSocket | execution_completed missing state | Include nodeStatuses in WS completion event |
+| Docker | Bridge uses gateway IP | Use different IP for containers (e.g., 172.x.0.254) |
+| Ports | Wrong service on port | Verify port mappings (8000=Portainer, 12000=NOP) |
+| API | Wrong endpoint path | Check actual API routes, not assumed ones |
 
 ## Rules
 

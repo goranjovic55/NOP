@@ -16,6 +16,7 @@
 | test_* *_test.py *.test.ts | [testing](testing/SKILL.md) | | 65% |
 | .github/skills/* agents/* | [akis-dev](akis-dev/SKILL.md) | | 87% |
 | project_knowledge.json | [knowledge](knowledge/SKILL.md) | | 3% |
+| security vulnerability injection | [security](security/SKILL.md) | | 15% |
 
 ## Suggested Skills (Not Yet Created)
 | Situation | Skill | Confidence |
@@ -23,7 +24,6 @@
 | auth jwt login token | authentication | 95% |
 | performance optimization cache | performance | 95% |
 | monitoring metrics logging | monitoring | 85% |
-| security vulnerability injection | security | 75% |
 | websocket real-time realtime | websocket-realtime | 70% |
 | locale language i18n intl | internationalization | 70% |
 

@@ -1,7 +1,7 @@
 ---
 name: code
 description: 'Write production code following best practices. Implements features with types, error handling, and tests. Reports back to AKIS with trace.'
-tools: ['read', 'edit', 'search', 'execute']
+tools: ['execute/getTerminalOutput', 'execute/runTask', 'execute/createAndRunTask', 'execute/runTests', 'execute/runNotebookCell', 'execute/testFailure', 'execute/runInTerminal', 'read/terminalSelection', 'read/terminalLastCommand', 'read/getTaskOutput', 'read/getNotebookSummary', 'read/problems', 'read/readFile', 'read/readNotebookCellOutput', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/searchResults', 'search/textSearch', 'search/usages']
 ---
 
 # Code Agent

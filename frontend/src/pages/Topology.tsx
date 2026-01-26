@@ -3,7 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
 import { dashboardService } from '../services/dashboardService';
-import { trafficService, NetworkInterface } from '../services/trafficService';
+import { trafficService, NetworkInterface, l2Service, L2Topology, patternService, L2StpBridge, L2LldpNeighbor, L2CdpNeighbor, L2RingTopology, L2Vlan } from '../services/trafficService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
 import { usePOV } from '../context/POVContext';
@@ -122,29 +122,71 @@ const linkMatchesActiveLayers = (
   link: GraphLink,
   activeLayers: Set<string>
 ): { matches: boolean; matchedLayer: string | null } => {
-  // Check L7 detected protocols first (highest priority)
-  if (link.detected_protocols && link.detected_protocols.length > 0) {
-    for (const proto of link.detected_protocols) {
-      const layer = getProtocolLayer(proto);
-      if (activeLayers.has(layer)) {
-        return { matches: true, matchedLayer: layer };
-      }
+  // If no layers are active, show nothing
+  if (activeLayers.size === 0) {
+    return { matches: false, matchedLayer: null };
+  }
+  
+  // L2 Layer: ETHERNET, ARP, VLAN, MULTICAST protocols, Ring protocols
+  const l2Protocols = [
+    'ETHERNET', 'ARP', 'VLAN', 'STP', 'RSTP', 'MSTP', 'LLDP', 'CDP', 'MULTICAST',
+    // Ring protocols
+    'REP', 'MRP', 'DLR', 'PRP', 'HSR',
+    // Other L2
+    'LACP', 'MPLS', 'PPPoE-D', 'PPPoE-S', 'PTP', 'MACsec',
+    // Translated ethertypes
+    'IPv4', 'IPv6', 'RARP'
+  ];
+  const hasL2Protocol = link.protocols?.some(p => l2Protocols.includes(p.toUpperCase()));
+  if (activeLayers.has('L2') && hasL2Protocol) {
+    return { matches: true, matchedLayer: 'L2' };
+  }
+  
+  // L7 Layer: Application protocols detected by DPI
+  if (activeLayers.has('L7') && link.detected_protocols && link.detected_protocols.length > 0) {
+    // Check if any detected protocol is actually an L7 protocol
+    const l7Protocols = link.detected_protocols.filter(proto => {
+      const layer = PROTOCOL_LAYERS[proto.toUpperCase()];
+      return layer === 'L7';
+    });
+    if (l7Protocols.length > 0) {
+      return { matches: true, matchedLayer: 'L7' };
     }
   }
   
-  // Check regular protocols
-  if (link.protocols && link.protocols.length > 0) {
-    for (const proto of link.protocols) {
-      const layer = getProtocolLayer(proto);
-      if (activeLayers.has(layer)) {
-        return { matches: true, matchedLayer: layer };
-      }
+  // L5 Session Layer protocols (if link has session-layer indicators)
+  if (activeLayers.has('L5')) {
+    const l5Protocols = ['NETBIOS', 'RPC', 'SOCKS', 'PPTP', 'TLS', 'SSL'];
+    const hasL5Protocol = link.protocols?.some(p => l5Protocols.includes(p.toUpperCase())) ||
+                          link.detected_protocols?.some(p => l5Protocols.includes(p.toUpperCase()));
+    if (hasL5Protocol) {
+      return { matches: true, matchedLayer: 'L5' };
     }
   }
   
-  // If no protocols, check if L4 is active (assume TCP/UDP for port-based connections)
+  // L4 Layer: TCP/UDP transport connections (base layer for most traffic)
+  // Only match L4 if no higher-layer protocol was detected (pure transport)
   if (activeLayers.has('L4')) {
-    return { matches: true, matchedLayer: 'L4' };
+    const l4Protocols = ['TCP', 'UDP', 'ICMP', 'SCTP'];
+    const hasL4Protocol = link.protocols?.some(p => l4Protocols.includes(p.toUpperCase()));
+    
+    // If we have L4 protocol but no L7 detected protocols, it's L4
+    const hasNoL7 = !link.detected_protocols || link.detected_protocols.length === 0 ||
+                    link.detected_protocols.every(p => {
+                      const proto = p.toUpperCase();
+                      const layer = PROTOCOL_LAYERS[proto];
+                      return layer !== 'L7';
+                    });
+    
+    if (hasL4Protocol && hasNoL7) {
+      return { matches: true, matchedLayer: 'L4' };
+    }
+    
+    // If L4 is active and we have a port-based connection without DPI info
+    if (!link.protocols || link.protocols.length === 0) {
+      // This is a raw connection without protocol info - show as L4
+      return { matches: true, matchedLayer: 'L4' };
+    }
   }
   
   return { matches: false, matchedLayer: null };
@@ -159,6 +201,51 @@ const getLayerColor = (layer: string | null): string => {
     case 'L7': return '#ff0040'; // Red for Application
     default: return '#00f0ff';   // Default cyan
   }
+};
+
+// Convert ethertype hex to protocol name (L2 protocols)
+const ethertypeToProtocol = (ethertype: string): string => {
+  const ethertypes: Record<string, string> = {
+    '0x0800': 'IPv4',
+    '0x0806': 'ARP',
+    '0x8100': 'VLAN',
+    '0x88a8': 'VLAN',    // Q-in-Q
+    '0x8847': 'MPLS',
+    '0x86dd': 'IPv6',
+    '0x88cc': 'LLDP',
+    '0x88e5': 'MACsec',
+    '0x0842': 'WoL',     // Wake-on-LAN
+    '0x22f3': 'TRILL',
+    '0x6003': 'DECnet',
+    '0x8035': 'RARP',
+    '0x809b': 'AppleTalk',
+    '0x80f3': 'AARP',
+    '0x8137': 'IPX',
+    '0x8204': 'QNX',
+    '0x8808': 'FlowCtrl',
+    '0x8809': 'LACP',
+    '0x880b': 'PPP',
+    '0x8863': 'PPPoE-D',
+    '0x8864': 'PPPoE-S',
+    '0x88e1': 'HomePlug',
+    '0x88f7': 'PTP',     // Precision Time Protocol
+    '0x8906': 'FCoE',
+    '0x8914': 'FCoE-Init',
+    '0x8915': 'RoCE',
+    '0x891d': 'TTE',     // TTEthernet
+    '0x892f': 'HSR',     // High-availability Seamless Redundancy
+    '0x22f0': 'IEEE1722',// Audio/Video Transport
+    '0x88ba': 'IEC62439',// Parallel Redundancy Protocol
+    '0x88cd': 'SERCOS', // Industrial automation
+    '0x88f5': 'MVRP',
+  };
+  // Normalize to 4-digit hex with leading zeros (0x800 -> 0x0800)
+  let normalized = ethertype.toLowerCase();
+  if (normalized.startsWith('0x') && normalized.length < 6) {
+    const hex = normalized.slice(2).padStart(4, '0');
+    normalized = '0x' + hex;
+  }
+  return ethertypes[normalized] || 'ETHERNET';
 };
 
 // Utility functions
@@ -337,11 +424,13 @@ const Topology: React.FC = () => {
   });
   const [isPlaying, setIsPlaying] = useState(() => {
     const saved = localStorage.getItem('nop_topology_playing');
-    return saved === 'true';
+    // Default to true (animation ON) if not set
+    return saved === null ? true : saved === 'true';
   });
   const [autoRefresh, setAutoRefresh] = useState(() => {
     const saved = localStorage.getItem('nop_topology_autorefresh');
-    return saved === 'true';
+    // Default to true (live capture ON) if not set
+    return saved === null ? true : saved === 'true';
   });
   const [refreshRate, setRefreshRate] = useState<number>(() => {
     const saved = localStorage.getItem('nop_topology_refreshrate');
@@ -602,11 +691,20 @@ const Topology: React.FC = () => {
       try {
         return new Set(JSON.parse(saved));
       } catch (e) {
-        return new Set(['L4', 'L7']); // Default to L4 + L7
+        return new Set(['L2', 'L4', 'L5', 'L7']); // Default to all layers ON
       }
     }
-    return new Set(['L4', 'L7']); // Default to L4 + L7
+    return new Set(['L2', 'L4', 'L5', 'L7']); // Default to all layers ON
   });
+
+  // L2 topology data (MAC-level)
+  const [l2Data, setL2Data] = useState<L2Topology | null>(null);
+  
+  // Flow patterns (cyclic, master-slave, bus, etc.)  
+  const [flowPatterns, setFlowPatterns] = useState<Record<string, any>>({});
+  
+  // Multicast bus groups
+  const [busGroups, setBusGroups] = useState<Record<string, any>>({});
 
   // Toggle a layer on/off
   const toggleLayer = useCallback((layer: string) => {
@@ -628,6 +726,33 @@ const Topology: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nop_topology_layers', JSON.stringify(Array.from(activeLayers)));
   }, [activeLayers]);
+
+  // Fetch L2 data when L2 layer is active
+  useEffect(() => {
+    if (!token || !activeLayers.has('L2')) {
+      return;
+    }
+    
+    const fetchL2Data = async () => {
+      try {
+        const [l2Topology, patterns, buses] = await Promise.all([
+          l2Service.getL2Topology(token),
+          patternService.getFlowPatterns(token),
+          patternService.getMulticastBusTopology(token)
+        ]);
+        setL2Data(l2Topology);
+        setFlowPatterns(patterns.patterns || {});
+        setBusGroups(buses.bus_groups || {});
+      } catch (error) {
+        console.warn('Failed to fetch L2 data:', error);
+      }
+    };
+    
+    fetchL2Data();
+    // Refresh L2 data periodically when active
+    const interval = setInterval(fetchL2Data, 5000);
+    return () => clearInterval(interval);
+  }, [token, activeLayers]);
 
   // Discovery subnet (editable) - defaults to scan settings
   const [discoverySubnet, setDiscoverySubnet] = useState<string>(() => {
@@ -931,6 +1056,120 @@ const Topology: React.FC = () => {
         });
       });
 
+      // Process L2 entities when L2 layer is active
+      if (activeLayers.has('L2') && l2Data) {
+        // Add L2 entities as nodes (MAC-based)
+        l2Data.entities.forEach(entity => {
+          // Skip if this MAC's IP is already in the graph
+          const hasIpNode = entity.ips.some(ip => nodesMap.has(ip));
+          
+          if (!hasIpNode) {
+            // Determine device type - check for network infrastructure
+            let deviceGroup = 'l2-device';
+            let displayName = entity.mac.substring(0, 8) + '...';
+            let status = 'l2';
+            
+            // Use hostname from LLDP/CDP if available
+            if (entity.hostname) {
+              displayName = entity.hostname.length > 12 
+                ? entity.hostname.substring(0, 12) + '...' 
+                : entity.hostname;
+            }
+            
+            // Enhance based on device type
+            if (entity.device_type === 'switch' || entity.stp_info) {
+              deviceGroup = 'switch';
+              status = entity.stp_info?.is_root ? 'stp-root' : 'stp-bridge';
+            } else if (entity.device_type === 'cisco_device') {
+              deviceGroup = 'cisco';
+              status = 'cisco';
+            } else if (entity.device_type === 'ring_member') {
+              deviceGroup = 'ring-member';
+              status = `ring-${entity.ring_protocol?.toLowerCase() || 'unknown'}`;
+            } else if (entity.device_type === 'network_device') {
+              deviceGroup = 'network-device';
+              status = 'lldp';
+            }
+            
+            // Add MAC as separate node
+            nodesMap.set(entity.mac, {
+              id: entity.mac,
+              name: displayName,
+              val: entity.device_type === 'switch' ? 3 : 1, // Switches larger
+              group: deviceGroup,
+              ip: entity.ips[0] || entity.mac, // Use first IP or MAC
+              status: status,
+              details: {
+                mac: entity.mac,
+                ips: entity.ips,
+                packets: entity.packets,
+                bytes: entity.bytes,
+                first_seen: entity.first_seen,
+                last_seen: entity.last_seen,
+                layer: 'L2',
+                device_type: entity.device_type,
+                hostname: entity.hostname,
+                platform: entity.platform,
+                vlans: entity.vlans,
+                ring_protocol: entity.ring_protocol,
+                ring_id: entity.ring_id,
+                stp_info: entity.stp_info
+              }
+            });
+          }
+        });
+        
+        // Add ring topology nodes for visualization
+        if (l2Data.ring_topologies) {
+          l2Data.ring_topologies.forEach(ring => {
+            if (ring.members.length >= 2) {
+              // Create virtual ring hub node for visualization
+              const ringNodeId = `ring:${ring.ring_id}`;
+              nodesMap.set(ringNodeId, {
+                id: ringNodeId,
+                name: `${ring.protocol} Ring`,
+                val: 2.5,
+                group: 'ring-topology',
+                ip: ringNodeId,
+                status: `ring-${ring.protocol.toLowerCase()}`,
+                details: {
+                  type: 'ring-topology',
+                  ring_id: ring.ring_id,
+                  protocol: ring.protocol,
+                  members: ring.members,
+                  state: ring.state,
+                  layer: 'L2'
+                }
+              });
+            }
+          });
+        }
+        
+        // Add multicast groups as virtual nodes (for bus topology)
+        l2Data.multicast_groups.forEach(group => {
+          if (group.source_count >= 2) {
+            // This looks like a bus - multiple sources to same multicast
+            nodesMap.set(group.group_mac, {
+              id: group.group_mac,
+              name: `Bus:${group.group_mac.substring(0, 8)}`,
+              val: 2 + Math.log10(group.source_count),
+              group: 'multicast-bus',
+              ip: group.group_mac,
+              status: 'bus',
+              details: {
+                type: 'multicast-bus',
+                group_mac: group.group_mac,
+                sources: group.sources,
+                source_count: group.source_count,
+                packets: group.packets,
+                bytes: group.bytes,
+                layer: 'L2'
+              }
+            });
+          }
+        });
+      }
+
       // Process Links - Aggregate bidirectional connections
       const linksMap = new Map<string, GraphLink>();
       const connections = trafficStats.connections || [];
@@ -1055,7 +1294,182 @@ const Topology: React.FC = () => {
         }
       });
       
+      // Add L2 connections when L2 layer is active
+      if (activeLayers.has('L2') && l2Data) {
+        l2Data.connections.forEach(l2conn => {
+          // Check if both endpoints exist in the graph
+          // Try to map MAC to IP if the IP node exists
+          let sourceNode = l2conn.src_mac;
+          let targetNode = l2conn.dst_mac;
+          
+          // Try to find IP nodes that correspond to these MACs
+          const srcEntity = l2Data.entities.find(e => e.mac === l2conn.src_mac);
+          const dstEntity = l2Data.entities.find(e => e.mac === l2conn.dst_mac);
+          
+          if (srcEntity?.ips.length) {
+            const mappedIp = srcEntity.ips.find(ip => nodesMap.has(ip));
+            if (mappedIp) sourceNode = mappedIp;
+          }
+          if (dstEntity?.ips.length) {
+            const mappedIp = dstEntity.ips.find(ip => nodesMap.has(ip));
+            if (mappedIp) targetNode = mappedIp;
+          }
+          
+          // Only add if both nodes exist
+          if (!nodesMap.has(sourceNode) || !nodesMap.has(targetNode)) return;
+          if (sourceNode === targetNode) return;
+          
+          const [node1, node2] = sourceNode < targetNode
+            ? [sourceNode, targetNode]
+            : [targetNode, sourceNode];
+          const linkKey = `${node1}<->${node2}`;
+          
+          // Convert ethertypes to protocol names (prioritize non-generic protocols)
+          const l2Protocols = (l2conn.ethertypes || []).map(ethertypeToProtocol);
+          // Add explicit L2 protocols (STP, LLDP, CDP) from backend detection
+          if (l2conn.l2_protocols) {
+            l2Protocols.push(...l2conn.l2_protocols);
+          }
+          // Remove duplicates and prefer specific protocols over 'ETHERNET'
+          const uniqueProtos = Array.from(new Set(l2Protocols));
+          const protocols = uniqueProtos.length > 0 
+            ? uniqueProtos.filter(p => p !== 'ETHERNET').length > 0
+              ? uniqueProtos.filter(p => p !== 'ETHERNET')
+              : ['ETHERNET']
+            : ['ETHERNET'];
+          
+          if (!linksMap.has(linkKey)) {
+            linksMap.set(linkKey, {
+              source: node1,
+              target: node2,
+              value: l2conn.bytes,
+              reverseValue: 0,
+              bidirectional: false,
+              protocols: protocols,
+              last_seen: l2conn.last_seen,
+              first_seen: l2conn.first_seen,
+              packet_count: l2conn.packets
+            });
+          }
+        });
+        
+        // Add links from sources to multicast bus nodes
+        l2Data.multicast_groups.forEach(group => {
+          if (!nodesMap.has(group.group_mac)) return;
+          
+          group.sources.forEach(srcMac => {
+            // Find source node (MAC or IP)
+            let sourceNode = srcMac;
+            const srcEntity = l2Data.entities.find(e => e.mac === srcMac);
+            if (srcEntity?.ips.length) {
+              const mappedIp = srcEntity.ips.find(ip => nodesMap.has(ip));
+              if (mappedIp) sourceNode = mappedIp;
+            }
+            
+            if (!nodesMap.has(sourceNode)) return;
+            
+            const linkKey = `${sourceNode}<->${group.group_mac}`;
+            if (!linksMap.has(linkKey)) {
+              linksMap.set(linkKey, {
+                source: sourceNode,
+                target: group.group_mac,
+                value: group.bytes / group.source_count, // Approximate per-source
+                reverseValue: 0,
+                bidirectional: false,
+                protocols: ['MULTICAST'],
+                last_seen: Date.now() / 1000,
+                packet_count: group.packets / group.source_count
+              });
+            }
+          });
+        });
+        
+        // Add ring topology connections
+        if (l2Data.ring_topologies) {
+          l2Data.ring_topologies.forEach(ring => {
+            const ringNodeId = `ring:${ring.ring_id}`;
+            if (!nodesMap.has(ringNodeId) || ring.members.length < 2) return;
+            
+            // Connect all ring members to the ring hub
+            ring.members.forEach(memberMac => {
+              let memberNode = memberMac;
+              const memberEntity = l2Data.entities.find(e => e.mac === memberMac);
+              if (memberEntity?.ips.length) {
+                const mappedIp = memberEntity.ips.find(ip => nodesMap.has(ip));
+                if (mappedIp) memberNode = mappedIp;
+              }
+              
+              if (!nodesMap.has(memberNode)) return;
+              
+              const linkKey = `${memberNode}<->${ringNodeId}`;
+              if (!linksMap.has(linkKey)) {
+                linksMap.set(linkKey, {
+                  source: memberNode,
+                  target: ringNodeId,
+                  value: 1000, // Visual only
+                  reverseValue: 0,
+                  bidirectional: true,
+                  protocols: [ring.protocol],
+                  last_seen: ring.last_seen,
+                  packet_count: 1
+                });
+              }
+            });
+          });
+        }
+        
+        // Add STP bridge connections to show tree topology
+        if (l2Data.stp_bridges && l2Data.stp_bridges.length > 0) {
+          // Find root bridge
+          const rootBridge = l2Data.stp_bridges.find(b => b.is_root);
+          if (rootBridge) {
+            // Connect non-root bridges to their root path
+            l2Data.stp_bridges.filter(b => !b.is_root).forEach(bridge => {
+              // Find the node for this bridge
+              let bridgeNode = bridge.bridge_mac;
+              const bridgeEntity = l2Data.entities.find(e => e.mac === bridge.bridge_mac);
+              if (bridgeEntity?.ips.length) {
+                const mappedIp = bridgeEntity.ips.find(ip => nodesMap.has(ip));
+                if (mappedIp) bridgeNode = mappedIp;
+              }
+              
+              // Find root node
+              let rootNode = rootBridge.bridge_mac;
+              const rootEntity = l2Data.entities.find(e => e.mac === rootBridge.bridge_mac);
+              if (rootEntity?.ips.length) {
+                const mappedIp = rootEntity.ips.find(ip => nodesMap.has(ip));
+                if (mappedIp) rootNode = mappedIp;
+              }
+              
+              if (nodesMap.has(bridgeNode) && nodesMap.has(rootNode) && bridgeNode !== rootNode) {
+                const linkKey = bridgeNode < rootNode 
+                  ? `${bridgeNode}<->${rootNode}`
+                  : `${rootNode}<->${bridgeNode}`;
+                if (!linksMap.has(linkKey)) {
+                  linksMap.set(linkKey, {
+                    source: bridgeNode,
+                    target: rootNode,
+                    value: 500,
+                    reverseValue: 0,
+                    bidirectional: true,
+                    protocols: [bridge.protocol_version || 'STP'],
+                    last_seen: bridge.last_seen,
+                    packet_count: 1
+                  });
+                }
+              }
+            });
+          }
+        }
+      }
+      
       const links = Array.from(linksMap.values()).filter(link => {
+        // Filter by OSI layer - this is the main layer filtering logic
+        const layerMatch = linkMatchesActiveLayers(link, activeLayers);
+        if (!layerMatch.matches) {
+          return false; // Exclude links that don't match any active layer
+        }
+        
         // Filter by traffic threshold
         const totalTraffic = link.value + (link.reverseValue || 0);
         if (totalTraffic < trafficThreshold) return false;
@@ -1099,17 +1513,36 @@ const Topology: React.FC = () => {
         return true;
       });
 
-      // Calculate Centrality (Degree)
+      // Calculate Centrality (Degree) - only for nodes that have connections
       const degreeMap = new Map<string, number>();
+      const connectedNodeIds = new Set<string>();
       links.forEach(link => {
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
         degreeMap.set(sourceId, (degreeMap.get(sourceId) || 0) + 1);
         degreeMap.set(targetId, (degreeMap.get(targetId) || 0) + 1);
+        connectedNodeIds.add(sourceId);
+        connectedNodeIds.add(targetId);
+      });
+      
+      // Filter nodes to only include those with matching layer connections
+      const filteredNodes = Array.from(nodesMap.values()).filter(node => {
+        // Always show nodes that have connections at the current layer
+        if (connectedNodeIds.has(node.id)) return true;
+        
+        // For L2 layer, show L2-specific nodes even without connections
+        if (activeLayers.has('L2')) {
+          if (node.group === 'l2-device' || node.group === 'multicast-bus') {
+            return true;
+          }
+        }
+        
+        // Don't show isolated nodes when filtering by layer
+        return false;
       });
 
       // Update node sizes and preserve positions from previous render
-      nodesMap.forEach(node => {
+      filteredNodes.forEach(node => {
         const connectionCount = degreeMap.get(node.id) || 0;
         node.connectionCount = connectionCount;
         // Scale node size based on connections (more connections = bigger node)
@@ -1129,12 +1562,12 @@ const Topology: React.FC = () => {
       });
       
       // Mark initial load complete (simulation tracking is separate)
-      if (isInitialLoadRef.current && nodesMap.size > 0) {
+      if (isInitialLoadRef.current && filteredNodes.length > 0) {
         isInitialLoadRef.current = false;
       }
 
       setGraphData({
-        nodes: Array.from(nodesMap.values()),
+        nodes: filteredNodes,
         links: links
       });
     } catch (err) {
@@ -1142,7 +1575,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface]);
+  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface, activeLayers, l2Data]);
 
   useEffect(() => {
     // Initial load - run simulation
@@ -1626,6 +2059,8 @@ const Topology: React.FC = () => {
             if (node.group === 'passive') return '#8b5cf6'; // Cyber Purple for passive
             if (node.group === 'online') return '#00ff41'; // Cyber Green
             if (node.group === 'offline') return '#ff0040'; // Cyber Red
+            if (node.group === 'l2-device') return '#ff9900'; // Orange for L2-only devices
+            if (node.group === 'multicast-bus') return '#00ffff'; // Cyan for multicast bus
             return '#8b5cf6'; // Cyber Purple (External/Unknown)
           }}
           nodeRelSize={6}
@@ -1683,36 +2118,58 @@ const Topology: React.FC = () => {
             return Math.max(2, Math.min(8, 2 + Math.log10(packetCount + 1) * 3));
           } : 0}
           linkDirectionalParticleSpeed={(link: any) => {
-            // Speed based on recent packet activity - active connections = faster particles
+            // Speed based on throughput (bytes per second)
+            const bytesPerSecond = link.bytesPerSecond || 0;
             const packetCount = link.packet_count || 0;
-            const totalTraffic = link.value + (link.reverseValue || 0);
             
             // Base speed for historical connections
-            if (packetCount === 0) {
+            if (packetCount === 0 && bytesPerSecond === 0) {
               return 0.002; // Slow for inactive connections
             }
             
-            // Faster for active connections (scaled by traffic volume)
-            const baseSpeed = 0.003;
-            const speedBonus = Math.min(0.007, totalTraffic * 0.0000001 + packetCount * 0.0001);
-            return baseSpeed + speedBonus;
+            // Speed scales with throughput: 0KB/s = 0.003, 1MB/s = 0.01, 10MB/s+ = 0.015
+            const throughputKBps = bytesPerSecond / 1024;
+            const speedFromThroughput = Math.min(0.012, 0.003 + throughputKBps * 0.00001);
+            
+            // Bonus for high packet rate (bursty traffic)
+            const packetBonus = Math.min(0.003, packetCount * 0.00005);
+            
+            return speedFromThroughput + packetBonus;
           }}
           linkDirectionalParticleWidth={(link: any) => {
-            // Particle size based on recent activity
+            // Particle size based on recency and throughput
             const packetCount = link.packet_count || 0;
-            const totalTraffic = link.value + (link.reverseValue || 0);
+            const bytesPerSecond = link.bytesPerSecond || 0;
+            const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, packetCount);
             
-            // Larger particles for more active connections
-            if (packetCount === 0) {
-              return 1; // Small for inactive
-            }
+            // Base size scaled by recency - recent traffic = bigger particles
+            const recencyScale = 1 + opacity * 2; // 1 to 3 based on recency
             
-            return Math.max(1.5, Math.min(5, 1.5 + Math.log10(packetCount + 1) * 1.5));
+            // Additional size from throughput
+            const throughputScale = Math.min(1.5, 0.5 + Math.log10(bytesPerSecond / 1024 + 1) * 0.3);
+            
+            return Math.max(1, Math.min(6, recencyScale * throughputScale));
           }}
           linkDirectionalParticleColor={(link: any) => {
-            // Particle color based on link type
-            if (link.bidirectional) return '#00ff41'; // Green particles
-            return '#ffffff'; // White particles
+            // Match particle color to link color for visual consistency
+            const layerMatch = linkMatchesActiveLayers(link, activeLayers);
+            if (!layerMatch.matches) return '#333333';
+            
+            // Get the base color (same logic as linkColor)
+            let baseColor: string;
+            if (activeLayers.size > 1) {
+              baseColor = getLayerColor(layerMatch.matchedLayer);
+            } else {
+              const detectedProto = link.detected_protocols?.[0] || undefined;
+              baseColor = getProtocolColor(link.protocols, detectedProto);
+            }
+            
+            // Make particles brighter/more intense based on recency
+            const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
+            // Particles should be brighter than links - boost opacity
+            const boostedOpacity = Math.min(1.0, opacity * 1.5);
+            
+            return applyOpacity(baseColor, boostedOpacity);
           }}
           linkCanvasObject={(link: any, ctx, globalScale) => {
             // Custom link rendering with curved lines to reduce overlapping
@@ -2067,7 +2524,12 @@ const Topology: React.FC = () => {
             }
             
             const isHighlighted = isSelected || isHovered || isHighlightedAsset || isConnectedToHighlight || isHoverHighlighted || isConnectedToHover;
-            const nodeColor = node.group === 'passive' ? '#8b5cf6' : (node.group === 'online' ? '#00ff41' : (node.group === 'offline' ? '#ff0040' : '#8b5cf6'));
+            const nodeColor = node.group === 'passive' ? '#8b5cf6' 
+              : node.group === 'online' ? '#00ff41' 
+              : node.group === 'offline' ? '#ff0040' 
+              : node.group === 'l2-device' ? '#ff9900'
+              : node.group === 'multicast-bus' ? '#00ffff'
+              : '#8b5cf6';
             
             // Dim nodes that are NOT part of click selection AND NOT part of hover
             const isAnyHighlightActive = highlightedAsset || clickedLink || hoveredNode || hoveredLink;
@@ -2400,6 +2862,20 @@ const Topology: React.FC = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-cyber-purple shadow-[0_0_5px_#9d00ff]"></span>
             <span className="uppercase tracking-wide">External/Unknown</span>
           </div>
+
+          {/* L2 Layer specific nodes */}
+          {activeLayers.has('L2') && (
+            <>
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: '#ff9900', boxShadow: '0 0 5px #ff9900'}}></span>
+                <span className="uppercase tracking-wide">L2 Device (MAC)</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: '#00ffff', boxShadow: '0 0 5px #00ffff'}}></span>
+                <span className="uppercase tracking-wide">Multicast Bus</span>
+              </div>
+            </>
+          )}
           
           {/* Layer Colors - shown when multiple layers enabled */}
           {activeLayers.size > 1 && (

@@ -130,6 +130,40 @@ interface Packet {
   detected_protocol?: string;
   is_encrypted?: boolean;
   protocol_category?: string;
+  // Pattern analysis for L7/proprietary protocols
+  pattern_analysis?: {
+    classification?: string;
+    fingerprint?: string;
+    confidence?: number;
+    structure?: {
+      category?: string;
+      is_binary?: boolean;
+      has_fixed_header?: boolean;
+      header_length?: number;
+      has_sequence?: boolean;
+      entropy?: number;
+      details?: any;
+    };
+    communication_pattern?: {
+      type?: string;
+      details?: any;
+    };
+    communication?: {
+      type?: string;
+      details?: {
+        period_ms?: number;
+        participant_count?: number;
+        [key: string]: any;
+      };
+    };
+    encapsulation?: {
+      detected?: boolean;
+      outer?: string;
+      inner_type?: string;
+      inner_offset?: number;
+      details?: any;
+    };
+  };
 }
 
 interface Stream {
@@ -1786,6 +1820,67 @@ const Traffic: React.FC = () => {
                     <>
                       <span className="text-cyber-gray-light">Pattern Match:</span>
                       <span className="text-cyber-green font-mono text-[10px]">{selectedPacket.dpi.evidence.matched_pattern}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Pattern Analysis (L7 proprietary/unknown protocols) */}
+            {selectedPacket.pattern_analysis && (
+              <div className="space-y-2">
+                <h4 className="text-xs text-cyber-gray-light font-bold uppercase border-b border-cyber-gray pb-1 flex items-center">
+                  <span className="mr-2">▸</span> Pattern Analysis (L7)
+                </h4>
+                <div className="p-2 bg-black border border-cyber-purple rounded text-xs grid grid-cols-2 gap-1">
+                  <span className="text-cyber-gray-light">Classification:</span>
+                  <span className="text-cyber-purple font-bold">{selectedPacket.pattern_analysis.classification}</span>
+                  
+                  <span className="text-cyber-gray-light">Fingerprint:</span>
+                  <span className="text-cyber-blue font-mono text-[10px]">{selectedPacket.pattern_analysis.fingerprint}</span>
+                  
+                  <span className="text-cyber-gray-light">Confidence:</span>
+                  <span className={(selectedPacket.pattern_analysis.confidence ?? 0) >= 0.7 ? 'text-green-400' : 'text-yellow-400'}>
+                    {((selectedPacket.pattern_analysis.confidence ?? 0) * 100).toFixed(0)}%
+                  </span>
+                  
+                  {selectedPacket.pattern_analysis.structure && (
+                    <>
+                      <span className="text-cyber-gray-light">Structure:</span>
+                      <span className="text-cyber-green">
+                        {selectedPacket.pattern_analysis.structure.is_binary ? 'Binary' : 'Text'}
+                        {selectedPacket.pattern_analysis.structure.has_fixed_header && ` (Hdr: ${selectedPacket.pattern_analysis.structure.header_length}B)`}
+                        {selectedPacket.pattern_analysis.structure.has_sequence && ' [Seq]'}
+                      </span>
+                      
+                      <span className="text-cyber-gray-light">Entropy:</span>
+                      <span className={(selectedPacket.pattern_analysis.structure.entropy ?? 0) > 7.0 ? 'text-orange-400' : 'text-cyber-blue'}>
+                        {selectedPacket.pattern_analysis.structure.entropy ?? 'N/A'}
+                        {(selectedPacket.pattern_analysis.structure.entropy ?? 0) > 7.0 && ' (encrypted)'}
+                      </span>
+                    </>
+                  )}
+                  
+                  {selectedPacket.pattern_analysis.communication && (
+                    <>
+                      <span className="text-cyber-gray-light">Comm Pattern:</span>
+                      <span className="text-yellow-400 font-bold">
+                        {selectedPacket.pattern_analysis.communication.type === 'cyclic' && 
+                          `Cyclic (${selectedPacket.pattern_analysis.communication.details?.period_ms?.toFixed(0) || '?'}ms)`}
+                        {selectedPacket.pattern_analysis.communication.type === 'master-slave' && 'Master-Slave/Polling'}
+                        {selectedPacket.pattern_analysis.communication.type === 'multicast-bus' && 
+                          `Bus (${selectedPacket.pattern_analysis.communication.details?.participant_count || '?'} nodes)`}
+                      </span>
+                    </>
+                  )}
+                  
+                  {selectedPacket.pattern_analysis.encapsulation && (
+                    <>
+                      <span className="text-cyber-gray-light">Encapsulation:</span>
+                      <span className="text-orange-400">
+                        {selectedPacket.pattern_analysis.encapsulation.outer} → {selectedPacket.pattern_analysis.encapsulation.inner_type}
+                        {` @ offset ${selectedPacket.pattern_analysis.encapsulation.inner_offset}`}
+                      </span>
                     </>
                   )}
                 </div>

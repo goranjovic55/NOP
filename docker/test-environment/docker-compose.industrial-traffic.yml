@@ -1,0 +1,229 @@
+# Industrial traffic simulation for L2/L7 pattern detection testing
+# Usage: docker compose -f docker/test-environment/docker-compose.industrial-traffic.yml up -d
+
+services:
+  # Cyclic PLC-like traffic generator (simulates industrial polling)
+  plc-master:
+    image: alpine:3.19
+    container_name: nop-test-plc-master
+    hostname: plc-master
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.110
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    command: |
+      sh -c "
+        apk add --no-cache socat netcat-openbsd tcpdump
+        echo 'Starting PLC Master - cyclic polling every 100ms'
+        while true; do
+          # Simulate cyclic polling to slaves (fixed interval)
+          echo -ne '\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a' | nc -u -w1 172.29.0.111 502 2>/dev/null
+          echo -ne '\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a' | nc -u -w1 172.29.0.112 502 2>/dev/null
+          echo -ne '\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a' | nc -u -w1 172.29.0.113 502 2>/dev/null
+          sleep 0.1
+        done
+      "
+    restart: unless-stopped
+
+  # PLC Slave 1 - responds to master polling
+  plc-slave1:
+    image: alpine:3.19
+    container_name: nop-test-plc-slave1
+    hostname: plc-slave1
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.111
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat netcat-openbsd
+        echo 'Starting PLC Slave 1 - listening on port 502'
+        while true; do
+          # UDP listener that echoes back (simulates PLC response)
+          nc -lu -p 502 -w1 | while read line; do
+            echo -ne '\x00\x01\x00\x00\x00\x17\x01\x03\x14' >> /dev/null
+          done
+          sleep 0.01
+        done
+      "
+    restart: unless-stopped
+
+  # PLC Slave 2
+  plc-slave2:
+    image: alpine:3.19
+    container_name: nop-test-plc-slave2
+    hostname: plc-slave2
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.112
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat
+        echo 'Starting PLC Slave 2 - listening on port 502'
+        socat -u UDP-LISTEN:502,fork,reuseaddr SYSTEM:'echo -ne \"\\x00\\x01\\x00\\x00\\x00\\x17\\x01\\x03\\x14\"'
+      "
+    restart: unless-stopped
+
+  # PLC Slave 3
+  plc-slave3:
+    image: alpine:3.19
+    container_name: nop-test-plc-slave3
+    hostname: plc-slave3
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.113
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat
+        echo 'Starting PLC Slave 3 - listening on port 502'
+        socat -u UDP-LISTEN:502,fork,reuseaddr SYSTEM:'echo -ne \"\\x00\\x01\\x00\\x00\\x00\\x17\\x01\\x03\\x14\"'
+      "
+    restart: unless-stopped
+
+  # Multicast bus simulator (simulates industrial bus over UDP multicast)
+  bus-node1:
+    image: alpine:3.19
+    container_name: nop-test-bus-node1
+    hostname: bus-node1
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.120
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat
+        echo 'Starting Bus Node 1 - multicast sender'
+        while true; do
+          # Send to multicast group (simulates bus broadcast)
+          echo -ne '\x01\x02\x03\x04\x05\x06\x07\x08' | socat - UDP-DATAGRAM:224.0.0.100:5000,bind=:5000,ip-multicast-loop=1 2>/dev/null || true
+          sleep 0.5
+        done
+      "
+    restart: unless-stopped
+
+  # Bus Node 2 - also sends to multicast
+  bus-node2:
+    image: alpine:3.19
+    container_name: nop-test-bus-node2
+    hostname: bus-node2
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.121
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat
+        echo 'Starting Bus Node 2 - multicast sender'
+        while true; do
+          echo -ne '\x02\x02\x03\x04\x05\x06\x07\x08' | socat - UDP-DATAGRAM:224.0.0.100:5000,bind=:5001,ip-multicast-loop=1 2>/dev/null || true
+          sleep 0.5
+        done
+      "
+    restart: unless-stopped
+
+  # Bus Node 3 - multicast participant
+  bus-node3:
+    image: alpine:3.19
+    container_name: nop-test-bus-node3
+    hostname: bus-node3
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.122
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache socat
+        echo 'Starting Bus Node 3 - multicast sender'
+        while true; do
+          echo -ne '\x03\x02\x03\x04\x05\x06\x07\x08' | socat - UDP-DATAGRAM:224.0.0.100:5000,bind=:5002,ip-multicast-loop=1 2>/dev/null || true
+          sleep 0.5
+        done
+      "
+    restart: unless-stopped
+
+  # Web traffic generator (L7 HTTP traffic)
+  web-client:
+    image: alpine:3.19
+    container_name: nop-test-web-client
+    hostname: web-client
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.130
+    command: |
+      sh -c "
+        apk add --no-cache curl
+        echo 'Starting web client - HTTP traffic'
+        while true; do
+          # HTTP requests to webserver
+          curl -s http://172.29.0.101 > /dev/null 2>&1 || true
+          curl -s http://172.29.0.101/index.html > /dev/null 2>&1 || true
+          sleep 2
+        done
+      "
+    restart: unless-stopped
+
+  # DNS traffic generator
+  dns-client:
+    image: alpine:3.19
+    container_name: nop-test-dns-client
+    hostname: dns-client
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.131
+    command: |
+      sh -c "
+        apk add --no-cache bind-tools
+        echo 'Starting DNS client'
+        while true; do
+          # DNS queries (will fail but generate traffic)
+          nslookup google.com 8.8.8.8 > /dev/null 2>&1 || true
+          nslookup example.com 1.1.1.1 > /dev/null 2>&1 || true
+          sleep 5
+        done
+      "
+    restart: unless-stopped
+
+  # Mixed traffic generator (various protocols)
+  mixed-client:
+    image: alpine:3.19
+    container_name: nop-test-mixed-client
+    hostname: mixed-client
+    networks:
+      docker_nop-internal:
+        ipv4_address: 172.29.0.140
+    cap_add:
+      - NET_RAW
+    command: |
+      sh -c "
+        apk add --no-cache curl netcat-openbsd iputils
+        echo 'Starting mixed traffic generator'
+        while true; do
+          # ICMP ping
+          ping -c 2 172.29.0.101 > /dev/null 2>&1 || true
+          ping -c 2 172.29.0.110 > /dev/null 2>&1 || true
+          
+          # TCP connection attempts
+          nc -zv 172.29.0.100 22 > /dev/null 2>&1 || true
+          nc -zv 172.29.0.101 80 > /dev/null 2>&1 || true
+          
+          # UDP traffic
+          echo 'test' | nc -u -w1 172.29.0.111 502 > /dev/null 2>&1 || true
+          
+          sleep 3
+        done
+      "
+    restart: unless-stopped
+
+networks:
+  docker_nop-internal:
+    external: true

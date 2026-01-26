@@ -201,3 +201,267 @@ export interface NetworkInterface {
   is_up?: boolean;
   activity?: number[];
 }
+
+/**
+ * L2 Entity (MAC-level)
+ */
+export interface L2Entity {
+  mac: string;
+  first_seen: number;
+  last_seen: number;
+  ips: string[];
+  packets: number;
+  bytes: number;
+  vlans?: number[];         // VLAN IDs this entity belongs to
+  device_type?: string;     // switch, cisco_device, ring_member, network_device
+  hostname?: string;        // From LLDP/CDP
+  platform?: string;        // From CDP
+  ring_protocol?: string;   // REP, MRP, DLR, etc.
+  ring_id?: string;
+  stp_info?: {
+    is_root: boolean;
+    version: string;
+  };
+}
+
+/**
+ * L2 Connection (MAC to MAC)
+ */
+export interface L2Connection {
+  src_mac: string;
+  dst_mac: string;
+  packets: number;
+  bytes: number;
+  ethertypes: string[];
+  l2_protocols?: string[];  // Human-readable protocol names (STP, LLDP, CDP)
+  is_control?: boolean;     // True if this is a control protocol connection
+  vlan_ids?: number[];      // VLANs seen on this connection
+  first_seen: number;
+  last_seen: number;
+}
+
+/**
+ * VLAN information
+ */
+export interface L2Vlan {
+  vlan_id: number;
+  name: string;
+  members: string[];      // MAC addresses
+  trunk_ports: string[];  // MACs that send tagged traffic
+  packets: number;
+  bytes: number;
+  tagged: boolean;
+}
+
+/**
+ * STP Bridge information
+ */
+export interface L2StpBridge {
+  bridge_mac: string;
+  root_id: number;
+  root_mac: string;
+  bridge_id: number;
+  path_cost: number;
+  port_id: number;
+  is_root: boolean;
+  topology_change: boolean;
+  protocol_version: string;  // STP, RSTP, MSTP
+  last_seen: number;
+}
+
+/**
+ * LLDP Neighbor information
+ */
+export interface L2LldpNeighbor {
+  mac: string;
+  chassis_id?: string;
+  port_id?: string;
+  system_name?: string;
+  system_description?: string;
+  mgmt_ip?: string;
+  capabilities?: string[];
+  last_seen: number;
+}
+
+/**
+ * CDP Neighbor information (Cisco)
+ */
+export interface L2CdpNeighbor {
+  mac: string;
+  device_id?: string;
+  platform?: string;
+  port_id?: string;
+  ip?: string;
+  software_version?: string;
+  capabilities?: string[];
+  last_seen: number;
+}
+
+/**
+ * Ring topology information
+ */
+export interface L2RingTopology {
+  ring_id: string;
+  protocol: string;         // REP, MRP, DLR, PRP, HSR
+  members: string[];        // MAC addresses
+  state: string;
+  primary_edge?: string;
+  secondary_edge?: string;
+  vlan_id?: number;
+  last_seen: number;
+}
+
+/**
+ * Multicast group for bus topology detection
+ */
+export interface MulticastGroup {
+  group_mac: string;
+  sources: string[];
+  source_count: number;
+  packets: number;
+  bytes: number;
+}
+
+/**
+ * L2 Topology data
+ */
+export interface L2Topology {
+  entities: L2Entity[];
+  connections: L2Connection[];
+  multicast_groups: MulticastGroup[];
+  vlans: L2Vlan[];
+  stp_bridges: L2StpBridge[];
+  lldp_neighbors: L2LldpNeighbor[];
+  cdp_neighbors: L2CdpNeighbor[];
+  ring_topologies: L2RingTopology[];
+  entity_count: number;
+  connection_count: number;
+  multicast_group_count: number;
+}
+
+/**
+ * Pattern analysis details
+ */
+export interface PatternInfo {
+  classification: string;
+  fingerprint: string;
+  confidence: number;
+  structure: {
+    has_fixed_header: boolean;
+    header_length: number;
+    has_length_field: boolean;
+    has_message_type: boolean;
+    has_sequence: boolean;
+    is_binary: boolean;
+    entropy: number;
+  };
+  communication?: {
+    type: string;
+    confidence: number;
+    details: Record<string, any>;
+  };
+  encapsulation?: {
+    outer: string;
+    inner_type: string;
+    inner_offset: number;
+  };
+  evidence: Record<string, any>;
+}
+
+/**
+ * Flow pattern (cyclic, master-slave, etc.)
+ */
+export interface FlowPattern {
+  packet_count: number;
+  bytes: number;
+  cyclic?: {
+    is_cyclic: boolean;
+    period_ms: number;
+    regularity: number;
+    samples: number;
+  };
+  master_slave?: {
+    is_master_slave: boolean;
+    request_response_ratio: number;
+    common_sizes: number[];
+    samples: number;
+  };
+}
+
+// Add L2 topology methods to trafficService
+export const l2Service = {
+  /**
+   * Get L2 topology data (MAC-level)
+   */
+  getL2Topology: async (token: string): Promise<L2Topology> => {
+    const response = await axios.get(`${API_URL}/traffic/l2/topology`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get L2 entities only
+   */
+  getL2Entities: async (token: string): Promise<{ entities: L2Entity[]; count: number }> => {
+    const response = await axios.get(`${API_URL}/traffic/l2/entities`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get L2 connections only
+   */
+  getL2Connections: async (token: string): Promise<{ connections: L2Connection[]; count: number }> => {
+    const response = await axios.get(`${API_URL}/traffic/l2/connections`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get multicast groups for bus detection
+   */
+  getMulticastGroups: async (token: string): Promise<{ groups: MulticastGroup[]; count: number }> => {
+    const response = await axios.get(`${API_URL}/traffic/l2/multicast-groups`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  }
+};
+
+// Pattern detection service
+export const patternService = {
+  /**
+   * Get detected flow patterns (cyclic, master-slave, etc.)
+   */
+  getFlowPatterns: async (token: string): Promise<{ patterns: Record<string, FlowPattern> }> => {
+    const response = await axios.get(`${API_URL}/traffic/patterns/flows`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get multicast bus groups from pattern detection
+   */
+  getMulticastBusTopology: async (token: string): Promise<{ bus_groups: Record<string, any> }> => {
+    const response = await axios.get(`${API_URL}/traffic/patterns/multicast-bus`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  /**
+   * Label a detected protocol fingerprint with a custom name
+   */
+  labelFingerprint: async (token: string, fingerprint: string, label: string): Promise<{ success: boolean }> => {
+    const response = await axios.post(
+      `${API_URL}/traffic/patterns/label`,
+      { fingerprint, label },
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+  }
+};

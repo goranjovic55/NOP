@@ -19,6 +19,11 @@ from dataclasses import dataclass, asdict
 from threading import Lock
 
 from app.services.ProtocolClassifier import ProtocolClassifier, ProtocolMatch
+from app.services.PatternDetectionService import (
+    PatternDetectionService, 
+    PatternDetectionResult,
+    pattern_detection_service
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +38,13 @@ class DPIResult:
     is_encrypted: bool
     service_label: str
     evidence: Dict[str, Any]
+    # Pattern detection fields (for unknown/proprietary protocols)
+    pattern_info: Optional[Dict[str, Any]] = None
     
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        result = asdict(self)
+        # Clean up None values
+        return {k: v for k, v in result.items() if v is not None}
 
 
 class LRUCache:
@@ -94,6 +103,7 @@ class DPIOrchestrationService:
     def __init__(self, config: Optional[Dict] = None, custom_signatures: Optional[List[Dict]] = None):
         self.config = {**self.DEFAULT_CONFIG, **(config or {})}
         self.classifier = ProtocolClassifier(custom_signatures)
+        self.pattern_detector = pattern_detection_service
         self.cache = LRUCache(self.config["cache_size"])
         
         # Rate limiting
@@ -175,7 +185,10 @@ class DPIOrchestrationService:
         sport: int,
         dport: int,
         transport_protocol: str = "TCP",
-        packet_length: int = 0
+        packet_length: int = 0,
+        src_ip: str = "",
+        dst_ip: str = "",
+        timestamp: Optional[float] = None
     ) -> Optional[DPIResult]:
         """
         Process a packet through the DPI pipeline.
@@ -186,9 +199,12 @@ class DPIOrchestrationService:
             dport: Destination port
             transport_protocol: TCP or UDP
             packet_length: Total packet length for statistics
+            src_ip: Source IP for pattern tracking
+            dst_ip: Destination IP for pattern tracking
+            timestamp: Packet timestamp for timing analysis
             
         Returns:
-            DPIResult with protocol classification
+            DPIResult with protocol classification and pattern analysis
         """
         # Check rate limit
         if not self._check_rate_limit():
@@ -226,8 +242,63 @@ class DPIOrchestrationService:
                 category=match.category,
                 is_encrypted=match.is_encrypted,
                 service_label=match.service_label or f"{match.protocol}:{dport}",
-                evidence=match.evidence
+                evidence=match.evidence,
+                pattern_info=None
             )
+            
+            # For unknown/low-confidence protocols, run pattern detection
+            if (match.method in ["heuristic", "unknown"] or match.confidence < 0.5) and src_ip and dst_ip:
+                try:
+                    pattern_result = self.pattern_detector.analyze_packet(
+                        payload=payload,
+                        src_ip=src_ip,
+                        dst_ip=dst_ip,
+                        sport=sport,
+                        dport=dport,
+                        transport=transport_protocol,
+                        timestamp=timestamp
+                    )
+                    
+                    result.pattern_info = {
+                        'classification': pattern_result.classification,
+                        'fingerprint': pattern_result.protocol_fingerprint,
+                        'confidence': pattern_result.confidence,
+                        'structure': {
+                            'has_fixed_header': pattern_result.structure.has_fixed_header,
+                            'header_length': pattern_result.structure.header_length,
+                            'has_length_field': pattern_result.structure.has_length_field,
+                            'has_message_type': pattern_result.structure.has_message_type,
+                            'has_sequence': pattern_result.structure.has_sequence_number,
+                            'is_binary': pattern_result.structure.is_binary,
+                            'entropy': round(pattern_result.structure.payload_entropy, 2)
+                        },
+                        'evidence': pattern_result.evidence
+                    }
+                    
+                    # Add communication pattern if detected
+                    if pattern_result.communication:
+                        result.pattern_info['communication'] = {
+                            'type': pattern_result.communication.pattern_type,
+                            'confidence': pattern_result.communication.confidence,
+                            'details': pattern_result.communication.evidence
+                        }
+                    
+                    # Add encapsulation info if detected
+                    if pattern_result.encapsulation.is_encapsulated:
+                        result.pattern_info['encapsulation'] = {
+                            'outer': pattern_result.encapsulation.outer_protocol,
+                            'inner_type': pattern_result.encapsulation.inner_type,
+                            'inner_offset': pattern_result.encapsulation.inner_header_offset
+                        }
+                    
+                    # Use pattern classification as protocol if more specific
+                    if pattern_result.classification != "Unknown":
+                        result.protocol = pattern_result.classification
+                        result.confidence = max(result.confidence, pattern_result.confidence)
+                        result.method = "pattern"
+                        
+                except Exception as e:
+                    logger.debug(f"Pattern detection error: {e}")
             
             # Update statistics
             with self.stats_lock:
@@ -356,7 +427,30 @@ class DPIOrchestrationService:
         # Add protocol category
         packet_data["protocol_category"] = dpi_result.category
         
+        # Add pattern info for L7 layer display
+        if dpi_result.pattern_info:
+            packet_data["pattern_analysis"] = dpi_result.pattern_info
+            
+            # Add communication pattern type for topology visualization
+            if 'communication' in dpi_result.pattern_info:
+                packet_data["communication_pattern"] = dpi_result.pattern_info['communication']['type']
+        
         return packet_data
+    
+    def get_multicast_bus_topology(self) -> Dict[str, Any]:
+        """Get detected multicast bus groups for topology visualization"""
+        return self.pattern_detector.get_multicast_bus_topology()
+    
+    def get_flow_patterns(self) -> Dict[str, Dict]:
+        """Get all detected flow patterns (cyclic, master-slave, etc.)"""
+        return self.pattern_detector.get_flow_patterns()
+    
+    def label_protocol_fingerprint(self, fingerprint: str, label: str) -> None:
+        """
+        Associate a human-readable label with a protocol fingerprint.
+        Allows users to name detected proprietary protocols.
+        """
+        self.pattern_detector.label_fingerprint(fingerprint, label)
 
 
 # Singleton instance
