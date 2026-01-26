@@ -91,6 +91,76 @@ const PROTOCOL_COLORS: Record<string, string> = {
   DEFAULT: '#00f0ff'    // Blue default
 };
 
+// Protocol to OSI Layer mapping
+const PROTOCOL_LAYERS: Record<string, string> = {
+  // L2 Data Link Layer
+  ETHERNET: 'L2', ARP: 'L2', VLAN: 'L2', STP: 'L2', LLDP: 'L2',
+  
+  // L4 Transport Layer
+  TCP: 'L4', UDP: 'L4', ICMP: 'L4', SCTP: 'L4',
+  
+  // L5 Session Layer
+  NETBIOS: 'L5', RPC: 'L5', SOCKS: 'L5', PPTP: 'L5',
+  
+  // L7 Application Layer
+  HTTP: 'L7', HTTPS: 'L7', DNS: 'L7', SSH: 'L7', SMB: 'L7',
+  RDP: 'L7', FTP: 'L7', SMTP: 'L7', MYSQL: 'L7', POSTGRESQL: 'L7',
+  REDIS: 'L7', MONGODB: 'L7', TLS: 'L7', VNC: 'L7', LDAP: 'L7',
+  NTP: 'L7', SNMP: 'L7', SIP: 'L7', MODBUS: 'L7', TELNET: 'L7',
+  POP3: 'L7', IMAP: 'L7', DHCP: 'L7', TFTP: 'L7', OPCUA: 'L7',
+  MQTT: 'L7', AMQP: 'L7', COAP: 'L7'
+};
+
+// Get the OSI layer for a protocol
+const getProtocolLayer = (protocol: string): string => {
+  const upper = protocol.toUpperCase();
+  return PROTOCOL_LAYERS[upper] || 'L4'; // Default to L4 if unknown
+};
+
+// Check if a link matches any of the active layers
+const linkMatchesActiveLayers = (
+  link: GraphLink,
+  activeLayers: Set<string>
+): { matches: boolean; matchedLayer: string | null } => {
+  // Check L7 detected protocols first (highest priority)
+  if (link.detected_protocols && link.detected_protocols.length > 0) {
+    for (const proto of link.detected_protocols) {
+      const layer = getProtocolLayer(proto);
+      if (activeLayers.has(layer)) {
+        return { matches: true, matchedLayer: layer };
+      }
+    }
+  }
+  
+  // Check regular protocols
+  if (link.protocols && link.protocols.length > 0) {
+    for (const proto of link.protocols) {
+      const layer = getProtocolLayer(proto);
+      if (activeLayers.has(layer)) {
+        return { matches: true, matchedLayer: layer };
+      }
+    }
+  }
+  
+  // If no protocols, check if L4 is active (assume TCP/UDP for port-based connections)
+  if (activeLayers.has('L4')) {
+    return { matches: true, matchedLayer: 'L4' };
+  }
+  
+  return { matches: false, matchedLayer: null };
+};
+
+// Get color based on matched layer
+const getLayerColor = (layer: string | null): string => {
+  switch (layer) {
+    case 'L2': return '#9900ff'; // Purple for Data Link
+    case 'L4': return '#00ff41'; // Green for Transport
+    case 'L5': return '#00f0ff'; // Cyan for Session
+    case 'L7': return '#ff0040'; // Red for Application
+    default: return '#00f0ff';   // Default cyan
+  }
+};
+
 // Utility functions
 const getProtocolColor = (protocols?: string[], detectedProtocol?: string): string => {
   // Prefer L7 detected protocol if available
@@ -523,6 +593,41 @@ const Topology: React.FC = () => {
     const saved = localStorage.getItem('nop_topology_filter');
     return (saved as 'all' | 'subnet') || 'all';
   });
+
+  // OSI Layer toggles for multi-layer topology visualization
+  // L2 = Data Link (MAC/Ethernet), L4 = Transport (TCP/UDP), L5 = Session, L7 = Application (DPI)
+  const [activeLayers, setActiveLayers] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('nop_topology_layers');
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved));
+      } catch (e) {
+        return new Set(['L4', 'L7']); // Default to L4 + L7
+      }
+    }
+    return new Set(['L4', 'L7']); // Default to L4 + L7
+  });
+
+  // Toggle a layer on/off
+  const toggleLayer = useCallback((layer: string) => {
+    setActiveLayers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(layer)) {
+        // Don't allow removing all layers - keep at least one
+        if (newSet.size > 1) {
+          newSet.delete(layer);
+        }
+      } else {
+        newSet.add(layer);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Persist layer selection
+  useEffect(() => {
+    localStorage.setItem('nop_topology_layers', JSON.stringify(Array.from(activeLayers)));
+  }, [activeLayers]);
 
   // Discovery subnet (editable) - defaults to scan settings
   const [discoverySubnet, setDiscoverySubnet] = useState<string>(() => {
@@ -1203,6 +1308,39 @@ const Topology: React.FC = () => {
           </button>
         </div>
 
+        {/* OSI Layer Toggle Buttons */}
+        <div className="flex bg-cyber-dark rounded border border-cyber-blue">
+          <span className="px-2 py-1 text-xs text-cyber-blue font-bold border-r border-cyber-gray">OSI</span>
+          <button
+            onClick={() => toggleLayer('L2')}
+            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L2') ? 'bg-cyber-purple text-white' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            title="L2 Data Link Layer (MAC/Ethernet)"
+          >
+            L2
+          </button>
+          <button
+            onClick={() => toggleLayer('L4')}
+            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L4') ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            title="L4 Transport Layer (TCP/UDP/ICMP)"
+          >
+            L4
+          </button>
+          <button
+            onClick={() => toggleLayer('L5')}
+            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L5') ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            title="L5 Session Layer (NetBIOS/RPC)"
+          >
+            L5
+          </button>
+          <button
+            onClick={() => toggleLayer('L7')}
+            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L7') ? 'bg-cyber-red text-white' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            title="L7 Application Layer (HTTP/SSH/DNS - DPI detected)"
+          >
+            L7
+          </button>
+        </div>
+
         {/* Interface Selector */}
         <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-purple">
           <label className="text-xs text-cyber-purple font-bold">IF:</label>
@@ -1492,22 +1630,37 @@ const Topology: React.FC = () => {
           }}
           nodeRelSize={6}
           linkColor={(link: any) => {
+            // Check if link matches active layers
+            const layerMatch = linkMatchesActiveLayers(link, activeLayers);
+            if (!layerMatch.matches) {
+              // Link doesn't match any active layer - dim it significantly
+              return '#33333320'; // Nearly invisible gray
+            }
+            
             // Color based on protocol type (EtherApe-style)
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return '#00f0ff20'; // Very dim blue for no traffic
             
-                        // Use utility function for protocol coloring (prefer DPI detected protocols)
-            const detectedProto = link.detected_protocols?.[0] || undefined;
-            const color = getProtocolColor(link.protocols, detectedProto);
+            // Use layer-based coloring when multiple layers are active
+            // Otherwise use protocol-specific coloring
+            let baseColor: string;
+            if (activeLayers.size > 1) {
+              // Multi-layer mode: color by layer to distinguish
+              baseColor = getLayerColor(layerMatch.matchedLayer);
+            } else {
+              // Single layer mode: use protocol coloring for more detail
+              const detectedProto = link.detected_protocols?.[0] || undefined;
+              baseColor = getProtocolColor(link.protocols, detectedProto);
+            }
             
             // Fallback to bidirectional coloring if no protocol info
-            const baseColor = (color === '#00f0ff' && link.bidirectional) 
+            const finalColor = (baseColor === '#00f0ff' && link.bidirectional) 
               ? '#00ff41'  // Cyber green for bidirectional
-              : color;
+              : baseColor;
             
             // Apply opacity based on recency (recent traffic = brighter)
             const opacity = calculateLinkOpacity(link.last_seen, currentTime, refreshRate, link.packet_count);
-            return applyOpacity(baseColor, opacity);
+            return applyOpacity(finalColor, opacity);
           }}
           linkWidth={(link: any) => {
             // Width based on total traffic volume (10% increments, max 100% thicker)
@@ -1568,6 +1721,10 @@ const Topology: React.FC = () => {
             
             if (typeof start !== 'object' || typeof end !== 'object') return;
             
+            // Check if link matches active layers - skip rendering if not
+            const layerMatch = linkMatchesActiveLayers(link, activeLayers);
+            if (!layerMatch.matches) return; // Don't render links outside active layers
+            
             const totalTraffic = link.value + (link.reverseValue || 0);
             if (!totalTraffic) return; // Early return for zero traffic
             
@@ -1617,8 +1774,17 @@ const Topology: React.FC = () => {
             // Highlight multiplier scales proportionally to maintain relative thickness
             const highlightWidthMultiplier = isHighlightedLink ? 2.0 : (isHoverHighlightedLink ? 1.8 : (isSelected ? 1.6 : 1));
             const width = baseWidth * highlightWidthMultiplier * zoomScale;
-            const detectedProtocolForColor = link.detected_protocols?.[0] || undefined;
-            const baseColor = getProtocolColor(link.protocols, detectedProtocolForColor) || (link.bidirectional ? '#00ff41' : '#00f0ff');
+            
+            // Use layer-based coloring when multiple layers active, otherwise protocol coloring
+            let baseColor: string;
+            if (activeLayers.size > 1) {
+              // Multi-layer mode: color by layer to distinguish
+              baseColor = getLayerColor(layerMatch.matchedLayer);
+            } else {
+              // Single layer mode: use protocol coloring for more detail
+              const detectedProtocolForColor = link.detected_protocols?.[0] || undefined;
+              baseColor = getProtocolColor(link.protocols, detectedProtocolForColor) || (link.bidirectional ? '#00ff41' : '#00f0ff');
+            }
             
             // Apply opacity based on recency and traffic activity - more visible fading
             // But keep highlighted links bright
@@ -2235,45 +2401,85 @@ const Topology: React.FC = () => {
             <span className="uppercase tracking-wide">External/Unknown</span>
           </div>
           
-          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L4 Transport</div>
-          <div className="flex items-center space-x-2 mb-1.5">
-            <span className="w-5 h-0.5 bg-cyber-green shadow-[0_0_3px_#00ff41]"></span>
-            <span className="uppercase tracking-wide">TCP Traffic</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1.5">
-            <span className="w-5 h-0.5 bg-cyber-blue shadow-[0_0_3px_#00f0ff]"></span>
-            <span className="uppercase tracking-wide">UDP Traffic</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1.5">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.ICMP}`}}></span>
-            <span className="uppercase tracking-wide">ICMP Traffic</span>
-          </div>
+          {/* Layer Colors - shown when multiple layers enabled */}
+          {activeLayers.size > 1 && (
+            <>
+              <div className="font-bold text-cyber-blue mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Active Layers</div>
+              {activeLayers.has('L2') && (
+                <div className="flex items-center space-x-2 mb-1.5">
+                  <span className="w-5 h-0.5" style={{backgroundColor: '#9900ff', boxShadow: '0 0 3px #9900ff'}}></span>
+                  <span className="uppercase tracking-wide">L2 Data Link</span>
+                </div>
+              )}
+              {activeLayers.has('L4') && (
+                <div className="flex items-center space-x-2 mb-1.5">
+                  <span className="w-5 h-0.5" style={{backgroundColor: '#00ff41', boxShadow: '0 0 3px #00ff41'}}></span>
+                  <span className="uppercase tracking-wide">L4 Transport</span>
+                </div>
+              )}
+              {activeLayers.has('L5') && (
+                <div className="flex items-center space-x-2 mb-1.5">
+                  <span className="w-5 h-0.5" style={{backgroundColor: '#00f0ff', boxShadow: '0 0 3px #00f0ff'}}></span>
+                  <span className="uppercase tracking-wide">L5 Session</span>
+                </div>
+              )}
+              {activeLayers.has('L7') && (
+                <div className="flex items-center space-x-2 mb-1.5">
+                  <span className="w-5 h-0.5" style={{backgroundColor: '#ff0040', boxShadow: '0 0 3px #ff0040'}}></span>
+                  <span className="uppercase tracking-wide">L7 Application</span>
+                </div>
+              )}
+            </>
+          )}
           
-          <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L7 Applications (DPI)</div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.HTTP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.HTTP}`}}></span>
-            <span className="uppercase tracking-wide">HTTP/Web</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.TLS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.TLS}`}}></span>
-            <span className="uppercase tracking-wide">TLS/Encrypted</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SSH, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SSH}`}}></span>
-            <span className="uppercase tracking-wide">SSH</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.DNS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.DNS}`}}></span>
-            <span className="uppercase tracking-wide">DNS</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SMB, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SMB}`}}></span>
-            <span className="uppercase tracking-wide">SMB/File</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.MYSQL, boxShadow: `0 0 3px ${PROTOCOL_COLORS.MYSQL}`}}></span>
-            <span className="uppercase tracking-wide">Database</span>
-          </div>
+          {/* Single layer mode - show protocol details */}
+          {activeLayers.size === 1 && activeLayers.has('L4') && (
+            <>
+              <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L4 Transport</div>
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="w-5 h-0.5 bg-cyber-green shadow-[0_0_3px_#00ff41]"></span>
+                <span className="uppercase tracking-wide">TCP Traffic</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="w-5 h-0.5 bg-cyber-blue shadow-[0_0_3px_#00f0ff]"></span>
+                <span className="uppercase tracking-wide">UDP Traffic</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.ICMP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.ICMP}`}}></span>
+                <span className="uppercase tracking-wide">ICMP Traffic</span>
+              </div>
+            </>
+          )}
+          
+          {activeLayers.size === 1 && activeLayers.has('L7') && (
+            <>
+              <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">L7 Applications (DPI)</div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.HTTP, boxShadow: `0 0 3px ${PROTOCOL_COLORS.HTTP}`}}></span>
+                <span className="uppercase tracking-wide">HTTP/Web</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.TLS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.TLS}`}}></span>
+                <span className="uppercase tracking-wide">TLS/Encrypted</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SSH, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SSH}`}}></span>
+                <span className="uppercase tracking-wide">SSH</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.DNS, boxShadow: `0 0 3px ${PROTOCOL_COLORS.DNS}`}}></span>
+                <span className="uppercase tracking-wide">DNS</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.SMB, boxShadow: `0 0 3px ${PROTOCOL_COLORS.SMB}`}}></span>
+                <span className="uppercase tracking-wide">SMB/File</span>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="w-5 h-0.5" style={{backgroundColor: PROTOCOL_COLORS.MYSQL, boxShadow: `0 0 3px ${PROTOCOL_COLORS.MYSQL}`}}></span>
+                <span className="uppercase tracking-wide">Database</span>
+              </div>
+            </>
+          )}
           
           <div className="font-bold text-cyber-red mb-2 mt-3 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-3">Intensity</div>
           <div className="flex items-center space-x-2 mb-1">
