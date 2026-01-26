@@ -70,3 +70,5 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Docker | Bridge uses gateway IP (172.x.0.1) | Use different IP for containers (e.g., 172.x.0.254) |
 | Ports | Port 8000 is Portainer not NOP | Use port 12000 for NOP frontend proxy |
 | API | Non-existent /api/v1/discovery/ | Use /api/v1/traffic/l2/topology for L2 data |
+| API | Health at /health not /api/v1/health | Use root /health endpoint |
+| Testing | API response field names vary | Check actual response structure before asserting |
