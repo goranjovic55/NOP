@@ -16,18 +16,9 @@
 | Backend test | `cd backend && python -m pytest` |
 | Frontend test | `cd frontend && npm test` |
 
-## ⛔ Gates (8) - With Violation Costs
+## ⛔ Gates (8)
 
-| G | Check | Fix | Violation Cost |
-|---|-------|-----|----------------|
-| 0 | Knowledge not in memory | Read first 100 lines ONCE at START | +13k tokens |
-| 1 | No ◆ | Create TODO | Lost tracking |
-| 2 | ⚠️ No skill | Load skill BEFORE edits | +5.2k tokens (30.8% violation) |
-| 3 | No START | Do START | Lost context |
-| 4 | ⚠️ No END | Do END (>15 min sessions) | Lost traceability (21.8% violation) |
-| 5 | ⚠️ No verify | Check syntax AFTER EVERY edit | +8.5 min rework (18.0% violation) |
-| 6 | Multi ◆ | One only | Confusion |
-| 7 | ⚠️ No parallel | Use pairs for 6+ (60% target) | +14 min/session (10.4% violation) |
+> See `.github/copilot-instructions.md` for full Gates table with violation costs.
 
 **Top 3 violations (G2, G4, G5) = 70% of inefficiencies**
 
@@ -62,14 +53,9 @@ Lines 13-93: Layer relations
 | devops | infra | deploy, docker |
 | research | investigator | research, compare |
 
-## ⛔ Delegation (Simplified Binary Decision)
+## ⛔ Delegation
 
-**100k Simulation Results:**
-| File Count | Strategy | Efficiency | Success | Quality |
-|------------|----------|-----------|---------|---------|
-| <3 files | Direct (AKIS) | 0.594 | 72.4% | 72.4% |
-| 3+ files | **runSubagent** | 0.789 | 93.9% | 93.9% |
-| **Improvement** | **Delegate 3+** | **+32.8%** | **+21.5%** | **+21.5%** |
+> See `.github/copilot-instructions.md` for delegation rules and agent selection.
 
 **Simple Rule:** 3+ files = MANDATORY delegation
 
@@ -82,16 +68,6 @@ Lines 13-93: Layer relations
 | code | 93.6% | - | +10.9 min | implement, write, create |
 | documentation | 89.2% | +16.2% | +8.5 min | docs, readme, explain |
 | research | 76.6% | +3.6% | +3.4 min | research, compare, standards |
-
-### runSubagent Template
-```python
-# 3+ files detected → MANDATORY delegation
-runSubagent(
-  agentName="code",  # or architect, debugger, documentation, research
-  prompt="Implement [specific task]. Files: [list]. Return: completion status + files modified.",
-  description="Brief task description"
-)
-```
 
 ### 100k Simulation Impact
 | Metric | Without | With | Savings |
@@ -121,19 +97,12 @@ artifact:
 ```
 
 ## Parallel (G7) - 60% Target
+
+> See `.github/copilot-instructions.md` for parallel execution patterns.
+
 **Current:** 19.1% parallel rate | **Target:** 60%+ | **Gap:** -40.9%
 
 **Time Lost:** 294,722 minutes (4,912 hours) across 100k sessions
-
-| Pair | Pattern | Time Saved | Use Case |
-|------|---------|------------|----------|
-| code + docs | ✅ Parallel runSubagent | 8.5 min | Independent tasks |
-| code + tests | ✅ Parallel runSubagent | 12.3 min | TDD approach |
-| debugger + docs | ✅ Parallel | 6.2 min | Bug fix + documentation |
-| architect + research | ✅ Parallel | 10.1 min | Design phase |
-| code + reviewer | ❌ Sequential | - | Review needs code first |
-| research + code | ❌ Sequential | - | Findings inform implementation |
-| frontend + backend | ❌ Sequential | - | API contract dependency |
 
 **Decision Rule:** Independent tasks + different files = Parallel
 

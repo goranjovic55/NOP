@@ -7,7 +7,7 @@ description: 'Protocol details: skill loading enforcement, pre-commit gate, simu
 
 > Core protocols in copilot-instructions.md. This file: G2 enforcement + detailed triggers + stats.
 
-## G2: Skill Loading Enforcement (CRITICAL)
+## G2: Skill Loading Enforcement
 
 **Violation Rate:** 30.8% (HIGH priority fix)  
 **Cost per Violation:** +5,200 tokens  

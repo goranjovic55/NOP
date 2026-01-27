@@ -7,7 +7,7 @@ description: 'Workflow details: END phase triggers, log format, verification hel
 
 > Core workflow in copilot-instructions.md. This file: END details + verification + log format.
 
-## G5: Verification After Edits (MANDATORY)
+## G5: Verification After Edits
 
 **After EVERY edit, verify syntax:**
 
