@@ -3,6 +3,7 @@ import axios from 'axios';
 import { CyberPageTitle } from '../components/CyberUI';
 import { usePOV, getPOVHeaders } from '../context/POVContext';
 import { useAccessStore, RemoteAccessSettings, defaultRemoteAccessSettings } from '../store/accessStore';
+import { useTopologyStore, TopologySettings, defaultTopologySettings } from '../store/topologyStore';
 
 interface ScanSettings {
   profile_name: string;
@@ -104,7 +105,8 @@ interface AllSettings {
 const Settings: React.FC = () => {
   const { activeAgent, isAgentPOV } = usePOV();
   const { remoteSettings, updateRemoteSettings, resetRemoteSettings } = useAccessStore();
-  const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'remote' | 'system'>('scan');
+  const { settings: topologySettings, updateSettings: updateTopologySettings, resetSettings: resetTopologySettings } = useTopologyStore();
+  const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'remote' | 'topology' | 'system'>('scan');
   const [settings, setSettings] = useState<AllSettings | null>(null);
   const [agentSettings, setAgentSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -206,6 +208,12 @@ const Settings: React.FC = () => {
       return;
     }
     
+    // Topology settings are stored locally in topologyStore (automatically persisted)
+    if (activeTab === 'topology') {
+      showMessage('success', 'Topology settings saved');
+      return;
+    }
+    
     if (!settings) return;
     
     try {
@@ -247,6 +255,15 @@ const Settings: React.FC = () => {
       return;
     }
     
+    // Topology settings reset
+    if (activeTab === 'topology') {
+      if (window.confirm('Reset topology settings to defaults?')) {
+        resetTopologySettings();
+        showMessage('success', 'Topology settings reset to defaults');
+      }
+      return;
+    }
+    
     if (!window.confirm(`Reset ${activeTab} settings to defaults?`)) return;
     
     try {
@@ -265,6 +282,8 @@ const Settings: React.FC = () => {
   const updateSetting = (key: string, value: string | number | boolean) => {
     // Remote settings are handled by updateRemoteSettings from accessStore
     if (activeTab === 'remote') return;
+    // Topology settings are handled by updateTopologySettings from topologyStore
+    if (activeTab === 'topology') return;
     
     if (settings) {
       const settingsKey = activeTab as keyof AllSettings;
@@ -350,6 +369,19 @@ const Settings: React.FC = () => {
       )
     },
     { 
+      id: 'topology' as const, 
+      label: 'Topology', 
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="2"/>
+          <circle cx="19" cy="5" r="2" stroke="currentColor" strokeWidth="2"/>
+          <circle cx="19" cy="19" r="2" stroke="currentColor" strokeWidth="2"/>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+          <path d="M9.5 10.5L7 12M14.5 10L17 7M14.5 14L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      )
+    },
+    { 
       id: 'system' as const, 
       label: 'System Settings', 
       icon: (
@@ -423,6 +455,13 @@ const Settings: React.FC = () => {
             settings={remoteSettings} 
             onChange={(key, value) => updateRemoteSettings({ [key]: value })}
             onReset={resetRemoteSettings}
+          />
+        )}
+        {activeTab === 'topology' && (
+          <TopologySettingsPanel 
+            settings={topologySettings} 
+            onChange={(key, value) => updateTopologySettings({ [key]: value })}
+            onReset={resetTopologySettings}
           />
         )}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
@@ -1396,6 +1435,153 @@ const RemoteAccessSettingsPanel: React.FC<{
             ]}
             onChange={(val) => onChange('vncCursor', val)}
             description="How cursor position is handled"
+          />
+        </SettingsSection>
+      </div>
+    </div>
+  );
+};
+
+// Topology Settings Panel
+const TopologySettingsPanel: React.FC<{ 
+  settings: TopologySettings; 
+  onChange: (key: string, value: string | number | boolean | string[]) => void;
+  onReset: () => void;
+}> = ({ settings, onChange, onReset }) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-cyber-gray-light text-sm">
+          Configure performance and display settings for the network topology visualization. These settings apply immediately.
+        </p>
+        <button
+          onClick={onReset}
+          className="px-4 py-1 border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple text-xs uppercase"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6">
+        {/* Performance Settings */}
+        <SettingsSection title="Performance">
+          <SettingsSelect
+            label="Performance Mode"
+            value={settings.performanceMode}
+            options={[
+              { value: 'auto', label: 'Auto (Detect from graph size)' },
+              { value: 'quality', label: 'Quality (Full effects)' },
+              { value: 'balanced', label: 'Balanced (Reduced effects)' },
+              { value: 'performance', label: 'Performance (Minimal effects)' }
+            ]}
+            onChange={(val) => onChange('performanceMode', val)}
+            description="Auto mode adjusts settings based on node/link count"
+          />
+          
+          <SettingsToggle
+            label="Particles Enabled"
+            value={settings.particlesEnabled}
+            onChange={(val) => onChange('particlesEnabled', val)}
+            description="Show animated particles on links (can impact FPS)"
+          />
+          
+          <SettingsNumberInput
+            label="Max Nodes"
+            value={settings.maxNodes}
+            min={0}
+            max={2000}
+            onChange={(val) => onChange('maxNodes', val)}
+            description="Limit displayed nodes (0 = unlimited)"
+          />
+          
+          <SettingsNumberInput
+            label="Max Links"
+            value={settings.maxLinks}
+            min={0}
+            max={5000}
+            onChange={(val) => onChange('maxLinks', val)}
+            description="Limit displayed links (0 = unlimited)"
+          />
+        </SettingsSection>
+
+        {/* Animation Settings */}
+        <SettingsSection title="Animation">
+          <SettingsToggle
+            label="Animation Enabled"
+            value={settings.animationEnabled}
+            onChange={(val) => onChange('animationEnabled', val)}
+            description="Enable link particle animations"
+          />
+          
+          <SettingsToggle
+            label="Auto Refresh"
+            value={settings.autoRefresh}
+            onChange={(val) => onChange('autoRefresh', val)}
+            description="Automatically poll for new traffic data"
+          />
+          
+          <SettingsSelect
+            label="Refresh Rate"
+            value={settings.refreshRate.toString()}
+            options={[
+              { value: '2000', label: '2 seconds (High load)' },
+              { value: '5000', label: '5 seconds (Default)' },
+              { value: '10000', label: '10 seconds (Low load)' },
+              { value: '30000', label: '30 seconds (Minimal)' }
+            ]}
+            onChange={(val) => onChange('refreshRate', parseInt(val))}
+            description="How often to poll for traffic updates"
+          />
+        </SettingsSection>
+
+        {/* Display Settings */}
+        <SettingsSection title="Display Filters">
+          <SettingsNumberInput
+            label="Traffic Threshold (bytes)"
+            value={settings.trafficThreshold}
+            min={0}
+            max={1000000}
+            onChange={(val) => onChange('trafficThreshold', val)}
+            description="Minimum bytes to display a link"
+          />
+          
+          <SettingsNumberInput
+            label="Link Speed Filter (Mbps)"
+            value={settings.linkSpeedFilter}
+            min={0}
+            max={1000}
+            onChange={(val) => onChange('linkSpeedFilter', val)}
+            description="Minimum Mbps to display a link (0 = all)"
+          />
+        </SettingsSection>
+
+        {/* Simulation Settings */}
+        <SettingsSection title="Simulation (Advanced)">
+          <SettingsNumberInput
+            label="Cooldown Ticks"
+            value={settings.cooldownTicks}
+            min={10}
+            max={500}
+            onChange={(val) => onChange('cooldownTicks', val)}
+            description="Physics simulation iterations"
+          />
+          
+          <SettingsNumberInput
+            label="Warmup Ticks"
+            value={settings.warmupTicks}
+            min={5}
+            max={200}
+            onChange={(val) => onChange('warmupTicks', val)}
+            description="Initial simulation ticks"
+          />
+          
+          <SettingsNumberInput
+            label="Cooldown Time (ms)"
+            value={settings.cooldownTime}
+            min={1000}
+            max={30000}
+            onChange={(val) => onChange('cooldownTime', val)}
+            description="Max simulation duration"
           />
         </SettingsSection>
       </div>

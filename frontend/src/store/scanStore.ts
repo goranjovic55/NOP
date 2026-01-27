@@ -94,7 +94,7 @@ interface ScanState {
 export const useScanStore = create<ScanState>((set) => ({
   tabs: [],
   activeTabId: null,
-  passiveScanEnabled: false,
+  passiveScanEnabled: true,
   passiveServices: [],
   setPassiveScanEnabled: (enabled) => set({ passiveScanEnabled: enabled }),
   setPassiveServices: (services) => set({ passiveServices: services }),

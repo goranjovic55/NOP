@@ -6,8 +6,8 @@ import { dashboardService } from '../services/dashboardService';
 import { trafficService, NetworkInterface, l2Service, L2Topology, patternService, L2StpBridge, L2LldpNeighbor, L2CdpNeighbor, L2RingTopology, L2Vlan } from '../services/trafficService';
 import { useAuthStore } from '../store/authStore';
 import { useScanStore } from '../store/scanStore';
+import { useTopologyStore } from '../store/topologyStore';
 import { usePOV } from '../context/POVContext';
-import { CyberPageTitle } from '../components/CyberUI';
 import HostContextMenu from '../components/HostContextMenu';
 import ConnectionContextMenu from '../components/ConnectionContextMenu';
 
@@ -447,13 +447,8 @@ const Topology: React.FC = () => {
   const [isLiveCapturing, setIsLiveCapturing] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<string>('');
   
-  // Fullscreen and resize state
+  // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [graphHeight, setGraphHeight] = useState(() => {
-    const saved = localStorage.getItem('nop_topology_height');
-    return saved ? parseInt(saved, 10) : 600;
-  });
-  const [isResizing, setIsResizing] = useState(false);
 
   // Use browser Fullscreen API for true fullscreen
   const toggleFullscreen = async () => {
@@ -480,12 +475,6 @@ const Topology: React.FC = () => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
-
-  // Resize handlers for manual height adjustment
-  const handleResizeMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    e.preventDefault();
-  };
   
   // Store node positions to preserve them between updates
   const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx?: number; fy?: number }>>(new Map());
@@ -515,6 +504,26 @@ const Topology: React.FC = () => {
     
     return { connectionCounts, maxConnections, maxTraffic };
   }, [graphData.links]);
+
+  // Get topology settings from store
+  const { settings: topologySettings, getPerformanceConfig } = useTopologyStore();
+
+  // Performance mode - reduce particles and effects for large graphs (uses store settings)
+  const performanceMode = useMemo(() => {
+    const nodeCount = graphData.nodes.length;
+    const linkCount = graphData.links.length;
+    const isLarge = nodeCount > 100 || linkCount > 200;
+    const isVeryLarge = nodeCount > 300 || linkCount > 500;
+    
+    // Get config from store (respects performanceMode setting)
+    const config = getPerformanceConfig(nodeCount, linkCount);
+    
+    return {
+      isLarge,
+      isVeryLarge,
+      ...config
+    };
+  }, [graphData.nodes.length, graphData.links.length, getPerformanceConfig]);
   
   // Calculate node size based on connection count (10% increments, max 100% larger)
   const getNodeSize = useCallback((nodeId: string, baseSize: number = 6) => {
@@ -682,6 +691,28 @@ const Topology: React.FC = () => {
     const saved = localStorage.getItem('nop_topology_filter');
     return (saved as 'all' | 'subnet') || 'all';
   });
+
+  // Device type filter
+  const [deviceTypeFilter, setDeviceTypeFilter] = useState<string>(() => {
+    const saved = localStorage.getItem('nop_topology_device_type');
+    return saved || 'all';
+  });
+
+  // Device status filter
+  const [deviceStatusFilter, setDeviceStatusFilter] = useState<string>(() => {
+    const saved = localStorage.getItem('nop_topology_device_status');
+    return saved || 'all';
+  });
+
+  // Persist device type filter
+  useEffect(() => {
+    localStorage.setItem('nop_topology_device_type', deviceTypeFilter);
+  }, [deviceTypeFilter]);
+
+  // Persist device status filter
+  useEffect(() => {
+    localStorage.setItem('nop_topology_device_status', deviceStatusFilter);
+  }, [deviceStatusFilter]);
 
   // OSI Layer toggles for multi-layer topology visualization
   // L2 = Data Link (MAC/Ethernet), L4 = Transport (TCP/UDP), L5 = Session, L7 = Application (DPI)
@@ -914,36 +945,6 @@ const Topology: React.FC = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Manual resize handlers
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing && containerRef.current) {
-        const containerTop = containerRef.current.getBoundingClientRect().top;
-        const newHeight = e.clientY - containerTop;
-        if (newHeight >= 300 && newHeight <= window.innerHeight - 100) {
-          setGraphHeight(newHeight);
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (isResizing) {
-        setIsResizing(false);
-        // Persist height to localStorage
-        localStorage.setItem('nop_topology_height', graphHeight.toString());
-      }
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing, graphHeight]);
-
   const fetchData = useCallback(async (useBurstCapture: boolean = false, runSimulation: boolean = false) => {
     if (!token) return;
     try {
@@ -953,6 +954,9 @@ const Topology: React.FC = () => {
       if (runSimulation) {
         simulationCompleteRef.current = false;
       }
+      
+      // Performance optimization: Start assets fetch early (in parallel)
+      const assetsPromise = assetService.getAssets(token, undefined, activeAgent?.id);
       
       // Capture strategy:
       // - Auto-refresh enabled: Short 1s capture to detect new traffic and update colors
@@ -968,9 +972,11 @@ const Topology: React.FC = () => {
         setCaptureStatus(isPlaying ? 'Live...' : 'Polling...');
         setIsLiveCapturing(true);
         try {
-          const burstResult = await trafficService.burstCapture(token, captureDuration, activeAgent?.id, selectedInterface);
-          // Merge burst connections with existing stats
-          const existingStats = await dashboardService.getTrafficStats(token, activeAgent?.id);
+          // Parallel: burst capture + existing stats
+          const [burstResult, existingStats] = await Promise.all([
+            trafficService.burstCapture(token, captureDuration, activeAgent?.id, selectedInterface),
+            dashboardService.getTrafficStats(token, activeAgent?.id)
+          ]);
           trafficStats = {
             ...existingStats,
             // Prioritize burst connections for recent traffic
@@ -993,7 +999,8 @@ const Topology: React.FC = () => {
       // Update current time for recency calculations
       setCurrentTime(trafficStats.current_time || Date.now() / 1000);
       
-      const assets = await assetService.getAssets(token, undefined, activeAgent?.id);
+      // Wait for assets (already started in parallel)
+      const assets = await assetsPromise;
 
       // Extract unique subnets from assets (first 3 octets)
       const subnetsSet = new Set<string>();
@@ -1022,7 +1029,25 @@ const Topology: React.FC = () => {
       const nodesMap = new Map<string, GraphNode>();
       
       // Determine filtering criteria
-      const shouldIncludeNode = (asset: any) => {
+      const shouldIncludeNode = (asset: any, group: string) => {
+        // Device status filter
+        if (deviceStatusFilter !== 'all') {
+          if (deviceStatusFilter === 'passive' && group !== 'passive') return false;
+          if (deviceStatusFilter === 'online' && group !== 'online' && group !== 'passive') return false;
+          if (deviceStatusFilter === 'offline' && group !== 'offline') return false;
+        }
+        
+        // Device type filter
+        if (deviceTypeFilter !== 'all') {
+          if (deviceTypeFilter === 'host' && !['online', 'offline', 'passive'].includes(group)) return false;
+          if (deviceTypeFilter === 'switch' && group !== 'switch') return false;
+          if (deviceTypeFilter === 'network' && !['network-device', 'l2-device'].includes(group)) return false;
+          if (deviceTypeFilter === 'cisco' && group !== 'cisco') return false;
+          if (deviceTypeFilter === 'ring' && !['ring-member', 'ring-topology'].includes(group)) return false;
+          if (deviceTypeFilter === 'external' && group !== 'external') return false;
+        }
+        
+        // IP/subnet filtering
         if (filterMode === 'all') {
           // Show all subnets, optionally filter by IP
           if (ipFilter) {
@@ -1033,23 +1058,25 @@ const Topology: React.FC = () => {
         } else {
           // Subnet mode - filter by discovery subnet (auto-detected)
           const subnetPrefix = discoverySubnet.split('/')[0].split('.').slice(0, 3).join('.') + '.';
-          return asset.status === 'online' && asset.ip_address.startsWith(subnetPrefix);
+          return asset.ip_address.startsWith(subnetPrefix);
         }
       };
 
       // Add assets as nodes
       assets.forEach(asset => {
-        if (!shouldIncludeNode(asset)) return;
-        
         // Check if asset was discovered passively
         const isPassiveDiscovered = asset.discovery_method === 'passive' || 
           passiveServices.some(ps => ps.host === asset.ip_address);
+        
+        const group = isPassiveDiscovered ? 'passive' : (asset.status === 'online' ? 'online' : 'offline');
+        
+        if (!shouldIncludeNode(asset, group)) return;
         
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
           name: asset.hostname || asset.ip_address,
           val: 1,
-          group: isPassiveDiscovered ? 'passive' : (asset.status === 'online' ? 'online' : 'offline'),
+          group: group,
           ip: asset.ip_address,
           status: asset.status,
           details: asset
@@ -1218,7 +1245,10 @@ const Topology: React.FC = () => {
         }
         
         // Add nodes if they don't exist (external but valid IPs)
-        if (!nodesMap.has(conn.source)) {
+        // Apply device type filter to external nodes
+        const shouldAddExternal = deviceTypeFilter === 'all' || deviceTypeFilter === 'external';
+        
+        if (!nodesMap.has(conn.source) && shouldAddExternal) {
           nodesMap.set(conn.source, {
             id: conn.source,
             name: conn.source,
@@ -1228,7 +1258,7 @@ const Topology: React.FC = () => {
             status: 'unknown'
           });
         }
-        if (!nodesMap.has(conn.target)) {
+        if (!nodesMap.has(conn.target) && shouldAddExternal) {
           nodesMap.set(conn.target, {
             id: conn.target,
             name: conn.target,
@@ -1238,6 +1268,9 @@ const Topology: React.FC = () => {
             status: 'unknown'
           });
         }
+        
+        // Skip link if either endpoint is missing (filtered out)
+        if (!nodesMap.has(conn.source) || !nodesMap.has(conn.target)) return;
         
         // Create bidirectional link keys (always use alphabetically sorted order)
         const [node1, node2] = conn.source < conn.target 
@@ -1575,7 +1608,7 @@ const Topology: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface, activeLayers, l2Data]);
+  }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface, activeLayers, l2Data, deviceTypeFilter, deviceStatusFilter]);
 
   useEffect(() => {
     // Initial load - run simulation
@@ -1594,7 +1627,7 @@ const Topology: React.FC = () => {
     
     fetchData(false, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, trafficThreshold]);
+  }, [filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, trafficThreshold, deviceTypeFilter, deviceStatusFilter]);
   
   useEffect(() => {
     // Auto-refresh interval - separate from initial load
@@ -1721,53 +1754,84 @@ const Topology: React.FC = () => {
     <div className="h-full flex flex-col space-y-2">
       {/* Compact toolbar - wraps on smaller screens */}
       <div className="flex flex-wrap gap-2 items-center bg-cyber-darker p-2 border border-cyber-gray">
-        <CyberPageTitle color="red">Network Topology</CyberPageTitle>
-
-        {/* Filter mode buttons */}
-        <div className="flex bg-cyber-dark rounded border border-cyber-gray">
-          <button
-            onClick={() => setFilterMode('all')}
-            className={`px-2 py-1 text-xs font-bold uppercase ${filterMode === 'all' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
-            title="Show all subnets"
+        {/* Device Type Filter */}
+        <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-blue">
+          <label className="text-xs text-cyber-blue font-bold">Type:</label>
+          <select
+            value={deviceTypeFilter}
+            onChange={(e) => setDeviceTypeFilter(e.target.value)}
+            className="bg-cyber-darker text-cyber-gray-light text-xs px-1 py-0.5 border border-cyber-gray rounded focus:outline-none focus:border-cyber-blue"
+            title="Filter by device type"
           >
-            All
-          </button>
-          <button
-            onClick={() => setFilterMode('subnet')}
-            className={`px-2 py-1 text-xs font-bold uppercase ${filterMode === 'subnet' ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white'}`}
-            title="Discovery subnet only"
-          >
-            Subnet
-          </button>
+            <option value="all">All</option>
+            <option value="host">Hosts</option>
+            <option value="switch">Switches</option>
+            <option value="network">Network</option>
+            <option value="cisco">Cisco</option>
+            <option value="ring">Ring</option>
+            <option value="external">External</option>
+          </select>
         </div>
 
-        {/* OSI Layer Toggle Buttons */}
-        <div className="flex bg-cyber-dark rounded border border-cyber-blue">
-          <span className="px-2 py-1 text-xs text-cyber-blue font-bold border-r border-cyber-gray">OSI</span>
+        {/* Device Status Filter */}
+        <div className="flex items-center space-x-1 bg-cyber-dark px-2 py-1 rounded border border-cyber-green">
+          <label className="text-xs text-cyber-green font-bold">Status:</label>
+          <select
+            value={deviceStatusFilter}
+            onChange={(e) => setDeviceStatusFilter(e.target.value)}
+            className="bg-cyber-darker text-cyber-gray-light text-xs px-1 py-0.5 border border-cyber-gray rounded focus:outline-none focus:border-cyber-green"
+            title="Filter by device status"
+          >
+            <option value="all">All</option>
+            <option value="online">Online</option>
+            <option value="passive">Passive</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+
+        {/* OSI Layer Toggle Buttons - Cyberpunk Neon Glow */}
+        <div className="flex bg-cyber-dark rounded overflow-hidden">
           <button
             onClick={() => toggleLayer('L2')}
-            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L2') ? 'bg-cyber-purple text-white' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+              activeLayers.has('L2')
+                ? 'bg-purple-600/20 text-purple-400 border-purple-500 shadow-[0_0_15px_#9333ea,0_0_30px_#9333ea40] cyber-glow-purple'
+                : 'text-cyber-gray-light border-cyber-gray hover:text-purple-400 hover:border-purple-500 hover:shadow-[0_0_10px_#9333ea]'
+            }`}
             title="L2 Data Link Layer (MAC/Ethernet)"
           >
             L2
           </button>
           <button
             onClick={() => toggleLayer('L4')}
-            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L4') ? 'bg-cyber-green text-black' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+              activeLayers.has('L4')
+                ? 'bg-green-600/20 text-green-400 border-green-500 shadow-[0_0_15px_#22c55e,0_0_30px_#22c55e40] cyber-glow-green'
+                : 'text-cyber-gray-light border-cyber-gray hover:text-green-400 hover:border-green-500 hover:shadow-[0_0_10px_#22c55e]'
+            }`}
             title="L4 Transport Layer (TCP/UDP/ICMP)"
           >
             L4
           </button>
           <button
             onClick={() => toggleLayer('L5')}
-            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L5') ? 'bg-cyber-blue text-black' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+              activeLayers.has('L5')
+                ? 'bg-cyan-600/20 text-cyan-400 border-cyan-500 shadow-[0_0_15px_#06b6d4,0_0_30px_#06b6d440]'
+                : 'text-cyber-gray-light border-cyber-gray hover:text-cyan-400 hover:border-cyan-500 hover:shadow-[0_0_10px_#06b6d4]'
+            }`}
             title="L5 Session Layer (NetBIOS/RPC)"
+            style={{ textShadow: activeLayers.has('L5') ? '0 0 10px #06b6d4, 0 0 20px #06b6d4' : 'none' }}
           >
             L5
           </button>
           <button
             onClick={() => toggleLayer('L7')}
-            className={`px-2 py-1 text-xs font-bold ${activeLayers.has('L7') ? 'bg-cyber-red text-white' : 'text-cyber-gray-light hover:text-white hover:bg-cyber-dark'}`}
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+              activeLayers.has('L7')
+                ? 'bg-red-600/20 text-red-400 border-red-500 shadow-[0_0_15px_#ef4444,0_0_30px_#ef444440] cyber-glow-red'
+                : 'text-cyber-gray-light border-cyber-gray hover:text-red-400 hover:border-red-500 hover:shadow-[0_0_10px_#ef4444]'
+            }`}
             title="L7 Application Layer (HTTP/SSH/DNS - DPI detected)"
           >
             L7
@@ -1966,8 +2030,7 @@ const Topology: React.FC = () => {
 
       <div 
         ref={containerRef} 
-        className="bg-cyber-darker border border-cyber-gray relative overflow-hidden"
-        style={{ height: isFullscreen ? '100vh' : `${graphHeight}px` }}
+        className="flex-1 bg-cyber-darker border border-cyber-gray relative overflow-hidden"
       >
         {/* Fullscreen close button - shown when in browser fullscreen */}
         {isFullscreen && (
@@ -1984,14 +2047,21 @@ const Topology: React.FC = () => {
           </div>
         )}
         
+        {/* Performance mode indicator for large graphs */}
+        {performanceMode.isLarge && (
+          <div className="absolute top-2 left-2 text-xs text-yellow-400/70 bg-black/50 px-2 py-1 rounded z-20">
+            {performanceMode.isVeryLarge ? '⚡ Performance mode (300+ nodes)' : '⚡ Large graph mode'}
+          </div>
+        )}
+        
         <ForceGraph2D
           ref={fgRef}
           width={dimensions.width}
           height={dimensions.height}
           graphData={graphData}
-          cooldownTicks={simulationCompleteRef.current ? 0 : 200}
-          cooldownTime={simulationCompleteRef.current ? 0 : 10000}
-          warmupTicks={simulationCompleteRef.current ? 0 : 100}
+          cooldownTicks={simulationCompleteRef.current ? 0 : performanceMode.cooldownTicks}
+          cooldownTime={simulationCompleteRef.current ? 0 : performanceMode.cooldownTime}
+          warmupTicks={simulationCompleteRef.current ? 0 : performanceMode.warmupTicks}
           onEngineTick={() => {
             // Save node positions on every tick during simulation
             if (fgRef.current && graphData.nodes.length > 0) {
@@ -2102,7 +2172,7 @@ const Topology: React.FC = () => {
             const baseWidth = 1.5; // Base link width
             return getLinkWidth(link, baseWidth);
           }}
-          linkDirectionalParticles={isPlaying ? (link: any) => {
+          linkDirectionalParticles={isPlaying && performanceMode.particleMultiplier > 0 ? (link: any) => {
             // Particle count based on recent packet activity, not historical total
             const packetCount = link.packet_count || 0;
             const totalTraffic = link.value + (link.reverseValue || 0);
@@ -2110,12 +2180,15 @@ const Topology: React.FC = () => {
             // If no packets captured recently, show minimal or no particles
             if (packetCount === 0) {
               // Historical connection with no recent activity - very few particles
-              return totalTraffic > 0 ? 1 : 0;
+              const base = totalTraffic > 0 ? 1 : 0;
+              return Math.round(base * performanceMode.particleMultiplier);
             }
             
             // Scale particles by recent packet count (more packets = more particles)
             // Log scale: 1-10 packets = 2-3, 10-100 = 3-5, 100+ = 5-8
-            return Math.max(2, Math.min(8, 2 + Math.log10(packetCount + 1) * 3));
+            // Apply performance multiplier for large graphs
+            const base = Math.max(2, Math.min(8, 2 + Math.log10(packetCount + 1) * 3));
+            return Math.round(base * performanceMode.particleMultiplier);
           } : 0}
           linkDirectionalParticleSpeed={(link: any) => {
             // Speed based on throughput (bytes per second)
@@ -3199,15 +3272,6 @@ const Topology: React.FC = () => {
         )}
       </div>
 
-      {/* Resize Handle - drag to resize graph height */}
-      {!isFullscreen && (
-        <div
-          className="h-2 bg-cyber-gray hover:bg-cyber-blue cursor-ns-resize transition-colors flex items-center justify-center group"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <div className="w-12 h-1 bg-cyber-blue rounded-full group-hover:bg-cyber-green transition-colors"></div>
-        </div>
-      )}
     </div>
   );
 };
