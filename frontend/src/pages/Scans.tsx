@@ -555,7 +555,17 @@ const Scans: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1 min-h-0">
             {loadingAssets ? (
-              <div className="text-cyber-gray-light text-sm">Loading assets…</div>
+              <div className="space-y-2 animate-pulse">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded bg-cyber-dark">
+                    <div className="w-6 h-6 bg-cyber-gray/30 rounded-full" />
+                    <div className="flex-1 space-y-1">
+                      <div className="h-4 w-24 bg-cyber-gray/30 rounded" />
+                      <div className="h-3 w-16 bg-cyber-gray/20 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filteredAssets.length === 0 ? (
               <p className="text-cyber-gray-light text-sm">No assets match the filters.</p>
             ) : (

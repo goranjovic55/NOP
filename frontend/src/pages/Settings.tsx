@@ -311,8 +311,23 @@ const Settings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-cyber-blue animate-pulse">Loading settings...</div>
+      <div className="p-4 space-y-4 animate-pulse">
+        {/* Tabs skeleton */}
+        <div className="flex gap-2 border-b border-cyber-gray pb-2">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-10 w-28 bg-cyber-gray/30 rounded" />
+          ))}
+        </div>
+        {/* Settings form skeleton */}
+        <div className="bg-cyber-dark border border-cyber-gray rounded p-6 space-y-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="space-y-2">
+              <div className="h-4 w-32 bg-cyber-gray/30 rounded" />
+              <div className="h-10 w-full bg-cyber-gray/20 rounded" />
+            </div>
+          ))}
+          <div className="h-10 w-32 bg-cyber-gray/30 rounded" />
+        </div>
       </div>
     );
   }

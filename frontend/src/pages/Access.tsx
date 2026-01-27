@@ -1031,8 +1031,17 @@ const Access: React.FC = () => {
           
           <div className="flex-1 overflow-auto">
             {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-cyber-blue animate-pulse text-xs">Loading assets...</div>
+              <div className="divide-y divide-cyber-gray/30 animate-pulse">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="p-4 flex items-center gap-4">
+                    <div className="w-8 h-8 bg-cyber-gray/30 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-32 bg-cyber-gray/30 rounded" />
+                      <div className="h-3 w-24 bg-cyber-gray/20 rounded" />
+                    </div>
+                    <div className="h-5 w-16 bg-cyber-gray/20 rounded" />
+                  </div>
+                ))}
               </div>
             ) : getFilteredAssets().length === 0 ? (
               <div className="flex items-center justify-center h-full">

@@ -1789,35 +1789,37 @@ const Topology: React.FC = () => {
           </select>
         </div>
 
-        {/* OSI Layer Toggle Buttons - Cyberpunk Neon Glow */}
-        <div className="flex bg-cyber-dark rounded overflow-hidden">
+        {/* OSI Layer Toggle Buttons - Cyberpunk Neon Border Only */}
+        <div className="flex rounded overflow-hidden gap-1">
           <button
             onClick={() => toggleLayer('L2')}
-            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border bg-transparent ${
               activeLayers.has('L2')
-                ? 'bg-purple-600/20 text-purple-400 border-purple-500 shadow-[0_0_15px_#9333ea,0_0_30px_#9333ea40] cyber-glow-purple'
+                ? 'text-purple-400 border-purple-500 shadow-[0_0_15px_#9333ea,0_0_30px_#9333ea40]'
                 : 'text-cyber-gray-light border-cyber-gray hover:text-purple-400 hover:border-purple-500 hover:shadow-[0_0_10px_#9333ea]'
             }`}
             title="L2 Data Link Layer (MAC/Ethernet)"
+            style={{ textShadow: activeLayers.has('L2') ? '0 0 10px #9333ea, 0 0 20px #9333ea' : 'none' }}
           >
             L2
           </button>
           <button
             onClick={() => toggleLayer('L4')}
-            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border bg-transparent ${
               activeLayers.has('L4')
-                ? 'bg-green-600/20 text-green-400 border-green-500 shadow-[0_0_15px_#22c55e,0_0_30px_#22c55e40] cyber-glow-green'
+                ? 'text-green-400 border-green-500 shadow-[0_0_15px_#22c55e,0_0_30px_#22c55e40]'
                 : 'text-cyber-gray-light border-cyber-gray hover:text-green-400 hover:border-green-500 hover:shadow-[0_0_10px_#22c55e]'
             }`}
             title="L4 Transport Layer (TCP/UDP/ICMP)"
+            style={{ textShadow: activeLayers.has('L4') ? '0 0 10px #22c55e, 0 0 20px #22c55e' : 'none' }}
           >
             L4
           </button>
           <button
             onClick={() => toggleLayer('L5')}
-            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border bg-transparent ${
               activeLayers.has('L5')
-                ? 'bg-cyan-600/20 text-cyan-400 border-cyan-500 shadow-[0_0_15px_#06b6d4,0_0_30px_#06b6d440]'
+                ? 'text-cyan-400 border-cyan-500 shadow-[0_0_15px_#06b6d4,0_0_30px_#06b6d440]'
                 : 'text-cyber-gray-light border-cyber-gray hover:text-cyan-400 hover:border-cyan-500 hover:shadow-[0_0_10px_#06b6d4]'
             }`}
             title="L5 Session Layer (NetBIOS/RPC)"
@@ -1827,12 +1829,13 @@ const Topology: React.FC = () => {
           </button>
           <button
             onClick={() => toggleLayer('L7')}
-            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border ${
+            className={`px-3 py-1.5 text-xs font-bold tracking-wider transition-all duration-200 border bg-transparent ${
               activeLayers.has('L7')
-                ? 'bg-red-600/20 text-red-400 border-red-500 shadow-[0_0_15px_#ef4444,0_0_30px_#ef444440] cyber-glow-red'
+                ? 'text-red-400 border-red-500 shadow-[0_0_15px_#ef4444,0_0_30px_#ef444440]'
                 : 'text-cyber-gray-light border-cyber-gray hover:text-red-400 hover:border-red-500 hover:shadow-[0_0_10px_#ef4444]'
             }`}
             title="L7 Application Layer (HTTP/SSH/DNS - DPI detected)"
+            style={{ textShadow: activeLayers.has('L7') ? '0 0 10px #ef4444, 0 0 20px #ef4444' : 'none' }}
           >
             L7
           </button>
@@ -2042,15 +2045,41 @@ const Topology: React.FC = () => {
           </button>
         )}
         {loading && graphData.nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
-            <div className="text-cyber-blue animate-pulse">Loading Topology...</div>
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-cyber-darker">
+            <div className="relative">
+              {/* Central node skeleton */}
+              <div className="w-16 h-16 bg-cyber-gray/30 rounded-full animate-pulse mx-auto" />
+              {/* Orbital nodes */}
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+                <div
+                  key={i}
+                  className="absolute w-8 h-8 bg-cyber-gray/20 rounded-full animate-pulse"
+                  style={{
+                    transform: `rotate(${angle}deg) translateX(70px) rotate(-${angle}deg)`,
+                    left: 'calc(50% - 16px)',
+                    top: 'calc(50% - 16px)',
+                    animationDelay: `${i * 100}ms`
+                  }}
+                />
+              ))}
+              <div className="text-center mt-8">
+                <div className="text-cyber-blue animate-pulse font-mono text-sm">◎ Building topology...</div>
+                <div className="text-cyber-gray-light text-xs mt-1">Discovering nodes and connections</div>
+              </div>
+            </div>
           </div>
         )}
         
         {/* Performance mode indicator for large graphs */}
         {performanceMode.isLarge && (
-          <div className="absolute top-2 left-2 text-xs text-yellow-400/70 bg-black/50 px-2 py-1 rounded z-20">
-            {performanceMode.isVeryLarge ? '⚡ Performance mode (300+ nodes)' : '⚡ Large graph mode'}
+          <div className="absolute top-2 left-2 text-xs text-yellow-400/70 bg-black/70 px-2 py-1 rounded z-20 font-mono">
+            {graphData.nodes.length > 5000 
+              ? `⚡ Massive mode (${graphData.nodes.length.toLocaleString()} nodes)` 
+              : graphData.nodes.length > 1000 
+                ? `⚡ Extreme mode (${graphData.nodes.length.toLocaleString()} nodes)` 
+                : performanceMode.isVeryLarge 
+                  ? `⚡ Performance mode (${graphData.nodes.length} nodes)` 
+                  : `⚡ Large graph (${graphData.nodes.length} nodes)`}
           </div>
         )}
         
@@ -2571,9 +2600,66 @@ const Topology: React.FC = () => {
             document.body.style.cursor = link ? 'pointer' : 'default';
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
+            const nodeCount = graphData.nodes.length;
+            
+            // PERFORMANCE: Fast path for massive graphs (1000+ nodes) - simplified rendering
+            if (nodeCount > 1000) {
+              const nodeColor = node.group === 'online' ? '#00ff41' 
+                : node.group === 'offline' ? '#ff0040' 
+                : node.group === 'passive' ? '#8b5cf6' 
+                : '#8b5cf6';
+              const nodeSize = 4;
+              
+              // Simple circle - no gradients, no labels unless zoomed
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+              ctx.fillStyle = nodeColor;
+              ctx.fill();
+              
+              // Only show label when zoomed in significantly (globalScale > 2)
+              if (globalScale > 2) {
+                ctx.font = '8px Sans-Serif';
+                ctx.fillStyle = '#00f0ff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.name, node.x, node.y + nodeSize + 8);
+              }
+              return;
+            }
+            
+            // PERFORMANCE: Simplified rendering for large graphs (300-1000 nodes)
+            if (nodeCount > 300) {
+              const nodeColor = node.group === 'passive' ? '#8b5cf6' 
+                : node.group === 'online' ? '#00ff41' 
+                : node.group === 'offline' ? '#ff0040' 
+                : node.group === 'l2-device' ? '#ff9900'
+                : '#8b5cf6';
+              const nodeSize = getNodeSize(node.id, 5);
+              
+              // Simple filled circle with border
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+              ctx.fillStyle = nodeColor + (node.group === 'passive' ? '80' : 'cc');
+              ctx.fill();
+              ctx.strokeStyle = nodeColor;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              
+              // Show labels only when zoomed (globalScale > 1.2)
+              if (globalScale > 1.2) {
+                const fontSize = Math.max(6, 8 * Math.min(1, globalScale * 0.7));
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.fillStyle = '#00f0ff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.name, node.x, node.y + nodeSize + 8);
+              }
+              return;
+            }
+            
+            // Standard rendering for smaller graphs (<300 nodes)
             const label = node.name;
             // Scale font with zoom AND node count - smaller when many nodes or zoomed out
-            const nodeCount = graphData.nodes.length;
             const baseFontSize = nodeCount > 50 ? 8 : nodeCount > 20 ? 10 : 12;
             const fontSize = Math.max(6, baseFontSize * Math.min(1, globalScale * 0.8));
             ctx.font = `${fontSize}px Sans-Serif`;
@@ -2852,20 +2938,21 @@ const Topology: React.FC = () => {
               ctx.shadowBlur = 0;
               ctx.globalAlpha = 1.0;
             } else if (dimLabels) {
-              // Very dim for crowded view or dimmed nodes - but still visible
-              ctx.fillStyle = isDimmed ? '#1a2a30' : '#2a3a40';
+              // Very dim for crowded view or dimmed nodes - dim cyan tint
+              ctx.fillStyle = isDimmed ? '#0a4a50' : '#00808a';
               ctx.shadowBlur = 0;
               const labelOffset = 12;
               ctx.fillText(label, node.x, node.y + labelOffset);
             } else {
-              // Normal label - brightness synced with node traffic intensity
-              // Convert intensity (0.3-1.0) to hex brightness for label color
-              const labelBrightness = Math.floor(0x46 + (nodeIntensity * 0x30)).toString(16).padStart(2, '0');
-              ctx.fillStyle = `#${labelBrightness}${labelBrightness}${labelBrightness}`;
-              ctx.globalAlpha = Math.max(0.4, nodeIntensity);
-              ctx.shadowBlur = 0;
+              // Normal label - cyberpunk cyan with traffic intensity
+              const intensity = Math.max(0.4, nodeIntensity);
+              ctx.fillStyle = '#00f0ff';
+              ctx.globalAlpha = intensity;
+              ctx.shadowBlur = 4 * nodeIntensity;
+              ctx.shadowColor = '#00f0ff';
               const labelOffset = 12;
               ctx.fillText(label, node.x, node.y + labelOffset);
+              ctx.shadowBlur = 0;
               ctx.globalAlpha = 1.0;
             }
             ctx.shadowBlur = 0;

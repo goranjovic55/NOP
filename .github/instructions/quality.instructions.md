@@ -72,3 +72,5 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | API | Non-existent /api/v1/discovery/ | Use /api/v1/traffic/l2/topology for L2 data |
 | API | Health at /health not /api/v1/health | Use root /health endpoint |
 | Testing | API response field names vary | Check actual response structure before asserting |
+| Edit | Multi-replace overlapping matches | Use separate replace operations for distinct sections |
+| Topology | Performance modes override styles | Update color in ALL branches (>300, >1000 nodes) |

@@ -107,6 +107,36 @@ export const useTopologyStore = create<TopologyState>()(
         // Auto mode - detect based on graph size
         const isLarge = nodeCount > 100 || linkCount > 200;
         const isVeryLarge = nodeCount > 300 || linkCount > 500;
+        const isExtreme = nodeCount > 1000 || linkCount > 2000;
+        const isMassive = nodeCount > 5000 || linkCount > 10000;
+        
+        // Massive graph (10k+ assets) - minimal rendering
+        if (isMassive) {
+          return {
+            particleMultiplier: 0,
+            cooldownTicks: 20,
+            warmupTicks: 10,
+            cooldownTime: 1500,
+            labelThreshold: 2.5, // Only show labels when zoomed in
+            simplifiedRendering: true,
+            nodeResolution: 4, // Low resolution circles
+            skipLinkLabels: true,
+          };
+        }
+        
+        // Extreme graph (1k+ assets) - very reduced
+        if (isExtreme) {
+          return {
+            particleMultiplier: 0,
+            cooldownTicks: 30,
+            warmupTicks: 15,
+            cooldownTime: 2000,
+            labelThreshold: 2,
+            simplifiedRendering: true,
+            nodeResolution: 6,
+            skipLinkLabels: true,
+          };
+        }
         
         if (isVeryLarge) {
           return {
@@ -114,6 +144,10 @@ export const useTopologyStore = create<TopologyState>()(
             cooldownTicks: 50,
             warmupTicks: 20,
             cooldownTime: 3000,
+            labelThreshold: 1.5,
+            simplifiedRendering: false,
+            nodeResolution: 8,
+            skipLinkLabels: false,
           };
         }
         
@@ -123,6 +157,10 @@ export const useTopologyStore = create<TopologyState>()(
             cooldownTicks: 100,
             warmupTicks: 50,
             cooldownTime: 5000,
+            labelThreshold: 1,
+            simplifiedRendering: false,
+            nodeResolution: 16,
+            skipLinkLabels: false,
           };
         }
         
@@ -132,6 +170,10 @@ export const useTopologyStore = create<TopologyState>()(
           cooldownTicks: settings.cooldownTicks,
           warmupTicks: settings.warmupTicks,
           cooldownTime: settings.cooldownTime,
+          labelThreshold: 0,
+          simplifiedRendering: false,
+          nodeResolution: 16,
+          skipLinkLabels: false,
         };
       },
     }),

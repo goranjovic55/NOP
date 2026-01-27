@@ -590,7 +590,19 @@ const Assets: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-cyber-gray">
               {loading && assets.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-4 text-center text-cyber-gray-light">Loading assets...</td></tr>
+                // Skeleton loading rows
+                [...Array(10)].map((_, i) => (
+                  <tr key={`skeleton-${i}`} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 w-32 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-28 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-20 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-cyber-gray/30 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-40 bg-cyber-gray/30 rounded" /></td>
+                  </tr>
+                ))
               ) : filteredAndSortedAssets.length === 0 && !error ? (
                 <tr><td colSpan={9} className="px-6 py-4 text-center text-cyber-gray-light">No assets found.</td></tr>
               ) : (

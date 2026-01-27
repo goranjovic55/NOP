@@ -180,10 +180,45 @@ const Dashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, activeAgent]);
 
+  // Show skeleton while loading (progressive reveal)
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-cyber-green font-mono text-sm animate-pulse">&gt; Loading dashboard...</div>
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* Skeleton: TOP ROW - 3 stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-cyber-dark border border-cyber-gray rounded p-4">
+              <div className="h-3 w-24 bg-cyber-gray/30 rounded mb-2 animate-pulse" />
+              <div className="h-8 w-20 bg-cyber-gray/30 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton: SECOND ROW - 2 charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-cyber-dark border border-cyber-gray rounded p-6 h-56">
+            <div className="h-4 w-32 bg-cyber-gray/30 rounded mb-4 animate-pulse" />
+            <div className="h-32 bg-cyber-gray/20 rounded animate-pulse" />
+          </div>
+          <div className="bg-cyber-dark border border-cyber-gray rounded p-6 h-56">
+            <div className="h-4 w-32 bg-cyber-gray/30 rounded mb-4 animate-pulse" />
+            <div className="h-32 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-cyber-gray/20 animate-pulse" />
+            </div>
+          </div>
+        </div>
+        {/* Skeleton: THIRD ROW - 3 panels */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-cyber-dark border border-cyber-gray rounded p-4 h-28">
+              <div className="h-4 w-40 bg-cyber-gray/30 rounded mb-3 animate-pulse" />
+              <div className="space-y-2">
+                {[1, 2, 3].map(j => (
+                  <div key={j} className="h-3 bg-cyber-gray/20 rounded animate-pulse" style={{ width: `${90 - j * 10}%` }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

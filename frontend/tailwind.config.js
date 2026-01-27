@@ -58,6 +58,8 @@ module.exports = {
       animation: {
         'pulse-cyber': 'pulse-cyber 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'shimmer': 'shimmer 1.5s infinite',
+        'fade-in': 'fadeIn 0.3s ease-out',
       },
       keyframes: {
         'pulse-cyber': {
@@ -77,6 +79,14 @@ module.exports = {
           'to': {
             textShadow: '0 0 20px rgba(255, 0, 64, 0.8), 0 0 30px rgba(255, 0, 64, 0.6)',
           },
+        },
+        'shimmer': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'fadeIn': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
     },

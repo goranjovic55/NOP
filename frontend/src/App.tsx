@@ -1,27 +1,32 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { POVProvider } from './context/POVContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
-import Dashboard from './pages/Dashboard';
-import Assets from './pages/Assets';
-import Topology from './pages/Topology';
-import Traffic from './pages/Traffic';
-import Scans from './pages/Scans';
-import Access from './pages/Access';
-import Host from './pages/Host';
-import WorkflowBuilder from './pages/WorkflowBuilder';
-import Settings from './pages/Settings';
-import Agents from './pages/Agents';
 import Login from './pages/Login';
 import { useAuthStore } from './store/authStore';
+import { PageLoadingFallback } from './components/LoadingSkeleton';
+
+// Lazy load heavy pages for faster initial load
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Assets = lazy(() => import('./pages/Assets'));
+const Topology = lazy(() => import('./pages/Topology'));
+const Traffic = lazy(() => import('./pages/Traffic'));
+const Scans = lazy(() => import('./pages/Scans'));
+const Access = lazy(() => import('./pages/Access'));
+const Host = lazy(() => import('./pages/Host'));
+const WorkflowBuilder = lazy(() => import('./pages/WorkflowBuilder'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Agents = lazy(() => import('./pages/Agents'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 30 * 1000, // 30 seconds - data considered fresh
+      gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
     },
   },
 });
@@ -41,20 +46,22 @@ function App() {
               </Routes>
             ) : (
               <Layout>
-                <Routes>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/topology" element={<Topology />} />
-                  <Route path="/traffic" element={<Traffic />} />
-                  <Route path="/scans" element={<Scans />} />
-                  <Route path="/access" element={<Access />} />
-                  <Route path="/host" element={<Host />} />
-                  <Route path="/flows" element={<ErrorBoundary><WorkflowBuilder /></ErrorBoundary>} />
-                  <Route path="/agents" element={<Agents />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
+                <Suspense fallback={<PageLoadingFallback message="Loading page..." />}>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/assets" element={<Assets />} />
+                    <Route path="/topology" element={<Topology />} />
+                    <Route path="/traffic" element={<Traffic />} />
+                    <Route path="/scans" element={<Scans />} />
+                    <Route path="/access" element={<Access />} />
+                    <Route path="/host" element={<Host />} />
+                    <Route path="/flows" element={<ErrorBoundary><WorkflowBuilder /></ErrorBoundary>} />
+                    <Route path="/agents" element={<Agents />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </Suspense>
               </Layout>
             )}
           </div>
