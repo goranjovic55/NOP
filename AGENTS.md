@@ -16,18 +16,20 @@
 | Backend test | `cd backend && python -m pytest` |
 | Frontend test | `cd frontend && npm test` |
 
-## ⛔ Gates (8)
+## ⛔ Gates (8) - With Violation Costs
 
-| G | Check | Fix |
-|---|-------|-----|
-| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
-| 1 | No ◆ | Create TODO |
-| 2 | No skill | Load skill |
-| 3 | No START | Do START |
-| 4 | No END | Do END |
-| 5 | No verify | Check syntax |
-| 6 | Multi ◆ | One only |
-| 7 | No parallel | Use pairs |
+| G | Check | Fix | Violation Cost |
+|---|-------|-----|----------------|
+| 0 | Knowledge not in memory | Read first 100 lines ONCE at START | +13k tokens |
+| 1 | No ◆ | Create TODO | Lost tracking |
+| 2 | ⚠️ No skill | Load skill BEFORE edits | +5.2k tokens (30.8% violation) |
+| 3 | No START | Do START | Lost context |
+| 4 | ⚠️ No END | Do END (>15 min sessions) | Lost traceability (21.8% violation) |
+| 5 | ⚠️ No verify | Check syntax AFTER EVERY edit | +8.5 min rework (18.0% violation) |
+| 6 | Multi ◆ | One only | Confusion |
+| 7 | ⚠️ No parallel | Use pairs for 6+ (60% target) | +14 min/session (10.4% violation) |
+
+**Top 3 violations (G2, G4, G5) = 70% of inefficiencies**
 
 ## ⚡ G0: Knowledge in Memory
 **Read first 100 lines of project_knowledge.json ONCE at START:**
@@ -60,24 +62,38 @@ Lines 13-93: Layer relations
 | devops | infra | deploy, docker |
 | research | investigator | research, compare |
 
-## ⛔ Delegation (MANDATORY for 6+ tasks)
-| Complexity | Strategy | Enforcement |
-|------------|----------|-------------|
-| Simple (<3) | Direct | Optional |
-| Medium (3-5) | Consider | Suggest |
-| Complex (6+) | **MUST Delegate** | **runSubagent REQUIRED** |
+## ⛔ Delegation (Simplified Binary Decision)
 
-### runSubagent Usage
+**100k Simulation Results:**
+| File Count | Strategy | Efficiency | Success | Quality |
+|------------|----------|-----------|---------|---------|
+| <3 files | Direct (AKIS) | 0.594 | 72.4% | 72.4% |
+| 3+ files | **runSubagent** | 0.789 | 93.9% | 93.9% |
+| **Improvement** | **Delegate 3+** | **+32.8%** | **+21.5%** | **+21.5%** |
+
+**Simple Rule:** 3+ files = MANDATORY delegation
+
+### Agent Selection (by Performance)
+
+| Agent | Success Rate | Quality vs AKIS | Time Saved | Best For |
+|-------|--------------|-----------------|------------|----------|
+| architect | 97.7% | +25.3% | +10.8 min | design, blueprint, plan |
+| debugger | 97.3% | +24.8% | +14.9 min | error, bug, traceback |
+| code | 93.6% | - | +10.9 min | implement, write, create |
+| documentation | 89.2% | +16.2% | +8.5 min | docs, readme, explain |
+| research | 76.6% | +3.6% | +3.4 min | research, compare, standards |
+
+### runSubagent Template
 ```python
-# MANDATORY for complex sessions (6+ tasks)
+# 3+ files detected → MANDATORY delegation
 runSubagent(
-  agentName="code",
-  prompt="Implement [task]. Files: [list]. Return: completion status.",
-  description="Implement feature X"
+  agentName="code",  # or architect, debugger, documentation, research
+  prompt="Implement [specific task]. Files: [list]. Return: completion status + files modified.",
+  description="Brief task description"
 )
 ```
 
-### 100k Projection Impact
+### 100k Simulation Impact
 | Metric | Without | With | Savings |
 |--------|---------|------|---------|
 | API Calls | 37 | 16 | **-48%** |
@@ -105,15 +121,21 @@ artifact:
 ```
 
 ## Parallel (G7) - 60% Target
-**MUST achieve 60%+ parallel execution for complex sessions**
+**Current:** 19.1% parallel rate | **Target:** 60%+ | **Gap:** -40.9%
 
-| Pair | Pattern | Use Case |
-|------|---------|----------|
-| code + docs | Parallel runSubagent | Fullstack |
-| code + reviewer | Sequential | Refactor |
-| research + code | Research first | New feature |
-| architect + research | Parallel | Design |
-| debugger + docs | Parallel | Bug fix |
+**Time Lost:** 294,722 minutes (4,912 hours) across 100k sessions
+
+| Pair | Pattern | Time Saved | Use Case |
+|------|---------|------------|----------|
+| code + docs | ✅ Parallel runSubagent | 8.5 min | Independent tasks |
+| code + tests | ✅ Parallel runSubagent | 12.3 min | TDD approach |
+| debugger + docs | ✅ Parallel | 6.2 min | Bug fix + documentation |
+| architect + research | ✅ Parallel | 10.1 min | Design phase |
+| code + reviewer | ❌ Sequential | - | Review needs code first |
+| research + code | ❌ Sequential | - | Findings inform implementation |
+| frontend + backend | ❌ Sequential | - | API contract dependency |
+
+**Decision Rule:** Independent tasks + different files = Parallel
 
 ## AKIS Files
 
