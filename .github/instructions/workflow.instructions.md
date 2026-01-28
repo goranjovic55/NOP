@@ -1,17 +1,46 @@
 ---
 applyTo: '**'
-description: 'Workflow details: END phase, log format, fullstack coordination.'
+description: 'Workflow details: END phase triggers, log format, verification helpers.'
 ---
 
 # Workflow Details
 
-> Core workflow in copilot-instructions.md. This file: END details + log format.
+> Core workflow in copilot-instructions.md. This file: END details + verification + log format.
+
+## G5: Verification After Edits
+
+**After EVERY edit, verify syntax:**
+
+| File Type | Verification Command |
+|-----------|---------------------|
+| .py | `python -m py_compile {file}` |
+| .ts .tsx | `npx tsc --noEmit {file}` |
+| .json | `python -c "import json; json.load(open('{file}'))"` |
+| .yml .yaml | `python -c "import yaml; yaml.safe_load(open('{file}'))"` |
+| .md | Visual check only |
+
+**Batch verification:**
+```bash
+# Multiple Python files
+python -m py_compile file1.py && python -m py_compile file2.py
+```
+
+⚠️ **G5 violation costs +8.5 min rework** per error. Verify immediately after edit.
 
 ## END Phase (Detailed)
 
-**Step 1:** Close ⊘ orphans, verify all edits
+**Triggers (G4):**
+- Session duration >15 minutes
+- Keywords: "done", "complete", "finished", "ready to commit", "all tasks complete"
 
-**Step 2:** Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`
+**Step 1:** Close ⊘ orphans, verify all edits (G5)
+
+**Step 2:** Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md` (G4 - MANDATORY for >15 min)
+
+⚠️ **G4 compliance = 78.2%**. Improve to 95%+ by creating workflow log when:
+- Session >15 minutes
+- Bug fix with root cause identified
+- Complex task (6+ files modified)
 
 **Step 3:** Run scripts:
 ```bash

@@ -1,0 +1,316 @@
+{
+  "simulation_info": {
+    "total_sessions": 100000,
+    "timestamp": "2026-01-27T14:58:45.650425",
+    "patterns_used": {
+      "workflow_logs": 165,
+      "industry_patterns": 34,
+      "edge_cases": 21
+    }
+  },
+  "token_efficiency": {
+    "baseline_avg": 20172.03648,
+    "optimized_avg": 15120.99519,
+    "improvement": 0.25039818339650355,
+    "total_saved": 505104129,
+    "per_complexity": {
+      "simple": {
+        "baseline": 7809.35614139555,
+        "optimized": 5859.325122621678
+      },
+      "medium": {
+        "baseline": 13412.246523863208,
+        "optimized": 10049.446255924171
+      },
+      "complex": {
+        "baseline": 23640.98728429893,
+        "optimized": 17728.044832746942
+      }
+    },
+    "efficiency_score": 0.3951601924
+  },
+  "cognitive_load": {
+    "baseline_avg": 0.7912234999999999,
+    "optimized_avg": 0.6714516,
+    "improvement": 0.15137555949741108,
+    "high_load_sessions": 76676,
+    "contributing_factors": {
+      "high_task_count": 76205,
+      "many_skills": 0,
+      "many_deviations": 30311,
+      "edge_cases": 11334
+    },
+    "per_complexity": {
+      "simple": {
+        "baseline": 0.32323607427055706,
+        "optimized": 0.20502668032124186
+      },
+      "medium": {
+        "baseline": 0.5842408868846298,
+        "optimized": 0.46350900473933654
+      },
+      "complex": {
+        "baseline": 0.9191244668984974,
+        "optimized": 0.7994576747361234
+      }
+    },
+    "efficiency_score": 0.32854839999999996
+  },
+  "traceability": {
+    "baseline_avg": 0.8340333333333333,
+    "optimized_avg": 0.8886075,
+    "improvement": 0.06543403541025543,
+    "workflow_log_rate": 0.78162,
+    "todo_tracking_rate": 0.90264,
+    "skill_documentation_rate": 0.69201,
+    "delegation_trace_rate": 0.7200030048641238,
+    "efficiency_score": 0.8886075
+  },
+  "discipline": {
+    "baseline_avg": 0.8083067222222221,
+    "optimized_avg": 0.8688141068376068,
+    "improvement": 0.07485696079458048,
+    "perfect_session_rate_baseline": 0.13738,
+    "perfect_session_rate_optimized": 0.25076,
+    "total_deviations_baseline": 194860,
+    "total_deviations_optimized": 156095,
+    "deviations_prevented": 38765,
+    "gate_compliance": {
+      "G1_todo": 0.90264,
+      "G2_skill": 0.69201,
+      "G3_start": 0.9206799999999999,
+      "G4_end": 0.78162,
+      "G5_verify": 0.8201700000000001,
+      "G6_single": 1.0,
+      "G7_parallel": 0.8962
+    },
+    "worst_gates": [
+      [
+        "G2_skill",
+        0.69201
+      ],
+      [
+        "G4_end",
+        0.78162
+      ],
+      [
+        "G5_verify",
+        0.8201700000000001
+      ]
+    ],
+    "efficiency_score": 0.8688141068376068
+  },
+  "efficiency": {
+    "baseline_api_calls": 37.3785,
+    "optimized_api_calls": 25.69968,
+    "api_reduction": 0.31244752999719094,
+    "total_api_saved": 1167882,
+    "baseline_composite": 0.5797263421824311,
+    "optimized_composite": 0.6620428576434216,
+    "composite_improvement": 0.14199202187553303,
+    "per_complexity": {
+      "simple": {
+        "baseline": 8.158501596925243,
+        "optimized": 5.239044898399181
+      },
+      "medium": {
+        "baseline": 19.484592258549416,
+        "optimized": 13.196777251184834
+      },
+      "complex": {
+        "baseline": 45.71144937996195,
+        "optimized": 31.549060022055347
+      }
+    },
+    "efficiency_score": 0.6620428576434216
+  },
+  "speed": {
+    "baseline_avg": 50.800293805208014,
+    "baseline_p50": 52.388348010074644,
+    "baseline_p95": 84.63916320774345,
+    "optimized_avg": 43.18157277845986,
+    "optimized_p50": 44.66481231265022,
+    "optimized_p95": 71.88089594614563,
+    "p50_improvement": 0.14742850253531825,
+    "baseline_parallel_time_saved": 268065.48417109903,
+    "optimized_parallel_time_saved": 562787.3311347226,
+    "per_complexity": {
+      "simple": {
+        "baseline": 22.76113008972928,
+        "optimized": 19.15377231910914
+      },
+      "medium": {
+        "baseline": 36.01896707446798,
+        "optimized": 30.562807853058565
+      },
+      "complex": {
+        "baseline": 58.62961855000214,
+        "optimized": 49.9078208342261
+      }
+    },
+    "efficiency_score": 0.25558646145582964
+  },
+  "resolution_rate": {
+    "baseline_rate": 0.86624,
+    "optimized_rate": 0.88693,
+    "improvement": 0.023884835611377893,
+    "additional_successes": 2069,
+    "with_delegation": 0.9036565440306497,
+    "without_delegation": 0.8236262913609822,
+    "per_complexity": {
+      "simple": {
+        "baseline": 0.9379635143181941,
+        "optimized": 0.9476095510160082
+      },
+      "medium": {
+        "baseline": 0.9006012777151446,
+        "optimized": 0.9126066350710901
+      },
+      "complex": {
+        "baseline": 0.846453644773965,
+        "optimized": 0.870372315286457
+      }
+    },
+    "efficiency_score": 0.88693
+  },
+  "gate_analysis": {
+    "violation_counts": {
+      "G1": 9736,
+      "G2": 30799,
+      "G3": 7932,
+      "G4": 21838,
+      "G5": 17983,
+      "G6": 0,
+      "G7": 10380
+    },
+    "violation_rates": {
+      "G1": 0.09736,
+      "G2": 0.30799,
+      "G3": 0.07932,
+      "G4": 0.21838,
+      "G5": 0.17983,
+      "G6": 0.0,
+      "G7": 0.1038
+    },
+    "compliance_rates": {
+      "G1": 0.90264,
+      "G2": 0.69201,
+      "G3": 0.9206799999999999,
+      "G4": 0.78162,
+      "G5": 0.8201700000000001,
+      "G6": 1.0,
+      "G7": 0.8962
+    },
+    "priority_order": [
+      [
+        "G2",
+        30799
+      ],
+      [
+        "G4",
+        21838
+      ],
+      [
+        "G5",
+        17983
+      ],
+      [
+        "G7",
+        10380
+      ],
+      [
+        "G1",
+        9736
+      ],
+      [
+        "G3",
+        7932
+      ],
+      [
+        "G6",
+        0
+      ]
+    ]
+  },
+  "recommendations": [
+    {
+      "deviation": "skip_skill_loading",
+      "rate": 0.30799,
+      "priority": "HIGH",
+      "action": "Add visual warning for low-compliance skills",
+      "gate": "G2"
+    },
+    {
+      "deviation": "skip_delegation_for_complex",
+      "rate": 0.22958,
+      "priority": "HIGH",
+      "action": "Add explicit file count threshold reminder",
+      "gate": "Delegation"
+    },
+    {
+      "deviation": "skip_workflow_log",
+      "rate": 0.21838,
+      "priority": "HIGH",
+      "action": "Add trigger word detection for session end",
+      "gate": "G4"
+    },
+    {
+      "deviation": "skip_verification",
+      "rate": 0.17983,
+      "priority": "MEDIUM",
+      "action": "Make verification part of edit cycle",
+      "gate": "G5"
+    },
+    {
+      "deviation": "skip_delegation_tracing",
+      "rate": 0.14909,
+      "priority": "MEDIUM",
+      "action": "Add explicit file count threshold reminder",
+      "gate": "Delegation"
+    },
+    {
+      "deviation": "incomplete_delegation_context",
+      "rate": 0.1169,
+      "priority": "MEDIUM",
+      "action": "Add explicit file count threshold reminder",
+      "gate": "Delegation"
+    },
+    {
+      "deviation": "skip_delegation_verification",
+      "rate": 0.10446,
+      "priority": "MEDIUM",
+      "action": "Make verification part of edit cycle",
+      "gate": "G5"
+    },
+    {
+      "deviation": "skip_parallel_for_complex",
+      "rate": 0.1038,
+      "priority": "MEDIUM",
+      "action": "Add parallel pair suggestions in TODO",
+      "gate": "G7"
+    },
+    {
+      "deviation": "incomplete_todo_tracking",
+      "rate": 0.09736,
+      "priority": "LOW",
+      "action": "Review and enforce protocol",
+      "gate": "General"
+    },
+    {
+      "deviation": "wrong_agent_selected",
+      "rate": 0.08108,
+      "priority": "LOW",
+      "action": "Review and enforce protocol",
+      "gate": "General"
+    }
+  ],
+  "summary": {
+    "token_efficiency_score": 0.3951601924,
+    "cognitive_load_score": 0.32854839999999996,
+    "traceability_score": 0.8886075,
+    "discipline_score": 0.8688141068376068,
+    "efficiency_score": 0.6620428576434216,
+    "speed_score": 0.25558646145582964,
+    "resolution_score": 0.88693
+  }
+}

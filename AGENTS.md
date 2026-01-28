@@ -18,16 +18,9 @@
 
 ## ⛔ Gates (8)
 
-| G | Check | Fix |
-|---|-------|-----|
-| 0 | Knowledge not in memory | Read first 100 lines ONCE at START |
-| 1 | No ◆ | Create TODO |
-| 2 | No skill | Load skill |
-| 3 | No START | Do START |
-| 4 | No END | Do END |
-| 5 | No verify | Check syntax |
-| 6 | Multi ◆ | One only |
-| 7 | No parallel | Use pairs |
+> See `.github/copilot-instructions.md` for full Gates table with violation costs.
+
+**Top 3 violations (G2, G4, G5) = 70% of inefficiencies**
 
 ## ⚡ G0: Knowledge in Memory
 **Read first 100 lines of project_knowledge.json ONCE at START:**
@@ -60,24 +53,23 @@ Lines 13-93: Layer relations
 | devops | infra | deploy, docker |
 | research | investigator | research, compare |
 
-## ⛔ Delegation (MANDATORY for 6+ tasks)
-| Complexity | Strategy | Enforcement |
-|------------|----------|-------------|
-| Simple (<3) | Direct | Optional |
-| Medium (3-5) | Consider | Suggest |
-| Complex (6+) | **MUST Delegate** | **runSubagent REQUIRED** |
+## ⛔ Delegation
 
-### runSubagent Usage
-```python
-# MANDATORY for complex sessions (6+ tasks)
-runSubagent(
-  agentName="code",
-  prompt="Implement [task]. Files: [list]. Return: completion status.",
-  description="Implement feature X"
-)
-```
+> See `.github/copilot-instructions.md` for delegation rules and agent selection.
 
-### 100k Projection Impact
+**Simple Rule:** 3+ files = MANDATORY delegation
+
+### Agent Selection (by Performance)
+
+| Agent | Success Rate | Quality vs AKIS | Time Saved | Best For |
+|-------|--------------|-----------------|------------|----------|
+| architect | 97.7% | +25.3% | +10.8 min | design, blueprint, plan |
+| debugger | 97.3% | +24.8% | +14.9 min | error, bug, traceback |
+| code | 93.6% | - | +10.9 min | implement, write, create |
+| documentation | 89.2% | +16.2% | +8.5 min | docs, readme, explain |
+| research | 76.6% | +3.6% | +3.4 min | research, compare, standards |
+
+### 100k Simulation Impact
 | Metric | Without | With | Savings |
 |--------|---------|------|---------|
 | API Calls | 37 | 16 | **-48%** |
@@ -105,15 +97,14 @@ artifact:
 ```
 
 ## Parallel (G7) - 60% Target
-**MUST achieve 60%+ parallel execution for complex sessions**
 
-| Pair | Pattern | Use Case |
-|------|---------|----------|
-| code + docs | Parallel runSubagent | Fullstack |
-| code + reviewer | Sequential | Refactor |
-| research + code | Research first | New feature |
-| architect + research | Parallel | Design |
-| debugger + docs | Parallel | Bug fix |
+> See `.github/copilot-instructions.md` for parallel execution patterns.
+
+**Current:** 19.1% parallel rate | **Target:** 60%+ | **Gap:** -40.9%
+
+**Time Lost:** 294,722 minutes (4,912 hours) across 100k sessions
+
+**Decision Rule:** Independent tasks + different files = Parallel
 
 ## AKIS Files
 

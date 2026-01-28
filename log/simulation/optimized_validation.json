@@ -1,0 +1,30 @@
+{
+  "baseline": {
+    "avg_token_usage": 20172.03648,
+    "avg_api_calls": 37.3785,
+    "p50_resolution_time": 52.388348010074644,
+    "success_rate": 0.86624,
+    "avg_discipline": 0.8083067222222221,
+    "avg_cognitive_load": 0.7912234999999999
+  },
+  "optimized": {
+    "avg_token_usage": 20083.30663,
+    "avg_api_calls": 37.37486,
+    "p50_resolution_time": 52.35531043166371,
+    "success_rate": 0.86582,
+    "avg_discipline": 0.8053051068376069,
+    "avg_cognitive_load": 0.7932404
+  },
+  "improvements": {
+    "token_reduction_pct": 0.4398656034950802,
+    "speed_improvement_pct": 0.06306283680596346,
+    "success_improvement_pct": -0.041999999999997595,
+    "discipline_improvement_pct": -0.3001615384615186
+  },
+  "targets_met": {
+    "Token Reduction (-20%)": false,
+    "Speed Improvement (-10%)": false,
+    "Success Rate (+5%)": false,
+    "Discipline (+7.5%)": false
+  }
+}
