@@ -38,6 +38,10 @@ class SnifferService:
     RESPONSE_HEX_MAX_LENGTH = 200  # characters
     STORM_THREAD_STOP_TIMEOUT = 2.0  # seconds
     
+    # Informational notes for packet crafting
+    NOTE_TCP_SYN_NO_RESPONSE = "Note: SYN packets may not receive responses if the target port is filtered by a firewall, the host is down, or the service is not listening. This is normal behavior for many hosts, especially public IPs like DNS servers (e.g., 8.8.8.8) which only respond to DNS queries on port 53."
+    NOTE_UDP_NO_RESPONSE = "Note: UDP is connectionless. No response may indicate the port is open but the service doesn't respond to empty packets, or the port is filtered by a firewall."
+    
     def __init__(self):
         self.is_sniffing = False
         self.capture_thread: Optional[threading.Thread] = None
@@ -1973,6 +1977,7 @@ class SnifferService:
             
             # Send the packet(s)
             trace.append("Sending packet...")
+            trace.append(f"Packet summary: {packet.summary()}")
             start_time = time.time()
             
             # For continuous or multi-packet sending
@@ -2069,7 +2074,15 @@ class SnifferService:
                     }
                 else:
                     trace.append(f"No response received (timeout: {self.PACKET_SEND_TIMEOUT}s)")
-                    return {
+                    
+                    # Add helpful note about why there might be no response
+                    note = None
+                    if protocol == "TCP" and flags and "SYN" in flags:
+                        note = self.NOTE_TCP_SYN_NO_RESPONSE
+                    elif protocol == "UDP":
+                        note = self.NOTE_UDP_NO_RESPONSE
+                    
+                    result = {
                         "success": True,
                         "sent_packet": {
                             "protocol": protocol,
@@ -2081,6 +2094,12 @@ class SnifferService:
                         "response": None,
                         "trace": trace
                     }
+                    
+                    if note:
+                        result["note"] = note
+                        trace.append(note)
+                    
+                    return result
                     
             except Exception as send_err:
                 trace.append(f"Error during send: {str(send_err)}")
