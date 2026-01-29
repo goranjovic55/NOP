@@ -23,8 +23,7 @@
 |-----------|-------|------------|
 | auth jwt login token | authentication | 95% |
 | performance optimization cache | performance | 95% |
-| monitoring metrics logging | monitoring | 85% |
-| websocket real-time realtime | websocket-realtime | 70% |
+| monitoring metrics logging | monitoring | 85% || zustand store state management | state-management | 80% || websocket real-time realtime | websocket-realtime | 70% |
 | locale language i18n intl | internationalization | 70% |
 
 ⭐ Pre-load for fullstack (65.6% of sessions)

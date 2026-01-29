@@ -105,7 +105,13 @@ artifact:
 **Time Lost:** 294,722 minutes (4,912 hours) across 100k sessions
 
 **Decision Rule:** Independent tasks + different files = Parallel
+## Optimizations
 
+| Optimization | Benefit | Status |
+|--------------|---------|--------|
+| Documentation pre-loading | Faster context | Suggested |
+| Test-aware mode | Better debugging | Suggested |
+| Operation batching | -20% tokens | Suggested |
 ## AKIS Files
 
 | File | Purpose |

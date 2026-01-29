@@ -976,6 +976,26 @@ const Topology: React.FC = () => {
       await assetService.syncFromTraffic(token, activeAgent?.id);
       const assetsPromise = assetService.getAssets(token, undefined, activeAgent?.id);
       
+      // Fetch L2 data if L2 layer is active - ensures L2 and L3 are synchronized
+      // This fetches L2 data inside fetchData so it arrives at the same time as L3 data
+      let currentL2Data: L2Topology | null = l2Data;
+      if (activeLayers.has('L2')) {
+        try {
+          const [l2Topology, patterns, buses] = await Promise.all([
+            l2Service.getL2Topology(token),
+            patternService.getFlowPatterns(token),
+            patternService.getMulticastBusTopology(token)
+          ]);
+          currentL2Data = l2Topology;
+          setL2Data(l2Topology);
+          setFlowPatterns(patterns.patterns || {});
+          setBusGroups(buses.bus_groups || {});
+        } catch (error) {
+          console.warn('Failed to fetch L2 data:', error);
+          currentL2Data = null;
+        }
+      }
+      
       // Capture strategy:
       // - Auto-refresh enabled: Short 1s capture to detect new traffic and update colors
       // - Play mode enabled: Slightly longer capture for better animation data
@@ -1128,8 +1148,8 @@ const Topology: React.FC = () => {
       // Build MAC to L2 entity mapping for merging
       const macToL2Entity = new Map<string, any>();
       const ipToMac = new Map<string, string>();
-      if (l2Data) {
-        l2Data.entities.forEach((entity: any) => {
+      if (currentL2Data) {
+        currentL2Data.entities.forEach((entity: any) => {
           macToL2Entity.set(entity.mac, entity);
           // Build IP to MAC mapping from L2 entities
           entity.ips.forEach((ip: string) => {
@@ -1187,9 +1207,9 @@ const Topology: React.FC = () => {
       });
 
       // Process L2 entities when L2 layer is active
-      if (activeLayers.has('L2') && l2Data) {
+      if (activeLayers.has('L2') && currentL2Data) {
         // Add L2 entities as nodes (MAC-based) only if not already merged with asset
-        l2Data.entities.forEach((entity: any) => {
+        currentL2Data.entities.forEach((entity: any) => {
           // Skip if this entity doesn't match the filter
           if (!shouldIncludeL2Entity(entity)) return;
           
@@ -1261,8 +1281,8 @@ const Topology: React.FC = () => {
         });
         
         // Add ring topology nodes for visualization
-        if (l2Data.ring_topologies) {
-          l2Data.ring_topologies.forEach(ring => {
+        if (currentL2Data.ring_topologies) {
+          currentL2Data.ring_topologies.forEach(ring => {
             if (ring.members.length >= 2) {
               // Create virtual ring hub node for visualization
               const ringNodeId = `ring:${ring.ring_id}`;
@@ -1287,7 +1307,7 @@ const Topology: React.FC = () => {
         }
         
         // Add multicast groups as virtual nodes (for bus topology)
-        l2Data.multicast_groups.forEach(group => {
+        currentL2Data.multicast_groups.forEach(group => {
           if (group.source_count >= 2) {
             // This looks like a bus - multiple sources to same multicast
             nodesMap.set(group.group_mac, {
@@ -1442,16 +1462,17 @@ const Topology: React.FC = () => {
       });
       
       // Add L2 connections when L2 layer is active
-      if (activeLayers.has('L2') && l2Data) {
-        l2Data.connections.forEach(l2conn => {
+      if (activeLayers.has('L2') && currentL2Data) {
+        const l2DataSnapshot = currentL2Data; // Local binding for type narrowing
+        l2DataSnapshot.connections.forEach(l2conn => {
           // Check if both endpoints exist in the graph
           // Try to map MAC to IP if the IP node exists
           let sourceNode = l2conn.src_mac;
           let targetNode = l2conn.dst_mac;
           
           // Try to find IP nodes that correspond to these MACs
-          const srcEntity = l2Data.entities.find(e => e.mac === l2conn.src_mac);
-          const dstEntity = l2Data.entities.find(e => e.mac === l2conn.dst_mac);
+          const srcEntity = l2DataSnapshot.entities.find(e => e.mac === l2conn.src_mac);
+          const dstEntity = l2DataSnapshot.entities.find(e => e.mac === l2conn.dst_mac);
           
           if (srcEntity?.ips.length) {
             const mappedIp = srcEntity.ips.find(ip => nodesMap.has(ip));
@@ -1501,13 +1522,13 @@ const Topology: React.FC = () => {
         });
         
         // Add links from sources to multicast bus nodes
-        l2Data.multicast_groups.forEach(group => {
+        l2DataSnapshot.multicast_groups.forEach(group => {
           if (!nodesMap.has(group.group_mac)) return;
           
           group.sources.forEach(srcMac => {
             // Find source node (MAC or IP)
             let sourceNode = srcMac;
-            const srcEntity = l2Data.entities.find(e => e.mac === srcMac);
+            const srcEntity = l2DataSnapshot.entities.find(e => e.mac === srcMac);
             if (srcEntity?.ips.length) {
               const mappedIp = srcEntity.ips.find(ip => nodesMap.has(ip));
               if (mappedIp) sourceNode = mappedIp;
@@ -1532,15 +1553,15 @@ const Topology: React.FC = () => {
         });
         
         // Add ring topology connections
-        if (l2Data.ring_topologies) {
-          l2Data.ring_topologies.forEach(ring => {
+        if (l2DataSnapshot.ring_topologies) {
+          l2DataSnapshot.ring_topologies.forEach(ring => {
             const ringNodeId = `ring:${ring.ring_id}`;
             if (!nodesMap.has(ringNodeId) || ring.members.length < 2) return;
             
             // Connect all ring members to the ring hub
             ring.members.forEach(memberMac => {
               let memberNode = memberMac;
-              const memberEntity = l2Data.entities.find(e => e.mac === memberMac);
+              const memberEntity = l2DataSnapshot.entities.find(e => e.mac === memberMac);
               if (memberEntity?.ips.length) {
                 const mappedIp = memberEntity.ips.find(ip => nodesMap.has(ip));
                 if (mappedIp) memberNode = mappedIp;
@@ -1566,15 +1587,15 @@ const Topology: React.FC = () => {
         }
         
         // Add STP bridge connections to show tree topology
-        if (l2Data.stp_bridges && l2Data.stp_bridges.length > 0) {
+        if (l2DataSnapshot.stp_bridges && l2DataSnapshot.stp_bridges.length > 0) {
           // Find root bridge
-          const rootBridge = l2Data.stp_bridges.find(b => b.is_root);
+          const rootBridge = l2DataSnapshot.stp_bridges.find(b => b.is_root);
           if (rootBridge) {
             // Connect non-root bridges to their root path
-            l2Data.stp_bridges.filter(b => !b.is_root).forEach(bridge => {
+            l2DataSnapshot.stp_bridges.filter(b => !b.is_root).forEach(bridge => {
               // Find the node for this bridge
               let bridgeNode = bridge.bridge_mac;
-              const bridgeEntity = l2Data.entities.find(e => e.mac === bridge.bridge_mac);
+              const bridgeEntity = l2DataSnapshot.entities.find(e => e.mac === bridge.bridge_mac);
               if (bridgeEntity?.ips.length) {
                 const mappedIp = bridgeEntity.ips.find(ip => nodesMap.has(ip));
                 if (mappedIp) bridgeNode = mappedIp;
@@ -1582,7 +1603,7 @@ const Topology: React.FC = () => {
               
               // Find root node
               let rootNode = rootBridge.bridge_mac;
-              const rootEntity = l2Data.entities.find(e => e.mac === rootBridge.bridge_mac);
+              const rootEntity = l2DataSnapshot.entities.find(e => e.mac === rootBridge.bridge_mac);
               if (rootEntity?.ips.length) {
                 const mappedIp = rootEntity.ips.find(ip => nodesMap.has(ip));
                 if (mappedIp) rootNode = mappedIp;
@@ -1708,6 +1729,44 @@ const Topology: React.FC = () => {
         }
       });
       
+      // Detect NEW nodes without saved positions and trigger reorganization
+      // This ensures new assets discovered during auto-refresh get properly positioned
+      const newNodesCount = filteredNodes.filter(node => !nodePositionsRef.current.has(node.id)).length;
+      if (newNodesCount > 0 && simulationCompleteRef.current) {
+        // New nodes detected - assign them initial positions near existing nodes
+        // and trigger a short simulation to reorganize
+        const existingPositions = Array.from(nodePositionsRef.current.values());
+        let centerX = 0, centerY = 0;
+        
+        if (existingPositions.length > 0) {
+          // Calculate center of existing nodes
+          existingPositions.forEach(pos => {
+            centerX += pos.x || 0;
+            centerY += pos.y || 0;
+          });
+          centerX /= existingPositions.length;
+          centerY /= existingPositions.length;
+        }
+        
+        // Assign new nodes positions around the center with some randomness
+        filteredNodes.forEach(node => {
+          if (!nodePositionsRef.current.has(node.id)) {
+            // Position new nodes in a ring around center
+            const angle = Math.random() * 2 * Math.PI;
+            const radius = 100 + Math.random() * 100; // 100-200 units from center
+            node.x = centerX + radius * Math.cos(angle);
+            node.y = centerY + radius * Math.sin(angle);
+            // Don't set fx/fy so simulation can adjust them
+            node.fx = undefined;
+            node.fy = undefined;
+          }
+        });
+        
+        // Reset simulation flag to trigger reorganization
+        simulationCompleteRef.current = false;
+        console.log(`[Topology] ${newNodesCount} new nodes detected, triggering reorganization`);
+      }
+      
       // Mark initial load complete (simulation tracking is separate)
       if (isInitialLoadRef.current && filteredNodes.length > 0) {
         isInitialLoadRef.current = false;
@@ -1725,10 +1784,11 @@ const Topology: React.FC = () => {
   }, [token, filterMode, discoverySubnet, ipFilter, portFilter, linkSpeedFilter, activeAgent, isPlaying, refreshRate, mergeConnections, trafficThreshold, selectedInterface, activeLayers, l2Data, deviceTypeFilter, deviceStatusFilter]);
 
   useEffect(() => {
-    // Initial load - run simulation
+    // Initial load - run simulation when token becomes available
+    if (!token) return;
     fetchData(false, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [token]); // Run when token becomes available
   
   // Re-fetch when filters change - run new simulation since graph structure changes
   useEffect(() => {

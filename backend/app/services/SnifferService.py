@@ -32,6 +32,57 @@ from app.services.mac_vendor_service import mac_vendor_service
 
 logger = logging.getLogger(__name__)
 
+
+def _decode_scapy_field(value) -> str:
+    """Decode scapy field values - handles bytes, str, and other types.
+    
+    Scapy often returns bytes objects for protocol fields like LLDP system_name,
+    CDP device_id, etc. This helper properly decodes them to strings.
+    
+    For bytes that look like IP addresses (4 bytes), it converts to dotted notation.
+    For other bytes, it attempts UTF-8 decoding with fallback to latin-1.
+    """
+    if value is None:
+        return None
+    
+    if isinstance(value, bytes):
+        # Check if it's a 4-byte IP address
+        if len(value) == 4:
+            try:
+                return socket.inet_ntoa(value)
+            except Exception:
+                pass
+        
+        # Try UTF-8 decoding first
+        try:
+            return value.decode('utf-8').strip('\x00')
+        except UnicodeDecodeError:
+            # Fall back to latin-1 which can decode any byte sequence
+            try:
+                return value.decode('latin-1').strip('\x00')
+            except Exception:
+                return value.hex()
+    
+    if isinstance(value, str):
+        # Already a string, but check if it looks like a bytes representation
+        # e.g., "b'EAGLE'" or "b'\\xc0\\xa8\\x01\\x9d'"
+        if value.startswith("b'") and value.endswith("'"):
+            inner = value[2:-1]
+            # Try to evaluate the escape sequences
+            try:
+                # Handle escape sequences like \xc0\xa8\x01\x9d
+                decoded_bytes = inner.encode('latin-1').decode('unicode_escape').encode('latin-1')
+                if len(decoded_bytes) == 4:
+                    return socket.inet_ntoa(decoded_bytes)
+                return decoded_bytes.decode('utf-8', errors='replace').strip('\x00')
+            except Exception:
+                return inner  # Return inner content without b''
+        return value.strip('\x00')
+    
+    # For other types, convert to string
+    return str(value)
+
+
 class SnifferService:
     # Constants for packet crafting
     PACKET_SEND_TIMEOUT = 3  # seconds
@@ -622,16 +673,16 @@ class SnifferService:
                     layer_name = current_layer.__class__.__name__
                     
                     if 'ChassisID' in layer_name:
-                        lldp_info["chassis_id"] = str(current_layer.id) if hasattr(current_layer, 'id') else None
+                        lldp_info["chassis_id"] = _decode_scapy_field(current_layer.id) if hasattr(current_layer, 'id') else None
                     elif 'PortID' in layer_name:
-                        lldp_info["port_id"] = str(current_layer.id) if hasattr(current_layer, 'id') else None
+                        lldp_info["port_id"] = _decode_scapy_field(current_layer.id) if hasattr(current_layer, 'id') else None
                     elif 'SystemName' in layer_name:
-                        lldp_info["system_name"] = str(current_layer.system_name) if hasattr(current_layer, 'system_name') else None
+                        lldp_info["system_name"] = _decode_scapy_field(current_layer.system_name) if hasattr(current_layer, 'system_name') else None
                     elif 'SystemDescription' in layer_name:
-                        lldp_info["system_description"] = str(current_layer.description) if hasattr(current_layer, 'description') else None
+                        lldp_info["system_description"] = _decode_scapy_field(current_layer.description) if hasattr(current_layer, 'description') else None
                     elif 'ManagementAddress' in layer_name:
                         if hasattr(current_layer, 'management_address'):
-                            lldp_info["mgmt_ip"] = str(current_layer.management_address)
+                            lldp_info["mgmt_ip"] = _decode_scapy_field(current_layer.management_address)
                     elif 'SystemCapabilities' in layer_name:
                         if hasattr(current_layer, 'capabilities'):
                             caps = []
@@ -677,16 +728,16 @@ class SnifferService:
                         layer_name = current_layer.__class__.__name__
                         
                         if 'DeviceID' in layer_name:
-                            cdp_info["device_id"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                            cdp_info["device_id"] = _decode_scapy_field(current_layer.val) if hasattr(current_layer, 'val') else None
                         elif 'Platform' in layer_name:
-                            cdp_info["platform"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                            cdp_info["platform"] = _decode_scapy_field(current_layer.val) if hasattr(current_layer, 'val') else None
                         elif 'PortID' in layer_name:
-                            cdp_info["port_id"] = str(current_layer.iface) if hasattr(current_layer, 'iface') else None
+                            cdp_info["port_id"] = _decode_scapy_field(current_layer.iface) if hasattr(current_layer, 'iface') else None
                         elif 'Addr' in layer_name:
                             if hasattr(current_layer, 'addr'):
-                                cdp_info["ip"] = str(current_layer.addr)
+                                cdp_info["ip"] = _decode_scapy_field(current_layer.addr)
                         elif 'SoftwareVersion' in layer_name:
-                            cdp_info["software_version"] = str(current_layer.val) if hasattr(current_layer, 'val') else None
+                            cdp_info["software_version"] = _decode_scapy_field(current_layer.val) if hasattr(current_layer, 'val') else None
                         elif 'Capabilities' in layer_name:
                             if hasattr(current_layer, 'cap'):
                                 caps = []

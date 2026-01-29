@@ -78,3 +78,5 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | MAC | Docker/VM MAC prefixes | 02:42:xx=Docker, d2:xx/92:xx=VM, detect via 2nd digit |
 | Build | Frontend container old code | Rebuild via `docker-compose.dev.yml`, Ctrl+Shift+R |
 | Hostname | Fake host-x-x-x-x names | Set hostname=None, only use real DNS/DHCP hostnames |
+| TypeScript | Closure null narrowing fails | Use local binding `const snapshot = data` before callback |
+| React | Initial useEffect skips data fetch | Include `token` in deps, not empty `[]` |
