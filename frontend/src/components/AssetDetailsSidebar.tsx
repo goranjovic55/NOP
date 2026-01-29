@@ -168,6 +168,18 @@ const AssetDetailsSidebar: React.FC<AssetDetailsSidebarProps> = ({ asset, onClos
                   {activeScan ? 'Scan in Progress' : 'Detailed Scan'}
                 </span>
               </button>
+              
+              <button
+                onClick={() => {
+                  if (asset) {
+                    navigate(`/topology?highlight=${encodeURIComponent(asset.ip_address)}`);
+                    onClose();
+                  }
+                }}
+                className="w-full flex items-center justify-center space-x-2 btn-cyber py-3 border-cyber-green text-cyber-green hover:bg-cyber-green hover:text-white transition-all group"
+              >
+                <span className="font-bold uppercase tracking-widest">⬡ Topology</span>
+              </button>
             </div>
           </div>
         </div>

@@ -1,0 +1,173 @@
+{
+  "sessions": 50000,
+  "optimization_level": 2,
+  "project_types": {
+    "java_spring": {
+      "count": 4033,
+      "success": 4033,
+      "success_rate": 1.0
+    },
+    "nodejs_react": {
+      "count": 7607,
+      "success": 7607,
+      "success_rate": 1.0
+    },
+    "python_django": {
+      "count": 5032,
+      "success": 5032,
+      "success_rate": 1.0
+    },
+    "rust_cargo": {
+      "count": 2467,
+      "success": 2467,
+      "success_rate": 1.0
+    },
+    "go_standard": {
+      "count": 3995,
+      "success": 3995,
+      "success_rate": 1.0
+    },
+    "nodejs_vue": {
+      "count": 2584,
+      "success": 2584,
+      "success_rate": 1.0
+    },
+    "dotnet_csharp": {
+      "count": 1976,
+      "success": 1976,
+      "success_rate": 1.0
+    },
+    "python_fastapi": {
+      "count": 7379,
+      "success": 7379,
+      "success_rate": 1.0
+    },
+    "nodejs_express": {
+      "count": 2533,
+      "success": 2533,
+      "success_rate": 1.0
+    },
+    "python_pure": {
+      "count": 3942,
+      "success": 3942,
+      "success_rate": 1.0
+    },
+    "go_gin": {
+      "count": 2956,
+      "success": 2956,
+      "success_rate": 1.0
+    },
+    "polyglot": {
+      "count": 3513,
+      "success": 3513,
+      "success_rate": 1.0
+    },
+    "ruby_rails": {
+      "count": 1983,
+      "success": 1983,
+      "success_rate": 1.0
+    }
+  },
+  "languages": {
+    "unknown": {
+      "count": 21768,
+      "success": 21768,
+      "success_rate": 1.0
+    },
+    "javascript": {
+      "count": 9944,
+      "success": 9944,
+      "success_rate": 1.0
+    },
+    "typescript": {
+      "count": 12157,
+      "success": 12157,
+      "success_rate": 1.0
+    },
+    "python": {
+      "count": 17705,
+      "success": 17705,
+      "success_rate": 1.0
+    },
+    "vue": {
+      "count": 1832,
+      "success": 1832,
+      "success_rate": 1.0
+    },
+    "csharp": {
+      "count": 1444,
+      "success": 1444,
+      "success_rate": 1.0
+    },
+    "java": {
+      "count": 2527,
+      "success": 2527,
+      "success_rate": 1.0
+    },
+    "go": {
+      "count": 8071,
+      "success": 8071,
+      "success_rate": 1.0
+    },
+    "rust": {
+      "count": 4277,
+      "success": 4277,
+      "success_rate": 1.0
+    },
+    "ruby": {
+      "count": 1424,
+      "success": 1424,
+      "success_rate": 1.0
+    }
+  },
+  "skills": {
+    "true_positives": 75772,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "agents": {
+    "correct": 50000,
+    "incorrect": 0,
+    "accuracy": 1.0
+  },
+  "knowledge": {
+    "correct": 50000,
+    "incorrect": 0,
+    "accuracy": 1.0
+  },
+  "instructions": {
+    "true_positives": 249429,
+    "false_positives": 0,
+    "false_negatives": 5450,
+    "precision": 1.0,
+    "recall": 0.9786173046818294,
+    "f1": 0.9891931121457522
+  },
+  "errors": {
+    "handled": 10543,
+    "unhandled": 679,
+    "handling_rate": 0.9394938513633934
+  },
+  "update_safety": {
+    "safe": 49321,
+    "unsafe": 679,
+    "safety_rate": 0.98642
+  },
+  "edge_cases": {
+    "polyglot_success": 3513,
+    "polyglot_total": 3513,
+    "exotic_lang_success": 13760,
+    "exotic_lang_total": 13760,
+    "complex_session_success": 7548,
+    "complex_session_total": 7548,
+    "error_recovery_success": 11222,
+    "error_recovery_total": 11222,
+    "polyglot_rate": 1.0,
+    "exotic_lang_rate": 1.0,
+    "complex_session_rate": 1.0,
+    "error_recovery_rate": 1.0
+  }
+}

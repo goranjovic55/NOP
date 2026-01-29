@@ -1,0 +1,361 @@
+{
+  "baseline": {
+    "sessions": 100000,
+    "optimization_level": 0,
+    "project_types": {
+      "python_fastapi": {
+        "count": 15012,
+        "success": 15012,
+        "success_rate": 1.0
+      },
+      "java_spring": {
+        "count": 8033,
+        "success": 2939,
+        "success_rate": 0.36586580356031373
+      },
+      "ruby_rails": {
+        "count": 3985,
+        "success": 1669,
+        "success_rate": 0.4188205771643664
+      },
+      "python_pure": {
+        "count": 8084,
+        "success": 8084,
+        "success_rate": 1.0
+      },
+      "go_standard": {
+        "count": 7957,
+        "success": 4768,
+        "success_rate": 0.5992208118637677
+      },
+      "nodejs_vue": {
+        "count": 4887,
+        "success": 3097,
+        "success_rate": 0.6337221199099652
+      },
+      "python_django": {
+        "count": 9957,
+        "success": 4603,
+        "success_rate": 0.4622878377021191
+      },
+      "nodejs_react": {
+        "count": 15189,
+        "success": 9235,
+        "success_rate": 0.6080057936664691
+      },
+      "nodejs_express": {
+        "count": 5031,
+        "success": 4623,
+        "success_rate": 0.9189028026237328
+      },
+      "polyglot": {
+        "count": 6954,
+        "success": 3422,
+        "success_rate": 0.4920908829450676
+      },
+      "rust_cargo": {
+        "count": 4969,
+        "success": 2171,
+        "success_rate": 0.43690883477560877
+      },
+      "go_gin": {
+        "count": 5897,
+        "success": 3246,
+        "success_rate": 0.5504493810412074
+      },
+      "dotnet_csharp": {
+        "count": 4045,
+        "success": 2589,
+        "success_rate": 0.6400494437577255
+      }
+    },
+    "languages": {
+      "python": {
+        "count": 35790,
+        "success": 28873,
+        "success_rate": 0.8067337245040515
+      },
+      "unknown": {
+        "count": 43170,
+        "success": 20589,
+        "success_rate": 0.4769284225156359
+      },
+      "java": {
+        "count": 5011,
+        "success": 1377,
+        "success_rate": 0.27479545000997807
+      },
+      "go": {
+        "count": 16043,
+        "success": 8122,
+        "success_rate": 0.5062644143863367
+      },
+      "typescript": {
+        "count": 23943,
+        "success": 15577,
+        "success_rate": 0.6505868103412271
+      },
+      "javascript": {
+        "count": 19528,
+        "success": 12621,
+        "success_rate": 0.6463027447767309
+      },
+      "vue": {
+        "count": 3557,
+        "success": 2009,
+        "success_rate": 0.564801799269047
+      },
+      "rust": {
+        "count": 8515,
+        "success": 3291,
+        "success_rate": 0.38649442160892544
+      },
+      "csharp": {
+        "count": 2916,
+        "success": 1582,
+        "success_rate": 0.5425240054869684
+      },
+      "ruby": {
+        "count": 2918,
+        "success": 955,
+        "success_rate": 0.3272789581905415
+      }
+    },
+    "skills": {
+      "true_positives": 110216,
+      "false_positives": 0,
+      "false_negatives": 41905,
+      "precision": 1.0,
+      "recall": 0.7245285003385463,
+      "f1": 0.8402627155147767
+    },
+    "agents": {
+      "correct": 100000,
+      "incorrect": 0,
+      "accuracy": 1.0
+    },
+    "knowledge": {
+      "correct": 16827,
+      "incorrect": 83173,
+      "accuracy": 0.16827
+    },
+    "instructions": {
+      "true_positives": 499582,
+      "false_positives": 0,
+      "false_negatives": 10836,
+      "precision": 1.0,
+      "recall": 0.9787703411713536,
+      "f1": 0.9892712871287128
+    },
+    "errors": {
+      "handled": 21087,
+      "unhandled": 1868,
+      "handling_rate": 0.9186233935961664
+    },
+    "update_safety": {
+      "safe": 98853,
+      "unsafe": 1147,
+      "safety_rate": 0.98853
+    },
+    "edge_cases": {
+      "polyglot_success": 3422,
+      "polyglot_total": 6954,
+      "exotic_lang_success": 12854,
+      "exotic_lang_total": 27532,
+      "complex_session_success": 14949,
+      "complex_session_total": 14949,
+      "error_recovery_success": 22401,
+      "error_recovery_total": 22955,
+      "polyglot_rate": 0.4920908829450676,
+      "exotic_lang_rate": 0.46687490919657126,
+      "complex_session_rate": 1.0,
+      "error_recovery_rate": 0.9758658244391201
+    }
+  },
+  "optimized": {
+    "sessions": 100000,
+    "optimization_level": 2,
+    "project_types": {
+      "python_fastapi": {
+        "count": 14935,
+        "success": 14935,
+        "success_rate": 1.0
+      },
+      "nodejs_vue": {
+        "count": 4907,
+        "success": 4907,
+        "success_rate": 1.0
+      },
+      "go_gin": {
+        "count": 5900,
+        "success": 5900,
+        "success_rate": 1.0
+      },
+      "rust_cargo": {
+        "count": 5029,
+        "success": 5029,
+        "success_rate": 1.0
+      },
+      "nodejs_react": {
+        "count": 14962,
+        "success": 14962,
+        "success_rate": 1.0
+      },
+      "python_django": {
+        "count": 10074,
+        "success": 10074,
+        "success_rate": 1.0
+      },
+      "python_pure": {
+        "count": 8090,
+        "success": 8090,
+        "success_rate": 1.0
+      },
+      "polyglot": {
+        "count": 7044,
+        "success": 7044,
+        "success_rate": 1.0
+      },
+      "go_standard": {
+        "count": 8059,
+        "success": 8059,
+        "success_rate": 1.0
+      },
+      "dotnet_csharp": {
+        "count": 4002,
+        "success": 4002,
+        "success_rate": 1.0
+      },
+      "java_spring": {
+        "count": 8026,
+        "success": 8026,
+        "success_rate": 1.0
+      },
+      "nodejs_express": {
+        "count": 5032,
+        "success": 5032,
+        "success_rate": 1.0
+      },
+      "ruby_rails": {
+        "count": 3940,
+        "success": 3940,
+        "success_rate": 1.0
+      }
+    },
+    "languages": {
+      "python": {
+        "count": 35893,
+        "success": 35893,
+        "success_rate": 1.0
+      },
+      "typescript": {
+        "count": 23806,
+        "success": 23806,
+        "success_rate": 1.0
+      },
+      "vue": {
+        "count": 3496,
+        "success": 3496,
+        "success_rate": 1.0
+      },
+      "go": {
+        "count": 16106,
+        "success": 16106,
+        "success_rate": 1.0
+      },
+      "unknown": {
+        "count": 43361,
+        "success": 43361,
+        "success_rate": 1.0
+      },
+      "rust": {
+        "count": 8621,
+        "success": 8621,
+        "success_rate": 1.0
+      },
+      "javascript": {
+        "count": 19359,
+        "success": 19359,
+        "success_rate": 1.0
+      },
+      "csharp": {
+        "count": 2871,
+        "success": 2871,
+        "success_rate": 1.0
+      },
+      "java": {
+        "count": 4962,
+        "success": 4962,
+        "success_rate": 1.0
+      },
+      "ruby": {
+        "count": 2826,
+        "success": 2826,
+        "success_rate": 1.0
+      }
+    },
+    "skills": {
+      "true_positives": 151624,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "agents": {
+      "correct": 100000,
+      "incorrect": 0,
+      "accuracy": 1.0
+    },
+    "knowledge": {
+      "correct": 11997,
+      "incorrect": 88003,
+      "accuracy": 0.11997
+    },
+    "instructions": {
+      "true_positives": 498483,
+      "false_positives": 0,
+      "false_negatives": 11092,
+      "precision": 1.0,
+      "recall": 0.9782328410930677,
+      "f1": 0.9889966648744417
+    },
+    "errors": {
+      "handled": 21216,
+      "unhandled": 1382,
+      "handling_rate": 0.9388441454996017
+    },
+    "update_safety": {
+      "safe": 98837,
+      "unsafe": 1163,
+      "safety_rate": 0.98837
+    },
+    "edge_cases": {
+      "polyglot_success": 7044,
+      "polyglot_total": 7044,
+      "exotic_lang_success": 27499,
+      "exotic_lang_total": 27499,
+      "complex_session_success": 15131,
+      "complex_session_total": 15131,
+      "error_recovery_success": 22598,
+      "error_recovery_total": 22598,
+      "polyglot_rate": 1.0,
+      "exotic_lang_rate": 1.0,
+      "complex_session_rate": 1.0,
+      "error_recovery_rate": 1.0
+    }
+  },
+  "improvements": {
+    "skills_precision": 0.0,
+    "skills_recall": 0.2754714996614537,
+    "skills_f1": 0.15973728448522329,
+    "agent_accuracy": 0.0,
+    "knowledge_accuracy": -0.04830000000000001,
+    "instructions_f1": -0.0002746222542711063,
+    "error_handling": 0.020220751903435308,
+    "polyglot": 0.5079091170549324,
+    "exotic_lang": 0.5331250908034287
+  },
+  "thresholds_passed": true,
+  "thresholds_total": 8
+}

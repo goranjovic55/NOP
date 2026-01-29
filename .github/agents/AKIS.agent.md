@@ -114,9 +114,23 @@ Lines 13-93: Layer relations (caches, indexes, has_gotcha, preloads)
    - `files.modified`: [paths edited]
    - `root_causes`: [problems + solutions] ← **REQUIRED for debugging sessions**
    - `gotchas`: [new issues discovered]
-3. **Run scripts:** knowledge.py, skills.py, docs.py, agents.py, instructions.py
-4. **Present results table**
+3. **Run scripts with --update** (auto-backup to `.backups/`):
+   ```bash
+   python .github/scripts/knowledge.py --update
+   python .github/scripts/skills.py --update
+   python .github/scripts/agents.py --update
+   python .github/scripts/instructions.py --update
+   ```
+4. **Present results table WITH changes and rollback:**
+   | Script | Output | Changes | Rollback |
+   |--------|--------|---------|----------|
+   | knowledge.py | X entities | project_knowledge.json | `.backups/` |
+   | skills.py | X skills | INDEX.md | `.backups/` |
+   | agents.py | X agents | agents/*.md | `.backups/` |
+   | instructions.py | X instr | instructions/*.md | `.backups/` |
 5. **ASK user** before git push
+
+**Rollback:** `cp .github/skills/.backups/INDEX_YYYYMMDD_*.md .github/skills/INDEX.md`
 
 ⚠️ **Block commit if:** log not created OR root_causes missing (for bug fixes)
 

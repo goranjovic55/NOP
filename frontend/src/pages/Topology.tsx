@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceCollide } from 'd3-force';
 import { assetService } from '../services/assetService';
@@ -155,10 +156,15 @@ const linkMatchesActiveLayers = (
   }
   
   // L5 Session Layer protocols (if link has session-layer indicators)
+  // Use fuzzy matching for protocol variants like NetBIOS-SSN, RPC-*, etc.
   if (activeLayers.has('L5')) {
-    const l5Protocols = ['NETBIOS', 'RPC', 'SOCKS', 'PPTP', 'TLS', 'SSL'];
-    const hasL5Protocol = link.protocols?.some(p => l5Protocols.includes(p.toUpperCase())) ||
-                          link.detected_protocols?.some(p => l5Protocols.includes(p.toUpperCase()));
+    const l5Keywords = ['NETBIOS', 'RPC', 'SOCKS', 'PPTP', 'TLS', 'SSL', 'SESSION', 'SMB2'];
+    const matchesL5 = (proto: string) => {
+      const upper = proto.toUpperCase();
+      return l5Keywords.some(kw => upper.includes(kw));
+    };
+    const hasL5Protocol = link.protocols?.some(matchesL5) ||
+                          link.detected_protocols?.some(matchesL5);
     if (hasL5Protocol) {
       return { matches: true, matchedLayer: 'L5' };
     }
@@ -273,6 +279,147 @@ const getProtocolColor = (protocols?: string[], detectedProtocol?: string): stri
 
 const formatTrafficMB = (bytes: number): string => {
   return (bytes / 1024 / 1024).toFixed(2);
+};
+
+// Shape drawing helper functions for device type visualization
+// Each function draws a path for the shape centered at (x, y) with given radius
+
+// Draw hexagon (6 sides) - for servers
+const drawHexagon = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2; // Start from top
+    const px = x + radius * Math.cos(angle);
+    const py = y + radius * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+};
+
+// Draw diamond (rotated square) - for routers/network devices
+const drawDiamond = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  ctx.moveTo(x, y - radius);  // Top
+  ctx.lineTo(x + radius, y);  // Right
+  ctx.lineTo(x, y + radius);  // Bottom
+  ctx.lineTo(x - radius, y);  // Left
+  ctx.closePath();
+};
+
+// Draw square - for switches, windows hosts
+const drawSquare = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  const halfSide = radius * 0.85; // Slightly smaller to fit same bounding box
+  ctx.beginPath();
+  ctx.rect(x - halfSide, y - halfSide, halfSide * 2, halfSide * 2);
+};
+
+// Draw pentagon (5 sides) - for Linux hosts
+const drawPentagon = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2; // Start from top
+    const px = x + radius * Math.cos(angle);
+    const py = y + radius * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+};
+
+// Draw triangle - for external/unknown hosts
+const drawTriangle = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  ctx.moveTo(x, y - radius);  // Top
+  ctx.lineTo(x + radius * 0.866, y + radius * 0.5);  // Bottom right
+  ctx.lineTo(x - radius * 0.866, y + radius * 0.5);  // Bottom left
+  ctx.closePath();
+};
+
+// Draw octagon (8 sides) - for multicast/bus
+const drawOctagon = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI / 4) * i - Math.PI / 8; // Offset to make flat top
+    const px = x + radius * Math.cos(angle);
+    const py = y + radius * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+};
+
+// Draw circle - default shape for unknown devices
+const drawCircle = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+};
+
+// Draw star (IoT/embedded devices) - 5-pointed star
+const drawStar = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+  const innerRadius = radius * 0.4;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? radius : innerRadius;
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const px = x + r * Math.cos(angle);
+    const py = y + r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+};
+
+// Get shape drawer function based on device type and OS
+type ShapeDrawer = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => void;
+
+const getShapeForDevice = (
+  deviceType: string | undefined,
+  osName: string,
+  group: string
+): { shape: ShapeDrawer; color: string } => {
+  // Determine shape and color based on device type, OS, or group
+  if (deviceType === 'server' || osName.includes('server')) {
+    return { shape: drawHexagon, color: '#00ff41' }; // Green hexagon for servers
+  }
+  if (deviceType === 'router' || deviceType === 'network_device' || osName.includes('router') || osName.includes('cisco')) {
+    return { shape: drawDiamond, color: '#ff9900' }; // Orange diamond for routers
+  }
+  if (deviceType === 'switch') {
+    return { shape: drawSquare, color: '#00f0ff' }; // Cyan square for switches
+  }
+  if (deviceType === 'iot' || deviceType === 'embedded' || osName.includes('embedded')) {
+    return { shape: drawStar, color: '#ff0040' }; // Red star for IoT
+  }
+  if (deviceType === 'mobile' || osName.includes('android') || osName.includes('ios')) {
+    return { shape: drawDiamond, color: '#a4c639' }; // Green diamond for mobile
+  }
+  if (group === 'l2-device') {
+    return { shape: drawSquare, color: '#ff9900' }; // Orange square for L2 devices
+  }
+  if (group === 'multicast-bus' || group === 'ring-topology') {
+    return { shape: drawOctagon, color: '#00ffff' }; // Cyan octagon for multicast/ring
+  }
+  if (osName.includes('linux') || osName.includes('unix')) {
+    return { shape: drawPentagon, color: '#00ff41' }; // Green pentagon for Linux
+  }
+  if (osName.includes('windows')) {
+    return { shape: drawSquare, color: '#00bfff' }; // Blue square for Windows
+  }
+  if (group === 'online') {
+    return { shape: drawCircle, color: '#00ff41' }; // Green circle for online
+  }
+  if (group === 'passive') {
+    return { shape: drawCircle, color: '#8b5cf6' }; // Purple circle for passive
+  }
+  if (group === 'offline') {
+    return { shape: drawCircle, color: '#ff0040' }; // Red circle for offline
+  }
+  if (group === 'external') {
+    return { shape: drawTriangle, color: '#888888' }; // Gray triangle for external
+  }
+  // Default: circle
+  return { shape: drawCircle, color: '#8b5cf6' };
 };
 
 // Visual scaling constants
@@ -408,6 +555,7 @@ const drawCurvedLine = (
 };
 
 const Topology: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token } = useAuthStore();
   const { passiveServices, passiveScanEnabled } = useScanStore();
   const { activeAgent, isAgentPOV } = usePOV();
@@ -589,6 +737,30 @@ const Topology: React.FC = () => {
   
   // Link highlighting state - when a link is clicked, it stays green highlighted
   const [clickedLink, setClickedLink] = useState<GraphLink | null>(null);
+  
+  // Left panel toggle state - switch between legend and asset list
+  const [leftPanelMode, setLeftPanelMode] = useState<'legend' | 'assets'>('assets');
+
+  // Handle URL param for highlighting an asset (from Assets page "Topology" button)
+  useEffect(() => {
+    const highlightIp = searchParams.get('highlight');
+    if (highlightIp && graphData.nodes.length > 0) {
+      // Find the node matching the IP
+      const node = graphData.nodes.find(n => n.ip === highlightIp || n.id === highlightIp);
+      if (node) {
+        setHighlightedAsset(node.id);
+        // Center the view on the highlighted node after a short delay
+        setTimeout(() => {
+          if (fgRef.current && node.x !== undefined && node.y !== undefined) {
+            fgRef.current.centerAt(node.x, node.y, 500);
+            fgRef.current.zoom(2, 500);
+          }
+        }, 300);
+        // Clear the URL param to prevent re-highlighting on navigation
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, graphData.nodes, setSearchParams]);
 
   // Calculate connected nodes and links for a given node
   const calculateConnections = useCallback((nodeId: string | null): { nodes: Set<string>; links: Set<string> } => {
@@ -1442,8 +1614,23 @@ const Topology: React.FC = () => {
             }
           }
           existing.packet_count = (existing.packet_count || 0) + (conn.packet_count || 0);
+          // Merge DPI detected protocols for L5/L7 layer filtering
+          if (conn.detected_protocols && conn.detected_protocols.length > 0) {
+            existing.detected_protocols = Array.from(new Set([
+              ...(existing.detected_protocols || []),
+              ...conn.detected_protocols
+            ]));
+          }
+          // Update service label if newer connection has one
+          if (conn.service_label && !existing.service_label) {
+            existing.service_label = conn.service_label;
+          }
+          // Mark as encrypted if any connection is encrypted
+          if (conn.is_encrypted) {
+            existing.is_encrypted = true;
+          }
         } else {
-          // Create new link
+          // Create new link - include DPI fields for L5/L7 detection
           linksMap.set(linkKey, {
             source: node1,
             target: node2,
@@ -1456,7 +1643,12 @@ const Topology: React.FC = () => {
             packet_count: conn.packet_count || 0,
             ports: conn.ports || [],
             sourcePort: conn.source_port,
-            targetPort: conn.target_port || conn.dest_port
+            targetPort: conn.target_port || conn.dest_port,
+            // DPI fields for L5/L7 protocol detection
+            detected_protocols: conn.detected_protocols || [],
+            service_label: conn.service_label,
+            is_encrypted: conn.is_encrypted,
+            protocol_category: conn.protocol_category
           });
         }
       });
@@ -2546,43 +2738,61 @@ const Topology: React.FC = () => {
             const ctrlX = (start.x + end.x) / 2 + perpX * offset;
             const ctrlY = (start.y + end.y) / 2 + perpY * offset;
             
-            // Draw hover-highlighted link glow - cyan for hover (works even when something is selected)
-            // Show cyan glow for hover-highlighted links that are NOT part of green selection
+            // Get layer-specific highlight color for synced visual feedback
+            const getHighlightColor = (layer: string | null): string => {
+              switch (layer) {
+                case 'L2': return '#9900ff'; // Purple for Data Link (passive discovery)
+                case 'L4': return '#00ff41'; // Green for Transport
+                case 'L5': return '#00f0ff'; // Cyan for Session
+                case 'L7': return '#ff0040'; // Red for Application
+                default: return '#00ff41';   // Default green
+              }
+            };
+            
+            const layerHighlightColor = getHighlightColor(layerMatch.matchedLayer);
+            const isPassiveDiscovery = layerMatch.matchedLayer === 'L2';
+            
+            // Draw hover-highlighted link glow - use layer-specific color
+            // Show glow for hover-highlighted links that are NOT part of persistent selection
             if (isHoverHighlightedLink && !isHighlightedLink) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              ctx.strokeStyle = '#00f0ff';
+              // Use cyan outline for active discovery, purple for passive
+              ctx.strokeStyle = isPassiveDiscovery ? '#9900ff' : '#00f0ff';
               ctx.lineWidth = width + 4;
               ctx.shadowBlur = 18;
-              ctx.shadowColor = '#00f0ff';
+              // Use layer color for glow
+              ctx.shadowColor = isPassiveDiscovery ? '#00ff41' : '#00f0ff';
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
             
-            // Draw highlighted link glow - bright green (for clicked/persistent selection)
-            // Green selection takes precedence and stays visible
+            // Draw highlighted link glow - layer-synced color (for clicked/persistent selection)
+            // Selection uses layer color for neon glow effect
             if (isHighlightedLink) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              ctx.strokeStyle = '#00ff41';
+              // Passive discovery: purple outline with green glow
+              // Active discovery: cyan outline
+              ctx.strokeStyle = isPassiveDiscovery ? '#9900ff' : layerHighlightColor;
               ctx.lineWidth = width + 6;
               ctx.shadowBlur = 25;
-              ctx.shadowColor = '#00ff41';
+              ctx.shadowColor = isPassiveDiscovery ? '#00ff41' : layerHighlightColor;
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
             
-            // Draw selection glow first (behind the curve) - green glow to match asset highlighting
+            // Draw selection glow first (behind the curve) - layer-synced colors
             if (isSelected) {
               ctx.beginPath();
               ctx.moveTo(start.x, start.y);
               ctx.quadraticCurveTo(ctrlX, ctrlY, end.x, end.y);
-              ctx.strokeStyle = '#00ff41';
+              ctx.strokeStyle = isPassiveDiscovery ? '#9900ff' : layerHighlightColor;
               ctx.lineWidth = width + 4;
               ctx.shadowBlur = 20;
-              ctx.shadowColor = '#00ff41';
+              ctx.shadowColor = isPassiveDiscovery ? '#00ff41' : layerHighlightColor;
               ctx.stroke();
               ctx.shadowBlur = 0;
             }
@@ -2910,54 +3120,55 @@ const Topology: React.FC = () => {
               
               // Draw strong neon halo if OS detected
               if (osGlowColor) {
-                // Halo scales with dynamic node size
-                const baseRadius = isHighlightedAsset ? haloNodeSize * 2 : (isSelected ? haloNodeSize * 1.7 : haloNodeSize * 1.4);
+                // Halo scales with dynamic node size - INCREASED for visibility
+                const baseRadius = isHighlightedAsset ? haloNodeSize * 2.5 : (isSelected ? haloNodeSize * 2 : haloNodeSize * 1.8);
                 
                 // Scale opacity values by node intensity (sync with link brightness)
-                const intensityScale = nodeIntensity;
-                const toHex = (opacity: number) => Math.floor(opacity * intensityScale * 255).toString(16).padStart(2, '0');
+                // BOOSTED opacity values for stronger visibility from distance
+                const intensityScale = Math.max(0.6, nodeIntensity); // Minimum intensity floor
+                const toHex = (opacity: number) => Math.floor(Math.min(opacity * intensityScale * 255, 255)).toString(16).padStart(2, '0');
                 
                 // Draw multiple layered glows for neon effect
-                // Outer glow - large, soft
+                // Outer glow - large, soft - INCREASED opacity
                 const outerGradient = ctx.createRadialGradient(
                   node.x, node.y, baseRadius * 0.3,
-                  node.x, node.y, baseRadius * 1.8
+                  node.x, node.y, baseRadius * 2.2
                 );
-                outerGradient.addColorStop(0, `${osGlowColor}${toHex(0.25)}`); // Semi-transparent center
-                outerGradient.addColorStop(0.4, `${osGlowColor}${toHex(0.19)}`);
-                outerGradient.addColorStop(0.7, `${osGlowColor}${toHex(0.08)}`);
+                outerGradient.addColorStop(0, `${osGlowColor}${toHex(0.45)}`); // Boosted from 0.25
+                outerGradient.addColorStop(0.4, `${osGlowColor}${toHex(0.35)}`); // Boosted from 0.19
+                outerGradient.addColorStop(0.7, `${osGlowColor}${toHex(0.18)}`); // Boosted from 0.08
                 outerGradient.addColorStop(1, `${osGlowColor}00`);
                 
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, baseRadius * 1.8, 0, 2 * Math.PI, false);
+                ctx.arc(node.x, node.y, baseRadius * 2.2, 0, 2 * Math.PI, false);
                 ctx.fillStyle = outerGradient;
                 ctx.fill();
                 
-                // Middle glow - medium, brighter
+                // Middle glow - medium, brighter - INCREASED opacity
                 const midGradient = ctx.createRadialGradient(
                   node.x, node.y, baseRadius * 0.4,
-                  node.x, node.y, baseRadius * 1.2
+                  node.x, node.y, baseRadius * 1.5
                 );
-                midGradient.addColorStop(0, `${osGlowColor}${toHex(0.38)}`);
-                midGradient.addColorStop(0.5, `${osGlowColor}${toHex(0.25)}`);
+                midGradient.addColorStop(0, `${osGlowColor}${toHex(0.60)}`); // Boosted from 0.38
+                midGradient.addColorStop(0.5, `${osGlowColor}${toHex(0.40)}`); // Boosted from 0.25
                 midGradient.addColorStop(1, `${osGlowColor}00`);
                 
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, baseRadius * 1.2, 0, 2 * Math.PI, false);
+                ctx.arc(node.x, node.y, baseRadius * 1.5, 0, 2 * Math.PI, false);
                 ctx.fillStyle = midGradient;
                 ctx.fill();
                 
-                // Inner core glow - small, intense
+                // Inner core glow - small, intense - INCREASED opacity
                 const coreGradient = ctx.createRadialGradient(
                   node.x, node.y, 2,
-                  node.x, node.y, baseRadius * 0.8
+                  node.x, node.y, baseRadius * 0.9
                 );
-                coreGradient.addColorStop(0, `${osGlowColor}${toHex(0.56)}`);
-                coreGradient.addColorStop(0.6, `${osGlowColor}${toHex(0.31)}`);
+                coreGradient.addColorStop(0, `${osGlowColor}${toHex(0.80)}`); // Boosted from 0.56
+                coreGradient.addColorStop(0.6, `${osGlowColor}${toHex(0.50)}`); // Boosted from 0.31
                 coreGradient.addColorStop(1, `${osGlowColor}00`);
                 
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, baseRadius * 0.8, 0, 2 * Math.PI, false);
+                ctx.arc(node.x, node.y, baseRadius * 0.9, 0, 2 * Math.PI, false);
                 ctx.fillStyle = coreGradient;
                 ctx.fill();
               }
@@ -3032,26 +3243,41 @@ const Topology: React.FC = () => {
               ctx.shadowColor = '#ffffff';
             }
             
-            // Draw Node Circle - dimmer when not highlighted
-            // Size based on connection count (10% increments, max 100% larger)
-            // Brightness based on link activity (synced with halo intensity)
+            // Draw device-type specific shape (hexagon, diamond, etc.) instead of circle
+            // Each device type has its own distinct shape for easy identification
             const dynamicNodeSize = getNodeSize(node.id, 6);
             const nodeRadius = isHighlightedAsset ? dynamicNodeSize * 1.67 : (isSelected ? dynamicNodeSize * 1.33 : dynamicNodeSize);
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
-            // Apply node intensity to opacity - highlighted nodes also respect traffic intensity
+            
+            // Get device info for shape selection
+            const deviceType = node.details?.device_type || enhancedHostInfo[node.ip]?.device_type;
+            const osName = enhancedHostInfo[node.ip]?.os_info?.os?.toLowerCase() || '';
+            
+            // Get appropriate shape and color for this device
+            const shapeInfo = getShapeForDevice(deviceType, osName, node.group);
+            
+            // Draw the shape path
+            shapeInfo.shape(ctx, node.x, node.y, nodeRadius);
+            
+            // Apply opacity and fill
             const baseOpacity = isDimmed ? 0.2 : (isHighlighted ? Math.max(0.6, nodeIntensity) : nodeIntensity * 0.8);
             ctx.globalAlpha = baseOpacity;
-            ctx.fillStyle = nodeColor;
+            ctx.fillStyle = shapeInfo.color;
             ctx.fill();
             
-            // Glow effect - intensity scales with traffic activity
-            if (isHighlighted && !isDimmed) {
-              const glowIntensity = Math.max(0.5, nodeIntensity);
-              ctx.shadowBlur = (isHighlightedAsset ? 20 : (isSelected ? 15 : 10)) * glowIntensity;
-              ctx.shadowColor = nodeColor;
+            // Draw neon glow effect behind the shape stroke
+            if (!isDimmed) {
+              const glowIntensity = isHighlighted ? Math.max(0.5, nodeIntensity) : nodeIntensity * 0.7;
+              ctx.shadowBlur = (isHighlightedAsset ? 25 : (isSelected ? 18 : 12)) * glowIntensity;
+              ctx.shadowColor = shapeInfo.color;
             }
+            
+            // Stroke the shape with bright outline
+            ctx.strokeStyle = shapeInfo.color;
+            ctx.lineWidth = isDimmed ? 0.5 : (isHighlighted ? 2 : 1.2);
+            ctx.globalAlpha = isDimmed ? 0.3 : Math.max(0.7, nodeIntensity);
             ctx.stroke();
+            
+            // Reset context
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1.0;
 
@@ -3181,8 +3407,108 @@ const Topology: React.FC = () => {
           </div>
         )}
 
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg">
+        {/* Left Panel - Toggle between Legend and Asset List */}
+        <div className="absolute bottom-4 left-4 bg-cyber-darker border border-cyber-gray p-4 text-xs text-cyber-gray-light shadow-lg max-h-[70vh] flex flex-col">
+          {/* Panel Toggle Header */}
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-cyber-gray">
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => setLeftPanelMode('assets')}
+                className={`text-[10px] uppercase tracking-widest font-bold px-2 py-1 transition-colors ${
+                  leftPanelMode === 'assets' 
+                    ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_#00ff41]' 
+                    : 'text-cyber-gray hover:text-cyber-blue'
+                }`}
+              >
+                Assets
+              </button>
+              <button 
+                onClick={() => setLeftPanelMode('legend')}
+                className={`text-[10px] uppercase tracking-widest font-bold px-2 py-1 transition-colors ${
+                  leftPanelMode === 'legend' 
+                    ? 'text-cyber-green border border-cyber-green shadow-[0_0_5px_#00ff41]' 
+                    : 'text-cyber-gray hover:text-cyber-blue'
+                }`}
+              >
+                Legend
+              </button>
+            </div>
+            <span className="text-cyber-purple text-[10px]">{graphData.nodes.length}</span>
+          </div>
+          
+          {/* Asset List Mode */}
+          {leftPanelMode === 'assets' && (
+            <div className="overflow-y-auto custom-scrollbar flex-1 min-w-[200px]">
+              {graphData.nodes
+                .sort((a: any, b: any) => {
+                  // Sort by status (online first), then by connection count
+                  if (a.status !== b.status) return a.status === 'online' ? -1 : 1;
+                  return (b.connectionCount || 0) - (a.connectionCount || 0);
+                })
+                .map((node: any) => {
+                  const isHighlighted = highlightedAsset === node.ip;
+                  const osInfo = enhancedHostInfo[node.ip]?.os_info;
+                  const deviceType = node.details?.device_type || enhancedHostInfo[node.ip]?.device_type;
+                  
+                  // Get device icon based on type
+                  const getDeviceIcon = () => {
+                    if (deviceType === 'server') return '⬢';
+                    if (deviceType === 'router' || deviceType === 'network_device') return '◈';
+                    if (deviceType === 'switch') return '⬡';
+                    if (deviceType === 'iot' || deviceType === 'embedded') return '◎';
+                    if (deviceType === 'mobile') return '◇';
+                    if (osInfo?.os?.toLowerCase().includes('linux')) return '🐧';
+                    if (osInfo?.os?.toLowerCase().includes('windows')) return '🪟';
+                    if (osInfo?.os?.toLowerCase().includes('android')) return '📱';
+                    return '●';
+                  };
+                  
+                  // Get status color
+                  const getStatusColor = () => {
+                    if (node.group === 'online') return 'bg-cyber-green';
+                    if (node.group === 'offline') return 'bg-cyber-red';
+                    if (node.group === 'l2-device') return 'bg-orange-500';
+                    return 'bg-cyber-purple';
+                  };
+                  
+                  return (
+                    <div 
+                      key={node.id}
+                      onClick={() => {
+                        setHighlightedAsset(node.ip);
+                        setClickedLink(null);
+                        if (fgRef.current && node.x !== undefined) {
+                          fgRef.current.centerAt(node.x, node.y, 500);
+                        }
+                      }}
+                      className={`flex items-center space-x-2 py-1.5 px-2 cursor-pointer rounded transition-all ${
+                        isHighlighted 
+                          ? 'bg-cyber-green/20 border border-cyber-green shadow-[0_0_5px_#00ff41]' 
+                          : 'hover:bg-cyber-gray/30'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${getStatusColor()} shadow-lg`}></span>
+                      <span className="text-sm">{getDeviceIcon()}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-mono text-[10px] truncate ${isHighlighted ? 'text-cyber-green' : 'text-cyber-blue'}`}>
+                          {node.ip}
+                        </div>
+                        {node.name !== node.ip && (
+                          <div className="text-[9px] text-cyber-gray truncate">{node.name}</div>
+                        )}
+                      </div>
+                      {node.connectionCount && (
+                        <span className="text-[9px] text-cyber-purple">{node.connectionCount}</span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+          
+          {/* Legend Mode */}
+          {leftPanelMode === 'legend' && (
+            <>
           <div className="font-bold text-cyber-red mb-3 uppercase tracking-widest text-[10px]">Nodes</div>
           <div className="flex items-center space-x-2 mb-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-cyber-green shadow-[0_0_5px_#00ff41]"></span>
@@ -3311,6 +3637,8 @@ const Topology: React.FC = () => {
             <div>Node size = connections</div>
             <div className="mt-2 text-cyber-blue font-bold">Click node/link for actions</div>
           </div>
+            </>
+          )}
         </div>
 
         {/* Hover Details Sidebar - shows enhanced info on node/link hover OR clicked selection */}
@@ -3420,16 +3748,62 @@ const Topology: React.FC = () => {
                       
                       if (nodeConnections.length === 0) return null;
                       
+                      // Function to handle connection click - highlight the peer and show context menu
+                      const handleConnectionClick = (conn: any, e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        // Find the link for this connection
+                        const connectionLink = graphData.links.find((link: any) => {
+                          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                          return (sourceId === displayNode.ip && targetId === conn.peerId) ||
+                                 (sourceId === conn.peerId && targetId === displayNode.ip);
+                        });
+                        if (connectionLink) {
+                          setClickedLink(connectionLink);
+                          setHighlightedAsset(null);
+                          setSelectedLink(connectionLink);
+                          setSelectedNode(null);
+                          setContextMenuPosition({ x: e.clientX, y: e.clientY });
+                        }
+                      };
+                      
+                      // Function to highlight peer asset
+                      const handlePeerClick = (peerId: string, e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setHighlightedAsset(peerId);
+                        setClickedLink(null);
+                        // Center on the peer node
+                        const peerNode = graphData.nodes.find((n: any) => n.id === peerId || n.ip === peerId);
+                        if (peerNode && fgRef.current) {
+                          fgRef.current.centerAt(peerNode.x, peerNode.y, 500);
+                        }
+                      };
+                      
                       return (
-                        <div className="mt-2 pt-2 border-t border-cyber-gray">
+                        <div className="mt-2 pt-2 border-t border-cyber-gray pointer-events-auto">
                           <div className="text-cyber-green text-[10px] uppercase font-bold mb-1">Connections ({nodeConnections.length}):</div>
-                          <div>
+                          <div className="max-h-48 overflow-y-auto custom-scrollbar">
                             {nodeConnections.map((conn: any, idx: number) => (
-                              <div key={conn.peerId} className="text-[10px] font-mono flex justify-between items-center py-0.5">
-                                <span className="text-cyber-blue truncate max-w-[120px]">{conn.peerId}</span>
-                                <span className={`text-right ${idx === 0 ? 'text-cyber-green font-bold' : 'text-cyber-gray-light'}`}>
-                                  {formatTrafficMB(conn.totalTraffic)}MB
-                                </span>
+                              <div 
+                                key={conn.peerId} 
+                                className="text-[10px] font-mono flex justify-between items-center py-1 px-1 hover:bg-cyber-gray/30 cursor-pointer rounded group transition-colors"
+                                onClick={(e) => handlePeerClick(conn.peerId, e)}
+                                onContextMenu={(e) => { e.preventDefault(); handleConnectionClick(conn, e); }}
+                                title="Click to highlight asset, right-click for connection menu"
+                              >
+                                <span className="text-cyber-blue truncate max-w-[120px] group-hover:text-cyber-green transition-colors">{conn.peerId}</span>
+                                <div className="flex items-center space-x-1">
+                                  <span className={`text-right ${idx === 0 ? 'text-cyber-green font-bold' : 'text-cyber-gray-light'}`}>
+                                    {formatTrafficMB(conn.totalTraffic)}MB
+                                  </span>
+                                  <button 
+                                    onClick={(e) => handleConnectionClick(conn, e)}
+                                    className="opacity-0 group-hover:opacity-100 text-cyber-purple hover:text-cyber-green transition-all ml-1"
+                                    title="Show connection menu"
+                                  >
+                                    ⋮
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

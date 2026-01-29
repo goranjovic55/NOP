@@ -1,0 +1,82 @@
+{
+  "baseline": {
+    "knowledge": {
+      "precision": 0.665333125947254,
+      "recall": 0.29012216184670225,
+      "f1_score": 0.4040542499769345,
+      "true_positives": 183936,
+      "false_positives": 92521,
+      "false_negatives": 450059
+    },
+    "instructions": {
+      "precision": 0.9870876980348022,
+      "recall": 0.9258794088867295,
+      "f1_score": 0.9555043273551839,
+      "true_positives": 684111,
+      "false_positives": 8949,
+      "false_negatives": 54766
+    },
+    "agents": {
+      "precision": 0.7699444565116207,
+      "recall": 0.8096123727486296,
+      "f1_score": 0.7892803180914513,
+      "true_positives": 49626,
+      "false_positives": 14828,
+      "false_negatives": 11670
+    },
+    "skills": {
+      "precision": 0.61168,
+      "recall": 0.61168,
+      "f1_score": 0.61168,
+      "true_positives": 61168,
+      "false_positives": 38832,
+      "false_negatives": 38832
+    }
+  },
+  "optimized": {
+    "knowledge": {
+      "precision": 0.644978629866019,
+      "recall": 0.37441304742150966,
+      "f1_score": 0.4737892602232264,
+      "true_positives": 237376,
+      "false_positives": 130661,
+      "false_negatives": 396619
+    },
+    "instructions": {
+      "precision": 0.8625417115415174,
+      "recall": 0.9256601572386203,
+      "f1_score": 0.8929869834830787,
+      "true_positives": 683949,
+      "false_positives": 108997,
+      "false_negatives": 54928
+    },
+    "agents": {
+      "precision": 0.7425403275157271,
+      "recall": 1.0,
+      "f1_score": 0.8522503792774063,
+      "true_positives": 60670,
+      "false_positives": 21036,
+      "false_negatives": 0
+    },
+    "skills": {
+      "precision": 0.61168,
+      "recall": 0.61168,
+      "f1_score": 0.61168,
+      "true_positives": 61168,
+      "false_positives": 38832,
+      "false_negatives": 38832
+    }
+  },
+  "summary": {
+    "sessions_tested": 100000,
+    "average_baseline_f1": 0.6901297238558923,
+    "average_optimized_f1": 0.7076766557459278,
+    "average_improvement": 0.017546931890035422,
+    "tested_at": "2026-01-29T12:06:54.171993"
+  },
+  "quality_check": {
+    "thresholds_met": 3,
+    "total_thresholds": 8,
+    "pass_rate": 0.375
+  }
+}

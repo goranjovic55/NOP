@@ -49,10 +49,11 @@
 
 1. Close ⊘, verify all edits
 2. **Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`** (G4 - MANDATORY)
-3. Run scripts, present table
+3. Run scripts with `--update` (auto-backup), present table with changes
 4. **ASK before git push**
 
 ⚠️ **G4 VIOLATION = Lost traceability**. Workflow log REQUIRED for sessions >15 min.
+⚠️ **Rollback:** Backups in `.github/*/.backups/` - use `cp` to restore.
 
 ## Delegation (Simplified Binary Decision)
 | File Count | Action | Efficiency |

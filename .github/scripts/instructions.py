@@ -41,11 +41,42 @@ import random
 import re
 import argparse
 import subprocess
+import shutil
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Set, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
+
+# ============================================================================
+# Backup & Rollback Support
+# ============================================================================
+
+def create_backup(filepath: Path, reason: str = 'update') -> Optional[Path]:
+    """Create timestamped backup before modifying file. Returns backup path."""
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return None
+    
+    backup_dir = filepath.parent / '.backups'
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_name = f"{filepath.stem}_{timestamp}_{reason}{filepath.suffix}"
+    backup_path = backup_dir / backup_name
+    
+    shutil.copy2(filepath, backup_path)
+    
+    # Keep only last 5 backups per file
+    backups = sorted(backup_dir.glob(f"{filepath.stem}_*{filepath.suffix}"))
+    for old_backup in backups[:-5]:
+        old_backup.unlink()
+    
+    return backup_path
+
+def get_rollback_command(backup_path: Path, original_path: Path) -> str:
+    """Return command to rollback to backup."""
+    return f"cp '{backup_path}' '{original_path}'"
 
 # ============================================================================
 # Workflow Log YAML Parsing (standalone - no external dependencies)

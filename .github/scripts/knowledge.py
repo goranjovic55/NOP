@@ -58,7 +58,42 @@ import ast
 import hashlib
 import subprocess
 import argparse
+import shutil
 from collections import defaultdict, Counter
+from datetime import datetime
+
+# ============================================================================
+# Backup & Rollback Support
+# ============================================================================
+
+BACKUP_DIR = Path('.github/backups') if 'Path' in dir() else None
+
+def create_backup(filepath: 'Path', reason: str = 'update') -> 'Path':
+    """Create timestamped backup before modifying file. Returns backup path."""
+    from pathlib import Path
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return None
+    
+    backup_dir = filepath.parent / '.backups'
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_name = f"{filepath.stem}_{timestamp}_{reason}{filepath.suffix}"
+    backup_path = backup_dir / backup_name
+    
+    shutil.copy2(filepath, backup_path)
+    
+    # Keep only last 5 backups per file
+    backups = sorted(backup_dir.glob(f"{filepath.stem}_*{filepath.suffix}"))
+    for old_backup in backups[:-5]:
+        old_backup.unlink()
+    
+    return backup_path
+
+def get_rollback_command(backup_path: 'Path', original_path: 'Path') -> str:
+    """Return command to rollback to backup."""
+    return f"cp '{backup_path}' '{original_path}'"
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Set, Optional, Tuple
 from pathlib import Path
@@ -68,11 +103,32 @@ from datetime import datetime
 # Configuration
 # ============================================================================
 
-# File patterns to analyze
+# File patterns to analyze (universal - all major languages)
 PATTERNS = {
+    # Dynamic languages
     'python': ['**/*.py'],
+    'ruby': ['**/*.rb'],
+    'php': ['**/*.php'],
+    # JavaScript ecosystem
     'typescript': ['**/*.ts', '**/*.tsx'],
     'javascript': ['**/*.js', '**/*.jsx'],
+    'vue': ['**/*.vue'],
+    'svelte': ['**/*.svelte'],
+    # Systems languages
+    'go': ['**/*.go'],
+    'rust': ['**/*.rs'],
+    'c': ['**/*.c', '**/*.h'],
+    'cpp': ['**/*.cpp', '**/*.hpp', '**/*.cc'],
+    # JVM languages
+    'java': ['**/*.java'],
+    'kotlin': ['**/*.kt'],
+    'scala': ['**/*.scala'],
+    # .NET languages
+    'csharp': ['**/*.cs'],
+    'fsharp': ['**/*.fs'],
+    # Other
+    'swift': ['**/*.swift'],
+    'elixir': ['**/*.ex', '**/*.exs'],
 }
 
 # Directories to skip
@@ -964,6 +1020,195 @@ class CodeAnalyzer:
         self.entities.append(entity)
         return entity
     
+    def analyze_universal(self, file_path: Path, lang: str) -> Optional[CodeEntity]:
+        """Analyze any language file using universal regex patterns.
+        
+        Uses language-specific regex patterns for entity extraction.
+        Supports Go, Rust, Java, Ruby, C#, Kotlin, Scala, Swift, etc.
+        """
+        try:
+            content = file_path.read_text(encoding='utf-8')
+        except UnicodeDecodeError:
+            return None
+        
+        imports = set()
+        exports = set()
+        classes = []
+        functions = []
+        line_count = len(content.splitlines())
+        
+        # Universal language patterns
+        LANG_PATTERNS = {
+            'go': {
+                'import': [r'import\s+"([^"]+)"', r'import\s+\(\s*(?:"([^"]+)"[\s\n]*)+\)'],
+                'function': r'func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(',
+                'struct': r'type\s+(\w+)\s+struct',
+                'interface': r'type\s+(\w+)\s+interface',
+            },
+            'rust': {
+                'import': [r'use\s+([\w:]+)'],
+                'function': r'(?:pub\s+)?fn\s+(\w+)',
+                'struct': r'(?:pub\s+)?struct\s+(\w+)',
+                'impl': r'impl(?:<[^>]+>)?\s+(\w+)',
+                'enum': r'(?:pub\s+)?enum\s+(\w+)',
+            },
+            'java': {
+                'import': [r'import\s+([\w.]+)'],
+                'class': r'(?:public\s+)?class\s+(\w+)',
+                'interface': r'(?:public\s+)?interface\s+(\w+)',
+                'method': r'(?:public|private|protected)\s+(?:static\s+)?\w+\s+(\w+)\s*\(',
+            },
+            'kotlin': {
+                'import': [r'import\s+([\w.]+)'],
+                'class': r'(?:data\s+)?class\s+(\w+)',
+                'fun': r'fun\s+(\w+)',
+                'object': r'object\s+(\w+)',
+            },
+            'scala': {
+                'import': [r'import\s+([\w.]+)'],
+                'class': r'class\s+(\w+)',
+                'object': r'object\s+(\w+)',
+                'def': r'def\s+(\w+)',
+            },
+            'ruby': {
+                'require': [r'require\s+[\'"]([^\'"]+)[\'"]', r'require_relative\s+[\'"]([^\'"]+)[\'"]'],
+                'class': r'class\s+(\w+)',
+                'module': r'module\s+(\w+)',
+                'def': r'def\s+(\w+)',
+            },
+            'csharp': {
+                'using': [r'using\s+([\w.]+)'],
+                'class': r'(?:public\s+)?(?:partial\s+)?class\s+(\w+)',
+                'interface': r'(?:public\s+)?interface\s+(\w+)',
+                'method': r'(?:public|private|protected)\s+(?:static\s+)?\w+\s+(\w+)\s*\(',
+            },
+            'fsharp': {
+                'open': [r'open\s+([\w.]+)'],
+                'type': r'type\s+(\w+)',
+                'let': r'let\s+(\w+)',
+            },
+            'swift': {
+                'import': [r'import\s+(\w+)'],
+                'class': r'class\s+(\w+)',
+                'struct': r'struct\s+(\w+)',
+                'func': r'func\s+(\w+)',
+                'protocol': r'protocol\s+(\w+)',
+            },
+            'elixir': {
+                'import': [r'import\s+(\w+)', r'use\s+(\w+)', r'alias\s+([\w.]+)'],
+                'defmodule': r'defmodule\s+([\w.]+)',
+                'def': r'def\s+(\w+)',
+            },
+            'php': {
+                'use': [r'use\s+([\w\\]+)'],
+                'class': r'class\s+(\w+)',
+                'function': r'function\s+(\w+)',
+            },
+            'vue': {
+                'import': [r"import\s+.*?from\s+['\"](.+?)['\"]"],
+                'component': r'export\s+default\s+(?:defineComponent|{)',
+            },
+            'svelte': {
+                'import': [r"import\s+.*?from\s+['\"](.+?)['\"]"],
+                'script': r'<script[^>]*>',
+            },
+            'c': {
+                'include': [r'#include\s+[<"]([^>"]+)[>"]'],
+                'function': r'(?:void|int|char|float|double|long|short|unsigned|\w+\s*\*?)\s+(\w+)\s*\([^)]*\)\s*\{',
+                'struct': r'struct\s+(\w+)\s*\{',
+            },
+            'cpp': {
+                'include': [r'#include\s+[<"]([^>"]+)[>"]'],
+                'class': r'class\s+(\w+)',
+                'function': r'(?:void|int|char|float|double|long|short|unsigned|bool|std::\w+|\w+\s*\*?)\s+(\w+)\s*\([^)]*\)\s*\{',
+            },
+        }
+        
+        patterns = LANG_PATTERNS.get(lang, {})
+        
+        # Extract imports
+        for key in ['import', 'require', 'use', 'using', 'include', 'open']:
+            if key in patterns:
+                for pattern in (patterns[key] if isinstance(patterns[key], list) else [patterns[key]]):
+                    for match in re.finditer(pattern, content, re.MULTILINE):
+                        import_path = match.group(1)
+                        parts = import_path.replace('\\', '.').split('.')
+                        for part in parts[-2:]:  # Last two parts are most meaningful
+                            if part and len(part) > 1:
+                                imports.add(part)
+        
+        # Extract exported entities
+        for key in ['function', 'class', 'struct', 'interface', 'method', 'def', 'fun', 'impl', 'enum', 'module', 'object', 'defmodule', 'protocol', 'type', 'component']:
+            if key in patterns:
+                pattern = patterns[key]
+                for match in re.finditer(pattern, content, re.MULTILINE):
+                    name = match.group(1)
+                    if name and not name.startswith('_') and len(name) > 1:
+                        exports.add(name)
+                        if key in ('class', 'struct', 'interface', 'impl', 'enum', 'module', 'object', 'protocol', 'type', 'defmodule'):
+                            classes.append({'name': name, 'type': key})
+                        else:
+                            functions.append({'name': name, 'type': key})
+        
+        rel_path = str(file_path.relative_to(self.root))
+        self.files.add(rel_path)
+        
+        # Detect entity type from path
+        entity_type = 'module'
+        if 'services' in rel_path or 'service' in rel_path:
+            entity_type = 'service'
+        elif 'models' in rel_path or 'model' in rel_path:
+            entity_type = 'model'
+        elif 'api' in rel_path or 'handlers' in rel_path or 'controllers' in rel_path:
+            entity_type = 'endpoint'
+        elif 'components' in rel_path or 'views' in rel_path:
+            entity_type = 'component'
+        
+        # Detect domain
+        domain = 'shared'
+        if 'backend' in rel_path or 'server' in rel_path or 'api' in rel_path:
+            domain = 'backend'
+        elif 'frontend' in rel_path or 'client' in rel_path or 'web' in rel_path:
+            domain = 'frontend'
+        
+        # Detect layer
+        layer = 'unknown'
+        for l in ['services', 'models', 'api', 'handlers', 'controllers', 'components', 'views', 'pages', 'store']:
+            if l in rel_path:
+                layer = l
+                break
+        
+        # Track for bidirectional linking
+        self.import_map[rel_path] = imports
+        self.export_map[rel_path] = exports
+        
+        # Create unique entity name
+        entity_name = file_path.stem
+        parent = file_path.parent.name
+        if entity_name in ('main', 'index', 'mod', 'lib', '__init__'):
+            entity_name = f"{parent}_{entity_name}"
+        elif parent in ('models', 'services', 'handlers', 'controllers', 'components', 'views', 'pages'):
+            entity_name = f"{parent}_{entity_name}"
+        
+        entity = CodeEntity(
+            name=entity_name,
+            entity_type=entity_type,
+            path=rel_path,
+            exports=list(exports),
+            imports=list(imports),
+            domain=domain,
+            layer=layer,
+        )
+        entity.details = {
+            'language': lang,
+            'line_count': line_count,
+            'classes': classes[:5],
+            'functions': functions[:10],
+            'complexity': len(functions) + len(classes) * 2,
+        }
+        self.entities.append(entity)
+        return entity
+    
     def analyze_all(self) -> List[CodeEntity]:
         """Analyze all source files and build bidirectional relationships."""
         # First pass: extract all entities
@@ -975,8 +1220,11 @@ class CodeAnalyzer:
                     
                     if lang == 'python':
                         self.analyze_python(file_path)
-                    elif lang in ('typescript', 'javascript'):
+                    elif lang in ('typescript', 'javascript', 'vue', 'svelte'):
                         self.analyze_typescript(file_path)
+                    else:
+                        # Universal analyzer for Go, Rust, Java, Ruby, C#, etc.
+                        self.analyze_universal(file_path, lang)
         
         # Deduplicate entities with same name (add parent folder to disambiguate)
         self._deduplicate_entities()

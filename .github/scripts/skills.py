@@ -46,6 +46,37 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Set, Optional
 from pathlib import Path
 from datetime import datetime
+import shutil
+
+# ============================================================================
+# Backup & Rollback Support
+# ============================================================================
+
+def create_backup(filepath: Path, reason: str = 'update') -> Optional[Path]:
+    """Create timestamped backup before modifying file. Returns backup path."""
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return None
+    
+    backup_dir = filepath.parent / '.backups'
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_name = f"{filepath.stem}_{timestamp}_{reason}{filepath.suffix}"
+    backup_path = backup_dir / backup_name
+    
+    shutil.copy2(filepath, backup_path)
+    
+    # Keep only last 5 backups per file
+    backups = sorted(backup_dir.glob(f"{filepath.stem}_*{filepath.suffix}"))
+    for old_backup in backups[:-5]:
+        old_backup.unlink()
+    
+    return backup_path
+
+def get_rollback_command(backup_path: Path, original_path: Path) -> str:
+    """Return command to rollback to backup."""
+    return f"cp '{backup_path}' '{original_path}'"
 
 # ============================================================================
 # Configuration
@@ -295,71 +326,149 @@ def get_skill_triggers(root: Path = None) -> Dict[str, Dict[str, Any]]:
 
 # ============================================================================
 # Fallback skill triggers (used if files can't be parsed)
+# Universal patterns for all major languages and frameworks
 FALLBACK_SKILL_TRIGGERS = {
     'planning': {
-        'file_patterns': [r'\.project/', r'blueprints/', r'design/'],
+        'file_patterns': [r'\.project/', r'blueprints/', r'design/', r'architecture/'],
         'patterns': ['new feature', 'implement', 'add functionality', 'design', 'architect', 'plan', 'blueprint', 'structure'],
         'when_helpful': ['new feature', 'design', 'plan', 'architect', 'blueprint', 'structure'],
         'auto_chain': ['research'],  # Planning auto-chains to research
     },
     'research': {
-        'file_patterns': [r'docs/', r'\.md$'],
+        'file_patterns': [r'docs/', r'\.md$', r'research/'],
         'patterns': ['research', 'investigate', 'compare', 'best practice', 'standard', 'industry', 'community'],
         'when_helpful': ['research', 'best practice', 'standard', 'compare', 'investigate'],
         'auto_chain': [],
     },
     'frontend-react': {
-        'file_patterns': [r'\.tsx$', r'\.jsx$', r'frontend/', r'components/', r'pages/'],
-        'patterns': ['react', 'component', 'frontend', 'ui', 'page', 'hook', 'state'],
-        'when_helpful': ['styling', 'component', 'react', 'ui', 'frontend', 'page'],
+        # Universal frontend: React, Vue, Angular, Svelte
+        'file_patterns': [
+            r'\.tsx$', r'\.jsx$', r'\.vue$', r'\.svelte$',
+            r'frontend/', r'components/', r'pages/', r'views/',
+            r'src/app/', r'client/', r'web/',
+        ],
+        'patterns': ['react', 'vue', 'angular', 'svelte', 'component', 'frontend', 'ui', 'page', 'hook', 'state'],
+        'when_helpful': ['styling', 'component', 'react', 'vue', 'angular', 'ui', 'frontend', 'page'],
         'auto_chain': [],
     },
     'backend-api': {
-        'file_patterns': [r'\.py$', r'backend/', r'api/', r'endpoints/', r'services/'],
-        'patterns': ['fastapi', 'api', 'endpoint', 'backend', 'service', 'sqlalchemy', 'database', 'model', 'websocket', 'async'],
-        'when_helpful': ['api', 'endpoint', 'backend', 'service', 'database', 'model', 'websocket'],
+        # Universal backend: Python (FastAPI/Django/Flask), Go (Gin/Echo), Rust (Actix), Java (Spring), Ruby (Rails)
+        'file_patterns': [
+            # Python
+            r'backend/.*\.py$', r'api/.*\.py$', r'endpoints/', r'services/.*\.py$',
+            # Go
+            r'cmd/.*\.go$', r'pkg/.*\.go$', r'internal/.*\.go$', r'handlers/.*\.go$', r'api/.*\.go$',
+            # Rust
+            r'src/.*\.rs$', r'api/.*\.rs$', r'handlers/.*\.rs$',
+            # Java
+            r'src/main/java/.*Controller\.java$', r'src/main/java/.*Service\.java$',
+            # Ruby
+            r'app/controllers/.*\.rb$', r'app/models/.*\.rb$',
+            # .NET
+            r'Controllers/.*\.cs$', r'Services/.*\.cs$',
+            # Generic patterns
+            r'server/', r'routes/',
+        ],
+        'patterns': ['fastapi', 'django', 'flask', 'gin', 'echo', 'actix', 'spring', 'rails', 'express',
+                     'api', 'endpoint', 'backend', 'service', 'database', 'model', 'websocket', 'async',
+                     'handler', 'controller', 'route', 'middleware'],
+        'when_helpful': ['api', 'endpoint', 'backend', 'service', 'database', 'model', 'websocket', 'route'],
         'auto_chain': [],
     },
     'docker': {
-        'file_patterns': [r'Dockerfile', r'docker-compose.*\.yml$'],
-        'patterns': ['docker', 'container', 'compose', 'dockerfile'],
-        'when_helpful': ['docker', 'container', 'compose', 'image'],
+        'file_patterns': [r'Dockerfile', r'docker-compose.*\.yml$', r'docker/', r'\.dockerignore$'],
+        'patterns': ['docker', 'container', 'compose', 'dockerfile', 'kubernetes', 'k8s', 'helm'],
+        'when_helpful': ['docker', 'container', 'compose', 'image', 'kubernetes'],
         'auto_chain': [],
     },
     'ci-cd': {
-        'file_patterns': [r'\.github/workflows/.*\.yml$', r'deploy\.sh$', r'\.github/actions/'],
-        'patterns': ['workflow', 'github actions', 'deploy', 'pipeline', 'ci', 'cd', 'build and push'],
+        'file_patterns': [
+            r'\.github/workflows/.*\.yml$', r'deploy\.sh$', r'\.github/actions/',
+            r'\.gitlab-ci\.yml$', r'Jenkinsfile', r'\.circleci/', r'azure-pipelines\.yml$',
+            r'Makefile', r'justfile',
+        ],
+        'patterns': ['workflow', 'github actions', 'deploy', 'pipeline', 'ci', 'cd', 'build and push', 'jenkins', 'gitlab'],
         'when_helpful': ['workflow', 'deploy', 'pipeline', 'github actions', 'ci/cd'],
         'auto_chain': [],
     },
     'debugging': {
         'file_patterns': [],
-        'patterns': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback', 'exception'],
-        'when_helpful': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback'],
+        'patterns': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback', 'exception', 'panic', 'crash', 'stack trace'],
+        'when_helpful': ['fix', 'bug', 'error', 'debug', 'issue', 'traceback', 'panic'],
         'auto_chain': [],
     },
     'testing': {
-        'file_patterns': [r'test_.*\.py$', r'.*_test\.py$', r'tests/', r'\.test\.(ts|tsx|js)$'],
-        'patterns': ['test', 'pytest', 'jest', 'unittest', 'assert', 'mock', 'coverage'],
-        'when_helpful': ['test', 'pytest', 'coverage', 'assert', 'mock'],
+        # Universal test patterns for all languages
+        'file_patterns': [
+            # Python
+            r'test_.*\.py$', r'.*_test\.py$', r'tests/.*\.py$',
+            # JavaScript/TypeScript
+            r'.*\.test\.(ts|tsx|js|jsx)$', r'.*\.spec\.(ts|tsx|js|jsx)$', r'__tests__/',
+            # Go
+            r'.*_test\.go$',
+            # Rust
+            r'tests/.*\.rs$',
+            # Java
+            r'src/test/java/', r'.*Test\.java$',
+            # Ruby
+            r'spec/.*_spec\.rb$', r'test/.*_test\.rb$',
+            # .NET
+            r'.*Tests\.cs$', r'.*Test\.cs$',
+            # Generic
+            r'tests/', r'test/', r'spec/',
+        ],
+        'patterns': ['test', 'pytest', 'jest', 'mocha', 'go test', 'cargo test', 'junit', 'rspec', 'xunit',
+                     'unittest', 'assert', 'mock', 'coverage', 'spec', 'expect'],
+        'when_helpful': ['test', 'pytest', 'coverage', 'assert', 'mock', 'spec'],
         'auto_chain': [],
     },
     'documentation': {
-        'file_patterns': [r'\.md$', r'docs/', r'README'],
-        'patterns': ['doc', 'readme', 'markdown', 'documentation'],
-        'when_helpful': ['doc', 'readme', 'documentation', 'update docs'],
+        'file_patterns': [r'\.md$', r'docs/', r'README', r'\.rst$', r'\.adoc$', r'doc/'],
+        'patterns': ['doc', 'readme', 'markdown', 'documentation', 'api doc', 'swagger', 'openapi'],
+        'when_helpful': ['doc', 'readme', 'documentation', 'update docs', 'swagger'],
         'auto_chain': [],
     },
     'akis-dev': {
-        'file_patterns': [r'\.github/instructions/', r'\.github/skills/', r'copilot-instructions'],
-        'patterns': ['akis', 'instruction', 'skill', 'copilot'],
-        'when_helpful': ['instruction', 'skill', 'akis', 'copilot'],
+        'file_patterns': [r'\.github/instructions/', r'\.github/skills/', r'copilot-instructions', r'AGENTS\.md$'],
+        'patterns': ['akis', 'instruction', 'skill', 'copilot', 'agent'],
+        'when_helpful': ['instruction', 'skill', 'akis', 'copilot', 'agent'],
         'auto_chain': [],
     },
     'knowledge': {
-        'file_patterns': [r'project_knowledge\.json$', r'knowledge\.py'],
-        'patterns': ['knowledge', 'context', 'cache', 'entity'],
+        'file_patterns': [r'project_knowledge\.json$', r'knowledge\.py', r'context/'],
+        'patterns': ['knowledge', 'context', 'cache', 'entity', 'graph'],
         'when_helpful': ['knowledge', 'context', 'project understanding'],
+        'auto_chain': [],
+    },
+    # Universal language-specific skills (auto-detected)
+    'go': {
+        'file_patterns': [r'\.go$', r'go\.mod$', r'go\.sum$'],
+        'patterns': ['golang', 'go module', 'goroutine', 'channel'],
+        'when_helpful': ['go', 'golang', 'goroutine'],
+        'auto_chain': [],
+    },
+    'rust': {
+        'file_patterns': [r'\.rs$', r'Cargo\.toml$'],
+        'patterns': ['rust', 'cargo', 'crate', 'borrow', 'lifetime'],
+        'when_helpful': ['rust', 'cargo', 'crate'],
+        'auto_chain': [],
+    },
+    'java': {
+        'file_patterns': [r'\.java$', r'pom\.xml$', r'build\.gradle$'],
+        'patterns': ['java', 'spring', 'maven', 'gradle', 'jvm'],
+        'when_helpful': ['java', 'spring', 'maven'],
+        'auto_chain': [],
+    },
+    'ruby': {
+        'file_patterns': [r'\.rb$', r'Gemfile$', r'Rakefile$'],
+        'patterns': ['ruby', 'rails', 'gem', 'rake', 'bundle'],
+        'when_helpful': ['ruby', 'rails', 'gem'],
+        'auto_chain': [],
+    },
+    'csharp': {
+        'file_patterns': [r'\.cs$', r'\.csproj$', r'\.sln$'],
+        'patterns': ['c#', 'csharp', 'dotnet', '.net', 'aspnet', 'entity framework'],
+        'when_helpful': ['c#', 'dotnet', 'aspnet'],
         'auto_chain': [],
     },
 }

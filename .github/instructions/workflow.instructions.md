@@ -42,23 +42,25 @@ python -m py_compile file1.py && python -m py_compile file2.py
 - Bug fix with root cause identified
 - Complex task (6+ files modified)
 
-**Step 3:** Run scripts:
+**Step 3:** Run scripts (all with `--update` - backups created automatically):
 ```bash
 python .github/scripts/knowledge.py --update
-python .github/scripts/skills.py --suggest
-python .github/scripts/docs.py --suggest
-python .github/scripts/agents.py --suggest
-python .github/scripts/instructions.py --suggest
+python .github/scripts/skills.py --update
+python .github/scripts/docs.py --update
+python .github/scripts/agents.py --update
+python .github/scripts/instructions.py --update
 ```
 
-**Step 4:** Present results table:
-| Script | Output |
-|--------|--------|
-| knowledge.py | X entities |
-| skills.py | X suggestions |
-| docs.py | X suggestions |
-| agents.py | X suggestions |
-| instructions.py | X suggestions |
+**Step 4:** Present results table with changes and rollback:
+| Script | Output | Changes | Rollback |
+|--------|--------|---------|----------|
+| knowledge.py | X entities | project_knowledge.json | `.backups/` |
+| skills.py | X skills | INDEX.md | `.backups/` |
+| docs.py | X docs | docs/INDEX.md | `.backups/` |
+| agents.py | X agents | agents/*.md | `.backups/` |
+| instructions.py | X instructions | instructions/*.md | `.backups/` |
+
+**Rollback if needed:** `cp .github/skills/.backups/INDEX_YYYYMMDD_*.md .github/skills/INDEX.md`
 
 **Step 5:** ASK before applying suggestions
 
