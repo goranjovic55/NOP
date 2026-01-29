@@ -74,3 +74,7 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Testing | API response field names vary | Check actual response structure before asserting |
 | Edit | Multi-replace overlapping matches | Use separate replace operations for distinct sections |
 | Topology | Performance modes override styles | Update color in ALL branches (>300, >1000 nodes) |
+| MAC | Locally administered MACs no vendor | 2nd hex digit 2/6/A/E = local, use "VM/Container" |
+| MAC | Docker/VM MAC prefixes | 02:42:xx=Docker, d2:xx/92:xx=VM, detect via 2nd digit |
+| Build | Frontend container old code | Rebuild via `docker-compose.dev.yml`, Ctrl+Shift+R |
+| Hostname | Fake host-x-x-x-x names | Set hostname=None, only use real DNS/DHCP hostnames |

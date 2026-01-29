@@ -27,6 +27,9 @@ except ImportError:
 # Import DPI service for deep packet inspection
 from app.services.DPIOrchestrationService import dpi_service, DPIResult
 
+# Import MAC vendor lookup service
+from app.services.mac_vendor_service import mac_vendor_service
+
 logger = logging.getLogger(__name__)
 
 class SnifferService:
@@ -187,14 +190,39 @@ class SnifferService:
     def get_l2_entities(self) -> List[Dict[str, Any]]:
         """Return list of L2 (MAC-level) entities for topology"""
         entities = []
+        
+        # Build MAC to IP mapping from discovered hosts
+        mac_to_ip = {}
+        for ip, info in self.discovered_hosts.items():
+            mac = info.get("mac_address")
+            if mac and mac != "Unknown":
+                if mac not in mac_to_ip:
+                    mac_to_ip[mac] = set()
+                mac_to_ip[mac].add(ip)
+        
         for mac, info in self.l2_entities.items():
+            # Start with existing IPs
+            ips = set(info.get("ips", set()))
+            # Add IPs from discovered hosts mapping
+            if mac in mac_to_ip:
+                ips.update(mac_to_ip[mac])
+            
             entities.append({
                 "mac": mac,
                 "first_seen": info.get("first_seen"),
                 "last_seen": info.get("last_seen"),
-                "ips": list(info.get("ips", set())),
+                "ips": list(ips),
+                "vendor": info.get("vendor") or mac_vendor_service.lookup(mac),
                 "packets": info.get("packets", 0),
-                "bytes": info.get("bytes", 0)
+                "bytes": info.get("bytes", 0),
+                # Add extra fields already present in l2_entities
+                "device_type": info.get("device_type"),
+                "hostname": info.get("hostname"),
+                "platform": info.get("platform"),
+                "vlans": list(info.get("vlans", set())) if isinstance(info.get("vlans"), set) else info.get("vlans", []),
+                "stp_info": info.get("stp_info"),
+                "ring_protocol": info.get("ring_protocol"),
+                "ring_id": info.get("ring_id")
             })
         return entities
     
@@ -374,6 +402,74 @@ class SnifferService:
         """Clear all detected services from passive scan"""
         self.detected_services = {}
         logger.info("Cleared passive scan detected services")
+    
+    def clear_all_data(self):
+        """Clear ALL collected traffic and discovery data.
+        
+        This completely resets the sniffer state including:
+        - Traffic stats and history
+        - Discovered hosts
+        - L2 entities and connections
+        - Flow history
+        - Passive scan data
+        - DPI analysis results
+        """
+        logger.info("Clearing ALL sniffer data...")
+        
+        # Reset traffic stats
+        self.stats = {
+            "total_flows": 0,
+            "total_bytes": 0,
+            "top_talkers": {},
+            "protocols": {},
+            "connections": {},
+        }
+        self.traffic_history = []
+        self.interface_history = {}
+        self.last_bytes_check = 0
+        self.last_if_stats = {}
+        
+        # Clear discovered hosts
+        self.discovered_hosts = {}
+        
+        # Clear passive scan data
+        self.detected_services = {}
+        self.host_os_info = {}
+        self.host_hostnames = {}
+        self.service_versions = {}
+        
+        # Clear L2 data
+        self.l2_entities = {}
+        self.l2_connections = {}
+        self.l2_switch_candidates = {}
+        self.l2_multicast_groups = {}
+        
+        # Clear enhanced L2 protocol data
+        self.l2_vlans = {}
+        self.l2_stp_bridges = {}
+        self.l2_lldp_neighbors = {}
+        self.l2_cdp_neighbors = {}
+        self.l2_ring_topologies = {}
+        self.l2_lacp_groups = {}
+        
+        # Clear flow history if it exists
+        if hasattr(self, 'flow_history'):
+            self.flow_history = []
+        
+        # Clear any stored multicast/bus data
+        if hasattr(self, 'multicast_flows'):
+            self.multicast_flows = {}
+        if hasattr(self, 'bus_communications'):
+            self.bus_communications = []
+            
+        logger.info("All sniffer data cleared successfully")
+        return {
+            "message": "All traffic and discovery data cleared",
+            "cleared": [
+                "traffic_stats", "discovered_hosts", "passive_scan", 
+                "l2_entities", "l2_connections", "l2_protocols", "flow_history"
+            ]
+        }
     
     def _is_broadcast_mac(self, mac: str) -> bool:
         """Check if MAC address is broadcast"""
@@ -1166,6 +1262,7 @@ class SnifferService:
                     "first_seen": current_time,
                     "last_seen": current_time,
                     "ips": set(),
+                    "vendor": mac_vendor_service.lookup(src_mac),
                     "packets": 0,
                     "bytes": 0
                 }
@@ -1198,6 +1295,7 @@ class SnifferService:
                             "first_seen": current_time,
                             "last_seen": current_time,
                             "ips": set(),
+                            "vendor": mac_vendor_service.lookup(dst_mac),
                             "packets": 0,
                             "bytes": 0
                         }

@@ -1,0 +1,782 @@
+# Comprehensive Test Network for NOP E2E Testing
+# Generates traffic across ALL OSI layers with real device simulations
+# 
+# Usage: docker compose -f docker/test-environment/docker-compose.comprehensive-test.yml up -d
+#
+# Network: 172.29.0.0/16 (nop-internal - same as backend)
+# 
+# Device Layout:
+#   - Core Router:     172.29.1.1
+#   - Core Switch:     172.29.1.10-19
+#   - Access Switches: 172.29.2.10-29
+#   - Servers:         172.29.10.x
+#   - Workstations:    172.29.20.x
+#   - IoT Devices:     172.29.30.x
+#   - Industrial:      172.29.40.x
+#   - Traffic Gens:    172.29.100.x
+
+services:
+  # ============================================
+  # NETWORK INFRASTRUCTURE - L2/L3
+  # ============================================
+  
+  # Core Router - generates routing traffic, ICMP, ARP
+  core-router:
+    image: python:3.11-slim
+    container_name: nop-test-core-router
+    hostname: core-router-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.1.1
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        apt-get update && apt-get install -y iputils-ping arping iproute2 --quiet 2>/dev/null
+        echo "[ROUTER] Core Router 01 - Generating routing traffic..."
+        python3 /scripts/cdp_sender.py \
+          --device-id "core-router-01.nop.local" \
+          --platform "Cisco IOS Software, ISR 4451" \
+          --port-id "GigabitEthernet0/0/0" \
+          --ip 172.29.1.1 \
+          --capabilities router &
+        python3 /scripts/lldp_sender.py \
+          --system-name "core-router-01" \
+          --system-desc "Core Router - ISR 4451" \
+          --mgmt-ip 172.29.1.1 \
+          --port-id "Gi0/0/0" \
+          --capabilities router &
+        while true; do
+          # ARP discovery
+          arping -c 1 -I eth0 172.29.1.10 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.2.10 2>/dev/null || true
+          # ICMP to all segments
+          for subnet in 1 2 10 20 30 40; do
+            ping -c 1 -W 1 172.29.$subnet.10 2>/dev/null || true
+          done
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  # Core Switch 1 - STP Root Bridge
+  core-switch-01:
+    image: python:3.11-slim
+    container_name: nop-test-core-sw1
+    hostname: core-switch-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.1.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        apt-get update && apt-get install -y arping --quiet 2>/dev/null
+        echo "[SWITCH] Core Switch 01 - STP Root Bridge..."
+        python3 /scripts/stp_bridge.py --root --bridge-id 4096 --mac 00:00:5e:00:01:01 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "core-switch-01" \
+          --system-desc "Cisco Catalyst 9500 - Core" \
+          --mgmt-ip 172.29.1.10 \
+          --port-id "TenGigabitEthernet1/0/1" \
+          --capabilities bridge,router &
+        python3 /scripts/cdp_sender.py \
+          --device-id "core-switch-01.nop.local" \
+          --platform "Cisco IOS Software, Catalyst 9500" \
+          --port-id "Te1/0/1" \
+          --ip 172.29.1.10 \
+          --capabilities router,switch &
+        while true; do
+          arping -c 1 -I eth0 172.29.1.1 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.1.11 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # Core Switch 2 - STP Secondary
+  core-switch-02:
+    image: python:3.11-slim
+    container_name: nop-test-core-sw2
+    hostname: core-switch-02
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.1.11
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        apt-get update && apt-get install -y arping --quiet 2>/dev/null
+        echo "[SWITCH] Core Switch 02 - STP Secondary..."
+        python3 /scripts/stp_bridge.py --bridge-id 8192 --mac 00:00:5e:00:01:02 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "core-switch-02" \
+          --system-desc "Cisco Catalyst 9500 - Core Backup" \
+          --mgmt-ip 172.29.1.11 \
+          --port-id "TenGigabitEthernet1/0/1" \
+          --capabilities bridge,router &
+        while true; do
+          arping -c 1 -I eth0 172.29.1.10 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  # Access Switch - VLAN 10 (Servers)
+  access-switch-servers:
+    image: python:3.11-slim
+    container_name: nop-test-access-sw-servers
+    hostname: access-switch-servers
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.2.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[SWITCH] Access Switch - Server VLAN..."
+        python3 /scripts/stp_bridge.py --bridge-id 32768 --mac 00:00:5e:00:02:10 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "access-sw-servers" \
+          --system-desc "Cisco Catalyst 2960X - Server Access" \
+          --mgmt-ip 172.29.2.10 \
+          --port-id "GigabitEthernet0/1" \
+          --capabilities bridge &
+        python3 /scripts/vlan_traffic.py --vlan-id 10 --dest-mac ff:ff:ff:ff:ff:ff &
+        wait
+      '
+    restart: unless-stopped
+
+  # Access Switch - VLAN 20 (Workstations)
+  access-switch-workstations:
+    image: python:3.11-slim
+    container_name: nop-test-access-sw-ws
+    hostname: access-switch-workstations
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.2.20
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[SWITCH] Access Switch - Workstation VLAN..."
+        python3 /scripts/stp_bridge.py --bridge-id 32769 --mac 00:00:5e:00:02:20 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "access-sw-workstations" \
+          --system-desc "Cisco Catalyst 2960X - Workstation Access" \
+          --mgmt-ip 172.29.2.20 \
+          --port-id "GigabitEthernet0/1" \
+          --capabilities bridge &
+        python3 /scripts/vlan_traffic.py --vlan-id 20 --dest-mac ff:ff:ff:ff:ff:ff &
+        wait
+      '
+    restart: unless-stopped
+
+  # Access Switch - VLAN 30 (IoT)
+  access-switch-iot:
+    image: python:3.11-slim
+    container_name: nop-test-access-sw-iot
+    hostname: access-switch-iot
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.2.30
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[SWITCH] Access Switch - IoT VLAN..."
+        python3 /scripts/stp_bridge.py --bridge-id 32770 --mac 00:00:5e:00:02:30 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "access-sw-iot" \
+          --system-desc "Cisco IE-3400 - IoT Access" \
+          --mgmt-ip 172.29.2.30 \
+          --port-id "GigabitEthernet1/1" \
+          --capabilities bridge &
+        python3 /scripts/vlan_traffic.py --vlan-id 30 --dest-mac ff:ff:ff:ff:ff:ff &
+        wait
+      '
+    restart: unless-stopped
+
+  # Industrial Ring Network - MRP/REP
+  ring-switch-01:
+    image: python:3.11-slim
+    container_name: nop-test-ring-sw1
+    hostname: ring-switch-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.2.40
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[SWITCH] Ring Switch 01 - MRP Master..."
+        python3 /scripts/ring_protocol.py --protocol mrp --node-id 1 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "ring-switch-01" \
+          --system-desc "Siemens SCALANCE XR524 - Ring Master" \
+          --mgmt-ip 172.29.2.40 \
+          --port-id "Port1" \
+          --capabilities bridge &
+        wait
+      '
+    restart: unless-stopped
+
+  ring-switch-02:
+    image: python:3.11-slim
+    container_name: nop-test-ring-sw2
+    hostname: ring-switch-02
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.2.41
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[SWITCH] Ring Switch 02 - MRP Client..."
+        python3 /scripts/ring_protocol.py --protocol mrp --node-id 2 &
+        python3 /scripts/lldp_sender.py \
+          --system-name "ring-switch-02" \
+          --system-desc "Siemens SCALANCE XR524 - Ring Client" \
+          --mgmt-ip 172.29.2.41 \
+          --port-id "Port1" \
+          --capabilities bridge &
+        wait
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # SERVERS - L4/L5/L7
+  # ============================================
+  
+  # Web Server (HTTP/HTTPS)
+  web-server:
+    image: nginx:alpine
+    container_name: nop-test-web-server
+    hostname: web-server-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.10
+    volumes:
+      - ./final-test-scripts:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  # Database Server (PostgreSQL)
+  db-server:
+    image: postgres:15-alpine
+    container_name: nop-test-db-server
+    hostname: db-server-01
+    environment:
+      - POSTGRES_DB=testdb
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpass
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.20
+    restart: unless-stopped
+
+  # SSH Server
+  ssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: nop-test-ssh-server
+    hostname: ssh-server-01
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=testpass
+      - USER_NAME=testuser
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.30
+    restart: unless-stopped
+
+  # FTP Server
+  ftp-server:
+    image: fauria/vsftpd
+    container_name: nop-test-ftp-server
+    hostname: ftp-server-01
+    environment:
+      - FTP_USER=testuser
+      - FTP_PASS=testpass
+      - PASV_ADDRESS=172.29.10.40
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.40
+    restart: unless-stopped
+
+  # DNS Server
+  dns-server:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: nop-test-dns-server
+    hostname: dns-server-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.50
+    restart: unless-stopped
+
+  # Redis Cache Server
+  cache-server:
+    image: redis:7-alpine
+    container_name: nop-test-cache-server
+    hostname: cache-server-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.60
+    restart: unless-stopped
+
+  # MQTT Broker (IoT)
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: nop-test-mqtt-broker
+    hostname: mqtt-broker-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.10.70
+    restart: unless-stopped
+
+  # ============================================
+  # WORKSTATIONS - L7 Traffic Generators
+  # ============================================
+  
+  # Windows-like Workstation (HTTP, DNS, SMB traffic)
+  workstation-01:
+    image: alpine:3.19
+    container_name: nop-test-ws-01
+    hostname: workstation-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.20.10
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache curl bind-tools nmap-ncat iputils arping
+        echo "[WS] Workstation 01 - Simulating user traffic..."
+        while true; do
+          # Web browsing
+          curl -s http://172.29.10.10/ > /dev/null 2>&1 || true
+          # DNS queries
+          dig @172.29.10.50 example.com A +short 2>/dev/null || dig @8.8.8.8 google.com +short 2>/dev/null || true
+          # ARP discovery
+          arping -c 1 -I eth0 172.29.2.20 2>/dev/null || true
+          # ICMP
+          ping -c 2 172.29.10.10 2>/dev/null || true
+          sleep 5
+        done
+      '
+    restart: unless-stopped
+
+  workstation-02:
+    image: alpine:3.19
+    container_name: nop-test-ws-02
+    hostname: workstation-02
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.20.11
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache curl bind-tools nmap-ncat iputils arping openssh-client
+        echo "[WS] Workstation 02 - Simulating admin traffic..."
+        mkdir -p /root/.ssh
+        echo "StrictHostKeyChecking no" > /root/.ssh/config
+        while true; do
+          # Web browsing
+          curl -s http://172.29.10.10/ > /dev/null 2>&1 || true
+          # SSH attempts
+          timeout 3 ssh testuser@172.29.10.30 exit 2>/dev/null || true
+          # Database connection attempt
+          echo "" | nc -w1 172.29.10.20 5432 2>/dev/null || true
+          # FTP banner grab
+          echo "QUIT" | nc -w2 172.29.10.40 21 2>/dev/null || true
+          sleep 7
+        done
+      '
+    restart: unless-stopped
+
+  workstation-03:
+    image: alpine:3.19
+    container_name: nop-test-ws-03
+    hostname: workstation-03
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.20.12
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache curl redis iputils arping
+        echo "[WS] Workstation 03 - Developer workstation..."
+        while true; do
+          # Redis access
+          redis-cli -h 172.29.10.60 PING 2>/dev/null || true
+          redis-cli -h 172.29.10.60 SET dev_key "value_$(date +%s)" 2>/dev/null || true
+          # Web API calls
+          curl -s -X POST -d "test=data" http://172.29.10.10/api 2>/dev/null || true
+          # Database check
+          ping -c 1 172.29.10.20 2>/dev/null || true
+          sleep 6
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # IoT DEVICES - L7 (MQTT, CoAP, HTTP)
+  # ============================================
+  
+  # Temperature Sensor
+  iot-temp-sensor:
+    image: alpine:3.19
+    container_name: nop-test-iot-temp
+    hostname: iot-temp-sensor-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.30.10
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache mosquitto-clients arping iputils
+        echo "[IoT] Temperature Sensor - Publishing data..."
+        while true; do
+          # MQTT publish temperature
+          TEMP=$((20 + RANDOM % 10))
+          mosquitto_pub -h 172.29.10.70 -t "sensors/temperature/sensor01" -m "{\"temp\": $TEMP, \"unit\": \"C\"}" 2>/dev/null || true
+          # ARP for gateway
+          arping -c 1 -I eth0 172.29.2.30 2>/dev/null || true
+          sleep 10
+        done
+      '
+    restart: unless-stopped
+
+  # Humidity Sensor
+  iot-humidity-sensor:
+    image: alpine:3.19
+    container_name: nop-test-iot-humidity
+    hostname: iot-humidity-sensor-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.30.11
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache mosquitto-clients arping iputils
+        echo "[IoT] Humidity Sensor - Publishing data..."
+        while true; do
+          HUMIDITY=$((40 + RANDOM % 30))
+          mosquitto_pub -h 172.29.10.70 -t "sensors/humidity/sensor01" -m "{\"humidity\": $HUMIDITY, \"unit\": \"%\"}" 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.30.10 2>/dev/null || true
+          sleep 12
+        done
+      '
+    restart: unless-stopped
+
+  # Smart Camera
+  iot-camera:
+    image: alpine:3.19
+    container_name: nop-test-iot-camera
+    hostname: iot-camera-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.30.20
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache curl nmap-ncat mosquitto-clients arping
+        echo "[IoT] Smart Camera - Streaming status..."
+        while true; do
+          # Status publish
+          mosquitto_pub -h 172.29.10.70 -t "devices/camera/status" -m "{\"status\": \"active\", \"motion\": false}" 2>/dev/null || true
+          # HTTP stream simulation
+          curl -s http://172.29.10.10/ > /dev/null 2>&1 || true
+          # UDP video stream simulation
+          echo "VIDEO_FRAME_$(date +%s)" | nc -u -w1 172.29.20.10 5000 2>/dev/null || true
+          sleep 8
+        done
+      '
+    restart: unless-stopped
+
+  # Smart Lock
+  iot-smart-lock:
+    image: alpine:3.19
+    container_name: nop-test-iot-lock
+    hostname: iot-smart-lock-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.30.30
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache mosquitto-clients arping
+        echo "[IoT] Smart Lock - Status updates..."
+        while true; do
+          mosquitto_pub -h 172.29.10.70 -t "devices/lock/door01" -m "{\"locked\": true, \"battery\": 85}" 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.2.30 2>/dev/null || true
+          sleep 15
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # INDUSTRIAL DEVICES - L7 (Modbus, OPC UA)
+  # ============================================
+  
+  # PLC Simulator (Modbus TCP Server)
+  plc-01:
+    image: python:3.11-slim
+    container_name: nop-test-plc-01
+    hostname: plc-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.40.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command:
+      - bash
+      - -c
+      - |
+        pip install pymodbus scapy --quiet 2>/dev/null
+        apt-get update && apt-get install -y arping --quiet 2>/dev/null
+        echo "[PLC] PLC-01 - Modbus TCP Server..."
+        python3 /scripts/lldp_sender.py --system-name "PLC-01" --system-desc "Siemens S7-1500 PLC" --mgmt-ip 172.29.40.10 --port-id "X1" --capabilities bridge &
+        # Start simple TCP listener on Modbus port
+        while true; do
+          nc -l -p 502 -e echo "Modbus Response" 2>/dev/null || sleep 1
+        done &
+        while true; do
+          arping -c 1 -I eth0 172.29.40.20 2>/dev/null || true
+          sleep 5
+        done
+    restart: unless-stopped
+
+  # SCADA HMI (Modbus Client)
+  scada-hmi:
+    image: alpine:3.19
+    container_name: nop-test-scada-hmi
+    hostname: scada-hmi-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.40.20
+    cap_add:
+      - NET_ADMIN
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache nmap-ncat arping iputils
+        echo "[SCADA] HMI - Polling PLCs..."
+        while true; do
+          # Modbus read request
+          printf "\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a" | nc -w1 172.29.40.10 502 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.40.10 2>/dev/null || true
+          ping -c 1 172.29.40.30 2>/dev/null || true
+          sleep 5
+        done
+    restart: unless-stopped
+
+  # RTU (Modbus RTU over TCP)
+  rtu-01:
+    image: alpine:3.19
+    container_name: nop-test-rtu-01
+    hostname: rtu-01
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.40.30
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache nmap-ncat arping iputils
+        echo "[RTU] RTU-01 - Remote Terminal Unit..."
+        while true; do
+          # Modbus queries to PLC
+          printf "\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x0a" | nc -w1 172.29.40.10 502 2>/dev/null || true
+          # Heartbeat
+          ping -c 1 172.29.40.20 2>/dev/null || true
+          arping -c 1 -I eth0 172.29.2.40 2>/dev/null || true
+          sleep 8
+        done
+      '
+    restart: unless-stopped
+
+  # ============================================
+  # TRAFFIC GENERATORS - Cross-Layer
+  # ============================================
+  
+  # L2 Master - Generates STP, LLDP, CDP, VLAN
+  l2-traffic-master:
+    image: python:3.11-slim
+    container_name: nop-test-l2-master
+    hostname: l2-traffic-master
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.100.10
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./l2-scripts:/scripts:ro
+    command: |
+      bash -c '
+        pip install scapy --quiet 2>/dev/null
+        echo "[L2] Traffic Master - Generating L2 protocol frames..."
+        python3 /scripts/l2_traffic_generator.py
+      '
+    restart: unless-stopped
+
+  # L4-L7 Traffic Generator
+  l47-traffic-gen:
+    image: alpine:3.19
+    container_name: nop-test-l47-traffic
+    hostname: l47-traffic-gen
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.100.20
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache curl bind-tools nmap-ncat redis openssh-client iputils arping mosquitto-clients
+        mkdir -p /root/.ssh
+        echo "StrictHostKeyChecking no" > /root/.ssh/config
+        echo "[L4-L7] Traffic Generator - All application protocols..."
+        while true; do
+          # L4 - TCP connections
+          echo "TCP_TEST" | nc -w1 172.29.10.10 80 2>/dev/null || true
+          echo "TCP_FTP" | nc -w1 172.29.10.40 21 2>/dev/null || true
+          
+          # L4 - UDP traffic
+          echo "UDP_DNS" | nc -u -w1 172.29.10.50 53 2>/dev/null || true
+          
+          # L7 - HTTP
+          curl -s http://172.29.10.10/ > /dev/null 2>&1 || true
+          
+          # L7 - DNS
+          dig @172.29.10.50 test.local A +short 2>/dev/null || dig @8.8.8.8 google.com +short 2>/dev/null || true
+          
+          # L7 - Redis
+          redis-cli -h 172.29.10.60 PING 2>/dev/null || true
+          
+          # L7 - MQTT
+          mosquitto_pub -h 172.29.10.70 -t "test/traffic" -m "ping" 2>/dev/null || true
+          
+          # L7 - SSH attempt
+          timeout 2 ssh testuser@172.29.10.30 exit 2>/dev/null || true
+          
+          # L7 - PostgreSQL probe
+          echo "" | nc -w1 172.29.10.20 5432 2>/dev/null || true
+          
+          sleep 3
+        done
+      '
+    restart: unless-stopped
+
+  # ARP Scanner (L2 discovery)
+  arp-scanner:
+    image: alpine:3.19
+    container_name: nop-test-arp-scanner
+    hostname: arp-scanner
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.100.30
+    cap_add:
+      - NET_ADMIN
+    command: |
+      sh -c '
+        apk add --no-cache arping iputils
+        echo "[L2] ARP Scanner - Discovering network..."
+        while true; do
+          # Scan all subnets
+          for subnet in 1 2 10 20 30 40; do
+            for host in 1 10 11 12 20 30 40 50 60 70; do
+              arping -c 1 -I eth0 172.29.$subnet.$host 2>/dev/null || true
+            done
+          done
+          sleep 30
+        done
+      '
+    restart: unless-stopped
+
+  # ICMP/Ping Prober
+  ping-prober:
+    image: alpine:3.19
+    container_name: nop-test-ping-prober
+    hostname: ping-prober
+    networks:
+      nop-internal:
+        ipv4_address: 172.29.100.40
+    command: |
+      sh -c '
+        apk add --no-cache iputils
+        echo "[L3] Ping Prober - ICMP to all hosts..."
+        while true; do
+          # Core infrastructure
+          ping -c 2 172.29.1.1 2>/dev/null || true
+          ping -c 2 172.29.1.10 2>/dev/null || true
+          ping -c 2 172.29.1.11 2>/dev/null || true
+          
+          # Servers
+          ping -c 2 172.29.10.10 2>/dev/null || true
+          ping -c 2 172.29.10.20 2>/dev/null || true
+          ping -c 2 172.29.10.30 2>/dev/null || true
+          
+          # Workstations
+          ping -c 2 172.29.20.10 2>/dev/null || true
+          ping -c 2 172.29.20.11 2>/dev/null || true
+          
+          # IoT
+          ping -c 2 172.29.30.10 2>/dev/null || true
+          ping -c 2 172.29.30.20 2>/dev/null || true
+          
+          # Industrial
+          ping -c 2 172.29.40.10 2>/dev/null || true
+          ping -c 2 172.29.40.20 2>/dev/null || true
+          
+          sleep 10
+        done
+      '
+    restart: unless-stopped
+
+networks:
+  nop-internal:
+    external: true
+    name: docker_nop-internal

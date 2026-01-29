@@ -113,7 +113,7 @@ const WorkflowSettingsModal: React.FC<WorkflowSettingsModalProps> = ({
     { id: 'general', label: 'GENERAL', icon: '◇' },
     { id: 'variables', label: 'VARIABLES', icon: '◈' },
     { id: 'execution', label: 'EXECUTION', icon: '▶' },
-    { id: 'triggers', label: 'TRIGGERS', icon: '⚡' },
+    { id: 'triggers', label: 'TRIGGERS', icon: '◉' },
   ];
 
   return (
@@ -433,7 +433,7 @@ const WorkflowSettingsModal: React.FC<WorkflowSettingsModalProps> = ({
               <h3 className="text-sm font-mono text-cyber-blue mb-4">WORKFLOW TRIGGERS</h3>
 
               <div className="text-center py-8 border border-dashed border-cyber-gray rounded">
-                <span className="text-3xl mb-2 block">⚡</span>
+                <span className="text-3xl mb-2 block">◉</span>
                 <p className="text-cyber-gray-light font-mono text-sm mb-2">Coming Soon</p>
                 <p className="text-cyber-gray text-xs">
                   Schedule workflows, trigger on events, or integrate with external systems

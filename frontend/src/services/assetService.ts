@@ -89,5 +89,19 @@ export const assetService = {
     await axios.post(`${API_URL}/discovery/passive-discovery/import`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
+  },
+
+  syncFromTraffic: async (token: string, agentPOV?: string): Promise<{ synced: number; total: number }> => {
+    const headers: any = { Authorization: `Bearer ${token}` };
+    if (agentPOV) {
+      headers['X-Agent-POV'] = agentPOV;
+    }
+    try {
+      const response = await axios.post(`${API_URL}/assets/sync-from-traffic`, {}, { headers });
+      return response.data;
+    } catch (error) {
+      console.warn('Sync from traffic failed:', error);
+      return { synced: 0, total: 0 };
+    }
   }
 };

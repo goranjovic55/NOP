@@ -21,7 +21,7 @@ interface ScanSettings {
   passiveDiscoveryEnabled: boolean;
 }
 
-type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time' | 'port_count';
+type SortField = 'ip' | 'first_seen' | 'last_seen' | 'scanned_time' | 'port_count' | 'mac';
 type SortOrder = 'asc' | 'desc';
 type FilterTab = 'all' | 'scanned' | 'vulnerable';
 
@@ -387,6 +387,8 @@ const Assets: React.FC = () => {
         comparison = a.id.localeCompare(b.id);
       } else if (sortField === 'port_count') {
         comparison = (a.open_ports?.length || 0) - (b.open_ports?.length || 0);
+      } else if (sortField === 'mac') {
+        comparison = (a.mac_address || '').localeCompare(b.mac_address || '');
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
@@ -564,6 +566,12 @@ const Assets: React.FC = () => {
                   IP Address {sortField === 'ip' && (sortOrder === 'asc' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Hostname</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase cursor-pointer hover:text-cyber-blue transition-colors"
+                  onClick={() => toggleSort('mac')}
+                >
+                  MAC {sortField === 'mac' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">OS</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-cyber-purple uppercase">Status</th>
                 <th 
@@ -639,6 +647,14 @@ const Assets: React.FC = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-cyber-gray-light">{passiveHostname || asset.hostname || 'N/A'}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] text-cyber-gray-light font-mono">{asset.mac_address || '—'}</span>
+                          {asset.vendor && (
+                            <span className="text-[9px] text-cyber-purple opacity-70 truncate max-w-[120px]" title={asset.vendor}>{asset.vendor}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         {osInfo ? (
                           <span className={`text-[10px] font-bold uppercase border px-1.5 py-0.5 ${

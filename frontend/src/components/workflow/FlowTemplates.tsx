@@ -251,7 +251,7 @@ const TEMPLATES: FlowTemplate[] = [
     name: 'Exploit Discovery & Mapping',
     description: 'Find services, lookup CVEs, discover available exploits',
     category: 'scanning',
-    icon: '⚡',
+    icon: '◉',
     nodes: [
       { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Exploit Discovery' } } },
       { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Service Scan', type: 'scanning.service_scan', category: 'scanning', parameters: { host: '172.29.0.106' } } },
@@ -361,7 +361,7 @@ const TEMPLATES: FlowTemplate[] = [
     name: 'Traffic Storm Testing',
     description: 'Generate traffic storm, capture burst, analyze results',
     category: 'traffic',
-    icon: '⚡',
+    icon: '◉',
     nodes: [
       { type: 'block', position: { x: 100, y: 50 }, data: { label: 'Start', type: 'control.start', category: 'control', parameters: { name: 'Storm Test' } } },
       { type: 'block', position: { x: 100, y: 150 }, data: { label: 'Pre-Storm Stats', type: 'traffic.get_stats', category: 'traffic', parameters: { interface: 'eth0', period: '1m' } } },

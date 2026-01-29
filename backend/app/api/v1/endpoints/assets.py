@@ -206,6 +206,7 @@ async def delete_all_assets(
     """Delete all assets and related data (scans, topology, flows)
     
     Clears all data to provide a clean start for asset discovery.
+    Also clears in-memory traffic/sniffer data.
     In POV mode, only clears assets for that agent.
     """
     import logging
@@ -215,9 +216,22 @@ async def delete_all_assets(
     try:
         agent_pov = get_agent_pov(request)
         logger.info(f"[CLEAR-ALL] Starting clear operation for agent_pov={agent_pov}")
+        
+        # Clear database assets
         asset_service = AssetService(db)
         counts = await asset_service.delete_all_assets(agent_id=agent_pov)
-        logger.info(f"[CLEAR-ALL] Successfully cleared: {counts}")
+        logger.info(f"[CLEAR-ALL] Database cleared: {counts}")
+        
+        # Also clear sniffer in-memory data (only for global clear, not POV mode)
+        if agent_pov is None:
+            try:
+                from app.services.SnifferService import sniffer_service
+                sniffer_result = sniffer_service.clear_all_data()
+                logger.info(f"[CLEAR-ALL] Sniffer data cleared: {sniffer_result}")
+                counts["sniffer_data"] = "cleared"
+            except Exception as e:
+                logger.warning(f"[CLEAR-ALL] Could not clear sniffer data: {e}")
+        
         return {
             "message": "Cleared all data successfully",
             "deleted": counts
@@ -229,6 +243,101 @@ async def delete_all_assets(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to clear assets: {str(e)}"
+        )
+
+
+@router.post("/sync-from-traffic")
+@router.post("/sync-from-traffic/")
+async def sync_assets_from_traffic(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Sync assets from discovered traffic (L2 entities with IPs).
+    
+    Creates assets for each unique IP discovered from passive traffic analysis.
+    Includes MAC address and vendor information when available.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        from app.services.SnifferService import sniffer_service
+        from app.models.asset import Asset
+        from sqlalchemy.dialects.postgresql import insert
+        from sqlalchemy import text
+        
+        agent_pov = get_agent_pov(request)
+        
+        # Get L2 entities with IPs (returns list directly)
+        entities = sniffer_service.get_l2_entities()
+        
+        created_count = 0
+        updated_count = 0
+        
+        for entity in entities:
+            mac = entity.get("mac", "")
+            vendor = entity.get("vendor", "")
+            ips = entity.get("ips", [])
+            
+            for ip in ips:
+                # Skip multicast, broadcast, link-local
+                if ip.startswith("224.") or ip.startswith("239.") or ip == "255.255.255.255":
+                    continue
+                if ip.startswith("169.254."):
+                    continue
+                    
+                # Check if asset exists
+                from sqlalchemy import cast
+                from sqlalchemy.dialects.postgresql import INET
+                result = await db.execute(
+                    select(Asset).where(Asset.ip_address == cast(text(f"'{ip}'"), INET))
+                )
+                existing = result.scalar_one_or_none()
+                
+                if existing:
+                    # Update MAC/vendor if not set
+                    changed = False
+                    if mac and not existing.mac_address:
+                        existing.mac_address = mac
+                        changed = True
+                    if vendor and not existing.vendor:
+                        existing.vendor = vendor
+                        changed = True
+                    if changed:
+                        updated_count += 1
+                else:
+                    # Create new asset - hostname from traffic only, not invented
+                    asset = Asset(
+                        ip_address=ip,
+                        hostname=None,  # Only use real hostnames from traffic, not auto-generated
+                        asset_type="host",
+                        status="unknown",
+                        mac_address=mac if mac else None,
+                        vendor=vendor if vendor else None,
+                        discovery_method="passive",
+                        agent_id=agent_pov
+                    )
+                    db.add(asset)
+                    created_count += 1
+        
+        await db.commit()
+        
+        logger.info(f"[SYNC-TRAFFIC] Created {created_count}, updated {updated_count} assets from {len(entities)} L2 entities")
+        
+        return {
+            "message": "Synced assets from traffic",
+            "created": created_count,
+            "updated": updated_count,
+            "entities_processed": len(entities)
+        }
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"[SYNC-TRAFFIC] Error: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to sync assets: {str(e)}"
         )
 
 

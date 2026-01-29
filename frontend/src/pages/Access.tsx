@@ -1089,6 +1089,9 @@ const Access: React.FC = () => {
                                 {asset.hostname && asset.hostname !== asset.ip_address && (
                                   <span className="text-cyber-gray-light text-[10px] block">{asset.hostname}</span>
                                 )}
+                                {asset.mac_address && (
+                                  <span className="text-cyber-gray text-[9px] block opacity-50 font-mono">{asset.mac_address}</span>
+                                )}
                                 <span className="text-cyber-gray-light text-[10px]">
                                   OS: <span className="text-cyber-green">{asset.os_name || 'Unknown'}</span>
                                 </span>

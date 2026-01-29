@@ -240,13 +240,15 @@ async def import_passive_discovery(
     """Import passively discovered hosts into asset database"""
     try:
         discovered_hosts = sniffer_service.get_discovered_hosts()
+        l2_entities = sniffer_service.get_l2_entities()
         
         # Process in background
-        background_tasks.add_task(process_passive_discovery, discovered_hosts)
+        background_tasks.add_task(process_passive_discovery, discovered_hosts, l2_entities)
         
         return {
             "message": "Passive discovery import started",
-            "hosts_found": len(discovered_hosts)
+            "hosts_found": len(discovered_hosts),
+            "l2_entities_found": len(l2_entities)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -388,15 +390,16 @@ async def run_host_scan(scan_id: str, request: HostScanRequest):
         active_scans[scan_id]["status"] = "failed"
         active_scans[scan_id]["error"] = str(e)
 
-async def process_passive_discovery(discovered_hosts: List[Dict]):
-    """Process passively discovered hosts and add them to the database"""
+async def process_passive_discovery(discovered_hosts: List[Dict], l2_entities: List[Dict] = None):
+    """Process passively discovered hosts and L2 entities, add them to the database"""
     try:
         async with AsyncSessionLocal() as db:
             from app.models.asset import Asset, AssetStatus
-            from sqlalchemy import select, cast
+            from sqlalchemy import select, cast, or_
             from sqlalchemy.dialects.postgresql import INET
             from datetime import datetime
             
+            # Process discovered hosts (have IP addresses)
             for host_data in discovered_hosts:
                 ip_address = host_data.get("ip_address")
                 if not ip_address:
@@ -428,9 +431,58 @@ async def process_passive_discovery(discovered_hosts: List[Dict]):
                         last_seen=datetime.fromtimestamp(host_data.get("last_seen", time.time()))
                     )
                     db.add(new_asset)
+            
+            # Process L2 entities (MAC addresses that may not have IPs)
+            l2_count = 0
+            if l2_entities:
+                for entity in l2_entities:
+                    mac = entity.get("mac")
+                    if not mac:
+                        continue
+                    
+                    # Get IPs associated with this MAC
+                    ips = entity.get("ips", [])
+                    
+                    # If entity has IPs, check if any exist as assets
+                    if ips:
+                        for ip in ips:
+                            result = await db.execute(
+                                select(Asset).where(Asset.ip_address == cast(ip, INET))
+                            )
+                            asset = result.scalar_one_or_none()
+                            
+                            if asset:
+                                # Update MAC if not set
+                                if not asset.mac_address:
+                                    asset.mac_address = mac
+                                # Update hostname if we have it from LLDP/CDP
+                                if entity.get("hostname") and not asset.hostname:
+                                    asset.hostname = entity.get("hostname")
+                                asset.last_seen = datetime.now()
+                    
+                    # Check if we have a MAC-only asset (no IP)
+                    result = await db.execute(
+                        select(Asset).where(Asset.mac_address == mac)
+                    )
+                    existing_mac_asset = result.scalar_one_or_none()
+                    
+                    # Only create MAC-only asset if no IP and doesn't exist yet
+                    if not ips and not existing_mac_asset:
+                        # Create asset with only MAC address
+                        new_asset = Asset(
+                            ip_address=None,  # No IP - L2 only
+                            mac_address=mac,
+                            hostname=entity.get("hostname"),
+                            status=AssetStatus.UNKNOWN,
+                            discovery_method="passive_l2",
+                            first_seen=datetime.fromtimestamp(entity.get("first_seen", time.time())),
+                            last_seen=datetime.fromtimestamp(entity.get("last_seen", time.time()))
+                        )
+                        db.add(new_asset)
+                        l2_count += 1
                 
             await db.commit()
-            logger.info(f"Processed {len(discovered_hosts)} passively discovered hosts")
+            logger.info(f"Processed {len(discovered_hosts)} discovered hosts, {l2_count} L2-only entities")
             
     except Exception as e:
         logger.error(f"Error processing passive discovery: {e}")

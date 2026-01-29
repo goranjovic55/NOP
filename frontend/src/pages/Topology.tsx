@@ -912,22 +912,38 @@ const Topology: React.FC = () => {
     localStorage.setItem('nop_topology_interface', selectedInterface);
   }, [selectedInterface]);
 
-  // Fetch available interfaces on mount
+  // Fetch available interfaces on mount and auto-start capture if not sniffing
   useEffect(() => {
-    const fetchInterfaces = async () => {
+    const fetchInterfacesAndAutoStart = async () => {
       if (!token) return;
       try {
         const interfaces = await trafficService.getInterfaces(token, activeAgent?.id);
         setAvailableInterfaces(interfaces);
         // If saved interface isn't available, select first one
-        if (interfaces.length > 0 && !interfaces.some(i => i.name === selectedInterface)) {
-          setSelectedInterface(interfaces[0].name);
+        const targetInterface = interfaces.some(i => i.name === selectedInterface) 
+          ? selectedInterface 
+          : (interfaces.find(i => i.name === 'eth0')?.name || interfaces[0]?.name || 'eth0');
+        if (targetInterface !== selectedInterface) {
+          setSelectedInterface(targetInterface);
+        }
+        
+        // Auto-start capture if not already sniffing (only for C2, not agents)
+        if (!activeAgent) {
+          try {
+            const status = await trafficService.getCaptureStatus(token);
+            if (!status.is_sniffing) {
+              console.log('[Topology] Auto-starting capture on', targetInterface);
+              await trafficService.startCapture(token, targetInterface);
+            }
+          } catch (err) {
+            console.debug('Auto-start capture check failed:', err);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch interfaces:', error);
       }
     };
-    fetchInterfaces();
+    fetchInterfacesAndAutoStart();
   }, [token, activeAgent]);
 
   // Resize observer
@@ -955,7 +971,9 @@ const Topology: React.FC = () => {
         simulationCompleteRef.current = false;
       }
       
-      // Performance optimization: Start assets fetch early (in parallel)
+      // Sync traffic-discovered entities to assets first, then fetch
+      // This ensures passive discovery from L2/L3 traffic is reflected in assets
+      await assetService.syncFromTraffic(token, activeAgent?.id);
       const assetsPromise = assetService.getAssets(token, undefined, activeAgent?.id);
       
       // Capture strategy:
@@ -1049,10 +1067,18 @@ const Topology: React.FC = () => {
         
         // IP/subnet filtering
         if (filterMode === 'all') {
-          // Show all subnets, optionally filter by IP
+          // Show all subnets, optionally filter by IP or MAC
           if (ipFilter) {
-            return asset.ip_address.includes(ipFilter) || 
-                   (asset.hostname && asset.hostname.toLowerCase().includes(ipFilter.toLowerCase()));
+            const filterLower = ipFilter.toLowerCase();
+            // Check IP address
+            if (asset.ip_address && asset.ip_address.includes(ipFilter)) return true;
+            // Check hostname
+            if (asset.hostname && asset.hostname.toLowerCase().includes(filterLower)) return true;
+            // Check MAC address (for L2 entities)
+            if (asset.mac && asset.mac.toLowerCase().includes(filterLower)) return true;
+            // Check associated IPs (for L2 entities with ips array)
+            if (asset.ips && asset.ips.some((ip: string) => ip.includes(ipFilter))) return true;
+            return false;
           }
           return true;
         } else {
@@ -1061,8 +1087,58 @@ const Topology: React.FC = () => {
           return asset.ip_address.startsWith(subnetPrefix);
         }
       };
+      
+      // Helper to check if L2 entity matches the filter
+      const shouldIncludeL2Entity = (entity: any) => {
+        // Device type filter for L2 entities
+        if (deviceTypeFilter !== 'all') {
+          let deviceGroup = 'l2-device';
+          if (entity.device_type === 'switch' || entity.stp_info) {
+            deviceGroup = 'switch';
+          } else if (entity.device_type === 'cisco_device') {
+            deviceGroup = 'cisco';
+          } else if (entity.device_type === 'ring_member') {
+            deviceGroup = 'ring-member';
+          } else if (entity.device_type === 'network_device') {
+            deviceGroup = 'network-device';
+          }
+          
+          if (deviceTypeFilter === 'host' && !['online', 'offline', 'passive'].includes(deviceGroup)) return false;
+          if (deviceTypeFilter === 'switch' && deviceGroup !== 'switch') return false;
+          if (deviceTypeFilter === 'network' && !['network-device', 'l2-device'].includes(deviceGroup)) return false;
+          if (deviceTypeFilter === 'cisco' && deviceGroup !== 'cisco') return false;
+          if (deviceTypeFilter === 'ring' && !['ring-member', 'ring-topology'].includes(deviceGroup)) return false;
+        }
+        
+        // IP/MAC filter
+        if (filterMode === 'all' && ipFilter) {
+          const filterLower = ipFilter.toLowerCase();
+          // Check MAC address
+          if (entity.mac && entity.mac.toLowerCase().includes(filterLower)) return true;
+          // Check hostname
+          if (entity.hostname && entity.hostname.toLowerCase().includes(filterLower)) return true;
+          // Check associated IPs
+          if (entity.ips && entity.ips.some((ip: string) => ip.includes(ipFilter))) return true;
+          return false;
+        }
+        
+        return true;
+      };
 
-      // Add assets as nodes
+      // Build MAC to L2 entity mapping for merging
+      const macToL2Entity = new Map<string, any>();
+      const ipToMac = new Map<string, string>();
+      if (l2Data) {
+        l2Data.entities.forEach((entity: any) => {
+          macToL2Entity.set(entity.mac, entity);
+          // Build IP to MAC mapping from L2 entities
+          entity.ips.forEach((ip: string) => {
+            ipToMac.set(ip, entity.mac);
+          });
+        });
+      }
+
+      // Add assets as nodes - merge with L2 data when available
       assets.forEach(asset => {
         // Check if asset was discovered passively
         const isPassiveDiscovered = asset.discovery_method === 'passive' || 
@@ -1072,35 +1148,72 @@ const Topology: React.FC = () => {
         
         if (!shouldIncludeNode(asset, group)) return;
         
+        // Look for matching L2 entity by MAC or IP
+        let matchingL2: any = null;
+        const assetMac = asset.mac_address || ipToMac.get(asset.ip_address);
+        if (assetMac) {
+          matchingL2 = macToL2Entity.get(assetMac);
+        }
+        
+        // Build display name - use IP as primary identifier (hostname only if discovered from DNS/DHCP)
+        const macInfo = assetMac || matchingL2?.mac;
+        const vendorInfo = asset.vendor || matchingL2?.vendor;
+        
+        // Primary: use IP address only (hostname if actually discovered, not generated)
+        const hasRealHostname = asset.hostname && !asset.hostname.startsWith('host-');
+        const displayName: string = hasRealHostname ? (asset.hostname || asset.ip_address) : asset.ip_address;
+        
+        // MAC info is stored in details for sidebar display, not in node label
         nodesMap.set(asset.ip_address, {
           id: asset.ip_address,
-          name: asset.hostname || asset.ip_address,
+          name: displayName,
           val: 1,
           group: group,
           ip: asset.ip_address,
           status: asset.status,
-          details: asset
+          details: {
+            ...asset,
+            mac: macInfo,
+            vendor: vendorInfo,
+            l2_info: matchingL2 ? {
+              packets: matchingL2.packets,
+              bytes: matchingL2.bytes,
+              vlans: matchingL2.vlans,
+              device_type: matchingL2.device_type,
+              stp_info: matchingL2.stp_info
+            } : undefined
+          }
         });
       });
 
       // Process L2 entities when L2 layer is active
       if (activeLayers.has('L2') && l2Data) {
-        // Add L2 entities as nodes (MAC-based)
-        l2Data.entities.forEach(entity => {
-          // Skip if this MAC's IP is already in the graph
-          const hasIpNode = entity.ips.some(ip => nodesMap.has(ip));
+        // Add L2 entities as nodes (MAC-based) only if not already merged with asset
+        l2Data.entities.forEach((entity: any) => {
+          // Skip if this entity doesn't match the filter
+          if (!shouldIncludeL2Entity(entity)) return;
+          
+          // Skip if this MAC's IP is already in the graph (merged with asset)
+          const hasIpNode = entity.ips.some((ip: string) => nodesMap.has(ip));
           
           if (!hasIpNode) {
             // Determine device type - check for network infrastructure
             let deviceGroup = 'l2-device';
-            let displayName = entity.mac.substring(0, 8) + '...';
             let status = 'l2';
+            
+            // Build display name with vendor info
+            let displayName = entity.mac.substring(0, 8) + '...';
             
             // Use hostname from LLDP/CDP if available
             if (entity.hostname) {
               displayName = entity.hostname.length > 12 
                 ? entity.hostname.substring(0, 12) + '...' 
                 : entity.hostname;
+            } else if (entity.vendor) {
+              // Show vendor only (no MAC suffix in display)
+              displayName = entity.vendor.length > 15 
+                ? entity.vendor.substring(0, 15) + '...' 
+                : entity.vendor;
             }
             
             // Enhance based on device type
@@ -1128,6 +1241,7 @@ const Topology: React.FC = () => {
               status: status,
               details: {
                 mac: entity.mac,
+                vendor: entity.vendor,
                 ips: entity.ips,
                 packets: entity.packets,
                 bytes: entity.bytes,
@@ -2072,14 +2186,14 @@ const Topology: React.FC = () => {
         
         {/* Performance mode indicator for large graphs */}
         {performanceMode.isLarge && (
-          <div className="absolute top-2 left-2 text-xs text-yellow-400/70 bg-black/70 px-2 py-1 rounded z-20 font-mono">
+          <div className="absolute top-2 left-2 text-xs text-cyber-yellow/70 bg-black/70 px-2 py-1 rounded z-20 font-mono">
             {graphData.nodes.length > 5000 
-              ? `⚡ Massive mode (${graphData.nodes.length.toLocaleString()} nodes)` 
+              ? `◈ Massive mode (${graphData.nodes.length.toLocaleString()} nodes)` 
               : graphData.nodes.length > 1000 
-                ? `⚡ Extreme mode (${graphData.nodes.length.toLocaleString()} nodes)` 
+                ? `◈ Extreme mode (${graphData.nodes.length.toLocaleString()} nodes)` 
                 : performanceMode.isVeryLarge 
-                  ? `⚡ Performance mode (${graphData.nodes.length} nodes)` 
-                  : `⚡ Large graph (${graphData.nodes.length} nodes)`}
+                  ? `◈ Performance mode (${graphData.nodes.length} nodes)` 
+                  : `◈ Large graph (${graphData.nodes.length} nodes)`}
           </div>
         )}
         
@@ -2446,7 +2560,7 @@ const Topology: React.FC = () => {
               }
               
               const trafficMB = formatTrafficMB(totalTraffic);
-              const encryptedIcon = link.is_encrypted ? '🔒' : '';
+              const encryptedIcon = link.is_encrypted ? '◈' : '';
               
               // Draw label background
               const labelFontSize = Math.max(8, 10 / globalScale);
@@ -3174,6 +3288,34 @@ const Topology: React.FC = () => {
                       <span className="text-cyber-gray-light">Status:</span>
                       <span className={displayNode.status === 'online' ? 'text-cyber-green' : 'text-cyber-red'}>{displayNode.status}</span>
                     </div>
+                    {/* MAC Address - show for L2 entities or assets with MAC */}
+                    {(displayNode.details?.mac || displayNode.details?.layer === 'L2') && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">MAC:</span>
+                        <span className="text-cyber-purple font-mono text-[10px]">{displayNode.details?.mac || displayNode.id}</span>
+                      </div>
+                    )}
+                    {/* Vendor - show below MAC when available */}
+                    {displayNode.details?.vendor && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Vendor:</span>
+                        <span className="text-cyber-yellow text-[10px]">{displayNode.details.vendor}</span>
+                      </div>
+                    )}
+                    {/* Identified label - show device type for L2/network devices */}
+                    {(displayNode.details?.device_type || displayNode.details?.platform || displayNode.details?.layer === 'L2') && (
+                      <div className="flex justify-between">
+                        <span className="text-cyber-gray-light">Identified:</span>
+                        <span className="text-cyber-yellow text-[10px]">
+                          {displayNode.details?.device_type === 'switch' ? '⬢ Switch' :
+                           displayNode.details?.device_type === 'cisco_device' ? '◈ Cisco Device' :
+                           displayNode.details?.device_type === 'network_device' ? '◉ Network Device' :
+                           displayNode.details?.device_type === 'ring_member' ? '◎ Ring Member' :
+                           displayNode.details?.platform ? displayNode.details.platform :
+                           displayNode.details?.layer === 'L2' ? '⬡ L2 Device' : 'Unknown'}
+                        </span>
+                      </div>
+                    )}
                     {enhancedHostInfo[displayNode.ip]?.os_info && (
                       <div className="flex justify-between">
                         <span className="text-cyber-gray-light">OS:</span>
@@ -3280,8 +3422,8 @@ const Topology: React.FC = () => {
                     {displayLink.is_encrypted !== undefined && (
                       <div className="flex justify-between">
                         <span className="text-cyber-gray-light">Encrypted:</span>
-                        <span className={displayLink.is_encrypted ? 'text-green-400' : 'text-gray-400'}>
-                          {displayLink.is_encrypted ? '🔒 Yes' : 'No'}
+                        <span className={displayLink.is_encrypted ? 'text-cyber-green' : 'text-cyber-gray'}>
+                          {displayLink.is_encrypted ? '◈ Secure' : '◇ Plain'}
                         </span>
                       </div>
                     )}

@@ -87,6 +87,9 @@ const AssetListItem = memo(({ asset, isActive, scanStatus, vulnScanning, passive
       {asset.hostname && asset.hostname !== asset.ip_address && (
         <div className="text-cyber-gray-light text-xs truncate mt-1">{asset.hostname}</div>
       )}
+      {asset.mac_address && (
+        <div className="text-cyber-gray text-[9px] opacity-50 font-mono mt-0.5">{asset.mac_address}</div>
+      )}
       {/* Services display - both active (blue) and passive (purple) */}
       {allServices.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
