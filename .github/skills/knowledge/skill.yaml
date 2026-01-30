@@ -4,9 +4,9 @@ kind: Skill
 metadata:
   name: knowledge
   version: 2.0.0
-  description: Project knowledge graph management, architecture lookup, entity tracking, gotchas cache
+  description: Project knowledge querying, architecture lookup, gotcha checks, and knowledge maintenance
   author: AKIS
-  tags: [knowledge, graph, context, caching, architecture, gotchas]
+  tags: [knowledge, graph, context, caching, architecture, gotchas, query]
 
 spec:
   triggers:
@@ -22,6 +22,9 @@ spec:
       - "where is"
       - "how does"
       - "what file"
+      - "find"
+      - "locate"
+      - "path"
     contexts:
       - "project knowledge"
       - "architecture lookup"
@@ -29,6 +32,7 @@ spec:
       - "debugging gotchas"
       - "entity tracking"
       - "file location"
+      - "querying project"
 
   dependencies:
     required: []
@@ -55,6 +59,13 @@ spec:
     pattern_reuse_rate: 0.50
 
 gotchas:
+  - id: skip-query
+    severity: warning
+    pattern: "grep|find|list_dir"
+    check: "knowledge first"
+    message: "Searching without querying knowledge first"
+    fix: "Check hot_cache/domain_index before file operations"
+
   - id: invalid-json
     severity: error
     pattern: "project_knowledge.json"
@@ -70,6 +81,10 @@ gotchas:
     fix: "Add version field"
 
 rules:
+  - id: query-first
+    description: "Query knowledge before grep/find/list_dir"
+    enforce: true
+
   - id: valid-json
     description: "Knowledge file must be valid JSON"
     enforce: true
