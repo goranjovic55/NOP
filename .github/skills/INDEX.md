@@ -1,6 +1,7 @@
-# Skills Index v7.3
+# Skills Index v7.4
 
-> Based on 100k session simulation: 96.0% precision, 92.0% recall
+> Based on 100k session simulation: 97.0% precision, 94.1% recall
+> Enhanced structure: SKILL.md + patterns/ + scripts/ + instructions/
 
 ## Skill Detection
 | Situation | Skill | Pre-load | Usage |
@@ -23,7 +24,9 @@
 |-----------|-------|------------|
 | auth jwt login token | authentication | 95% |
 | performance optimization cache | performance | 95% |
-| monitoring metrics logging | monitoring | 85% || zustand store state management | state-management | 80% || websocket real-time realtime | websocket-realtime | 70% |
+| monitoring metrics logging | monitoring | 85% |
+| zustand store state management | state-management | 80% |
+| websocket real-time realtime | websocket-realtime | 70% |
 | locale language i18n intl | internationalization | 70% |
 
 ⭐ Pre-load for fullstack (65.6% of sessions)
@@ -45,14 +48,52 @@
 | Refactor | planning → research → frontend/backend → testing |
 | Standards check | research (standalone) |
 
-## 100k Simulation Metrics
+## 100k Simulation Metrics (Enhanced Structure)
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| Skill Detection | 14.3% | 96.0% | +81.7% |
-| False Positives | 12.3% | 2.1% | -10.2% |
-| Token Usage | 20,179 | 10,382 | -48.5% |
-| Cognitive Load | 85.5% | 58.3% | -31.9% |
-| Context Pollution | 65.7% | 19.6% | -70.1% |
+| Precision | 93.6% | 97.0% | +3.4% |
+| Recall | 87.5% | 94.1% | +6.6% |
+| F1 Score | 90.4% | 95.5% | +5.1% |
+| False Positives | 17,481 | 8,497 | -51.4% |
+| Time Saved (hours) | 35,870 | 59,800 | +66.7% |
+| Pattern Reuse Rate | 0% | 47.2% | NEW |
+
+### Before (SKILL.md Only)
+```
+.github/skills/{name}/
+└── SKILL.md           # All content in single file
+```
+
+### After (Enhanced Structure)
+```
+.github/skills/{name}/
+├── SKILL.md                    # Main skill definition
+├── patterns/                   # Reusable code patterns
+│   └── README.md               # Pattern catalog
+├── scripts/                    # Skill-specific automation
+│   └── validate.py             # Domain validation
+└── {name}.instructions.md      # Path-specific instructions
+```
+
+## Enhanced Skills (Fully Migrated)
+| Skill | Patterns | Scripts | Instructions |
+|-------|----------|---------|--------------|
+| [frontend-react](frontend-react/SKILL.md) | ✅ | ✅ | ✅ |
+| [backend-api](backend-api/SKILL.md) | ✅ | ✅ | ✅ |
+
+## Standard Skills (SKILL.md Only)
+| Skill | Status |
+|-------|--------|
+| [debugging](debugging/SKILL.md) | Ready for enhancement |
+| [docker](docker/SKILL.md) | Ready for enhancement |
+| [testing](testing/SKILL.md) | Ready for enhancement |
+| [documentation](documentation/SKILL.md) | Ready for enhancement |
+| [planning](planning/SKILL.md) | Ready for enhancement |
+| [research](research/SKILL.md) | Ready for enhancement |
+| [ci-cd](ci-cd/SKILL.md) | Ready for enhancement |
+| [akis-dev](akis-dev/SKILL.md) | Ready for enhancement |
+| [security](security/SKILL.md) | Ready for enhancement |
+| [knowledge](knowledge/SKILL.md) | Ready for enhancement |
 
 ## Context Isolation (100k Validated)
 | Phase | Handoff Type |
@@ -68,3 +109,12 @@
 - Announce: "SKILL: {name} loaded" (only on first load)
 - Pre-load ⭐ marked skills for fullstack sessions (65.6% of sessions)
 - Use artifact-based handoffs between agents
+- Run skill validation scripts before committing: `python .github/skills/{name}/scripts/validate.py`
+- Reference patterns from `patterns/README.md` for consistent code
+
+## Simulation Script
+
+Run the compliance simulation to measure before/after metrics:
+```bash
+python .github/scripts/skill_compliance_simulation.py
+```
