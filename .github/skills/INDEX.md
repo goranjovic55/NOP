@@ -1,7 +1,7 @@
-# Skills Index v7.4
+# Skills Index v7.5
 
 > Based on 100k session simulation: 97.0% precision, 94.1% recall
-> Enhanced structure: SKILL.md + patterns/ + scripts/ + instructions/
+> Enhanced structure: SKILL.md + patterns/ + scripts/
 
 ## Skill Detection
 | Situation | Skill | Pre-load | Usage |
@@ -70,30 +70,25 @@
 ├── SKILL.md                    # Main skill definition
 ├── patterns/                   # Reusable code patterns
 │   └── README.md               # Pattern catalog
-├── scripts/                    # Skill-specific automation
-│   └── validate.py             # Domain validation
-└── {name}.instructions.md      # Path-specific instructions
+└── scripts/                    # Skill-specific automation
+    └── validate.py             # Domain validation
 ```
 
-## Enhanced Skills (Fully Migrated)
-| Skill | Patterns | Scripts | Instructions |
-|-------|----------|---------|--------------|
-| [frontend-react](frontend-react/SKILL.md) | ✅ | ✅ | ✅ |
-| [backend-api](backend-api/SKILL.md) | ✅ | ✅ | ✅ |
-
-## Standard Skills (SKILL.md Only)
-| Skill | Status |
-|-------|--------|
-| [debugging](debugging/SKILL.md) | Ready for enhancement |
-| [docker](docker/SKILL.md) | Ready for enhancement |
-| [testing](testing/SKILL.md) | Ready for enhancement |
-| [documentation](documentation/SKILL.md) | Ready for enhancement |
-| [planning](planning/SKILL.md) | Ready for enhancement |
-| [research](research/SKILL.md) | Ready for enhancement |
-| [ci-cd](ci-cd/SKILL.md) | Ready for enhancement |
-| [akis-dev](akis-dev/SKILL.md) | Ready for enhancement |
-| [security](security/SKILL.md) | Ready for enhancement |
-| [knowledge](knowledge/SKILL.md) | Ready for enhancement |
+## All Skills (Fully Compliant)
+| Skill | Patterns | Scripts |
+|-------|----------|---------|
+| [frontend-react](frontend-react/SKILL.md) | ✅ | ✅ |
+| [backend-api](backend-api/SKILL.md) | ✅ | ✅ |
+| [debugging](debugging/SKILL.md) | ✅ | ✅ |
+| [docker](docker/SKILL.md) | ✅ | ✅ |
+| [testing](testing/SKILL.md) | ✅ | ✅ |
+| [documentation](documentation/SKILL.md) | ✅ | ✅ |
+| [planning](planning/SKILL.md) | ✅ | ✅ |
+| [research](research/SKILL.md) | ✅ | ✅ |
+| [ci-cd](ci-cd/SKILL.md) | ✅ | ✅ |
+| [akis-dev](akis-dev/SKILL.md) | ✅ | ✅ |
+| [security](security/SKILL.md) | ✅ | ✅ |
+| [knowledge](knowledge/SKILL.md) | ✅ | ✅ |
 
 ## Context Isolation (100k Validated)
 | Phase | Handoff Type |
