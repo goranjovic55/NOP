@@ -2,7 +2,7 @@
 
 > Based on 100k session simulation: 97.6% precision, 95.5% recall
 > Enhanced structure: skill.yaml + SKILL.md + patterns/ + scripts/
-> ✅ All 12 skills compliant with v8.0 schema
+> ✅ All 13 skills compliant with v8.0 schema
 
 ## Skill Detection
 | Situation | Skill | Pre-load | Usage |
@@ -17,7 +17,8 @@
 | .md docs/ README | [documentation](documentation/SKILL.md) | | 54% |
 | test_* *_test.py *.test.ts | [testing](testing/SKILL.md) | | 65% |
 | .github/skills/* agents/* | [akis-dev](akis-dev/SKILL.md) | | 87% |
-| project_knowledge.json | [knowledge](knowledge/SKILL.md) | | 3% |
+| project_knowledge.json architecture | [knowledge](knowledge/SKILL.md) | ⭐ | 100% |
+| session TODO workflow gate | [session](session/SKILL.md) | ⭐ | 100% |
 | security vulnerability injection | [security](security/SKILL.md) | | 15% |
 
 ## Suggested Skills (Not Yet Created)
@@ -30,7 +31,7 @@
 | websocket real-time realtime | websocket-realtime | 70% |
 | locale language i18n intl | internationalization | 70% |
 
-⭐ Pre-load for fullstack (65.6% of sessions)
+⭐ Pre-load for sessions: knowledge + session (100%), frontend-react + backend-api (65.6%)
 
 ## Workflow Phases
 | Phase | Skills |
@@ -91,6 +92,7 @@
 | [akis-dev](akis-dev/SKILL.md) | ✅ | ✅ | ✅ |
 | [security](security/SKILL.md) | ✅ | ✅ | ✅ |
 | [knowledge](knowledge/SKILL.md) | ✅ | ✅ | ✅ |
+| [session](session/SKILL.md) | ✅ | ✅ | ✅ |
 
 ## Context Isolation (100k Validated)
 | Phase | Handoff Type |
