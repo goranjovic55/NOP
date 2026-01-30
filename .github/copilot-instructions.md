@@ -3,7 +3,7 @@
 ## Gates
 | G | Check | Fix | Violation Cost |
 |---|-------|-----|----------------|
-| 0 | No knowledge | `head -100 project_knowledge.json` ONCE | +13k tokens |
+| 0 | No knowledge | Load **knowledge** skill → `head -100 project_knowledge.json` ONCE | +13k tokens |
 | 1 | No ◆ | `manage_todo_list` → mark ◆ | Lost tracking |
 | 2 | ⚠️ No skill | Load skill FIRST (MANDATORY) | +5.2k tokens |
 | 3 | No START | Do START | Lost context |
@@ -13,8 +13,8 @@
 | 7 | ⚠️ No parallel | Use pairs for 6+ (60% target) | +14 min/session |
 
 ## START
-1. `head -100 project_knowledge.json` → IN MEMORY: hot_cache, domain_index, gotchas
-2. Read `skills/INDEX.md` → pre-load: frontend-react + backend-api
+1. Load **knowledge** skill → `head -100 project_knowledge.json` → IN MEMORY: hot_cache, domain_index, gotchas
+2. Load **session** skill → Read `skills/INDEX.md` → pre-load: frontend-react + backend-api
 3. `manage_todo_list` → structured TODO naming
 4. **Announce:** `AKIS v7.4 [complexity]. Skills: [list]. [N] tasks. Ready.`
 
@@ -25,14 +25,15 @@
 |-------|--------|
 | agent | AKIS, code, architect, debugger, reviewer, documentation, research, devops |
 | phase | START, WORK, END, VERIFY |
-| skill | backend-api, frontend-react, docker, testing, debugging, documentation |
+| skill | backend-api, frontend-react, docker, testing, debugging, documentation, knowledge, session |
 | context | `parent→X` `deps→Y,Z` |
 
 ## WORK
-**Check memory first:** domain_index → paths, gotchas → bugs, hot_cache → entities
+**Use knowledge skill first:** domain_index → paths, gotchas → bugs, hot_cache → entities
 
 | Trigger | Skill | MANDATORY |
 |---------|-------|-----------|
+| architecture, structure, "where is" | knowledge | ✅ BEFORE LOOKUP |
 | .tsx .jsx | frontend-react | ✅ BEFORE ANY EDIT |
 | .py backend/ | backend-api | ✅ BEFORE ANY EDIT |
 | Dockerfile | docker | ✅ BEFORE ANY EDIT |
@@ -47,7 +48,7 @@
 ## END
 **Trigger:** Session >15 min OR when you see "done", "complete", "finished"
 
-1. Close ⊘, verify all edits
+1. Close ⊘, verify all edits (use **session** skill)
 2. **Create `log/workflow/YYYY-MM-DD_HHMMSS_task.md`** (G4 - MANDATORY)
 3. Run scripts with `--update` (auto-backup), present table with changes
 4. **ASK before git push**

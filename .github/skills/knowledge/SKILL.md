@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: Load when working with project_knowledge.json, context files, or managing knowledge cache. Provides patterns for efficient project context management with 90% token reduction.
+description: Load for project knowledge querying, architecture lookup, gotcha checks, and knowledge maintenance. Query first (hot_cache, domain_index, gotchas), update at END.
 ---
 
 # Knowledge
@@ -8,6 +8,7 @@ description: Load when working with project_knowledge.json, context files, or ma
 ## Merged Skills
 - **context-management**: Project knowledge graph, entity lookup
 - **caching**: Hot cache, domain index, gotchas lookup
+- **architecture-lookup**: File paths, structure, "where is X"
 
 ## ⚠️ Critical Gotchas
 
@@ -18,16 +19,30 @@ description: Load when working with project_knowledge.json, context files, or ma
 | Wrong lookup | Searching when data is cached | Check hot_cache before file reads |
 | Stale knowledge | Entity refs outdated | Run `knowledge.py --update` after sessions |
 | Missing gotchas | New issues not documented | Add to workflow log, will be merged |
+| Skip query | Searching codebase directly | Query knowledge FIRST (75% hit rate) |
 
 ## Rules
 
 | Rule | Pattern |
 |------|---------|
+| Query first | Check knowledge before grep/find/list_dir |
 | Load once | Read first 100 lines ONCE at session start |
 | Memory-first | Keep loaded knowledge in context |
 | Hot cache first | Check `hot_cache.entity_refs` before file reads |
 | Gotchas first | Check `gotchas.issues` when debugging |
 | Update at END | Run `knowledge.py --update` in END phase |
+
+## When to Use Knowledge Skill
+
+| Need | Query |
+|------|-------|
+| "Where is X file?" | domain_index.backend/frontend |
+| "What does Y do?" | hot_cache.entity_refs |
+| "Known issues with Z?" | gotchas.issues |
+| "How are A and B connected?" | layer relations |
+| Architecture questions | domain_index + interconnections |
+| File path lookup | domain_index |
+| Debug pattern | gotchas first |
 
 ## Avoid
 
