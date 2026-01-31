@@ -1493,6 +1493,17 @@ const TopologySettingsPanel: React.FC<{
             description="Auto mode adjusts settings based on node/link count"
           />
           
+          {settings.performanceMode === 'auto' && (
+            <SettingsNumberInput
+              label="Performance Threshold (nodes)"
+              value={settings.performanceThreshold}
+              min={50}
+              max={2000}
+              onChange={(val) => onChange('performanceThreshold', val)}
+              description="Activate performance mode when nodes exceed this count"
+            />
+          )}
+          
           <SettingsToggle
             label="Particles Enabled"
             value={settings.particlesEnabled}

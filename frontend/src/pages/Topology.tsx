@@ -2985,9 +2985,18 @@ const Topology: React.FC = () => {
           }}
           nodeCanvasObject={(node: any, ctx, globalScale) => {
             const nodeCount = graphData.nodes.length;
+            const performanceThreshold = topologySettings.performanceThreshold;
+            const isPerformanceMode = topologySettings.performanceMode === 'performance' || 
+              (topologySettings.performanceMode === 'auto' && nodeCount > performanceThreshold);
+            const isExtremeMode = nodeCount > performanceThreshold * 3.33;
             
-            // PERFORMANCE: Fast path for massive graphs (1000+ nodes) - simplified rendering
-            if (nodeCount > 1000) {
+            // Zoom-based detail level: more details when zoomed in
+            const showGlows = globalScale > 1.5 || !isPerformanceMode;
+            const showLabels = globalScale > (isExtremeMode ? 2 : isPerformanceMode ? 1.2 : 0.5);
+            const showShapes = globalScale > 1.0 || !isPerformanceMode;
+            
+            // PERFORMANCE: Fast path for massive graphs - simplified rendering
+            if (isExtremeMode && !showGlows) {
               const nodeColor = node.group === 'online' ? '#00ff41' 
                 : node.group === 'offline' ? '#ff0040' 
                 : node.group === 'passive' ? '#8b5cf6' 
@@ -3000,8 +3009,8 @@ const Topology: React.FC = () => {
               ctx.fillStyle = nodeColor;
               ctx.fill();
               
-              // Only show label when zoomed in significantly (globalScale > 2)
-              if (globalScale > 2) {
+              // Only show label when zoomed in significantly
+              if (showLabels) {
                 ctx.font = '8px Sans-Serif';
                 ctx.fillStyle = '#00f0ff';
                 ctx.textAlign = 'center';
@@ -3011,8 +3020,8 @@ const Topology: React.FC = () => {
               return;
             }
             
-            // PERFORMANCE: Simplified rendering for large graphs (300-1000 nodes)
-            if (nodeCount > 300) {
+            // PERFORMANCE: Simplified rendering for large graphs (above threshold)
+            if (isPerformanceMode && !showGlows) {
               const nodeColor = node.group === 'passive' ? '#8b5cf6' 
                 : node.group === 'online' ? '#00ff41' 
                 : node.group === 'offline' ? '#ff0040' 
@@ -3029,8 +3038,8 @@ const Topology: React.FC = () => {
               ctx.lineWidth = 1;
               ctx.stroke();
               
-              // Show labels only when zoomed (globalScale > 1.2)
-              if (globalScale > 1.2) {
+              // Show labels when zoomed
+              if (showLabels) {
                 const fontSize = Math.max(6, 8 * Math.min(1, globalScale * 0.7));
                 ctx.font = `${fontSize}px Sans-Serif`;
                 ctx.fillStyle = '#00f0ff';
@@ -3450,16 +3459,19 @@ const Topology: React.FC = () => {
                   const osInfo = enhancedHostInfo[node.ip]?.os_info;
                   const deviceType = node.details?.device_type || enhancedHostInfo[node.ip]?.device_type;
                   
-                  // Get device icon based on type
+                  // Get device icon based on type - cyberpunk-compatible symbols
                   const getDeviceIcon = () => {
                     if (deviceType === 'server') return '⬢';
                     if (deviceType === 'router' || deviceType === 'network_device') return '◈';
                     if (deviceType === 'switch') return '⬡';
                     if (deviceType === 'iot' || deviceType === 'embedded') return '◎';
                     if (deviceType === 'mobile') return '◇';
-                    if (osInfo?.os?.toLowerCase().includes('linux')) return '🐧';
-                    if (osInfo?.os?.toLowerCase().includes('windows')) return '🪟';
-                    if (osInfo?.os?.toLowerCase().includes('android')) return '📱';
+                    if (osInfo?.os?.toLowerCase().includes('linux')) return '⌬';  // Cyberpunk hexagon for Linux
+                    if (osInfo?.os?.toLowerCase().includes('windows')) return '▣'; // Cyberpunk square for Windows
+                    if (osInfo?.os?.toLowerCase().includes('android')) return '⬟'; // Cyberpunk pentagon for Android
+                    if (osInfo?.os?.toLowerCase().includes('macos') || osInfo?.os?.toLowerCase().includes('mac os')) return '⏣'; // Cyberpunk shape for macOS
+                    if (osInfo?.os?.toLowerCase().includes('ios')) return '⬠';    // Cyberpunk shape for iOS
+                    if (osInfo?.os?.toLowerCase().includes('freebsd') || osInfo?.os?.toLowerCase().includes('unix')) return '⎔'; // Cyberpunk hexagon for BSD/Unix
                     return '●';
                   };
                   
@@ -3470,6 +3482,26 @@ const Topology: React.FC = () => {
                     if (node.group === 'l2-device') return 'bg-orange-500';
                     return 'bg-cyber-purple';
                   };
+                  
+                  // Get layer color for connection count - matches discovery layer
+                  const getLayerColorForNode = (): { bg: string; text: string; border: string } => {
+                    // Check node's group and protocols to determine layer
+                    if (node.group === 'l2-device') {
+                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 - Violet
+                    }
+                    if (node.details?.hasL7Traffic || node.details?.detected_protocols?.length > 0) {
+                      return { bg: 'bg-cyber-red', text: 'text-cyber-red', border: 'border-cyber-red' }; // L7 - Red
+                    }
+                    if (node.group === 'passive') {
+                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2/Passive - Violet
+                    }
+                    if (node.group === 'online') {
+                      return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // L4 - Green
+                    }
+                    return { bg: 'bg-cyber-blue', text: 'text-cyber-blue', border: 'border-cyber-blue' }; // Default cyan
+                  };
+                  
+                  const layerColors = getLayerColorForNode();
                   
                   return (
                     <div 
@@ -3498,7 +3530,7 @@ const Topology: React.FC = () => {
                         )}
                       </div>
                       {node.connectionCount && (
-                        <span className="text-[9px] text-cyber-purple">{node.connectionCount}</span>
+                        <span className={`text-[9px] font-bold ${layerColors.text}`}>{node.connectionCount}</span>
                       )}
                     </div>
                   );

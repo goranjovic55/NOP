@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware';
 export interface TopologySettings {
   // Performance settings
   performanceMode: 'auto' | 'quality' | 'balanced' | 'performance';
+  performanceThreshold: number;  // Node count at which to activate performance mode (auto mode)
   particlesEnabled: boolean;
   maxNodes: number;  // Limit nodes for very large graphs (0 = unlimited)
   maxLinks: number;  // Limit links for very large graphs (0 = unlimited)
@@ -28,6 +29,7 @@ export interface TopologySettings {
 export const defaultTopologySettings: TopologySettings = {
   // Performance
   performanceMode: 'auto',
+  performanceThreshold: 300,  // Activate performance mode above this node count
   particlesEnabled: true,
   maxNodes: 500,
   maxLinks: 1000,
@@ -104,11 +106,12 @@ export const useTopologyStore = create<TopologyState>()(
           };
         }
         
-        // Auto mode - detect based on graph size
-        const isLarge = nodeCount > 100 || linkCount > 200;
-        const isVeryLarge = nodeCount > 300 || linkCount > 500;
-        const isExtreme = nodeCount > 1000 || linkCount > 2000;
-        const isMassive = nodeCount > 5000 || linkCount > 10000;
+        // Auto mode - detect based on graph size using user-configurable threshold
+        const threshold = settings.performanceThreshold;
+        const isLarge = nodeCount > threshold * 0.33 || linkCount > threshold * 0.66;
+        const isVeryLarge = nodeCount > threshold || linkCount > threshold * 1.67;
+        const isExtreme = nodeCount > threshold * 3.33 || linkCount > threshold * 6.67;
+        const isMassive = nodeCount > threshold * 16.67 || linkCount > threshold * 33.33;
         
         // Massive graph (10k+ assets) - minimal rendering
         if (isMassive) {
