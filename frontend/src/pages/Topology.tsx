@@ -27,6 +27,7 @@ interface GraphNode {
   vx?: number; // velocity x for force simulation
   vy?: number; // velocity y for force simulation
   connectionCount?: number; // number of connections for this node
+  dominantLayer?: string; // dominant OSI layer of connections (L2, L4, L5, L7)
 }
 
 interface GraphLink {
@@ -1873,9 +1874,11 @@ const Topology: React.FC = () => {
         return true;
       });
 
-      // Calculate Centrality (Degree) - only for nodes that have connections
+      // Calculate Centrality (Degree) and dominant layer for each node
       const degreeMap = new Map<string, number>();
       const connectedNodeIds = new Set<string>();
+      const nodeLayers = new Map<string, Map<string, number>>(); // nodeId -> { layer -> count }
+      
       links.forEach(link => {
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -1883,6 +1886,34 @@ const Topology: React.FC = () => {
         degreeMap.set(targetId, (degreeMap.get(targetId) || 0) + 1);
         connectedNodeIds.add(sourceId);
         connectedNodeIds.add(targetId);
+        
+        // Determine the layer for this link (highest layer takes precedence)
+        const layerMatch = linkMatchesActiveLayers(link, activeLayers);
+        if (layerMatch.matchedLayer) {
+          // Update layer counts for both source and target nodes
+          [sourceId, targetId].forEach(nodeId => {
+            if (!nodeLayers.has(nodeId)) nodeLayers.set(nodeId, new Map());
+            const layerCounts = nodeLayers.get(nodeId)!;
+            layerCounts.set(layerMatch.matchedLayer!, (layerCounts.get(layerMatch.matchedLayer!) || 0) + 1);
+          });
+        }
+      });
+      
+      // Calculate dominant layer for each node (layer with most connections)
+      const nodeDominantLayer = new Map<string, string>();
+      nodeLayers.forEach((layerCounts, nodeId) => {
+        let maxCount = 0;
+        let dominant = 'L4'; // Default
+        // Priority order: L7 > L5 > L4 > L2 (higher layers take precedence on tie)
+        const layerPriority = ['L2', 'L4', 'L5', 'L7'];
+        layerPriority.forEach(layer => {
+          const count = layerCounts.get(layer) || 0;
+          if (count >= maxCount) { // >= gives priority to higher layers
+            maxCount = count;
+            dominant = layer;
+          }
+        });
+        nodeDominantLayer.set(nodeId, dominant);
       });
       
       // Filter nodes to only include those with matching layer connections
@@ -1905,6 +1936,7 @@ const Topology: React.FC = () => {
       filteredNodes.forEach(node => {
         const connectionCount = degreeMap.get(node.id) || 0;
         node.connectionCount = connectionCount;
+        node.dominantLayer = nodeDominantLayer.get(node.id);
         // Scale node size based on connections (more connections = bigger node)
         node.val = calculateNodeSize(connectionCount);
         
@@ -3483,20 +3515,27 @@ const Topology: React.FC = () => {
                     return 'bg-cyber-purple';
                   };
                   
-                  // Get layer color for connection count - matches discovery layer
+                  // Get layer color for connection count - based on dominant link layer
                   const getLayerColorForNode = (): { bg: string; text: string; border: string } => {
-                    // Check node's group and protocols to determine layer
+                    // Use dominant layer calculated from actual link types
+                    if (node.dominantLayer) {
+                      switch (node.dominantLayer) {
+                        case 'L2':
+                          return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 - Violet/Purple
+                        case 'L4':
+                          return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // L4 - Green
+                        case 'L5':
+                          return { bg: 'bg-cyber-blue', text: 'text-cyber-blue', border: 'border-cyber-blue' }; // L5 - Cyan
+                        case 'L7':
+                          return { bg: 'bg-cyber-red', text: 'text-cyber-red', border: 'border-cyber-red' }; // L7 - Red
+                      }
+                    }
+                    // Fallback for nodes without connections or layer info
                     if (node.group === 'l2-device') {
-                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 - Violet
-                    }
-                    if (node.details?.hasL7Traffic || node.details?.detected_protocols?.length > 0) {
-                      return { bg: 'bg-cyber-red', text: 'text-cyber-red', border: 'border-cyber-red' }; // L7 - Red
-                    }
-                    if (node.group === 'passive') {
-                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2/Passive - Violet
+                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 device
                     }
                     if (node.group === 'online') {
-                      return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // L4 - Green
+                      return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // Default green for online
                     }
                     return { bg: 'bg-cyber-blue', text: 'text-cyber-blue', border: 'border-cyber-blue' }; // Default cyan
                   };
