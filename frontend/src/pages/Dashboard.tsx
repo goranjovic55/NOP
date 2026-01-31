@@ -2,10 +2,19 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import ForceGraph2D from 'react-force-graph-2d';
-import { dashboardService, SystemEvent } from '../services/dashboardService';
+import { 
+  dashboardService, 
+  SystemEvent,
+  SparklineResponse
+} from '../services/dashboardService';
 import { useAuthStore } from '../store/authStore';
 import { usePOV } from '../context/POVContext';
 import { CyberCard } from '../components/CyberUI';
+import {
+  AgentStatusWidget,
+  SparklineCard,
+  TimeRangeSelector
+} from '../components/dashboard';
 
 // Time ago helper
 const formatTimeAgo = (timestamp: string): string => {
@@ -60,6 +69,9 @@ const Dashboard: React.FC = () => {
   const topologyRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
   
+  // Time range selection
+  const [timeRange, setTimeRange] = useState('24h');
+  
   const [stats, setStats] = useState({
     totalAssets: 0,
     onlineAssets: 0,
@@ -71,6 +83,10 @@ const Dashboard: React.FC = () => {
     exploitedHosts: 0,
     trafficVolume: '0 MB',
   });
+
+  // Widget state
+  const [agentSummary, setAgentSummary] = useState<{ online: number; offline: number; error: number; total: number }>({ online: 0, offline: 0, error: 0, total: 0 });
+  const [sparklines, setSparklines] = useState<SparklineResponse | null>(null);
 
   const [protocolData, setProtocolData] = useState<{name: string; value: number; color: string}[]>([]);
   const [trafficHistory, setTrafficHistory] = useState<{time: string; value: number}[]>([]);
@@ -88,6 +104,15 @@ const Dashboard: React.FC = () => {
         dashboardService.getTrafficStats(token, activeAgent?.id),
         dashboardService.getEvents(token, 5)
       ]);
+
+      // Fetch widget data in parallel
+      const [agents, sparks] = await Promise.all([
+        dashboardService.getAgentSummary(token).catch(() => ({ online: 0, offline: 0, error: 0, total: 0 })),
+        dashboardService.getSparklines(token, 7).catch(() => null)
+      ]);
+
+      setAgentSummary(agents);
+      setSparklines(sparks);
 
       setStats({
         totalAssets: assetStats.total_assets || 0,
@@ -178,7 +203,7 @@ const Dashboard: React.FC = () => {
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeAgent]);
+  }, [token, activeAgent, timeRange]);
 
   // Show skeleton while loading (progressive reveal)
   if (loading) {
@@ -225,9 +250,16 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* TOP ROW: 3 Combined Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <CombinedStatCard
+      {/* TIME RANGE + HEADER */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-mono text-cyber-gray-light uppercase tracking-wider">&gt; Dashboard Overview</h2>
+        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+      </div>
+
+      {/* ROW 1: Core Metrics (4 columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stat Cards with Sparklines - 3 cols */}
+        <SparklineCard
           title="Discovered / Online"
           value1={stats.totalAssets}
           value2={stats.onlineAssets}
@@ -235,9 +267,12 @@ const Dashboard: React.FC = () => {
           color1="text-cyber-blue"
           color2="text-cyber-green"
           glowColor="border-cyber-blue"
+          sparklineData={sparklines?.discovered.values || []}
+          trend={sparklines?.discovered.trend}
+          changePercent={sparklines?.discovered.change_percent}
           onClick={() => navigate('/assets')}
         />
-        <CombinedStatCard
+        <SparklineCard
           title="Scanned / Accessed"
           value1={stats.scannedHosts}
           value2={stats.accessedHosts}
@@ -245,9 +280,12 @@ const Dashboard: React.FC = () => {
           color1="text-cyber-purple"
           color2="text-cyber-green"
           glowColor="border-cyber-purple"
+          sparklineData={sparklines?.scanned.values || []}
+          trend={sparklines?.scanned.trend}
+          changePercent={sparklines?.scanned.change_percent}
           onClick={() => navigate('/scans')}
         />
-        <CombinedStatCard
+        <SparklineCard
           title="Vulnerable / Exploited"
           value1={stats.vulnerableHosts}
           value2={stats.exploitedHosts}
@@ -255,11 +293,23 @@ const Dashboard: React.FC = () => {
           color1="text-yellow-400"
           color2="text-cyber-red"
           glowColor="border-cyber-red"
+          sparklineData={sparklines?.vulnerable.values || []}
+          trend={sparklines?.vulnerable.trend}
+          changePercent={sparklines?.vulnerable.change_percent}
           onClick={() => navigate('/exploit')}
+        />
+        
+        {/* Agents - 1 col */}
+        <AgentStatusWidget
+          online={agentSummary.online}
+          offline={agentSummary.offline}
+          error={agentSummary.error}
+          total={agentSummary.total}
+          onClick={() => navigate('/agents')}
         />
       </div>
 
-      {/* SECOND ROW: 2 Charts */}
+      {/* SECOND ROW: Traffic + Topology */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Traffic Activity + Protocol Breakdown */}
         <div className="dashboard-card p-6 cursor-pointer hover:border-cyber-blue transition-colors" onClick={() => navigate('/traffic')}>
