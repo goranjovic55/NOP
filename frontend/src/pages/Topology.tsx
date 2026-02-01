@@ -194,6 +194,32 @@ const linkMatchesActiveLayers = (
       // This is a raw connection without protocol info - show as L4
       return { matches: true, matchedLayer: 'L4' };
     }
+    
+    // Also check if protocols array contains service names that are actually L7
+    // This catches cases where link.protocols is ['HTTP'] but detected_protocols is empty
+    if (link.protocols && link.protocols.length > 0) {
+      const hasL7InProtocols = link.protocols.some(p => {
+        const layer = PROTOCOL_LAYERS[p.toUpperCase()];
+        return layer === 'L7';
+      });
+      if (hasL7InProtocols && activeLayers.has('L7')) {
+        return { matches: true, matchedLayer: 'L7' };
+      }
+      // For any other recognized protocol, classify by its layer
+      for (const p of link.protocols) {
+        const layer = PROTOCOL_LAYERS[p.toUpperCase()];
+        if (layer && activeLayers.has(layer)) {
+          return { matches: true, matchedLayer: layer };
+        }
+      }
+      // Any remaining connection with protocols should be at least L4
+      return { matches: true, matchedLayer: 'L4' };
+    }
+  }
+  
+  // Final fallback: if any layer is active, show as L4 (basic connectivity)
+  if (activeLayers.size > 0) {
+    return { matches: true, matchedLayer: 'L4' };
   }
   
   return { matches: false, matchedLayer: null };
@@ -741,6 +767,9 @@ const Topology: React.FC = () => {
   
   // Left panel toggle state - switch between legend and asset list
   const [leftPanelMode, setLeftPanelMode] = useState<'legend' | 'assets'>('assets');
+  
+  // Asset list sort field
+  const [assetSortField, setAssetSortField] = useState<'ip' | 'device' | 'os' | 'connections' | null>(null);
 
   // Handle URL param for highlighting an asset (from Assets page "Topology" button)
   useEffect(() => {
@@ -3022,65 +3051,12 @@ const Topology: React.FC = () => {
               (topologySettings.performanceMode === 'auto' && nodeCount > performanceThreshold);
             const isExtremeMode = nodeCount > performanceThreshold * 3.33;
             
-            // Zoom-based detail level: more details when zoomed in
-            const showGlows = globalScale > 1.5 || !isPerformanceMode;
+            // Zoom-based detail level: labels only when zoomed
+            // Glows and shapes are ALWAYS shown for proper asset identification
             const showLabels = globalScale > (isExtremeMode ? 2 : isPerformanceMode ? 1.2 : 0.5);
-            const showShapes = globalScale > 1.0 || !isPerformanceMode;
             
-            // PERFORMANCE: Fast path for massive graphs - simplified rendering
-            if (isExtremeMode && !showGlows) {
-              const nodeColor = node.group === 'online' ? '#00ff41' 
-                : node.group === 'offline' ? '#ff0040' 
-                : node.group === 'passive' ? '#8b5cf6' 
-                : '#8b5cf6';
-              const nodeSize = 4;
-              
-              // Simple circle - no gradients, no labels unless zoomed
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
-              ctx.fillStyle = nodeColor;
-              ctx.fill();
-              
-              // Only show label when zoomed in significantly
-              if (showLabels) {
-                ctx.font = '8px Sans-Serif';
-                ctx.fillStyle = '#00f0ff';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(node.name, node.x, node.y + nodeSize + 8);
-              }
-              return;
-            }
-            
-            // PERFORMANCE: Simplified rendering for large graphs (above threshold)
-            if (isPerformanceMode && !showGlows) {
-              const nodeColor = node.group === 'passive' ? '#8b5cf6' 
-                : node.group === 'online' ? '#00ff41' 
-                : node.group === 'offline' ? '#ff0040' 
-                : node.group === 'l2-device' ? '#ff9900'
-                : '#8b5cf6';
-              const nodeSize = getNodeSize(node.id, 5);
-              
-              // Simple filled circle with border
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
-              ctx.fillStyle = nodeColor + (node.group === 'passive' ? '80' : 'cc');
-              ctx.fill();
-              ctx.strokeStyle = nodeColor;
-              ctx.lineWidth = 1;
-              ctx.stroke();
-              
-              // Show labels when zoomed
-              if (showLabels) {
-                const fontSize = Math.max(6, 8 * Math.min(1, globalScale * 0.7));
-                ctx.font = `${fontSize}px Sans-Serif`;
-                ctx.fillStyle = '#00f0ff';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(node.name, node.x, node.y + nodeSize + 8);
-              }
-              return;
-            }
+            // Performance mode: only skip particles (handled by linkDirectionalParticles)
+            // Always render full shapes and OS glows for visual identification
             
             // Standard rendering for smaller graphs (<300 nodes)
             const label = node.name;
@@ -3480,9 +3456,56 @@ const Topology: React.FC = () => {
           {/* Asset List Mode */}
           {leftPanelMode === 'assets' && (
             <div className="overflow-y-auto custom-scrollbar flex-1 min-w-[200px]">
+              {/* Sort Toggle Buttons */}
+              <div className="flex flex-wrap gap-1 mb-2 px-1 border-b border-cyber-gray/30 pb-2">
+                <button
+                  onClick={() => setAssetSortField(assetSortField === 'ip' ? null : 'ip')}
+                  className={`text-[8px] uppercase px-1.5 py-0.5 rounded transition-colors ${assetSortField === 'ip' ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green' : 'text-cyber-gray hover:text-cyber-blue border border-transparent'}`}
+                >
+                  IP
+                </button>
+                <button
+                  onClick={() => setAssetSortField(assetSortField === 'device' ? null : 'device')}
+                  className={`text-[8px] uppercase px-1.5 py-0.5 rounded transition-colors ${assetSortField === 'device' ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green' : 'text-cyber-gray hover:text-cyber-blue border border-transparent'}`}
+                >
+                  Device
+                </button>
+                <button
+                  onClick={() => setAssetSortField(assetSortField === 'os' ? null : 'os')}
+                  className={`text-[8px] uppercase px-1.5 py-0.5 rounded transition-colors ${assetSortField === 'os' ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green' : 'text-cyber-gray hover:text-cyber-blue border border-transparent'}`}
+                >
+                  OS
+                </button>
+                <button
+                  onClick={() => setAssetSortField(assetSortField === 'connections' ? null : 'connections')}
+                  className={`text-[8px] uppercase px-1.5 py-0.5 rounded transition-colors ${assetSortField === 'connections' ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green' : 'text-cyber-gray hover:text-cyber-blue border border-transparent'}`}
+                >
+                  Conn
+                </button>
+              </div>
               {graphData.nodes
                 .sort((a: any, b: any) => {
-                  // Sort by status (online first), then by connection count
+                  // Sort by selected field
+                  if (assetSortField === 'ip') {
+                    // Numeric IP sort
+                    const aIp = a.ip?.split('.').map((n: string) => parseInt(n, 10).toString().padStart(3, '0')).join('.') || '';
+                    const bIp = b.ip?.split('.').map((n: string) => parseInt(n, 10).toString().padStart(3, '0')).join('.') || '';
+                    return aIp.localeCompare(bIp);
+                  }
+                  if (assetSortField === 'device') {
+                    const aDevice = a.details?.device_type || enhancedHostInfo[a.ip]?.device_type || 'zzz';
+                    const bDevice = b.details?.device_type || enhancedHostInfo[b.ip]?.device_type || 'zzz';
+                    return aDevice.localeCompare(bDevice);
+                  }
+                  if (assetSortField === 'os') {
+                    const aOs = enhancedHostInfo[a.ip]?.os_info?.os || 'zzz';
+                    const bOs = enhancedHostInfo[b.ip]?.os_info?.os || 'zzz';
+                    return aOs.localeCompare(bOs);
+                  }
+                  if (assetSortField === 'connections') {
+                    return (b.connectionCount || 0) - (a.connectionCount || 0);
+                  }
+                  // Default: status (online first), then by connection count
                   if (a.status !== b.status) return a.status === 'online' ? -1 : 1;
                   return (b.connectionCount || 0) - (a.connectionCount || 0);
                 })
@@ -3516,28 +3539,34 @@ const Topology: React.FC = () => {
                   };
                   
                   // Get layer color for connection count - based on dominant link layer
+                  // Colors match the layer buttons: L2=violet, L4=green, L5=cyan, L7=red
                   const getLayerColorForNode = (): { bg: string; text: string; border: string } => {
                     // Use dominant layer calculated from actual link types
-                    if (node.dominantLayer) {
-                      switch (node.dominantLayer) {
+                    const dominantLayer = node.dominantLayer;
+                    if (dominantLayer) {
+                      switch (dominantLayer) {
                         case 'L2':
-                          return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 - Violet/Purple
+                          return { bg: 'bg-purple-500', text: 'text-purple-400', border: 'border-purple-500' }; // L2 - Purple (violet)
                         case 'L4':
-                          return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // L4 - Green
+                          return { bg: 'bg-green-500', text: 'text-green-400', border: 'border-green-500' }; // L4 - Green
                         case 'L5':
-                          return { bg: 'bg-cyber-blue', text: 'text-cyber-blue', border: 'border-cyber-blue' }; // L5 - Cyan
+                          return { bg: 'bg-cyan-500', text: 'text-cyan-400', border: 'border-cyan-500' }; // L5 - Cyan
                         case 'L7':
-                          return { bg: 'bg-cyber-red', text: 'text-cyber-red', border: 'border-cyber-red' }; // L7 - Red
+                          return { bg: 'bg-red-500', text: 'text-red-400', border: 'border-red-500' }; // L7 - Red
+                        default:
+                          break;
                       }
                     }
-                    // Fallback for nodes without connections or layer info
-                    if (node.group === 'l2-device') {
-                      return { bg: 'bg-violet-500', text: 'text-violet-400', border: 'border-violet-500' }; // L2 device
+                    // Fallback: calculate layer from this node's connections if dominantLayer not set
+                    // This handles cases where data wasn't fully computed
+                    if (node.group === 'l2-device' || node.group === 'multicast-bus' || node.group === 'ring-topology') {
+                      return { bg: 'bg-purple-500', text: 'text-purple-400', border: 'border-purple-500' }; // L2 device
                     }
-                    if (node.group === 'online') {
-                      return { bg: 'bg-cyber-green', text: 'text-cyber-green', border: 'border-cyber-green' }; // Default green for online
+                    // Default to green (L4 transport) for most hosts with connections
+                    if (node.connectionCount && node.connectionCount > 0) {
+                      return { bg: 'bg-green-500', text: 'text-green-400', border: 'border-green-500' }; // L4 default
                     }
-                    return { bg: 'bg-cyber-blue', text: 'text-cyber-blue', border: 'border-cyber-blue' }; // Default cyan
+                    return { bg: 'bg-gray-500', text: 'text-gray-400', border: 'border-gray-500' }; // No connections
                   };
                   
                   const layerColors = getLayerColorForNode();
@@ -3592,6 +3621,56 @@ const Topology: React.FC = () => {
           <div className="flex items-center space-x-2 mb-3">
             <span className="w-2.5 h-2.5 rounded-full bg-cyber-purple shadow-[0_0_5px_#9d00ff]"></span>
             <span className="uppercase tracking-wide">External/Unknown</span>
+          </div>
+          
+          {/* Device Shapes */}
+          <div className="font-bold text-cyber-blue mb-2 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-2">Device Shapes</div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-cyber-blue text-sm">⬢</span>
+            <span className="uppercase tracking-wide text-[9px]">Server</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-cyber-purple text-sm">◈</span>
+            <span className="uppercase tracking-wide text-[9px]">Router/Network</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-orange-400 text-sm">⬡</span>
+            <span className="uppercase tracking-wide text-[9px]">Switch</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-pink-400 text-sm">◇</span>
+            <span className="uppercase tracking-wide text-[9px]">Mobile</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-amber-400 text-sm">◎</span>
+            <span className="uppercase tracking-wide text-[9px]">IoT/Embedded</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-cyber-gray text-sm">●</span>
+            <span className="uppercase tracking-wide text-[9px]">Unknown</span>
+          </div>
+          
+          {/* OS Glow Colors */}
+          <div className="font-bold text-cyber-green mb-2 uppercase tracking-widest text-[10px] border-t border-cyber-gray pt-2">OS Glow</div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: '#00ff4140', boxShadow: '0 0 8px #00ff41'}}></span>
+            <span className="uppercase tracking-wide text-[9px]">Linux/Unix</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: '#00bfff40', boxShadow: '0 0 8px #00bfff'}}></span>
+            <span className="uppercase tracking-wide text-[9px]">Windows</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: '#a4c63940', boxShadow: '0 0 8px #a4c639'}}></span>
+            <span className="uppercase tracking-wide text-[9px]">Android</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: '#ffffff40', boxShadow: '0 0 8px #ffffff'}}></span>
+            <span className="uppercase tracking-wide text-[9px]">Apple/iOS</span>
+          </div>
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: '#9b59b640', boxShadow: '0 0 8px #9b59b6'}}></span>
+            <span className="uppercase tracking-wide text-[9px]">Network Device</span>
           </div>
 
           {/* L2 Layer specific nodes */}

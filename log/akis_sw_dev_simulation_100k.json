@@ -1,0 +1,404 @@
+{
+  "baseline": {
+    "meta": {
+      "simulation_date": "2026-02-01T12:16:41.977949",
+      "total_sessions": 100000,
+      "optimization_level": "baseline",
+      "random_seed": 42,
+      "industry_patterns": [
+        "Martin Fowler - Continuous Integration",
+        "Conventional Commits",
+        "GitHub Flow",
+        "Trunk-Based Development",
+        "Google Engineering Practices",
+        "12-Factor App",
+        "TDD (Test-Driven Development)",
+        "Agile Principles"
+      ]
+    },
+    "summary": {
+      "success_rate": 57.109,
+      "avg_duration_minutes": 43.88529223292265,
+      "avg_tokens": 20212.66186,
+      "avg_api_calls": 32.92504,
+      "avg_files_modified": 4.93054,
+      "avg_commits": 3.65447,
+      "avg_gate_compliance": 76.545,
+      "delegation_rate": 67.08,
+      "workflow_log_rate": 96.25399999999999,
+      "parallel_rate": 19.012999999999998
+    },
+    "gate_compliance": {
+      "G0": 73.194,
+      "G1": 91.791,
+      "G2": 67.226,
+      "G3": 91.916,
+      "G4": 87.401,
+      "G5": 81.819,
+      "G6": 100.0,
+      "G7": 19.012999999999998
+    },
+    "gate_compliance_detail": {
+      "G0_knowledge": {
+        "rate": 73.194,
+        "industry_pattern": "12-Factor: Config/context first"
+      },
+      "G1_todo": {
+        "rate": 91.791,
+        "industry_pattern": "Conventional Commits: Structured changes"
+      },
+      "G2_skill": {
+        "rate": 67.226,
+        "industry_pattern": "TDD: Test/purpose first"
+      },
+      "G3_start": {
+        "rate": 91.916,
+        "industry_pattern": "GitHub Flow: Branch creation"
+      },
+      "G4_end": {
+        "rate": 87.401,
+        "industry_pattern": "CI: Proper commit/merge process"
+      },
+      "G5_verify": {
+        "rate": 81.819,
+        "industry_pattern": "CI: Self-testing code"
+      },
+      "G6_single": {
+        "rate": 100.0,
+        "industry_pattern": "Trunk-Based: Short-lived branches"
+      },
+      "G7_parallel": {
+        "rate": 19.012999999999998,
+        "industry_pattern": "Agile: Parallel work, pair programming"
+      }
+    },
+    "session_type_breakdown": {
+      "feature_development": {
+        "count": 35106,
+        "percentage": 35.106,
+        "success_rate": 51.74614026092406,
+        "avg_duration": 59.8914886257105,
+        "avg_tokens": 25270.288383752064,
+        "avg_files": 8.000341821910785,
+        "avg_commits": 5.500113940636928,
+        "gate_compliance": 76.54175924343417,
+        "parallel_rate": 18.894206118612203
+      },
+      "bug_fix": {
+        "count": 24731,
+        "percentage": 24.731,
+        "success_rate": 62.0921111156039,
+        "avg_duration": 37.555389793256985,
+        "avg_tokens": 16051.396061623063,
+        "avg_files": 2.4939145202377584,
+        "avg_commits": 2.0038413327402855,
+        "gate_compliance": 76.73365411831304,
+        "parallel_rate": 19.133880554769316
+      },
+      "code_review": {
+        "count": 15231,
+        "percentage": 15.231,
+        "success_rate": 64.92679403847417,
+        "avg_duration": 24.95667257017095,
+        "avg_tokens": 12206.064211148316,
+        "avg_files": 0,
+        "avg_commits": 0,
+        "gate_compliance": 76.32295975313505,
+        "parallel_rate": 19.460311207405947
+      },
+      "refactoring": {
+        "count": 10098,
+        "percentage": 10.098,
+        "success_rate": 45.59318676965736,
+        "avg_duration": 52.56250519093386,
+        "avg_tokens": 29814.47752030105,
+        "avg_files": 9.992671816201227,
+        "avg_commits": 7.993860170330758,
+        "gate_compliance": 76.52629233511587,
+        "parallel_rate": 18.974054268171916
+      },
+      "testing": {
+        "count": 9891,
+        "percentage": 9.891,
+        "success_rate": 58.214538469315535,
+        "avg_duration": 35.047189776244636,
+        "avg_tokens": 18942.60246688909,
+        "avg_files": 4.015266403801435,
+        "avg_commits": 3.5091497320796683,
+        "gate_compliance": 76.65554544535436,
+        "parallel_rate": 18.117480537862704
+      },
+      "documentation": {
+        "count": 4943,
+        "percentage": 4.9430000000000005,
+        "success_rate": 67.48937891968441,
+        "avg_duration": 20.160482947577155,
+        "avg_tokens": 12709.271090430911,
+        "avg_files": 2.0020230629172566,
+        "avg_commits": 1.491401982601659,
+        "gate_compliance": 76.12532874772405,
+        "parallel_rate": 19.745094072425655
+      }
+    },
+    "conventional_commits": {
+      "total_commits": 365447,
+      "type_distribution": {
+        "test": 31.167310170831886,
+        "docs": 3.227827838236461,
+        "chore": 0.9908413531921182,
+        "feat": 21.01289653492846,
+        "refactor": 22.392850399647553,
+        "fix": 14.26691148100819,
+        "style": 6.541577848497868,
+        "perf": 0.39978437365746605
+      }
+    },
+    "complexity_breakdown": {
+      "simple": {
+        "count": 29695,
+        "success_rate": 78.32294999158107
+      },
+      "medium": {
+        "count": 47066,
+        "success_rate": 54.65304041133727
+      },
+      "complex": {
+        "count": 23239,
+        "success_rate": 34.97568742200611
+      }
+    }
+  },
+  "optimized": {
+    "meta": {
+      "simulation_date": "2026-02-01T12:16:44.681079",
+      "total_sessions": 100000,
+      "optimization_level": "optimized",
+      "random_seed": 42,
+      "industry_patterns": [
+        "Martin Fowler - Continuous Integration",
+        "Conventional Commits",
+        "GitHub Flow",
+        "Trunk-Based Development",
+        "Google Engineering Practices",
+        "12-Factor App",
+        "TDD (Test-Driven Development)",
+        "Agile Principles"
+      ]
+    },
+    "summary": {
+      "success_rate": 95.578,
+      "avg_duration_minutes": 43.88306421730202,
+      "avg_tokens": 20176.04594,
+      "avg_api_calls": 32.84628,
+      "avg_files_modified": 4.92848,
+      "avg_commits": 3.64737,
+      "avg_gate_compliance": 92.989875,
+      "delegation_rate": 67.34400000000001,
+      "workflow_log_rate": 96.22800000000001,
+      "parallel_rate": 60.061
+    },
+    "gate_compliance": {
+      "G0": 98.478,
+      "G1": 97.869,
+      "G2": 94.906,
+      "G3": 97.012,
+      "G4": 99.595,
+      "G5": 95.998,
+      "G6": 100.0,
+      "G7": 60.061
+    },
+    "gate_compliance_detail": {
+      "G0_knowledge": {
+        "rate": 98.478,
+        "industry_pattern": "12-Factor: Config/context first"
+      },
+      "G1_todo": {
+        "rate": 97.869,
+        "industry_pattern": "Conventional Commits: Structured changes"
+      },
+      "G2_skill": {
+        "rate": 94.906,
+        "industry_pattern": "TDD: Test/purpose first"
+      },
+      "G3_start": {
+        "rate": 97.012,
+        "industry_pattern": "GitHub Flow: Branch creation"
+      },
+      "G4_end": {
+        "rate": 99.595,
+        "industry_pattern": "CI: Proper commit/merge process"
+      },
+      "G5_verify": {
+        "rate": 95.998,
+        "industry_pattern": "CI: Self-testing code"
+      },
+      "G6_single": {
+        "rate": 100.0,
+        "industry_pattern": "Trunk-Based: Short-lived branches"
+      },
+      "G7_parallel": {
+        "rate": 60.061,
+        "industry_pattern": "Agile: Parallel work, pair programming"
+      }
+    },
+    "session_type_breakdown": {
+      "feature_development": {
+        "count": 35288,
+        "percentage": 35.288000000000004,
+        "success_rate": 95.93629562457492,
+        "avg_duration": 59.949855372213854,
+        "avg_tokens": 25255.04060870551,
+        "avg_files": 7.994133983223759,
+        "avg_commits": 5.4871627748809795,
+        "gate_compliance": 96.16477272727273,
+        "parallel_rate": 83.92371344366357
+      },
+      "bug_fix": {
+        "count": 24822,
+        "percentage": 24.822,
+        "success_rate": 95.66513576665861,
+        "avg_duration": 37.4470194178182,
+        "avg_tokens": 15972.921561518007,
+        "avg_files": 2.511159455321892,
+        "avg_commits": 2.008218515832729,
+        "gate_compliance": 91.4274635404077,
+        "parallel_rate": 48.20320683264846
+      },
+      "code_review": {
+        "count": 15050,
+        "percentage": 15.049999999999999,
+        "success_rate": 95.30232558139535,
+        "avg_duration": 25.00055905378754,
+        "avg_tokens": 12233.201727574751,
+        "avg_files": 0,
+        "avg_commits": 0,
+        "gate_compliance": 88.10215946843853,
+        "parallel_rate": 24.006644518272424
+      },
+      "refactoring": {
+        "count": 9872,
+        "percentage": 9.872,
+        "success_rate": 93.23338735818476,
+        "avg_duration": 52.499062944198776,
+        "avg_tokens": 29730.565235008104,
+        "avg_files": 9.976600486223663,
+        "avg_commits": 7.97862641815235,
+        "gate_compliance": 93.23591977309562,
+        "parallel_rate": 59.886547811993516
+      },
+      "testing": {
+        "count": 9996,
+        "percentage": 9.995999999999999,
+        "success_rate": 96.28851540616246,
+        "avg_duration": 34.92925251904958,
+        "avg_tokens": 18866.47118847539,
+        "avg_files": 3.9948979591836733,
+        "avg_commits": 3.504501800720288,
+        "gate_compliance": 94.51280512204882,
+        "parallel_rate": 71.64865946378552
+      },
+      "documentation": {
+        "count": 4972,
+        "percentage": 4.972,
+        "success_rate": 96.66130329847144,
+        "avg_duration": 20.03299236552375,
+        "avg_tokens": 12816.932823813355,
+        "avg_files": 2.010659694288013,
+        "avg_commits": 1.500804505229284,
+        "gate_compliance": 89.50120675784392,
+        "parallel_rate": 36.08205953338697
+      }
+    },
+    "conventional_commits": {
+      "total_commits": 364737,
+      "type_distribution": {
+        "test": 31.163550722849614,
+        "docs": 3.243707109506302,
+        "chore": 0.9820774969361484,
+        "feat": 21.18375706330863,
+        "refactor": 22.344593501618977,
+        "fix": 14.28728097231704,
+        "style": 6.382407049463038,
+        "perf": 0.4126260840002522
+      }
+    },
+    "complexity_breakdown": {
+      "simple": {
+        "count": 29618,
+        "success_rate": 99.42264838949288
+      },
+      "medium": {
+        "count": 47613,
+        "success_rate": 96.11030600886312
+      },
+      "complex": {
+        "count": 22769,
+        "success_rate": 89.4637445649787
+      }
+    }
+  },
+  "improvements": {
+    "success_rate": {
+      "baseline": 57.109,
+      "optimized": 95.578,
+      "improvement": 38.469
+    },
+    "tokens": {
+      "baseline": 20212.66186,
+      "optimized": 20176.04594,
+      "improvement_pct": 0.18115337927094868
+    },
+    "gate_compliance": {
+      "baseline": 76.545,
+      "optimized": 92.989875,
+      "improvement": 16.444874999999996
+    },
+    "parallel_rate": {
+      "baseline": 19.012999999999998,
+      "optimized": 60.061,
+      "improvement": 41.048
+    }
+  },
+  "gate_improvements": {
+    "G0": {
+      "baseline": 73.194,
+      "optimized": 98.478,
+      "improvement": 25.283999999999992
+    },
+    "G1": {
+      "baseline": 91.791,
+      "optimized": 97.869,
+      "improvement": 6.078000000000003
+    },
+    "G2": {
+      "baseline": 67.226,
+      "optimized": 94.906,
+      "improvement": 27.680000000000007
+    },
+    "G3": {
+      "baseline": 91.916,
+      "optimized": 97.012,
+      "improvement": 5.096000000000004
+    },
+    "G4": {
+      "baseline": 87.401,
+      "optimized": 99.595,
+      "improvement": 12.194000000000003
+    },
+    "G5": {
+      "baseline": 81.819,
+      "optimized": 95.998,
+      "improvement": 14.179000000000002
+    },
+    "G6": {
+      "baseline": 100.0,
+      "optimized": 100.0,
+      "improvement": 0.0
+    },
+    "G7": {
+      "baseline": 19.012999999999998,
+      "optimized": 60.061,
+      "improvement": 41.048
+    }
+  }
+}

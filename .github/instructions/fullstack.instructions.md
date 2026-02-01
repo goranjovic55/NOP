@@ -34,14 +34,9 @@ frontend-react ⭐ + backend-api ⭐
 
 ## Gotchas
 
-| Issue | Solution |
-|-------|----------|
-| 307 redirect on POST | Add trailing slash to URL: `/api/endpoint/` |
-| CORS errors | Check FastAPI CORS origins in `app/main.py` |
-| State not syncing | Use WebSocket or polling with `useEffect` |
-| Type mismatch | Regenerate types: `npm run generate-types` |
-| 401 Unauthorized | Check token expiry, refresh if needed |
-| Create button not working | Verify onClick handler is connected |
+See [quality.instructions.md](quality.instructions.md) for full gotchas list.
+
+**Fullstack-specific:** 307 redirect → add trailing slash, CORS → check main.py origins
 
 ## Verification
 After fullstack changes:

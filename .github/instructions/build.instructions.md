@@ -62,6 +62,6 @@ grep -rE "pattern1|pattern2" src/
 
 ## ⚠️ Critical Gotchas
 
-- **Restart ≠ Rebuild** - Code changes need `docker-compose build`
-- **Volume mounts** - Source code reflects live, dependencies need rebuild
-- **Port conflicts** - Check 3000, 8000 not in use
+See [quality.instructions.md](quality.instructions.md) for full gotchas list.
+
+**Build-specific:** Restart ≠ Rebuild (code changes need `docker-compose build`)

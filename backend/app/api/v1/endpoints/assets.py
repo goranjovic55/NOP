@@ -292,7 +292,7 @@ async def sync_assets_from_traffic(
                 result = await db.execute(
                     select(Asset).where(Asset.ip_address == cast(text(f"'{ip}'"), INET))
                 )
-                existing = result.scalar_one_or_none()
+                existing = result.scalars().first()
                 
                 if existing:
                     # Update MAC/vendor if not set

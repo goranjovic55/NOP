@@ -2,6 +2,7 @@
 
 > Based on 100k session simulation: 97.6% precision, 95.5% recall
 > Enhanced structure: skill.yaml + SKILL.md + patterns/ + scripts/
+> Industry patterns: CI, GitHub Flow, TDD, Conventional Commits, 12-Factor, Agile
 > ✅ All 13 skills compliant with v8.0 schema
 
 ## Skill Detection
@@ -123,25 +124,24 @@ python .github/scripts/skill_compliance_simulation.py
 
 ## v8.0 Implementation Status ✅
 
-> Based on research: OpenAI Function Calling, LangChain Tools, AutoGPT Skills, Microsoft Semantic Kernel, CrewAI Framework
-> Full analysis: [docs/research/SKILL_STRUCTURE_RESEARCH.md](../../docs/research/SKILL_STRUCTURE_RESEARCH.md)
+> Based on industry SW dev patterns: CI, GitHub Flow, TDD, Conventional Commits, 12-Factor, Agile
+> 100k simulation: 57.1% → 95.6% success rate (+38.5%), 93.0% gate compliance
+> Full analysis: [docs/analysis/AKIS_100K_COMPLIANCE_REPORT.md](../../docs/analysis/AKIS_100K_COMPLIANCE_REPORT.md)
 
 ### 100k Simulation: v7.0 vs v7.5 vs v8.0
 
 | Metric | v7.0 (Baseline) | v7.5 (Previous) | v8.0 (Current) | Δ v7.0→v8.0 |
 |--------|-----------------|-----------------|----------------|-------------|
-| Precision | 93.7% | 96.9% | 97.6% | +3.9% |
-| Recall | 87.5% | 94.1% | 95.5% | +8.0% |
-| F1 Score | 90.5% | 95.5% | 96.5% | +6.0% |
-| False Positives | 17,273 | 8,856 | 6,935 | -59.9% |
-| Time Saved (hours) | 35,797 | 59,821 | 69,008 | +92.8% |
-| Pattern Reuse Rate | 0% | 47.3% | 55.4% | NEW |
+| Success Rate | 57.1% | 72.4% | 95.6% | +38.5% |
+| Gate Compliance | 76.5% | 81.2% | 93.0% | +16.5% |
+| Parallel Rate | 19.0% | 35.2% | 60.1% | +41.1% |
+| G2 Skill Loading | 67.2% | 78.4% | 94.9% | +27.7% |
 
 ### v8.0 Structure (Implemented)
 
 ```
 .github/skills/{name}/
-├── skill.yaml                    # ✅ Structured YAML schema (OpenAI style)
+├── skill.yaml                    # ✅ Structured YAML schema
 ├── SKILL.md                      # ✅ Human-readable documentation
 ├── patterns/                     
 │   └── README.md                 # ✅ Pattern catalog
@@ -149,14 +149,27 @@ python .github/scripts/skill_compliance_simulation.py
     └── validate.py               # ✅ Domain validation
 ```
 
-### v8.0 Features Implemented
+### Industry Pattern → Skill Mapping
 
-| Feature | Source | Status | Impact |
-|---------|--------|--------|--------|
-| `skill.yaml` schema | OpenAI/LangChain | ✅ Done | +1% detection, structured triggers |
-| Dependency hints | Semantic Kernel | ✅ Done | Auto-suggest related skills |
-| Gotchas in YAML | AutoGPT | ✅ Done | Machine-readable checks |
-| Patterns reference | AutoGPT | ✅ Done | Template catalog |
+| Industry Pattern | Skill Integration | Impact |
+|-----------------|-------------------|--------|
+| GitHub Flow: Branch naming | session skill TODO format | +6.1% G1 |
+| TDD: Test first | Skill loading mandatory | +27.7% G2 |
+| CI: Self-testing | Auto-verify in all skills | +14.2% G5 |
+| 12-Factor: Config first | knowledge skill at START | +25.3% G0 |
+| Agile: Pair programming | Parallel task detection | +41.0% G7 |
+| Conventional Commits | Commit-type TODO prefix | Structured |
+
+### Session Type → Skill Focus
+
+| Session Type | % | Primary Skills | Commit Type |
+|--------------|---|----------------|-------------|
+| Feature Development | 35% | frontend-react, backend-api | feat: |
+| Bug Fix | 25% | debugging, testing | fix: |
+| Code Review | 15% | security | - |
+| Refactoring | 10% | backend-api, frontend-react | refactor: |
+| Testing | 10% | testing | test: |
+| Documentation | 5% | documentation | docs: |
 
 ### Future Enhancements (v8.1+)
 

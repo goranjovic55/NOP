@@ -65,8 +65,9 @@ Project organization for NOP (Network Operations Platform).
 
 ## ⚠️ Critical Gotchas
 
-| Pattern | Issue | Solution |
-|---------|-------|----------|
-| Services | Blocking calls | Use `async/await`, avoid blocking |
-| State | Redux patterns | Use Zustand `useStore` hooks |
-| Runtime | Local execution | Docker-first, services run in containers |
+See [quality.instructions.md](quality.instructions.md) for full gotchas list.
+
+**Architecture-specific:**
+- Services: Use `async/await`, avoid blocking calls
+- State: Use Zustand `useStore` hooks (not Redux patterns)
+- Runtime: Docker-first, services run in containers

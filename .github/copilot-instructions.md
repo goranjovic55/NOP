@@ -1,22 +1,25 @@
-# AKIS v7.4
+# AKIS v8.0
+
+> 100k simulation: 57.1% → 95.6% success rate (+38.5%), 93.0% gate compliance
+> Industry patterns: CI, GitHub Flow, TDD, Conventional Commits, 12-Factor, Agile
 
 ## Gates
-| G | Check | Fix | Violation Cost |
-|---|-------|-----|----------------|
-| 0 | No knowledge | Load **knowledge** skill → `head -100 project_knowledge.json` ONCE | +13k tokens |
-| 1 | No ◆ | `manage_todo_list` → mark ◆ | Lost tracking |
-| 2 | ⚠️ No skill | Load skill FIRST (MANDATORY) | +5.2k tokens |
-| 3 | No START | Do START | Lost context |
-| 4 | ⚠️ No END | Do END (>15 min sessions) | Lost traceability |
-| 5 | ⚠️ No verify | Syntax check AFTER EVERY edit | +8.5 min rework |
-| 6 | Multi ◆ | One only | Confusion |
-| 7 | ⚠️ No parallel | Use pairs for 6+ (60% target) | +14 min/session |
+| G | Check | Fix | Cost | Industry Pattern |
+|---|-------|-----|------|------------------|
+| 0 | No knowledge | Load **knowledge** skill → `head -100 project_knowledge.json` ONCE | +13k tokens | 12-Factor: Config first |
+| 1 | No ◆ | `manage_todo_list` → mark ◆ | Lost tracking | Conventional Commits |
+| 2 | ⚠️ No skill | Load skill FIRST (**VISUAL WARNING**) | +5.2k tokens | TDD: Test/skill first |
+| 3 | No START | Do START with announcement | Lost context | GitHub Flow: Branch |
+| 4 | ⚠️ No END | Do END (**BLOCK COMMIT** >15 min) | Lost trace | CI: Commit/merge |
+| 5 | ⚠️ No verify | Syntax check AFTER EVERY edit | +8.5 min | CI: Self-testing |
+| 6 | Multi ◆ | One only | Confusion | Trunk-Based: Short |
+| 7 | ⚠️ No parallel | Use pairs for 5+ (60% target) | +14 min | Agile: Pair programming |
 
 ## START
 1. Load **knowledge** skill → `head -100 project_knowledge.json` → IN MEMORY: hot_cache, domain_index, gotchas
-2. Load **session** skill → Read `skills/INDEX.md` → pre-load: frontend-react + backend-api
-3. `manage_todo_list` → structured TODO naming
-4. **Announce:** `AKIS v7.4 [complexity]. Skills: [list]. [N] tasks. Ready.`
+2. Load **session** skill → Read `skills/INDEX.md` → pre-load: frontend-react ⭐ + backend-api ⭐
+3. `manage_todo_list` → structured TODO naming: `○ [agent:phase:skill] Task`
+4. **Announce:** `AKIS v8.0 [complexity]. Skills: [list]. [N] tasks. Ready.`
 
 ## TODO Format
 `○ [agent:phase:skill] Task [context]`
@@ -99,6 +102,18 @@
 
 ## Symbols
 ✓ done | ◆ working | ○ pending | ⊘ paused | ⧖ delegated
+
+## Session Types (Industry Patterns)
+| Type | % | Skill Focus | Commit Type |
+|------|---|-------------|-------------|
+| Feature Development | 35% | frontend-react, backend-api | feat: |
+| Bug Fix | 25% | debugging, testing | fix: |
+| Code Review | 15% | security | - |
+| Refactoring | 10% | backend-api, frontend-react | refactor: |
+| Testing | 10% | testing | test: |
+| Documentation | 5% | documentation | docs: |
+
+**Auto-detect from workflow:** feat(scope), fix(scope), docs(scope), refactor(scope), test(scope)
 
 ## Gotchas
 | Issue | Fix | Gate |

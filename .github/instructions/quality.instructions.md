@@ -80,3 +80,8 @@ description: 'Quality checks and common gotchas. Verification steps and error pr
 | Hostname | Fake host-x-x-x-x names | Set hostname=None, only use real DNS/DHCP hostnames |
 | TypeScript | Closure null narrowing fails | Use local binding `const snapshot = data` before callback |
 | React | Initial useEffect skips data fetch | Include `token` in deps, not empty `[]` |
+| Build | Volume mounts don't update deps | Source code reflects live, dependencies need rebuild |
+| Ports | Port 3000/8000 conflicts | Check ports not in use before starting |
+| State | State not syncing across components | Use WebSocket or polling with `useEffect` |
+| Types | Frontend/backend type mismatch | Regenerate types: `npm run generate-types` |
+| UI | Button onClick not working | Verify onClick handler is connected to function |

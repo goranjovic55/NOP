@@ -1,0 +1,306 @@
+{
+  "simulation_config": {
+    "total_sessions": 200000,
+    "akis_version": "v7.4",
+    "timestamp": "2026-02-01T12:01:13.937863",
+    "industry_patterns_integrated": [
+      "openai_function_calling",
+      "anthropic_tool_use",
+      "langchain_agents",
+      "crewai_multi_agent",
+      "autogen_multi_agent"
+    ]
+  },
+  "baseline_summary": {
+    "total_sessions": 100000,
+    "successful_sessions": 86416,
+    "success_rate": 0.86416,
+    "avg_tokens": 8701.98917,
+    "avg_api_calls": 31.4485,
+    "avg_duration": 40.91976978137215,
+    "avg_discipline": 0.77814,
+    "avg_traceability": 0.846522,
+    "avg_efficiency": 0.9919382393359224,
+    "gate_compliance": {
+      "G0": 0.92105,
+      "G1": 0.90409,
+      "G3": 0.92059,
+      "G4": 0.78217,
+      "G5": 0.81833,
+      "G6": 1.0,
+      "G2": 0.68993,
+      "G7": 0.18896
+    },
+    "industry_patterns": {
+      "openai_parallel_calls": 34724,
+      "langchain_agent_abstraction": 84784,
+      "context_isolation": 78217,
+      "crewai_flow_delegation": 39398
+    },
+    "complexity_distribution": {
+      "medium": 42016,
+      "complex": 39398,
+      "simple": 18586
+    },
+    "archetype_distribution": {
+      "nop_workflow": 70171,
+      "industry_pattern": 29829
+    },
+    "total_tokens": 870198917,
+    "total_api_calls": 3144850,
+    "parallel_sessions": 34724,
+    "delegated_sessions": 84784
+  },
+  "optimized_summary": {
+    "total_sessions": 100000,
+    "successful_sessions": 88863,
+    "success_rate": 0.88863,
+    "avg_tokens": 2684.38167,
+    "avg_api_calls": 28.36128,
+    "avg_duration": 31.833178231131537,
+    "avg_discipline": 0.9143575,
+    "avg_traceability": 0.9564839999999999,
+    "avg_efficiency": 0.9997755804108617,
+    "gate_compliance": {
+      "G0": 0.96931,
+      "G1": 0.95979,
+      "G2": 0.91908,
+      "G3": 0.96992,
+      "G4": 0.94937,
+      "G5": 0.9498,
+      "G6": 1.0,
+      "G7": 0.59759
+    },
+    "industry_patterns": {
+      "langchain_agent_abstraction": 84882,
+      "context_isolation": 94937,
+      "openai_parallel_calls": 34890,
+      "crewai_flow_delegation": 39420
+    },
+    "complexity_distribution": {
+      "medium": 41942,
+      "complex": 39420,
+      "simple": 18638
+    },
+    "archetype_distribution": {
+      "nop_workflow": 69852,
+      "industry_pattern": 30148
+    },
+    "total_tokens": 268438167,
+    "total_api_calls": 2836128,
+    "parallel_sessions": 34890,
+    "delegated_sessions": 84882
+  },
+  "improvements": {
+    "success_rate": 0.02831651546009997,
+    "avg_tokens": 0.6915209134878755,
+    "avg_api_calls": 0.09816748016598562,
+    "avg_duration": 0.22205871633171045,
+    "avg_discipline": 0.17505525997892407,
+    "avg_traceability": 0.12989857322077855,
+    "avg_efficiency": 0.00790103734702896
+  },
+  "gate_analysis": {
+    "G0": {
+      "baseline": 0.92105,
+      "optimized": 0.96931,
+      "improvement": 0.04825999999999997,
+      "target": 0.95,
+      "meets_target": true
+    },
+    "G1": {
+      "baseline": 0.90409,
+      "optimized": 0.95979,
+      "improvement": 0.05570000000000008,
+      "target": 0.95,
+      "meets_target": true
+    },
+    "G2": {
+      "baseline": 0.68993,
+      "optimized": 0.91908,
+      "improvement": 0.22914999999999996,
+      "target": 0.95,
+      "meets_target": false
+    },
+    "G3": {
+      "baseline": 0.92059,
+      "optimized": 0.96992,
+      "improvement": 0.049329999999999985,
+      "target": 0.95,
+      "meets_target": true
+    },
+    "G4": {
+      "baseline": 0.78217,
+      "optimized": 0.94937,
+      "improvement": 0.16720000000000002,
+      "target": 0.95,
+      "meets_target": false
+    },
+    "G5": {
+      "baseline": 0.81833,
+      "optimized": 0.9498,
+      "improvement": 0.13146999999999998,
+      "target": 0.95,
+      "meets_target": false
+    },
+    "G6": {
+      "baseline": 1.0,
+      "optimized": 1.0,
+      "improvement": 0.0,
+      "target": 1.0,
+      "meets_target": true
+    },
+    "G7": {
+      "baseline": 0.18896,
+      "optimized": 0.59759,
+      "improvement": 0.40862999999999994,
+      "target": 0.6,
+      "meets_target": false
+    }
+  },
+  "industry_pattern_impact": {
+    "openai_parallel_calls": {
+      "usage_count": 34890,
+      "usage_rate": 0.3489
+    },
+    "crewai_flow_delegation": {
+      "usage_count": 39420,
+      "usage_rate": 0.3942
+    },
+    "langchain_agent_abstraction": {
+      "usage_count": 84882,
+      "usage_rate": 0.84882
+    },
+    "context_isolation": {
+      "usage_count": 94937,
+      "usage_rate": 0.94937
+    }
+  },
+  "akis_elements_compliance": {
+    "G0_knowledge": {
+      "description": "Load first 100 lines of project_knowledge.json ONCE at START",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "openai": "Caching tool definitions for reuse",
+        "crewai": "State management backbone",
+        "langchain": "Persistence across sessions"
+      },
+      "current_compliance": 0.96931
+    },
+    "G1_todo_tracking": {
+      "description": "Use manage_todo_list tool with structured naming",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "crewai": "Task delegation and tracking",
+        "langchain": "State transitions explicitly"
+      },
+      "current_compliance": 0.95979
+    },
+    "G2_skill_loading": {
+      "description": "Load domain skill BEFORE any file edit",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "openai": "Function definitions before use",
+        "langchain": "Tool configuration before agent"
+      },
+      "current_compliance": 0.91908
+    },
+    "G3_start_phase": {
+      "description": "Complete full START phase with announcement",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "crewai": "Flow triggers event, manages state",
+        "openai": "System prompt setup before interaction"
+      },
+      "current_compliance": 0.96992
+    },
+    "G4_end_phase": {
+      "description": "Create workflow log for sessions >15 min",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "langchain": "Trace execution with LangSmith",
+        "crewai": "Flow continues based on result"
+      },
+      "current_compliance": 0.94937
+    },
+    "G5_verification": {
+      "description": "Verify syntax AFTER EVERY edit",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "openai": "Strict mode for reliable adherence",
+        "anthropic": "Input validation before execution"
+      },
+      "current_compliance": 0.9498
+    },
+    "G6_single_active": {
+      "description": "Only ONE \u25c6 active at a time",
+      "compliance_target": 1.0,
+      "industry_alignment": {
+        "crewai": "Sequential task execution in Flow"
+      },
+      "current_compliance": 1.0
+    },
+    "G7_parallel_execution": {
+      "description": "Use parallel agent pairs for 6+ tasks",
+      "compliance_target": 0.6,
+      "industry_alignment": {
+        "openai": "Parallel function calls when independent",
+        "crewai": "Autonomous agent collaboration"
+      },
+      "current_compliance": 0.59759
+    },
+    "delegation": {
+      "description": "Use runSubagent for 3+ file changes",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "crewai": "Crews are teams of autonomous agents",
+        "autogen": "Multi-agent conversations",
+        "langchain": "Agent -> Tools -> LangGraph"
+      },
+      "current_compliance": "N/A"
+    },
+    "context_isolation": {
+      "description": "Clean handoffs between phases",
+      "compliance_target": 0.95,
+      "industry_alignment": {
+        "crewai": "Flow manages state, Crew returns result",
+        "openai": "Tool results as structured data"
+      },
+      "current_compliance": 0
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "gate": "G2",
+      "current": "91.9%",
+      "target": "95.0%",
+      "gap": "3.1%",
+      "action": "Review gate requirements"
+    },
+    {
+      "priority": "HIGH",
+      "gate": "G4",
+      "current": "94.9%",
+      "target": "95.0%",
+      "gap": "0.1%",
+      "action": "Review gate requirements"
+    },
+    {
+      "priority": "HIGH",
+      "gate": "G5",
+      "current": "95.0%",
+      "target": "95.0%",
+      "gap": "0.0%",
+      "action": "Review gate requirements"
+    },
+    {
+      "priority": "HIGH",
+      "gate": "G7",
+      "current": "59.8%",
+      "target": "60.0%",
+      "gap": "0.2%",
+      "action": "Review gate requirements"
+    }
+  ]
+}

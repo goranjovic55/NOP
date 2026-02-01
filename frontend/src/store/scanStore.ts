@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Vulnerability {
   id: string;
@@ -91,7 +92,9 @@ interface ScanState {
   setVulnScanning: (id: string, scanning: boolean) => void;
 }
 
-export const useScanStore = create<ScanState>((set) => ({
+export const useScanStore = create<ScanState>()(
+  persist(
+    (set) => ({
   tabs: [],
   activeTabId: null,
   passiveScanEnabled: true,
@@ -175,4 +178,10 @@ export const useScanStore = create<ScanState>((set) => ({
   setVulnScanning: (id, scanning) => set((state) => ({
     tabs: state.tabs.map(t => t.id === id ? { ...t, vulnScanning: scanning } : t)
   }))
-}));
+}),
+    {
+      name: 'nop-scan-settings',
+      partialize: (state) => ({ passiveScanEnabled: state.passiveScanEnabled }),
+    }
+  )
+);
