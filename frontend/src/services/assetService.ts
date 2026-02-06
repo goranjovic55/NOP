@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './apiConfig';
 
-// Use relative path so Nginx proxy handles it
-const API_URL = '/api/v1';
+const API_URL = API_BASE_URL;
 
 export interface Asset {
   id: string;
