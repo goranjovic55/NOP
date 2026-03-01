@@ -93,3 +93,32 @@ async def workflow_execution_websocket(websocket: WebSocket, execution_id: Optio
     Send { "action": "subscribe", "executionId": "..." } to subscribe to updates.
     """
     await handle_websocket_connection(websocket, execution_id)
+
+@websocket_router.websocket("/agent")
+async def agent_websocket(websocket: WebSocket):
+    """WebSocket endpoint for NOP agent connections"""
+    await websocket.accept()
+    active_connections.append(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            msg_type = message.get("type", "")
+            
+            if msg_type == "heartbeat":
+                await websocket.send_text(json.dumps({
+                    "type": "heartbeat_ack",
+                    "timestamp": message.get("timestamp", "")
+                }))
+            elif msg_type == "status":
+                await websocket.send_text(json.dumps({
+                    "type": "status_ack",
+                    "status": "connected"
+                }))
+            else:
+                await broadcast_message(message)
+                
+    except WebSocketDisconnect:
+        disconnect_websocket(websocket)
+    except Exception as e:
+        disconnect_websocket(websocket)
