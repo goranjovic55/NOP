@@ -274,6 +274,12 @@ const Traffic: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
+  // Routes section state
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [routesData, setRoutesData] = useState<any[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesError, setRoutesError] = useState<string>("");
+  const routesIntervalRef = useRef<number | null>(null);
   const assetDropdownRef = useRef<HTMLDivElement>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
@@ -425,7 +431,31 @@ const Traffic: React.FC = () => {
     }
   }, [navigationState?.autoStart, selectedIface, interfaces]);
 
-  const fetchOnlineAssets = async () => {
+  
+  const fetchRoutes = async () => {
+    setRoutesLoading(true);
+    setRoutesError("");
+    try {
+      const response = await fetch(`/api/v1/routes`, {
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          ...getPOVHeaders(activeAgent)
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRoutesData(data);
+      } else {
+        setRoutesError("Failed to fetch routes");
+      }
+    } catch (err) {
+      setRoutesError("Network error");
+      console.error("Failed to fetch routes:", err);
+    } finally {
+      setRoutesLoading(false);
+    }
+  };
+const fetchOnlineAssets = async () => {
     try {
       const response = await fetch(`/api/v1/assets/online`, {
         headers: { 
@@ -714,6 +744,75 @@ const Traffic: React.FC = () => {
           </CyberPageTitle>
           <p className="text-cyber-gray-light text-sm mt-1">Packet capture, network ping, and traffic analysis</p>
         </div>
+      </div>
+
+
+      {/* Routes Section - Collapsible */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowRoutes(!showRoutes)}
+          className="flex items-center justify-between w-full bg-cyber-darker border border-cyber-gray p-3 hover:border-cyber-red transition-colors"
+        >
+          <div className="flex items-center">
+            <span className="text-cyber-red mr-2">{showRoutes ? '▼' : '▶'}</span>
+            <span className="text-cyber-red font-bold">ROUTES</span>
+            <span className="text-cyber-gray-light ml-2 text-sm">CT Routing Tables</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {routesLoading && <span className="text-cyber-yellow text-xs animate-pulse">Loading...</span>}
+            {routesData.length > 0 && <span className="text-cyber-green text-xs">{routesData.length} CTs</span>}
+          </div>
+        </button>
+        
+        {showRoutes && (
+          <div className="bg-cyber-darker border border-t-0 border-cyber-gray p-4 max-h-[500px] overflow-y-auto">
+            {routesError && (
+              <div className="text-cyber-red text-sm mb-2">Error: {routesError}</div>
+            )}
+            {routesData.length === 0 && !routesLoading && !routesError && (
+              <div className="text-cyber-gray text-sm">No route data. Click refresh.</div>
+            )}
+            <div className="grid gap-4">
+              {routesData.map((ct: any) => (
+                <div key={ct.host} className="border border-cyber-gray/50 p-3">
+                  <div className="text-cyber-red font-bold mb-2">{ct.host}</div>
+                  {ct.error ? (
+                    <div className="text-cyber-red text-xs">{ct.error}</div>
+                  ) : ct.routes && ct.routes.length > 0 ? (
+                    <table className="w-full text-xs font-mono">
+                      <thead>
+                        <tr className="text-cyber-gray-light border-b border-cyber-gray">
+                          <th className="text-left py-1">Destination</th>
+                          <th className="text-left py-1">Gateway</th>
+                          <th className="text-left py-1">Iface</th>
+                          <th className="text-left py-1">Proto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ct.routes.map((route: any, idx: number) => (
+                          <tr key={idx} className="border-b border-cyber-gray/30">
+                            <td className="py-1 text-cyber-blue">{route.dest}</td>
+                            <td className="py-1 text-cyber-green">{route.gateway || '-'}</td>
+                            <td className="py-1 text-cyber-purple">{route.iface || '-'}</td>
+                            <td className="py-1 text-cyber-gray-light">{route.proto}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-cyber-gray text-xs">No routes</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={fetchRoutes}
+              className="mt-3 bg-cyber-red/20 border border-cyber-red text-cyber-red px-3 py-1 text-xs hover:bg-cyber-red/30"
+            >
+              Refresh Routes
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}

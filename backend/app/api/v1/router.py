@@ -4,7 +4,9 @@ Main API router for v1 endpoints
 
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    ai,
     auth,
+    routes,
     assets,
     discovery,
     traffic,
@@ -45,3 +47,5 @@ api_router.include_router(agent_settings.router, prefix="/agent-settings", tags=
 api_router.include_router(vulnerabilities.router, prefix="/vulnerabilities", tags=["vulnerabilities"])
 api_router.include_router(scripts.router, prefix="/scripts", tags=["scripts"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+api_router.include_router(routes.router, prefix="/routes", tags=["routes"])

@@ -19,6 +19,7 @@ const Host = lazy(() => import('./pages/Host'));
 const WorkflowBuilder = lazy(() => import('./pages/WorkflowBuilder'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Agents = lazy(() => import('./pages/Agents'));
+const Chat = lazy(() => import('./pages/Chat'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ function App() {
                     <Route path="/flows" element={<ErrorBoundary><WorkflowBuilder /></ErrorBoundary>} />
                     <Route path="/agents" element={<Agents />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/chat" element={<Chat />} />
                     <Route path="/login" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Suspense>

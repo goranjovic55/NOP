@@ -3141,8 +3141,9 @@ const Topology: React.FC = () => {
                 const baseRadius = isHighlightedAsset ? haloNodeSize * 2.5 : (isSelected ? haloNodeSize * 2 : haloNodeSize * 1.8);
                 
                 // Scale opacity values by node intensity (sync with link brightness)
-                // BOOSTED opacity values for stronger visibility from distance
-                const intensityScale = Math.max(0.6, nodeIntensity); // Minimum intensity floor
+                // Glow dims with link activity: ACTIVE=1.0, RECENT=0.5, STALE=0.3
+                // Floor at 0.3 ensures stale nodes still have visible glow while showing clear difference
+                const intensityScale = Math.max(0.3, nodeIntensity); // Synced with link intensity, min 0.3
                 const toHex = (opacity: number) => Math.floor(Math.min(opacity * intensityScale * 255, 255)).toString(16).padStart(2, '0');
                 
                 // Draw multiple layered glows for neon effect

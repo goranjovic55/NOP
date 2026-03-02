@@ -625,3 +625,181 @@ async def label_protocol_fingerprint(request: LabelFingerprintRequest):
         "fingerprint": request.fingerprint,
         "label": request.label
     }
+
+# ============================================
+# Storm Enhancement Endpoints
+# ============================================
+
+class StormPingRequest(BaseModel):
+    target: str
+    count: int = 10
+
+class StormTracerouteRequest(BaseModel):
+    target: str
+
+class StormPortScanRequest(BaseModel):
+    target: str
+    ports: List[int] = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 3389, 5432, 6379, 8080, 8443, 9090, 9200, 27017]
+
+class PingStatsResult(BaseModel):
+    target: str
+    packets_transmitted: int
+    packets_received: int
+    packet_loss: float
+    rtt_min: Optional[float]
+    rtt_max: Optional[float]
+    rtt_avg: Optional[float]
+    raw_output: str
+
+class TracerouteHop(BaseModel):
+    hop: int
+    address: str
+    hostname: Optional[str]
+    rtt1: Optional[str]
+    rtt2: Optional[str]
+    rtt3: Optional[str]
+
+class TracerouteResult(BaseModel):
+    target: str
+    hops: List[TracerouteHop]
+    raw_output: str
+
+class PortScanResult(BaseModel):
+    target: str
+    port: int
+    status: str
+
+@router.post("/storm/ping", response_model=PingStatsResult)
+async def advanced_ping(req: StormPingRequest):
+    """Run ping against target and return statistics"""
+    try:
+        result = subprocess.run(
+            ["ping", "-c", str(req.count), req.target],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        output = result.stdout + result.stderr
+        
+        packets_transmitted = 0
+        packets_received = 0
+        packet_loss = 100.0
+        rtt_min = None
+        rtt_max = None
+        rtt_avg = None
+        
+        import re
+        for line in output.split("\n"):
+            if "packets transmitted" in line:
+                parts = line.split(",")
+                for p in parts:
+                    if "transmitted" in p:
+                        packets_transmitted = int(p.split()[0])
+                    elif "received" in p:
+                        packets_received = int(p.split()[0])
+                if packets_transmitted > 0:
+                    packet_loss = ((packets_transmitted - packets_received) / packets_transmitted) * 100
+            elif "min/avg/max" in line or "rtt" in line.lower():
+                match = re.search(r"(\d+\.?\d*)/(\d+\.?\d*)/(\d+\.?\d*)", line)
+                if match:
+                    rtt_min = float(match.group(1))
+                    rtt_avg = float(match.group(2))
+                    rtt_max = float(match.group(3))
+        
+        return PingStatsResult(
+            target=req.target,
+            packets_transmitted=packets_transmitted,
+            packets_received=packets_received,
+            packet_loss=packet_loss,
+            rtt_min=rtt_min,
+            rtt_max=rtt_max,
+            rtt_avg=rtt_avg,
+            raw_output=output
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Ping timeout")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/traceroute", response_model=TracerouteResult)
+async def run_traceroute(req: StormTracerouteRequest):
+    """Run traceroute against target and return hop-by-hop data"""
+    try:
+        result = subprocess.run(
+            ["traceroute", "-m", "30", "-w", "2", req.target],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        output = result.stdout + result.stderr
+        hops = []
+        
+        import re
+        for line in output.split("\n"):
+            if not line.strip() or line.startswith("traceroute"):
+                continue
+            
+            match = re.match(r"^\s*(\d+)\s+(\S+)\s+(.*)$", line)
+            if match:
+                hop_num = int(match.group(1))
+                address = match.group(2).strip("()")
+                rest = match.group(3)
+                
+                hostname = None
+                if "(" in address:
+                    hostname = address
+                    address = address.split("(")[1].split(")")[0]
+                
+                rtt_values = re.findall(r"(\d+\.?\d*)\s*ms", rest)
+                rtt1 = rtt_values[0] + " ms" if len(rtt_values) > 0 else None
+                rtt2 = rtt_values[1] + " ms" if len(rtt_values) > 1 else None
+                rtt3 = rtt_values[2] + " ms" if len(rtt_values) > 2 else None
+                
+                hops.append(TracerouteHop(
+                    hop=hop_num,
+                    address=address,
+                    hostname=hostname,
+                    rtt1=rtt1,
+                    rtt2=rtt2,
+                    rtt3=rtt3
+                ))
+        
+        return TracerouteResult(
+            target=req.target,
+            hops=hops,
+            raw_output=output
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Traceroute timeout")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/storm/portscan", response_model=List[PortScanResult])
+async def port_scan(req: StormPortScanRequest):
+    """Quick TCP connect scan on specified ports"""
+    import socket
+    
+    results = []
+    for port in req.ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        
+        try:
+            conn_result = sock.connect_ex((req.target, port))
+            status = "open" if conn_result == 0 else "closed"
+        except socket.timeout:
+            status = "filtered"
+        except Exception:
+            status = "filtered"
+        finally:
+            sock.close()
+        
+        results.append(PortScanResult(
+            target=req.target,
+            port=port,
+            status=status
+        ))
+    
+    return results
