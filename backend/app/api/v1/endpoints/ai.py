@@ -290,7 +290,6 @@ TOOLS = [
         }
     }
 ]
-]
 
 
 async def execute_tool(tool_name: str, tool_args: Dict[str, Any]) -> Dict[str, Any]:
