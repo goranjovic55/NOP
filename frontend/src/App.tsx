@@ -20,6 +20,7 @@ const WorkflowBuilder = lazy(() => import('./pages/WorkflowBuilder'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Agents = lazy(() => import('./pages/Agents'));
 const Chat = lazy(() => import('./pages/Chat'));
+const RoutesPage = lazy(() => import("./pages/Routes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,7 +45,8 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
+                <Route path="/routes" element={<RoutesPage />} />
+                  </Routes>
             ) : (
               <Layout>
                 <Suspense fallback={<PageLoadingFallback message="Loading page..." />}>
@@ -62,6 +64,7 @@ function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/routes" element={<RoutesPage />} />
                   </Routes>
                 </Suspense>
               </Layout>
