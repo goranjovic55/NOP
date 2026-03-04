@@ -9,6 +9,7 @@ interface Message {
 }
 
 interface ApiCall {
+  id: string;
   method: string;
   endpoint: string;
   request: object;
@@ -154,11 +155,12 @@ const Chat: React.FC = () => {
     // Add API call to inspector
     const callId = crypto.randomUUID();
     const newCall: ApiCall = {
+      id: callId,
       method: "POST",
       endpoint: "/api/v1/llm/chat",
       request: { message: userMsg.content, session_id: activeSession, model },
     };
-    setApiCalls((prev) => [...prev, { ...newCall, id: callId }]);
+    setApiCalls((prev) => [...prev, newCall]);
 
     try {
       const res = await fetch("/api/v1/llm/chat", {
