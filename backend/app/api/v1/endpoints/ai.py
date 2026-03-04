@@ -1,5 +1,5 @@
 """
-AI Chat endpoints - Falke relay to OpenClaw
+AI Chat endpoints - Direct MiniMax API
 """
 
 from fastapi import APIRouter, HTTPException
@@ -9,8 +9,9 @@ import uuid
 
 router = APIRouter()
 
-OPENCLAW_URL = "https://10.10.10.101:28790/v1/messages"
-DEFAULT_MODEL = "claude-sonnet-4-6"
+MINIMAX_URL = "https://api.minimax.io/v1/text/chatcompletion_v2"
+MINIMAX_API_KEY = "sk-cp-chBYNqqOz4Mf6oWdB5myyC_SlkKuecP-rBSrEz_3HCslvk07FxlMB0zeq-WSF9A0LJORTBRwn5ZdOl_aBeM5Mczd9AdcQz-cJvPky30MVS4soqz5UXna4DM"
+DEFAULT_MODEL = "MiniMax-M2.5"
 
 class ChatRequest(BaseModel):
     message: str
@@ -30,18 +31,26 @@ async def chat(request: ChatRequest):
         "max_tokens": 1024
     }
     
-    async with httpx.AsyncClient(verify=False, timeout=60.0) as client:
+    headers = {
+        "Authorization": f"Bearer {MINIMAX_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
         try:
-            response = await client.post(OPENCLAW_URL, json=payload)
+            response = await client.post(MINIMAX_URL, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
             
-            reply = data.get("response", data.get("content", "No response"))
-            if isinstance(reply, list):
-                reply = " ".join([r.get("text", str(r)) for r in reply])
+            # MiniMax response format: choices[0].message.content
+            choices = data.get("choices", [])
+            if choices and len(choices) > 0:
+                reply = choices[0].get("message", {}).get("content", "No response")
+            else:
+                reply = data.get("content", "No response")
             
             return ChatResponse(response=reply, session_id=session_id)
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=f"OpenClaw error: {e.response.text}")
+            raise HTTPException(status_code=e.response.status_code, detail=f"MiniMax error: {e.response.text}")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Chat relay failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")

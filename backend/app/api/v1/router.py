@@ -23,7 +23,9 @@ from app.api.v1.endpoints import (
     dashboard,
     vulnerabilities,
     scripts,
-    workflows
+    workflows,
+    routing,
+    llm
 )
 
 api_router = APIRouter()
@@ -49,3 +51,5 @@ api_router.include_router(scripts.router, prefix="/scripts", tags=["scripts"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 api_router.include_router(routes.router, prefix="/routes", tags=["routes"])
+api_router.include_router(routing.router, prefix="/routing", tags=["routing"])
+api_router.include_router(llm.router, prefix="/llm", tags=["llm"])
