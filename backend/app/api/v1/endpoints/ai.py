@@ -18,7 +18,7 @@ MINIMAX_API_KEY = "sk-cp-chBYNqqOz4Mf6oWdB5myyC_SlkKuecP-rBSrEz_3HCslvk07FxlMB0z
 DEFAULT_MODEL = "MiniMax-M2.5"
 
 # NOP API base URL (internal container access)
-NOP_API_BASE = "http://localhost:8000"  # FastAPI runs on port 8000 internally
+NOP_API_BASE = "http://localhost:12001"  # FastAPI runs on port 8000 internally
 
 
 class ChatRequest(BaseModel):
