@@ -484,21 +484,31 @@ async def chat(request: ChatRequest):
                 
                 elif finish_reason == "stop":
                     # Final text response
-                    raw_reply = assistant_message.get("content", "No response")
+                    raw_reply = str(assistant_message.get("content", "No response"))
                     # MiniMax sometimes bleeds <minimax:tool_call> XML into content on "stop"
-                    # Detect and re-execute if found
-                    xml_tool = re.search(r"<minimax:tool_call>(.*?)</minimax:tool_call>", str(raw_reply), re.DOTALL)
-                    if xml_tool:
-                        # Try to extract tool name and args from XML and execute
-                        import xml.etree.ElementTree as ET
-                        try:
-                            xml_str = "<root>" + xml_tool.group(0) + "</root>"
-                            # Just strip the XML and keep any text before it
-                            reply = re.sub(r"<minimax:tool_call>.*?</minimax:tool_call>", "", str(raw_reply), flags=re.DOTALL).strip()
-                            if not reply:
-                                reply = "Processing..."
-                        except Exception:
-                            reply = re.sub(r"<minimax:tool_call>.*?</minimax:tool_call>", "", str(raw_reply), flags=re.DOTALL).strip()
+                    # Treat as implicit tool call and execute it
+                    if "<minimax:tool_call>" in raw_reply:
+                        invoke_match = re.search(
+                            r'<invoke\s+name=["\'](\w+)["\']>(.*?)</invoke>',
+                            raw_reply, re.DOTALL
+                        )
+                        if invoke_match and iteration < max_iterations - 1:
+                            tool_name = invoke_match.group(1)
+                            params_str = invoke_match.group(2)
+                            tool_args = {}
+                            for param in re.finditer(
+                                r'<parameter\s+name=["\'](\w+)["\']>(.*?)</parameter>',
+                                params_str, re.DOTALL
+                            ):
+                                tool_args[param.group(1)] = param.group(2).strip()
+                            result = await execute_tool(tool_name, tool_args)
+                            fake_call_id = f"bleed_fix_{iteration}"
+                            messages.append({"role": "assistant", "content": raw_reply})
+                            messages.append({"role": "tool", "tool_call_id": fake_call_id, "content": json.dumps(result)})
+                            tool_calls_made.append({"tool": tool_name, "args": tool_args, "result": result})
+                            continue
+                        else:
+                            reply = re.sub(r"<minimax:tool_call>.*?</minimax:tool_call>", "", raw_reply, flags=re.DOTALL).strip() or "Processed."
                     else:
                         reply = raw_reply
                     break
