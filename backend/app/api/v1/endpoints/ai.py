@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 import httpx
 import uuid
 import json
+import re
 import os
 
 router = APIRouter()
@@ -391,6 +392,7 @@ async def chat(request: ChatRequest):
     """
     AI chat with tool calling capabilities.
     The AI can call NOP API endpoints to fulfill user requests.
+    Loops until finish_reason is 'stop' to handle multi-step tool chains.
     """
     session_id = request.session_id or str(uuid.uuid4())
     
@@ -405,85 +407,110 @@ async def chat(request: ChatRequest):
         "Content-Type": "application/json"
     }
     
-    # First call - get tool calls
-    payload = {
-        "model": DEFAULT_MODEL,
-        "messages": messages,
-        "tools": TOOLS,
-        "tool_choice": "auto",
-        "max_tokens": 2048
-    }
-    
     tool_calls_made = []
+    max_iterations = 10
     
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
-            # First API call
-            response = await client.post(MINIMAX_URL, json=payload, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Check if model wants to call tools
-            assistant_message = data.get("choices", [{}])[0].get("message", {})
-            tool_calls = assistant_message.get("tool_calls", [])
-            
-            # Execute tools if any
-            if tool_calls:
-                tool_results = []
-                
-                for tool_call in tool_calls:
-                    tool_name = tool_call.get("function", {}).get("name", "")
-                    tool_args_str = tool_call.get("function", {}).get("arguments", "{}")
-                    try:
-                        tool_args = json.loads(tool_args_str) if isinstance(tool_args_str, str) else tool_args_str
-                    except:
-                        tool_args = {}
-                    
-                    # Execute the tool
-                    result = await execute_tool(tool_name, tool_args)
-                    tool_results.append({
-                        "tool_call_id": tool_call.get("id", ""),
-                        "role": "tool",
-                        "name": tool_name,
-                        "content": json.dumps(result)
-                    })
-                    tool_calls_made.append({
-                        "tool": tool_name,
-                        "args": tool_args,
-                        "result": result
-                    })
-                
-                # Build follow-up messages
-                follow_up_messages = messages.copy()
-                follow_up_messages.append({
-                    "role": "assistant",
-                    "content": assistant_message.get("content", ""),
-                    "tool_calls": tool_calls
-                })
-                
-                for tr in tool_results:
-                    follow_up_messages.append({
-                        "role": "tool",
-                        "tool_call_id": tr["tool_call_id"],
-                        "content": tr["content"]
-                    })
-                
-                # Second API call with tool results
-                follow_up_payload = {
+            for iteration in range(max_iterations):
+                # Call MiniMax with tools
+                payload = {
                     "model": DEFAULT_MODEL,
-                    "messages": follow_up_messages,
+                    "messages": messages,
+                    "tools": TOOLS,
+                    "tool_choice": "auto",
                     "max_tokens": 2048
                 }
                 
-                final_response = await client.post(MINIMAX_URL, json=follow_up_payload, headers=headers)
-                final_response.raise_for_status()
-                final_data = final_response.json()
+                response = await client.post(MINIMAX_URL, json=payload, headers=headers)
+                response.raise_for_status()
+                data = response.json()
                 
-                final_message = final_data.get("choices", [{}])[0].get("message", {})
-                reply = final_message.get("content", "No response")
+                choice = data.get("choices", [{}])[0]
+                finish_reason = choice.get("finish_reason", "")
+                assistant_message = choice.get("message", {})
+                
+                # Check if we need to execute tools
+                if finish_reason == "tool_calls":
+                    tool_calls = assistant_message.get("tool_calls", [])
+                    
+                    if not tool_calls:
+                        # No actual tool calls but finish_reason says tool_calls
+                        # Return the content we have
+                        reply = assistant_message.get("content", "No response")
+                        break
+                    
+                    # Execute all tools
+                    tool_results = []
+                    for tool_call in tool_calls:
+                        tool_name = tool_call.get("function", {}).get("name", "")
+                        tool_args_str = tool_call.get("function", {}).get("arguments", "{}")
+                        try:
+                            tool_args = json.loads(tool_args_str) if isinstance(tool_args_str, str) else tool_args_str
+                        except:
+                            tool_args = {}
+                        
+                        # Execute the tool
+                        result = await execute_tool(tool_name, tool_args)
+                        tool_results.append({
+                            "tool_call_id": tool_call.get("id", ""),
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": json.dumps(result)
+                        })
+                        tool_calls_made.append({
+                            "tool": tool_name,
+                            "args": tool_args,
+                            "result": result
+                        })
+                    
+                    # Append assistant message with tool_calls to conversation
+                    messages.append({
+                        "role": "assistant",
+                        "content": assistant_message.get("content", ""),
+                        "tool_calls": tool_calls
+                    })
+                    
+                    # Append tool results to conversation
+                    for tr in tool_results:
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tr["tool_call_id"],
+                            "content": tr["content"]
+                        })
+                    
+                    # Continue to next iteration
+                    continue
+                
+                elif finish_reason == "stop":
+                    # Final text response
+                    raw_reply = assistant_message.get("content", "No response")
+                    # MiniMax sometimes bleeds <minimax:tool_call> XML into content on "stop"
+                    # Detect and re-execute if found
+                    xml_tool = re.search(r"<minimax:tool_call>(.*?)</minimax:tool_call>", str(raw_reply), re.DOTALL)
+                    if xml_tool:
+                        # Try to extract tool name and args from XML and execute
+                        import xml.etree.ElementTree as ET
+                        try:
+                            xml_str = "<root>" + xml_tool.group(0) + "</root>"
+                            # Just strip the XML and keep any text before it
+                            reply = re.sub(r"<minimax:tool_call>.*?</minimax:tool_call>", "", str(raw_reply), flags=re.DOTALL).strip()
+                            if not reply:
+                                reply = "Processing..."
+                        except Exception:
+                            reply = re.sub(r"<minimax:tool_call>.*?</minimax:tool_call>", "", str(raw_reply), flags=re.DOTALL).strip()
+                    else:
+                        reply = raw_reply
+                    break
+                
+                else:
+                    # Unknown finish_reason, return what we have
+                    reply = assistant_message.get("content", f"Unexpected finish_reason: {finish_reason}")
+                    break
+            
             else:
-                # No tool calls, just return the response
-                reply = assistant_message.get("content", "No response")
+                # Max iterations reached
+                reply = "Maximum iterations reached. The conversation may be too complex."
             
             return ChatResponse(
                 response=reply,
