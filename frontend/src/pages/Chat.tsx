@@ -172,10 +172,11 @@ const Chat: React.FC = () => {
       });
 
       // Update API call with response
+      const responseBody = res.ok ? await res.clone().json().catch(() => null) : await res.clone().text().catch(() => null);
       setApiCalls((prev) =>
         prev.map((c) =>
           c.id === callId
-            ? { ...c, status: res.status, response: res.ok ? await res.json() : await res.text() }
+            ? { ...c, status: res.status, response: responseBody }
             : c
         )
       );
