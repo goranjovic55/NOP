@@ -118,7 +118,7 @@ export const CyberButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>
 // ==================== TABS ====================
 
 export const CyberTabs: React.FC<{
-  tabs: { id: string; label: string; color?: 'red' | 'blue' | 'green' | 'purple' }[];
+  tabs: { id: string; label: string; color?: 'red' | 'blue' | 'green' | 'purple' | 'yellow' }[];
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;

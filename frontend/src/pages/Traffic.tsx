@@ -275,11 +275,6 @@ const Traffic: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [onlineAssets, setOnlineAssets] = useState<Array<{ip_address: string, hostname: string, status: string}>>([]);
   const [showAssetDropdown, setShowAssetDropdown] = useState(false);
-  // Routes section state
-  const [showRoutes, setShowRoutes] = useState(false);
-  const [routesData, setRoutesData] = useState<any[]>([]);
-  const [routesLoading, setRoutesLoading] = useState(false);
-  const [routesError, setRoutesError] = useState<string>("");
   const routesIntervalRef = useRef<number | null>(null);
   const assetDropdownRef = useRef<HTMLDivElement>(null);
   
@@ -433,30 +428,7 @@ const Traffic: React.FC = () => {
   }, [navigationState?.autoStart, selectedIface, interfaces]);
 
   
-  const fetchRoutes = async () => {
-    setRoutesLoading(true);
-    setRoutesError("");
-    try {
-      const response = await fetch(`/api/v1/routes`, {
-        headers: { 
-          "Authorization": `Bearer ${token}`,
-          ...getPOVHeaders(activeAgent)
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setRoutesData(data);
-      } else {
-        setRoutesError("Failed to fetch routes");
-      }
-    } catch (err) {
-      setRoutesError("Network error");
-      console.error("Failed to fetch routes:", err);
-    } finally {
-      setRoutesLoading(false);
-    }
-  };
-const fetchOnlineAssets = async () => {
+  const fetchOnlineAssets = async () => {
     try {
       const response = await fetch(`/api/v1/assets/online`, {
         headers: { 
@@ -748,7 +720,7 @@ const fetchOnlineAssets = async () => {
       </div>
 
 
-      {/* Tab Navigation */
+      {/* Tab Navigation */}
       <CyberTabs 
         tabs={[
           { id: 'capture', label: 'Packet Capture', color: 'blue' },
