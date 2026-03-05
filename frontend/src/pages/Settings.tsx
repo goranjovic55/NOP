@@ -102,17 +102,37 @@ interface AllSettings {
   system: SystemSettings;
 }
 
+interface LLMConfig {
+  provider: string;
+  api_endpoint: string;
+  api_key: string;
+  model: string;
+  max_tokens: number;
+  temperature: number;
+}
+
+const defaultLLMConfig: LLMConfig = {
+  provider: 'minimax',
+  api_endpoint: 'https://api.minimax.io/v1/text/chatcompletion_v2',
+  api_key: '',
+  model: 'MiniMax-M2.5',
+  max_tokens: 4096,
+  temperature: 0.7,
+};
+
 const Settings: React.FC = () => {
   const { activeAgent, isAgentPOV } = usePOV();
   const { remoteSettings, updateRemoteSettings, resetRemoteSettings } = useAccessStore();
   const { settings: topologySettings, updateSettings: updateTopologySettings, resetSettings: resetTopologySettings } = useTopologyStore();
-  const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'remote' | 'topology' | 'system'>('scan');
+const [activeTab, setActiveTab] = useState<'scan' | 'discovery' | 'access' | 'remote' | 'topology' | 'system' | 'llm'>('scan');
   const [settings, setSettings] = useState<AllSettings | null>(null);
   const [agentSettings, setAgentSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [interfaces, setInterfaces] = useState<Array<{ name: string; ip: string; status: string }>>([]);
+  const [interfaces, setInterfaces] = useState<Array<{ name: string; ip: string; status: string }>>([]); 
+  const [llmConfig, setLlmConfig] = useState<LLMConfig>(defaultLLMConfig);
+  const [llmSaving, setLlmSaving] = useState(false);
 
   useEffect(() => {
     // Define fetchInterfaces inside useEffect to capture current activeAgent value
@@ -130,6 +150,7 @@ const Settings: React.FC = () => {
 
     fetchSettings();
     fetchInterfacesWithAgent();
+    fetchLLMConfig();
     const interval = setInterval(fetchInterfacesWithAgent, 5000);
     return () => clearInterval(interval);
   }, [isAgentPOV, activeAgent]);
@@ -143,6 +164,29 @@ const Settings: React.FC = () => {
       setInterfaces(response.data);
     } catch (error) {
       console.error('Error fetching interfaces:', error);
+    }
+  };
+
+  const fetchLLMConfig = async () => {
+    try {
+      const response = await axios.get('/api/v1/llm/config');
+      setLlmConfig(response.data);
+    } catch (error) {
+      console.error('Error fetching LLM config:', error);
+    }
+  };
+
+  const saveLLMConfig = async () => {
+    try {
+      setLlmSaving(true);
+      await axios.put('/api/v1/llm/config', llmConfig);
+      await fetchLLMConfig();
+      showMessage('success', 'LLM API settings saved successfully');
+    } catch (error) {
+      console.error('Error saving LLM config:', error);
+      showMessage('error', 'Failed to save LLM API settings');
+    } finally {
+      setLlmSaving(false);
     }
   };
 
@@ -202,6 +246,12 @@ const Settings: React.FC = () => {
   };
 
   const handleSave = async () => {
+    // LLM API settings use dedicated endpoint
+    if (activeTab === 'llm') {
+      await saveLLMConfig();
+      return;
+    }
+
     // Remote settings are stored locally in accessStore (automatically persisted)
     if (activeTab === 'remote') {
       showMessage('success', 'Remote access settings saved');
@@ -246,6 +296,15 @@ const Settings: React.FC = () => {
   };
 
   const handleReset = async () => {
+    // LLM settings reset to defaults
+    if (activeTab === 'llm') {
+      if (window.confirm('Reset LLM API settings to defaults?')) {
+        setLlmConfig(defaultLLMConfig);
+        showMessage('success', 'LLM API settings reset to defaults');
+      }
+      return;
+    }
+
     // Remote settings reset is handled by the RemoteAccessSettingsPanel
     if (activeTab === 'remote') {
       if (window.confirm('Reset remote access settings to defaults?')) {
@@ -405,6 +464,16 @@ const Settings: React.FC = () => {
           <path d="M12 1v3M12 20v3M3.5 4.5l2.1 2.1M18.4 18.4l2.1 2.1M1 12h3M20 12h3M3.5 19.5l2.1-2.1M18.4 5.6l2.1-2.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         </svg>
       )
+    },
+    {
+      id: 'llm' as const,
+      label: 'LLM API',
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      )
     }
   ];
 
@@ -480,23 +549,29 @@ const Settings: React.FC = () => {
           />
         )}
         {activeTab === 'system' && <SystemSettingsPanel settings={settings.system} onChange={updateSetting} />}
+        {activeTab === 'llm' && (
+          <LLMSettingsPanel
+            config={llmConfig}
+            onChange={(key, value) => setLlmConfig(prev => ({ ...prev, [key]: value }))}
+          />
+        )}
       </div>
 
       {/* Actions */}
       <div className="flex justify-end space-x-4">
         <button
           onClick={handleReset}
-          disabled={saving}
+          disabled={saving || llmSaving}
           className="px-6 py-2 border border-cyber-gray text-cyber-gray-light hover:border-cyber-purple hover:text-cyber-purple uppercase text-sm font-bold disabled:opacity-50"
         >
           Reset to Defaults
         </button>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || llmSaving}
           className="btn-cyber px-8 py-2 border-cyber-red text-cyber-red disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving || llmSaving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>
@@ -1748,6 +1823,100 @@ const SettingsNumberInput: React.FC<{
         className="w-full bg-cyber-darker border border-cyber-gray p-2 text-cyber-blue font-mono focus:border-cyber-red outline-none"
       />
       {description && <p className="text-xs text-cyber-gray-light">{description}</p>}
+    </div>
+  );
+};
+
+// LLM Settings Panel
+const LLMSettingsPanel: React.FC<{
+  config: LLMConfig;
+  onChange: (key: string, value: string | number) => void;
+}> = ({ config, onChange }) => {
+  const [showKey, setShowKey] = useState(false);
+  const isKeyMasked = config.api_key.startsWith('***');
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div className="p-4 bg-cyber-red/5 border border-cyber-red/30 text-sm text-cyber-gray-light">
+        Configure the LLM API provider used by the <strong className="text-cyber-red">Falke</strong> chat assistant.
+        After saving, the Chat page will be able to connect to the provider.
+      </div>
+
+      <SettingsSection title="Provider">
+        <SettingsSelect
+          label="Provider"
+          value={config.provider}
+          options={[
+            { value: 'minimax', label: 'MiniMax' },
+            { value: 'openai', label: 'OpenAI' },
+            { value: 'anthropic', label: 'Anthropic' },
+            { value: 'custom', label: 'Custom' },
+          ]}
+          onChange={(val) => onChange('provider', val)}
+          description="Select the LLM API provider"
+        />
+
+        <SettingsInput
+          label="API Endpoint URL"
+          value={config.api_endpoint}
+          onChange={(val) => onChange('api_endpoint', val)}
+          placeholder="https://api.minimax.io/v1/text/chatcompletion_v2"
+          description="Full URL of the chat completions endpoint"
+        />
+
+        <div>
+          <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--cyber-blue, #00f0ff)' }}>
+            API Key
+          </label>
+          <div className="flex gap-2">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={isKeyMasked ? '' : config.api_key}
+              onChange={(e) => onChange('api_key', e.target.value)}
+              placeholder={isKeyMasked ? '(key saved — enter new key to replace)' : 'sk-...'}
+              className="flex-1 bg-cyber-darker border border-cyber-gray text-cyber-blue text-sm p-2 outline-none focus:border-cyber-blue font-mono"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(v => !v)}
+              className="px-3 py-2 border border-cyber-gray text-cyber-gray-light hover:text-cyber-blue text-xs uppercase"
+            >
+              {showKey ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <p className="text-xs text-cyber-gray-light mt-1">Your API key is stored server-side and masked in responses.</p>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Model">
+        <SettingsInput
+          label="Model Name"
+          value={config.model}
+          onChange={(val) => onChange('model', val)}
+          placeholder="MiniMax-M2.5"
+          description="Model identifier (e.g. MiniMax-M2.5, gpt-4o, claude-sonnet-4-6)"
+        />
+
+        <SettingsSlider
+          label="Max Tokens"
+          value={config.max_tokens}
+          min={256}
+          max={32768}
+          unit="tokens"
+          onChange={(val) => onChange('max_tokens', val)}
+          description="Maximum tokens per response"
+        />
+
+        <SettingsSlider
+          label="Temperature"
+          value={Number((config.temperature * 10).toFixed(0))}
+          min={0}
+          max={20}
+          unit={`(${config.temperature.toFixed(1)})`}
+          onChange={(val) => onChange('temperature', parseFloat((val / 10).toFixed(1)))}
+          description="Creativity level: 0 = deterministic, 2.0 = very creative"
+        />
+      </SettingsSection>
     </div>
   );
 };

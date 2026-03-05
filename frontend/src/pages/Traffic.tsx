@@ -6,6 +6,7 @@ import { usePOV, getPOVHeaders } from '../context/POVContext';
 import { trafficService } from '../services/trafficService';
 import PacketCrafting from '../components/PacketCrafting';
 import Storm from './Storm';
+import RoutesTab from './Routes';
 import { CyberTabs, CyberPageTitle } from '../components/CyberUI';
 
 interface Packet {
@@ -238,8 +239,8 @@ const Traffic: React.FC = () => {
     autoDetectInterface?: boolean;
   } | null;
 
-  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm'>(() => {
-    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm') || 'capture';
+  const [activeTab, setActiveTab] = useState<'capture' | 'ping' | 'craft' | 'storm' | 'routes'>(() => {
+    return (localStorage.getItem('nop_traffic_active_tab') as 'capture' | 'ping' | 'craft' | 'storm' | 'routes') || 'capture';
   });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
@@ -747,81 +748,14 @@ const fetchOnlineAssets = async () => {
       </div>
 
 
-      {/* Routes Section - Collapsible */}
-      <div className="mb-4">
-        <button
-          onClick={() => setShowRoutes(!showRoutes)}
-          className="flex items-center justify-between w-full bg-cyber-darker border border-cyber-gray p-3 hover:border-cyber-red transition-colors"
-        >
-          <div className="flex items-center">
-            <span className="text-cyber-red mr-2">{showRoutes ? '▼' : '▶'}</span>
-            <span className="text-cyber-red font-bold">ROUTES</span>
-            <span className="text-cyber-gray-light ml-2 text-sm">CT Routing Tables</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {routesLoading && <span className="text-cyber-yellow text-xs animate-pulse">Loading...</span>}
-            {routesData.length > 0 && <span className="text-cyber-green text-xs">{routesData.length} CTs</span>}
-          </div>
-        </button>
-        
-        {showRoutes && (
-          <div className="bg-cyber-darker border border-t-0 border-cyber-gray p-4 max-h-[500px] overflow-y-auto">
-            {routesError && (
-              <div className="text-cyber-red text-sm mb-2">Error: {routesError}</div>
-            )}
-            {routesData.length === 0 && !routesLoading && !routesError && (
-              <div className="text-cyber-gray text-sm">No route data. Click refresh.</div>
-            )}
-            <div className="grid gap-4">
-              {routesData.map((ct: any) => (
-                <div key={ct.host} className="border border-cyber-gray/50 p-3">
-                  <div className="text-cyber-red font-bold mb-2">{ct.host}</div>
-                  {ct.error ? (
-                    <div className="text-cyber-red text-xs">{ct.error}</div>
-                  ) : ct.routes && ct.routes.length > 0 ? (
-                    <table className="w-full text-xs font-mono">
-                      <thead>
-                        <tr className="text-cyber-gray-light border-b border-cyber-gray">
-                          <th className="text-left py-1">Destination</th>
-                          <th className="text-left py-1">Gateway</th>
-                          <th className="text-left py-1">Iface</th>
-                          <th className="text-left py-1">Proto</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ct.routes.map((route: any, idx: number) => (
-                          <tr key={idx} className="border-b border-cyber-gray/30">
-                            <td className="py-1 text-cyber-blue">{route.dest}</td>
-                            <td className="py-1 text-cyber-green">{route.gateway || '-'}</td>
-                            <td className="py-1 text-cyber-purple">{route.iface || '-'}</td>
-                            <td className="py-1 text-cyber-gray-light">{route.proto}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="text-cyber-gray text-xs">No routes</div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={fetchRoutes}
-              className="mt-3 bg-cyber-red/20 border border-cyber-red text-cyber-red px-3 py-1 text-xs hover:bg-cyber-red/30"
-            >
-              Refresh Routes
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Tab Navigation */}
+      {/* Tab Navigation */
       <CyberTabs 
         tabs={[
           { id: 'capture', label: 'Packet Capture', color: 'blue' },
           { id: 'ping', label: 'Advanced Ping', color: 'green' },
           { id: 'craft', label: 'Craft Packet', color: 'purple' },
-          { id: 'storm', label: 'Storm', color: 'red' }
+          { id: 'storm', label: 'Storm', color: 'red' },
+          { id: 'routes', label: 'Routes', color: 'yellow' }
         ]}
         activeTab={activeTab}
         onChange={(tabId) => setActiveTab(tabId as any)}
@@ -1497,6 +1431,13 @@ const fetchOnlineAssets = async () => {
       {activeTab === 'storm' && (
         <div className="flex-1 overflow-hidden">
           <Storm />
+        </div>
+      )}
+
+      {/* Routes Tab Content */}
+      {activeTab === 'routes' && (
+        <div className="flex-1 overflow-y-auto">
+          <RoutesTab />
         </div>
       )}
 

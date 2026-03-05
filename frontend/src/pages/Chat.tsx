@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 
 interface Message {
   id: string;
@@ -24,6 +26,8 @@ interface Session {
 }
 
 const Chat: React.FC = () => {
+  const { token } = useAuthStore();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -31,6 +35,7 @@ const Chat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState("MiniMax-M2.5");
   const [showConfig, setShowConfig] = useState(false);
+  const [apiConfigured, setApiConfigured] = useState<boolean | null>(null);
   const [config, setConfig] = useState({
     provider: "minimax",
     api_endpoint: "https://api.minimax.io/v1/text/chatcompletion_v2",
@@ -53,11 +58,14 @@ const Chat: React.FC = () => {
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
+    loadConfig();
   }, []);
 
   const loadSessions = async () => {
     try {
-      const res = await fetch("/api/v1/llm/sessions");
+      const res = await fetch("/api/v1/llm/sessions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -69,10 +77,14 @@ const Chat: React.FC = () => {
 
   const loadConfig = async () => {
     try {
-      const res = await fetch("/api/v1/llm/config");
+      const res = await fetch("/api/v1/llm/config", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
+        // API key is masked as '***xxxx' when set, or empty when not set
+        setApiConfigured(!!(data.api_key && !data.api_key.startsWith("***") ? true : data.api_key?.length > 0));
       }
     } catch (err) {
       console.error("Failed to load config:", err);
@@ -83,11 +95,15 @@ const Chat: React.FC = () => {
     try {
       const res = await fetch("/api/v1/llm/config", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(config),
       });
       if (res.ok) {
         setShowConfig(false);
+        await loadConfig();
       }
     } catch (err) {
       console.error("Failed to save config:", err);
@@ -107,7 +123,10 @@ const Chat: React.FC = () => {
 
   const deleteSession = async (id: string) => {
     try {
-      await fetch(`/api/v1/llm/sessions/${id}`, { method: "DELETE" });
+      await fetch(`/api/v1/llm/sessions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setSessions(sessions.filter((s) => s.id !== id));
       if (activeSession === id) {
         setActiveSession(null);
@@ -120,7 +139,9 @@ const Chat: React.FC = () => {
 
   const loadSession = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/llm/sessions/${id}`);
+      const res = await fetch(`/api/v1/llm/sessions/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setActiveSession(id);
@@ -165,7 +186,10 @@ const Chat: React.FC = () => {
     try {
       const res = await fetch("/api/v1/llm/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           message: userMsg.content,
           session_id: activeSession,
@@ -225,7 +249,26 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full" style={{ backgroundColor: "#0a0a0a", color: "#e0e0e0", fontFamily: "monospace" }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: "#0a0a0a", color: "#e0e0e0", fontFamily: "monospace" }}>
+      {/* API NOT CONFIGURED BANNER */}
+      {apiConfigured === false && (
+        <div
+          className="flex items-center justify-between px-4 py-2 text-sm"
+          style={{ backgroundColor: "rgba(255,0,64,0.12)", borderBottom: "1px solid rgba(255,0,64,0.4)" }}
+        >
+          <span style={{ color: "#ff0040" }}>
+            ⚠ LLM API provider not configured. Chat will not work until an API key is set.
+          </span>
+          <button
+            onClick={() => navigate("/settings")}
+            className="ml-4 px-3 py-1 text-xs font-bold hover:opacity-80"
+            style={{ backgroundColor: "#ff0040", color: "#0a0a0a" }}
+          >
+            Configure in Settings →
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 min-h-0">
       {/* LEFT COLUMN: Session Folders */}
       <div
         className="w-64 flex flex-col border-r"
@@ -578,6 +621,7 @@ const Chat: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
