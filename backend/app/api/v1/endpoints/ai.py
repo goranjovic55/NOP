@@ -15,7 +15,7 @@ import os
 router = APIRouter()
 
 MINIMAX_URL = "https://api.minimax.io/v1/text/chatcompletion_v2"
-MINIMAX_API_KEY = "sk-cp-chBYNqqOz4Mf6oWdB5myyC_SlkKuecP-rBSrEz_3HCslvk07FxlMB0zeq-WSF9A0LJORTBRwn5ZdOl_aBeM5Mczd9AdcQz-cJvPky30MVS4soqz5UXna4DM"
+MINIMAX_API_KEY = "sk-cp-i_7EhtBSBRy5tc5foq3WBBcZu6AYVUxU_sX9AEBPhB35SdRc5RdA5zybmJAljzjE9CkNZr6zOsA5hp65E0Z0luWN8XWXlBXYGc5qnDZ7xbYtaTrkZU0HV2k"
 DEFAULT_MODEL = "MiniMax-M2.5"
 
 # NOP API base URL (internal container access)

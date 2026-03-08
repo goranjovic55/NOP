@@ -35,6 +35,8 @@ services:
       - ./volumes/evidence:/app/evidence
       - ./volumes/logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.ssh/id_rsa:/root/.ssh/id_rsa:ro
+      - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
     restart: unless-stopped
     privileged: true
     cap_add:
