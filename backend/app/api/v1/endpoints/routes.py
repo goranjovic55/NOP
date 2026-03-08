@@ -90,7 +90,7 @@ def resolve_host(host: str) -> str:
 def parse_routes(output: str) -> List[RouteEntry]:
     """Parse ip route show output"""
     routes = []
-    for line in output.strip().split(n):
+    for line in output.strip().split('\n'):
         if not line:
             continue
         parts = line.split()
