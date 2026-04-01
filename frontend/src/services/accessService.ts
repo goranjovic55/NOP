@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './apiConfig';
 
-const API_URL = '/api/v1/access';
+const API_URL = `${API_BASE_URL}/access`;
 
 export interface Credential {
   id: string;

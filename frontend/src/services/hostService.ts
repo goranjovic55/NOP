@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './apiConfig';
 
-// Use relative URL to go through the React dev server proxy
-const API_URL = '/api/v1/host';
+const API_URL = `${API_BASE_URL}/host`;
 
 export interface SystemInfo {
   hostname: string;

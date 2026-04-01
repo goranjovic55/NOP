@@ -10,8 +10,9 @@ import {
   ExecutionOptions,
   CompileResult,
 } from '../types/workflow';
+import { API_BASE_URL } from './apiConfig';
 
-const API_BASE = '/api/v1/workflows';
+const API_BASE = `${API_BASE_URL}/workflows`;
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('auth_token');
